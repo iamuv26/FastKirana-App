@@ -1,0 +1,23 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Reset default web browser styles for React Native inputs */
+input, textarea, select {
+  outline: none !important;
+  outline-width: 0 !important;
+  border-width: 0 !important;
+  border-style: none !important;
+  background-color: transparent !important;
+  box-shadow: none !important;
+}
+
+/* Prevent blue/yellow background color on Chrome/Edge/Safari autofill */
+input:-webkit-autofill,
+input:-webkit-autofill:hover, 
+input:-webkit-autofill:focus, 
+input:-webkit-autofill:active {
+  transition: background-color 5000s ease-in-out 0s;
+  -webkit-text-fill-color: inherit !important;
+  caret-color: inherit !important;
+}
