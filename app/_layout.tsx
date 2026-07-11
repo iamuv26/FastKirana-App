@@ -193,26 +193,8 @@ export default function RootLayout() {
     syncStoreSettings();
     const settingsPoll = setInterval(syncStoreSettings, 60000);
 
-    // Handle notification tap to navigate to tracking page
-    let responseSubscription: any = null;
-    try {
-      // expo-notifications is not supported in Expo Go since SDK 53
-      const Constants = require('expo-constants').default;
-      const isExpoGo = Constants.appOwnership === 'expo';
-      if (!isExpoGo) {
-        const Notifications = require('expo-notifications');
-        if (Notifications && typeof Notifications.addNotificationResponseReceivedListener === 'function') {
-          responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
-            const orderId = response.notification.request.content.data?.orderId;
-            if (orderId) {
-              router.push(`/order/${orderId}`);
-            }
-          });
-        }
-      }
-    } catch (e) {
-      // Silently skip — notifications not available in this environment
-    }
+    // Notification tap handling removed — expo-notifications is not installed
+    // to prevent native Firebase startup crashes on standalone Android builds.
 
     // Redirect staff members to their console
     let redirectTimer: any = null;
@@ -227,9 +209,6 @@ export default function RootLayout() {
 
     return () => {
       clearInterval(settingsPoll);
-      if (responseSubscription) {
-        responseSubscription.remove();
-      }
       if (redirectTimer) clearTimeout(redirectTimer);
     };
   }, [isLoggedIn, user]);
