@@ -2,6 +2,7 @@ import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Search, LayoutGrid, User } from 'lucide-react-native';
 import { View, Text, Platform, StyleSheet } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
 import Logo from '../../components/shared/Logo';
 import { BlurView } from 'expo-blur';
@@ -124,14 +125,14 @@ function TabBarBackground() {
           style={StyleSheet.absoluteFill}
         />
       ) : null}
-      {/* Semi-transparent overlay for depth */}
+      {/* Solid background to prevent content showing through and overlapping */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
             backgroundColor: isDarkMode
-              ? 'rgba(17, 24, 39, 0.82)'
-              : 'rgba(255, 255, 255, 0.78)',
+              ? '#111827'
+              : '#ffffff',
           },
         ]}
       />
@@ -144,6 +145,10 @@ export default function TabsLayout() {
   const isDarkMode = theme === 'dark';
   const activeColor = '#e20a22'; // Brand red (FastKirana theme)
   const inactiveColor = isDarkMode ? '#94a3b8' : '#64748b'; // Dynamic slate color
+  const insets = useSafeAreaInsets();
+
+  const barHeight = 56 + (insets.bottom > 0 ? insets.bottom : 8);
+  const bottomPadding = insets.bottom > 0 ? insets.bottom - 4 : 8;
 
   return (
     <Tabs
@@ -156,8 +161,8 @@ export default function TabsLayout() {
           position: 'absolute',
           backgroundColor: 'transparent',
           borderTopWidth: 0,
-          height: 64,
-          paddingBottom: 10,
+          height: barHeight,
+          paddingBottom: bottomPadding,
           paddingTop: 6,
           // Top border glow via shadow (Android + iOS)
           ...Platform.select({

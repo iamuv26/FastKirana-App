@@ -4,16 +4,16 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 const { width: rawWidth } = Dimensions.get('window');
 const width = rawWidth > 768 ? 540 : rawWidth;
-import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic } from 'lucide-react-native';
+import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Bell } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming, withSequence, withDelay, Easing, FadeIn, FadeInDown, FadeInUp, ZoomIn, interpolate, runOnJS, cancelAnimation } from 'react-native-reanimated';
-import SpeedStrip from '../../components/home/SpeedStrip';
 import CategoryGrid from '../../components/home/CategoryGrid';
 import CafeFlashDeals from '../../components/home/CafeFlashDeals';
+import StoreSelectorHeader from '../../components/shared/StoreSelectorHeader';
 import Logo from '../../components/shared/Logo';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
@@ -24,16 +24,60 @@ import DealsCurationHub from '../../components/home/DealsCurationHub';
 import DeliveryBanner from '../../components/home/DeliveryBanner';
 import TimeGreetingHero from '../../components/home/TimeGreetingHero';
 import CafeCategoriesStrip from '../../components/home/CafeCategoriesStrip';
+import GroceryPromoCarousel from '../../components/home/GroceryPromoCarousel';
 import AppFooter from '../../components/home/AppFooter';
 import { useAuthStore } from '../../stores/auth-store';
 import { useUIStore } from '../../stores/ui-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { sendLocalNotification } from '../../lib/push-notifications';
 import { triggerHaptic } from '../../lib/haptic';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, formatHeaderAddress } from '../../lib/utils';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
+// Helper component for pulsing red live indicator
+function PulsingRedDot() {
+  const opacity = useSharedValue(0.4);
+
+  useEffect(() => {
+    opacity.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: 800 }),
+        withTiming(0.4, { duration: 800 })
+      ),
+      -1,
+      true
+    );
+    return () => {
+      cancelAnimation(opacity);
+    };
+  }, []);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    opacity: opacity.value,
+  }));
+
+  return (
+    <Animated.View 
+      style={[
+        {
+          width: 8,
+          height: 8,
+          borderRadius: 4,
+          backgroundColor: '#ef4444',
+          shadowColor: '#ef4444',
+          shadowOffset: { width: 0, height: 0 },
+          shadowOpacity: 0.6,
+          shadowRadius: 4,
+          elevation: 2,
+          marginRight: 6,
+        },
+        animatedStyle
+      ]} 
+    />
+  );
+}
+
 function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: boolean; paddingTop?: number }) {
   const pulse = useSharedValue(1);
   const glow = useSharedValue(0.3);
@@ -47,8 +91,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     // Clock pulse animation
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1.15, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-        withTiming(1, { duration: 1200, easing: Easing.inOut(Easing.ease) })
+        withTiming(1.1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
@@ -56,8 +100,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     // Glow ring animation
     glow.value = withRepeat(
       withSequence(
-        withTiming(0.7, { duration: 1800, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.2, { duration: 1800, easing: Easing.inOut(Easing.ease) })
+        withTiming(0.6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.15, { duration: 2000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
@@ -65,32 +109,32 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     // Blob drift animations
     blob1X.value = withRepeat(
       withSequence(
-        withTiming(30, { duration: 4000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-20, { duration: 4000, easing: Easing.inOut(Easing.ease) })
+        withTiming(30, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-20, { duration: 5000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
     );
     blob1Y.value = withRepeat(
       withSequence(
-        withTiming(-20, { duration: 3500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(25, { duration: 3500, easing: Easing.inOut(Easing.ease) })
+        withTiming(-20, { duration: 4500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(25, { duration: 4500, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
     );
     blob2X.value = withRepeat(
       withSequence(
-        withTiming(-25, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(20, { duration: 5000, easing: Easing.inOut(Easing.ease) })
+        withTiming(-25, { duration: 6000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(20, { duration: 6000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
     );
     blob2Y.value = withRepeat(
       withSequence(
-        withTiming(20, { duration: 4500, easing: Easing.inOut(Easing.ease) }),
-        withTiming(-15, { duration: 4500, easing: Easing.inOut(Easing.ease) })
+        withTiming(20, { duration: 5500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(-15, { duration: 5500, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
@@ -111,7 +155,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: glow.value,
-    transform: [{ scale: interpolate(glow.value, [0.2, 0.7], [1, 1.4]) }],
+    transform: [{ scale: interpolate(glow.value, [0.15, 0.6], [0.95, 1.35]) }],
   }));
 
   const blob1Style = useAnimatedStyle(() => ({
@@ -123,8 +167,18 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   }));
 
   const hours = [
-    { label: 'Grocery Mart', time: '6:00 AM – 12:00 AM', icon: '🛒' },
-    { label: 'FastKirana Cafe', time: '7:00 AM – 11:00 PM', icon: '☕' },
+    { 
+      label: 'Grocery Mart', 
+      time: '6:00 AM – 12:00 AM', 
+      lucideIcon: <ShoppingBag size={18} color="#e20a22" />,
+      colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
+    },
+    { 
+      label: 'FastKirana Cafe', 
+      time: '7:00 AM – 11:00 PM', 
+      lucideIcon: <Coffee size={18} color="#d97706" />,
+      colorBg: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : '#fef3c7'
+    },
   ];
 
   const handleNotify = () => {
@@ -138,22 +192,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#ffffff', paddingTop }}>
+    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe', paddingTop }}>
       {/* Gradient mesh background blobs */}
       <Animated.View
         style={[blob1Style, {
           position: 'absolute',
           top: '15%',
           left: -40,
-          width: 260,
-          height: 260,
-          borderRadius: 130,
-          opacity: isDarkMode ? 0.15 : 0.12,
+          width: 280,
+          height: 280,
+          borderRadius: 140,
+          opacity: isDarkMode ? 0.16 : 0.13,
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? ['#e20a22', '#ff6b6b', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']}
-          style={{ width: 260, height: 260, borderRadius: 130 }}
+          colors={isDarkMode ? ['#e20a22', '#ff8787', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']}
+          style={{ width: 280, height: 280, borderRadius: 140 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
@@ -163,15 +217,15 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           position: 'absolute',
           bottom: '20%',
           right: -50,
-          width: 220,
-          height: 220,
-          borderRadius: 110,
-          opacity: isDarkMode ? 0.1 : 0.08,
+          width: 240,
+          height: 240,
+          borderRadius: 120,
+          opacity: isDarkMode ? 0.11 : 0.09,
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? ['#7c3aed', '#a78bfa', '#7c3aed'] : ['#ddd6fe', '#c4b5fd', '#ddd6fe']}
-          style={{ width: 220, height: 220, borderRadius: 110 }}
+          colors={isDarkMode ? ['#7c3aed', '#c084fc', '#7c3aed'] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']}
+          style={{ width: 240, height: 240, borderRadius: 120 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
@@ -182,54 +236,54 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           position: 'absolute',
           top: '55%',
           left: '30%',
-          width: 180,
-          height: 180,
-          borderRadius: 90,
+          width: 190,
+          height: 190,
+          borderRadius: 95,
           opacity: isDarkMode ? 0.08 : 0.06,
         }}
       >
         <LinearGradient
-          colors={isDarkMode ? ['#f59e0b', '#fbbf24', '#f59e0b'] : ['#fef3c7', '#fde68a', '#fef3c7']}
-          style={{ width: 180, height: 180, borderRadius: 90 }}
+          colors={isDarkMode ? ['#f59e0b', '#fcd34d', '#f59e0b'] : ['#fef3c7', '#fde68a', '#fef3c7']}
+          style={{ width: 190, height: 190, borderRadius: 95 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
       </View>
 
       {/* Content */}
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32, paddingBottom: 40 }}>
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28, paddingBottom: 40 }}>
 
         {/* Animated Clock with glow ring */}
-        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 24 }}>
+        <Animated.View entering={ZoomIn.duration(650).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}>
           {/* Glow ring */}
           <Animated.View
             style={[glowStyle, {
               position: 'absolute',
-              width: 120,
-              height: 120,
-              borderRadius: 60,
-              backgroundColor: isDarkMode ? '#e20a22' : '#fecdd3',
+              width: 140,
+              height: 140,
+              borderRadius: 70,
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.18)' : 'rgba(226,10,34,0.08)',
             }]}
           />
           {/* Clock container */}
           <Animated.View
             style={[clockStyle, {
-              width: 88,
-              height: 88,
-              borderRadius: 44,
-              backgroundColor: isDarkMode ? '#18181b' : '#fff1f2',
+              width: 96,
+              height: 96,
+              borderRadius: 48,
+              backgroundColor: isDarkMode ? '#1c1c1f' : '#ffffff',
               justifyContent: 'center',
               alignItems: 'center',
-              borderWidth: 2,
-              borderColor: isDarkMode ? '#27272a' : '#fecdd3',
+              borderWidth: 1.5,
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.35)' : '#fda4af',
               shadowColor: '#e20a22',
-              shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.3,
+              shadowOffset: { width: 0, height: 8 },
+              shadowOpacity: isDarkMode ? 0.35 : 0.12,
               shadowRadius: 20,
               elevation: 8,
             }]}
           >
-            <Text style={{ fontSize: 40, lineHeight: 48 }}>🕐</Text>
+            <Clock size={40} color="#e20a22" strokeWidth={2.2} />
           </Animated.View>
         </Animated.View>
 
@@ -242,13 +296,14 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               paddingHorizontal: 14,
               paddingVertical: 6,
               borderRadius: 20,
-              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.15)' : 'rgba(239,68,68,0.08)',
-              marginBottom: 16,
-              gap: 6,
+              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.14)' : '#fee2e2',
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : '#fca5a5',
+              marginBottom: 18,
             }}
           >
-            <View style={{ width: 7, height: 7, borderRadius: 4, backgroundColor: '#ef4444' }} />
-            <Text style={{ fontSize: 12, fontWeight: '600', color: '#ef4444', letterSpacing: 1, textTransform: 'uppercase' }}>
+            <PulsingRedDot />
+            <Text style={{ fontSize: 11, fontWeight: '800', color: '#ef4444', letterSpacing: 1.2, textTransform: 'uppercase' }}>
               Currently Closed
             </Text>
           </View>
@@ -258,37 +313,54 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View entering={FadeInDown.delay(350).duration(500).springify()} style={{ alignItems: 'center' }}>
           <Text
             style={{
-              fontSize: 24,
-              fontWeight: '900',
-              color: isDarkMode ? '#fafafa' : '#18181b',
+              fontSize: 16,
+              fontWeight: '700',
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
               textAlign: 'center',
-              letterSpacing: -0.5,
-              lineHeight: 30,
+              letterSpacing: 0.5,
+              textTransform: 'uppercase',
             }}
           >
             We'll be back at
           </Text>
+          
+          {/* Elegant Time Capsule */}
+          <View style={{
+            backgroundColor: isDarkMode ? 'rgba(226, 10, 34, 0.08)' : 'rgba(226, 10, 34, 0.04)',
+            borderWidth: 1,
+            borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.25)' : 'rgba(226, 10, 34, 0.12)',
+            borderRadius: 24,
+            paddingHorizontal: 32,
+            paddingVertical: 10,
+            marginTop: 10,
+            shadowColor: '#e20a22',
+            shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: 0.08,
+            shadowRadius: 10,
+            elevation: 2,
+          }}>
+            <Text
+              style={{
+                fontSize: 36,
+                fontWeight: '900',
+                color: '#e20a22',
+                textAlign: 'center',
+                letterSpacing: -0.5,
+              }}
+            >
+              6:00 AM
+            </Text>
+          </View>
+          
           <Text
             style={{
-              fontSize: 40,
-              fontWeight: '900',
-              color: '#e20a22',
+              fontSize: 14,
+              color: isDarkMode ? '#d4d4d8' : '#475569',
               textAlign: 'center',
-              letterSpacing: -1,
-              marginTop: 4,
-              lineHeight: 48,
-            }}
-          >
-            6:00 AM
-          </Text>
-          <Text
-            style={{
-              fontSize: 13,
-              color: isDarkMode ? '#a1a1aa' : '#71717a',
-              textAlign: 'center',
-              marginTop: 8,
-              lineHeight: 18,
-              maxWidth: 260,
+              marginTop: 16,
+              lineHeight: 20,
+              maxWidth: 270,
+              fontWeight: '500',
             }}
           >
             Our team is resting up to bring you the freshest groceries & cafe treats tomorrow!
@@ -299,79 +371,113 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View
           entering={FadeInUp.delay(500).duration(500).springify()}
           style={{
-            marginTop: 32,
+            marginTop: 28,
             width: '100%',
-            maxWidth: 320,
-            borderRadius: 20,
+            maxWidth: 340,
+            borderRadius: 24,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: isDarkMode ? '#27272a' : '#f4f4f5',
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            shadowColor: '#000',
+            shadowOffset: { width: 0, height: 10 },
+            shadowOpacity: isDarkMode ? 0.35 : 0.05,
+            shadowRadius: 20,
+            elevation: 4,
           }}
         >
           <LinearGradient
-            colors={isDarkMode ? ['#18181b', '#1c1c1f'] : ['#ffffff', '#fafafa']}
-            style={{ paddingVertical: 20, paddingHorizontal: 20 }}
+            colors={isDarkMode ? ['rgba(24,24,27,0.92)', 'rgba(18,18,20,0.92)'] : ['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
+            style={{ padding: 20 }}
           >
-            <Text
-              style={{
-                fontSize: 11,
-                fontWeight: '700',
-                color: isDarkMode ? '#71717a' : '#a1a1aa',
-                letterSpacing: 1.5,
-                textTransform: 'uppercase',
-                marginBottom: 16,
-              }}
-            >
-              Store Hours
-            </Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+              <Text
+                style={{
+                  fontSize: 11,
+                  fontWeight: '800',
+                  color: isDarkMode ? '#a1a1aa' : '#64748b',
+                  letterSpacing: 1.2,
+                  textTransform: 'uppercase',
+                }}
+              >
+                Store Hours
+              </Text>
+              <View style={{
+                paddingHorizontal: 8,
+                paddingVertical: 3,
+                borderRadius: 10,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+              }}>
+                <Text style={{ fontSize: 9, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569' }}>Daily</Text>
+              </View>
+            </View>
+
             {hours.map((item, idx) => (
-              <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', marginBottom: idx < hours.length - 1 ? 16 : 0 }}>
+              <View 
+                key={idx} 
+                style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  paddingVertical: 12,
+                  borderBottomWidth: idx < hours.length - 1 ? 1 : 0,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                }}
+              >
                 {/* Timeline dot & line */}
-                <View style={{ alignItems: 'center', marginRight: 14, width: 20 }}>
-                  <View
-                    style={{
-                      width: 32,
-                      height: 32,
-                      borderRadius: 16,
-                      backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text style={{ fontSize: 16 }}>{item.icon}</Text>
-                  </View>
+                <View style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 19,
+                  backgroundColor: item.colorBg,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  marginRight: 14,
+                }}>
+                  {item.lucideIcon}
                 </View>
+                
                 {/* Info */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '700', color: isDarkMode ? '#e4e4e7' : '#27272a' }}>
+                  <Text style={{ fontSize: 14, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: 12, color: isDarkMode ? '#71717a' : '#a1a1aa', marginTop: 2 }}>
+                  <Text style={{ fontSize: 12, color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2, fontWeight: '500' }}>
                     {item.time}
                   </Text>
                 </View>
-                {/* Clock icon */}
-                <Clock size={16} color={isDarkMode ? '#52525b' : '#d4d4d8'} />
+
+                {/* Status Pill */}
+                <View style={{
+                  width: 26,
+                  height: 26,
+                  borderRadius: 13,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                }}>
+                  <Clock size={12} color={isDarkMode ? '#71717a' : '#94a3b8'} />
+                </View>
               </View>
             ))}
           </LinearGradient>
         </Animated.View>
 
         {/* Notify me button */}
-        <Animated.View entering={FadeInUp.delay(650).duration(500).springify()} style={{ marginTop: 28, width: '100%', maxWidth: 320 }}>
+        <Animated.View entering={FadeInUp.delay(650).duration(500).springify()} style={{ marginTop: 28, width: '100%', maxWidth: 340 }}>
           <Pressable
             onPress={handleNotify}
             disabled={notified}
             style={({ pressed }) => ({
               borderRadius: 16,
               overflow: 'hidden',
-              opacity: pressed ? 0.85 : 1,
-              transform: [{ scale: pressed ? 0.97 : 1 }],
+              opacity: pressed ? 0.88 : 1,
+              transform: [{ scale: pressed ? 0.98 : 1 }],
             })}
           >
             <LinearGradient
               colors={notified
-                ? (isDarkMode ? ['#166534', '#15803d'] : ['#bbf7d0', '#86efac'])
+                ? (isDarkMode ? ['#15803d', '#16a34a'] : ['#dcfce7', '#bbf7d0'])
                 : ['#e20a22', '#dc2626']
               }
               start={{ x: 0, y: 0 }}
@@ -382,19 +488,23 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',
-                gap: 8,
+                gap: 10,
+                shadowColor: '#e20a22',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: notified ? 0 : 0.25,
+                shadowRadius: 10,
               }}
             >
               {notified ? (
                 <>
-                  <Check size={18} color={isDarkMode ? '#bbf7d0' : '#166534'} strokeWidth={3} />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#166534' }}>
+                  <Check size={18} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
+                  <Text style={{ fontSize: 15, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d' }}>
                     You'll be Notified!
                   </Text>
                 </>
               ) : (
                 <>
-                  <Moon size={18} color="#ffffff" strokeWidth={2.5} />
+                  <Bell size={18} color="#ffffff" strokeWidth={2.2} />
                   <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff', letterSpacing: 0.3 }}>
                     Notify Me When Open
                   </Text>
@@ -406,7 +516,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
         {/* Subtle bottom text */}
         <Animated.View entering={FadeIn.delay(800).duration(600)}>
-          <Text style={{ marginTop: 20, fontSize: 11, color: isDarkMode ? '#3f3f46' : '#d4d4d8', textAlign: 'center' }}>
+          <Text style={{ marginTop: 20, fontSize: 11, color: isDarkMode ? '#3f3f46' : '#94a3b8', textAlign: 'center', fontWeight: '500' }}>
             FastKirana · Delivery in 10 minutes
           </Text>
         </Animated.View>
@@ -457,7 +567,7 @@ function PulsingStatusDot() {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 130 : 135;
+  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 152 : 156;
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -565,14 +675,14 @@ export default function HomeScreen() {
   // Query Cafe Products from Server
   // Fetch ALL cafe products from API (no hardcoded fallback)
   const { data: cafeProducts = [] } = useQuery<any[]>({
-    queryKey: ['cafe-products-home', assignedStoreId],
+    queryKey: ['cafe-products', assignedStoreId],
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
       if (!response.ok) throw new Error('API Failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 1000 * 60 * 2, // 2 min cache
+    staleTime: 1000 * 60 * 5, // 5 min cache
   });
 
   const getIsNonVeg = (item: any) => {
@@ -777,16 +887,18 @@ export default function HomeScreen() {
   };
 
   const suggestionIndexRef = useRef(0);
+  const rotateSuggestion = () => {
+    const nextIdx = (suggestionIndexRef.current + 1) % searchSuggestions.length;
+    suggestionIndexRef.current = nextIdx;
+    setCurrentSuggestion(searchSuggestions[nextIdx]);
+    placeholderOpacity.value = withTiming(1, { duration: 250 });
+  };
+
   useEffect(() => {
     const interval = setInterval(() => {
       placeholderOpacity.value = withTiming(0, { duration: 250 }, (isFinished) => {
         if (isFinished) {
-          runOnJS(() => {
-            const nextIdx = (suggestionIndexRef.current + 1) % searchSuggestions.length;
-            suggestionIndexRef.current = nextIdx;
-            setCurrentSuggestion(searchSuggestions[nextIdx]);
-            placeholderOpacity.value = withTiming(1, { duration: 250 });
-          })();
+          runOnJS(rotateSuggestion)();
         }
       });
     }, 3000);
@@ -895,7 +1007,7 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 1000 * 60 * 2, // 2 min cache
+    staleTime: 1000 * 60 * 5, // 5 min cache for ultra-fast loading
   });
 
   // Helper to identify if a product is a Cafe product
@@ -977,7 +1089,20 @@ export default function HomeScreen() {
   }, [products]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950 relative">
+    <View className="flex-1 bg-white dark:bg-zinc-950 relative">
+      {/* Status Bar Solid Blocker */}
+      <View 
+        style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          height: insets.top, 
+          backgroundColor: isDarkMode ? '#09090b' : '#ffffff', 
+          zIndex: 25 
+        }} 
+      />
+
       {/* Gradient Mesh Blobs */}
       <View className="absolute inset-0 overflow-hidden pointer-events-none z-0" style={{ pointerEvents: 'none' }}>
         <LinearGradient
@@ -995,9 +1120,9 @@ export default function HomeScreen() {
         <View
           style={{
             paddingHorizontal: 16,
-            paddingTop: insets.top > 0 ? insets.top + 6 : 12,
-            paddingBottom: 12,
-            backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)',
+            paddingTop: insets.top > 0 ? insets.top + 5 : 8,
+            paddingBottom: 8,
+            backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
@@ -1020,84 +1145,139 @@ export default function HomeScreen() {
             pointerEvents={isCollapsed ? 'none' : 'auto'}
             style={[
               topRowAnimatedStyle,
-              { 
-                flexDirection: 'row', 
-                justifyContent: 'space-between', 
-                alignItems: 'center', 
-                marginBottom: 12,
-                width: '100%'
-              }
+              { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%' }
             ]}
           >
             <Pressable 
               onPress={() => {
                 triggerHaptic('light');
-                router.push('/location-picker');
+                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
               }}
-              style={({ pressed }) => [
-                {
-                  flex: 1,
-                  marginRight: 16,
-                  opacity: pressed ? 0.85 : 1,
-                }
-              ]}
+              style={({ pressed }) => ({
+                transform: [{ scale: pressed ? 0.97 : 1 }]
+              })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                {/* Logo wrapper for perfect alignment */}
-                <View className="bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-xs">
-                  <Logo size={24} />
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ 
+                  backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                  width: 32,
+                  height: 32,
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderRadius: 8, 
+                  borderWidth: 1, 
+                  borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                  flexShrink: 0
+                }}>
+                  <Logo size={22} />
                 </View>
-                
-                {/* Text column */}
-                <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View style={{ backgroundColor: isDarkMode ? '#be123c' : '#e11d48', borderRadius: 6, paddingHorizontal: 8, paddingVertical: 3, flexShrink: 0, flexDirection: 'row', alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900', letterSpacing: 1.2, textTransform: 'uppercase', flexShrink: 0 }} numberOfLines={1}>INSTANT</Text>
-                    </View>
-                    <Text style={{ marginLeft: 6, color: isDarkMode ? '#71717a' : '#94a3b8', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 1 }}>
-                      Delivery to
-                    </Text>
-                  </View>
-                  
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <Text 
-                      className="text-slate-800 dark:text-zinc-100 text-sm font-black tracking-tight"
-                      numberOfLines={1}
-                      style={{ maxWidth: '85%' }}
-                    >
-                      {selectedLocation && selectedLocation.startsWith('Lat:') ? 'Swaroop Nagar, Kanpur' : (selectedLocation || 'Select Location')}
-                    </Text>
-                    <ChevronDown size={12} color={isDarkMode ? '#e4e4e7' : '#1e293b'} style={{ marginLeft: 2 }} />
-                  </View>
+                <View style={{ marginLeft: 6 }}>
+                  <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                    <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                    <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                  </Text>
+                  <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                    DELIVERY APP
+                  </Text>
                 </View>
               </View>
             </Pressable>
 
-            {/* Right: Theme Toggle */}
+            {/* Right: Location Capsule Picker */}
             <Pressable 
               onPress={() => {
-                toggleTheme();
                 triggerHaptic('light');
+                router.push('/location-picker');
               }}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.92 : 1 }],
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-              }]}
+              style={({ pressed }) => ({
+                opacity: pressed ? 0.85 : 1,
+                transform: [{ scale: pressed ? 0.96 : 1 }],
+                maxWidth: '60%'
+              })}
             >
-              {isDarkMode ? (
-                <Sun size={16} color="#fbbf24" />
-              ) : (
-                <Moon size={16} color="#3b82f6" />
-              )}
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+                borderRadius: 20, 
+                paddingHorizontal: 8, 
+                paddingVertical: 5,
+                justifyContent: 'center',
+              }}>
+                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+                <Text 
+                  numberOfLines={1} 
+                  style={{ 
+                    fontSize: 10, 
+                    fontWeight: 'bold', 
+                    color: isDarkMode ? '#fafafa' : '#0f172a',
+                    flexShrink: 1,
+                    marginRight: 3
+                  }}
+                >
+                  {formatHeaderAddress(selectedLocation)}
+                </Text>
+                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+              </View>
             </Pressable>
           </Animated.View>
+
+          {/* Store Switcher Tab Pills - Inline */}
+          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginVertical: 10 }}>
+            {/* Grocery Pill (Active) */}
+            <Pressable
+              onPress={() => {
+                triggerHaptic('light');
+              }}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 38,
+                borderRadius: 19,
+                paddingHorizontal: 12,
+                borderWidth: 1.5,
+                backgroundColor: '#e20a22',
+                borderColor: '#e20a22',
+                marginRight: 8,
+                elevation: 1,
+              }}
+            >
+              <ShoppingBag size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 5 }} />
+              <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#ffffff' }}>
+                Grocery
+              </Text>
+            </Pressable>
+
+            {/* Café Pill (Inactive) */}
+            <Pressable
+              onPress={() => {
+                triggerHaptic('light');
+                router.push('/cafe');
+              }}
+              style={{
+                flex: 1,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                height: 38,
+                borderRadius: 19,
+                paddingHorizontal: 12,
+                borderWidth: 1.5,
+                backgroundColor: '#ffffff',
+                borderColor: '#fed7aa',
+                elevation: 1,
+              }}
+            >
+              <Coffee size={14} color="#ea580c" strokeWidth={2.5} style={{ marginRight: 5 }} />
+              <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#ea580c' }}>
+                Café
+              </Text>
+            </Pressable>
+          </View>
 
           {/* Bottom Row: Search Box Shortcut */}
           <Pressable 
@@ -1119,7 +1299,11 @@ export default function HomeScreen() {
             <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }, placeholderStyle]}>
               {currentSuggestion}
             </Animated.Text>
-            <Mic size={16} color="#94a3b8" />
+            
+            {/* Vertical Divider */}
+            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+            
+            <Mic size={16} color="#16a34a" />
           </Pressable>
         </View>
         {/* Glassmorphic border underline line */}
@@ -1374,28 +1558,12 @@ export default function HomeScreen() {
           contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 160 }} 
           showsVerticalScrollIndicator={false}
         >
-          {/* Warning Banner: Grocery is open, Cafe is closed */}
-          {!cafeOpen && (
-            <LinearGradient
-              colors={['#f97316', '#e11d48']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ marginHorizontal: 16, marginBottom: 16, borderRadius: 12 }}
-            >
-              <View className="flex-row items-center justify-center py-2.5 px-4">
-                <Text className="text-white text-xs font-black text-center">
-                  ⚠️ Cafe Kitchen is temporarily closed. Grocery Mart is open! 🛒
-                </Text>
-              </View>
-            </LinearGradient>
-          )}
-
-          {/* Time Greeting Hero */}
-          <TimeGreetingHero />
+          {/* Top Promotional Carousel Banner */}
+          <GroceryPromoCarousel />
 
           {/* Category Grid Section Title */}
           <View className="px-4 flex-row justify-between items-center mb-3">
-            <Text className="text-title text-base">Trending Categories</Text>
+            <Text className="text-base font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>Trending Categories</Text>
             <Pressable 
               onPress={() => {
                 triggerHaptic('light');
@@ -1414,79 +1582,10 @@ export default function HomeScreen() {
           {/* Category Grid (2 rows x 4 icons) */}
           <CategoryGrid />
 
-          {/* Speed ticker strip */}
-          <SpeedStrip />
 
-          {/* FastKirana Café banner - Premium Cinematic Entrance */}
-          <Pressable 
-            onPress={() => {
-              triggerHaptic('light');
-              router.push('/cafe');
-            }}
-            style={({ pressed }) => [{
-              transform: [{ scale: pressed ? 0.98 : 1 }],
-              shadowColor: '#f59e0b',
-              shadowOffset: { width: 0, height: 6 },
-              shadowOpacity: isDarkMode ? 0.15 : 0.08,
-              shadowRadius: 12,
-              elevation: 4,
-            }]}
-            className="mx-4 mb-5 h-44 rounded-2xl overflow-hidden border border-amber-500/20"
-          >
-            {/* Food photography background */}
-            {Platform.OS === 'web' ? (
-              <RNImage
-                source={require('../../assets/cafe_banner.png')}
-                style={StyleSheet.absoluteFill}
-                resizeMode="cover"
-              />
-            ) : (
-              <ExpoImage 
-                source={require('../../assets/cafe_banner.png')}
-                style={StyleSheet.absoluteFill}
-                contentFit="cover"
-              />
-            )}
-            {/* Rich cinematic dark gradient overlay */}
-            <LinearGradient
-              colors={['rgba(0,0,0,0.15)', 'rgba(0,0,0,0.65)', 'rgba(0,0,0,0.92)']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 0, y: 1 }}
-              style={StyleSheet.absoluteFill}
-            />
 
-            {/* Banner content */}
-            <View className="flex-1 justify-end p-5 z-10">
-              <View className="flex-row items-end justify-between">
-                <View className="flex-1 pr-4">
-                  {/* LIVE KITCHEN Badge with pulsing indicator */}
-                  <View className="flex-row items-center gap-1.5 self-start bg-emerald-500/10 border border-emerald-500/25 px-2.5 py-0.5 rounded-full mb-2.5 shadow-xs">
-                    <PulsingStatusDot />
-                    <Text className="text-emerald-400 font-extrabold text-[8.5px] uppercase tracking-wider">LIVE KITCHEN</Text>
-                  </View>
-                  
-                  <View className="flex-row items-center gap-2">
-                    <Text className="text-white font-light text-2xl tracking-tight leading-none" style={{ textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>
-                      FastKirana <Text className="font-black text-amber-300">Café</Text>
-                    </Text>
-                    <Text style={{ fontSize: 18 }}>☕</Text>
-                  </View>
-                  <Text className="text-zinc-200 text-[11px] font-semibold mt-2 leading-relaxed max-w-[280px]" numberOfLines={2} style={{ textShadowColor: 'rgba(0,0,0,0.5)', textShadowOffset: { width: 0, height: 1 }, textShadowRadius: 6 }}>
-                    Freshly prepared sandwiches, rolls, Chinese, Italian pasta & beverages — delivered hot!
-                  </Text>
-                </View>
-
-                {/* Menu Button - Gradient & Shadow */}
-                <View className="bg-rose-600 border border-rose-500/30 px-4 py-2 rounded-full flex-row items-center gap-1 shadow-md">
-                  <Text className="text-white font-black text-[10px] uppercase tracking-wider">Order Now</Text>
-                  <ChevronRight size={10} color="#ffffff" strokeWidth={3.5} />
-                </View>
-              </View>
-            </View>
-          </Pressable>
-
-          {/* Cafe Categories Horizontal scroll strip */}
-          <CafeCategoriesStrip />
+          {/* Time Greeting Hero */}
+          <TimeGreetingHero />
 
           {/* Active Order Tracker */}
           {activeOrder && (
@@ -1594,7 +1693,7 @@ export default function HomeScreen() {
           )}
 
           {/* Curated For You (Deals Curation Hub) */}
-          <DealsCurationHub products={products} />
+          <DealsCurationHub products={products} isLoading={isLoading} />
 
           {/* Delivery & Value Propositions Banner */}
           <DeliveryBanner />
@@ -1609,6 +1708,6 @@ export default function HomeScreen() {
 
       {/* Shared Sticky Bottom Cart Bar */}
       <FloatingCartBar bottomOffset={88} />
-    </SafeAreaView>
+    </View>
   );
 }

@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     padding: 10,
     marginBottom: 12,
-    minHeight: 260,
+    height: 250,
   },
   imagePlaceholder: {
     height: 130,

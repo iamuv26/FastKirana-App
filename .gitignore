@@ -43,5 +43,7 @@ yarn-error.*
 /android
 
 app-debug.apk
+fastkirana-latest.apk
+*.apk
 android/app/build/
 

@@ -1,13 +1,15 @@
-import React, { useEffect, useState, useRef, useMemo } from 'react';
-import { View, Text, Pressable, Animated } from 'react-native';
+import React, { useEffect, useState, useMemo } from 'react';
+import { View, Text, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate } from 'react-native-reanimated';
 import { useUIStore } from '../../stores/ui-store';
 import { useTheme } from '../../app/context/ThemeContext';
 import { Coffee, Utensils, Cookie, Moon, ArrowRight, MapPin } from 'lucide-react-native';
 import { triggerHaptic } from '../../lib/haptic';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../../lib/constants';
+import { router } from 'expo-router';
 
 export default function TimeGreetingHero() {
   const { theme } = useTheme();
@@ -15,7 +17,7 @@ export default function TimeGreetingHero() {
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
-  const pulseAnim = useRef(new Animated.Value(1)).current;
+  const pulse = useSharedValue(1);
   const [currentHour, setCurrentHour] = useState<number>(new Date().getHours());
 
   // 1. Fetch live settings from backend database
@@ -30,21 +32,12 @@ export default function TimeGreetingHero() {
   });
 
   useEffect(() => {
-    // Pulse animation
-    Animated.loop(
-      Animated.sequence([
-        Animated.timing(pulseAnim, {
-          toValue: 1.6,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-        Animated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 1000,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
+    // Pulse animation using Reanimated
+    pulse.value = withRepeat(
+      withTiming(1.6, { duration: 1000 }),
+      -1, // infinite loop
+      true // reverse direction (alternate between 1 and 1.6)
+    );
 
     // Dynamic local time tracking (since device is in India/IST)
     const updateHour = () => {
@@ -55,6 +48,19 @@ export default function TimeGreetingHero() {
     const interval = setInterval(updateHour, 60000);
     return () => clearInterval(interval);
   }, []);
+
+  const animatedDotStyle = useAnimatedStyle(() => {
+    const scale = pulse.value;
+    const opacity = interpolate(
+      pulse.value,
+      [1, 1.6],
+      [0.8, 0]
+    );
+    return {
+      transform: [{ scale }],
+      opacity,
+    };
+  });
 
   // 2. Resolve dynamic greetings & styling parameters based on operational status and time
   const themeConfig = useMemo(() => {
@@ -68,7 +74,9 @@ export default function TimeGreetingHero() {
         badgeBg: 'bg-rose-50 dark:bg-rose-950/20',
         badgeBorder: 'border-rose-100 dark:border-rose-900/30',
         badgeText: 'text-rose-700 dark:text-rose-450',
-        dotColor: 'bg-rose-500'
+        dotColor: 'bg-rose-500',
+        lightGradient: ['#fff1f2', '#ffe4e6'] as [string, string],
+        darkGradient: ['#1f1214', '#110507'] as [string, string]
       };
     }
 
@@ -89,7 +97,9 @@ export default function TimeGreetingHero() {
         badgeBg: 'bg-amber-50 dark:bg-amber-950/20',
         badgeBorder: 'border-amber-100 dark:border-amber-900/30',
         badgeText: 'text-amber-700 dark:text-amber-450',
-        dotColor: 'bg-amber-500'
+        dotColor: 'bg-amber-500',
+        lightGradient: ['#ffedd5', '#fef3c7'] as [string, string],
+        darkGradient: ['#291305', '#170b03'] as [string, string]
       };
     }
     // 11 AM - 4 PM: Lunch Mode
@@ -109,7 +119,9 @@ export default function TimeGreetingHero() {
         badgeBg: 'bg-emerald-50 dark:bg-emerald-950/20',
         badgeBorder: 'border-emerald-100 dark:border-emerald-900/30',
         badgeText: 'text-emerald-700 dark:text-emerald-450',
-        dotColor: 'bg-emerald-500'
+        dotColor: 'bg-emerald-500',
+        lightGradient: ['#f0fdf4', '#dcfce7'] as [string, string],
+        darkGradient: ['#022c22', '#021811'] as [string, string]
       };
     }
     // 4 PM - 8 PM: Evening Snacks Mode
@@ -129,7 +141,9 @@ export default function TimeGreetingHero() {
         badgeBg: 'bg-orange-50 dark:bg-orange-950/20',
         badgeBorder: 'border-orange-100 dark:border-orange-900/30',
         badgeText: 'text-orange-700 dark:text-orange-450',
-        dotColor: 'bg-orange-500'
+        dotColor: 'bg-orange-500',
+        lightGradient: ['#ffedd5', '#ffe4e6'] as [string, string],
+        darkGradient: ['#311005', '#1a0802'] as [string, string]
       };
     }
     // 8 PM - 6 AM: Late Night Cravings Mode
@@ -149,110 +163,85 @@ export default function TimeGreetingHero() {
         badgeBg: 'bg-indigo-50 dark:bg-indigo-950/20',
         badgeBorder: 'border-indigo-100 dark:border-indigo-900/30',
         badgeText: 'text-indigo-700 dark:text-indigo-400',
-        dotColor: 'bg-indigo-500'
+        dotColor: 'bg-indigo-500',
+        lightGradient: ['#f5f3ff', '#ede9fe'] as [string, string],
+        darkGradient: ['#0f0a21', '#060410'] as [string, string]
       };
     }
   }, [currentHour, groceryMartOpen, cafeOpen, settings]);
 
   return (
     <View className="mx-4 mb-5">
-      {/* Time-Aware Greeting Badge */}
-      <View className={`flex-row items-center gap-1.5 self-start px-3 py-1 rounded-full mb-2.5 border ${themeConfig.badgeBg} ${themeConfig.badgeBorder}`}>
-        <View className="relative flex justify-center items-center w-3 h-3">
-          <Animated.View 
-            style={{
-              transform: [{ scale: pulseAnim }],
-              opacity: pulseAnim.interpolate({
-                inputRange: [1, 1.6],
-                outputRange: [0.8, 0],
-              }),
-            }}
-            className={`w-1.5 h-1.5 rounded-full absolute ${themeConfig.dotColor}`} 
-          />
-          <View className={`w-1.5 h-1.5 rounded-full ${themeConfig.dotColor}`} />
-        </View>
-        <View className="flex-row items-center gap-1">
-          {themeConfig.icon}
-          <Text className={`text-[10px] font-black uppercase tracking-wider ${themeConfig.badgeText}`}>
-            {themeConfig.badge}
-          </Text>
-        </View>
-      </View>
-
-      <Text className="text-slate-800 dark:text-zinc-100 text-lg font-black leading-tight">
-        {themeConfig.greeting}
-      </Text>
-      <Text className="text-slate-400 dark:text-zinc-400 text-[11px] font-medium mt-1 leading-normal">
-        {themeConfig.subtitle}
-      </Text>
-
-      {/* Delivery Location Hero Card */}
       <LinearGradient
-        colors={isDarkMode ? ['#241518', '#1c0f11'] : ['#fff5f5', '#fffcfc']}
+        colors={isDarkMode ? themeConfig.darkGradient : themeConfig.lightGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
-          marginTop: 16,
           borderRadius: 20,
           borderWidth: 1,
-          borderColor: isDarkMode ? 'rgba(244,63,94,0.15)' : '#ffe4e6',
-          padding: 16,
-          flexDirection: 'row',
-          alignItems: 'center',
-          justifyContent: 'space-between',
-          gap: 16,
-          shadowColor: '#f43f5e',
-          shadowOffset: { width: 0, height: 4 },
-          shadowOpacity: isDarkMode ? 0.05 : 0.02,
-          shadowRadius: 10,
-          elevation: 1,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+          padding: 12,
+          position: 'relative',
+          overflow: 'hidden',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: isDarkMode ? 0.15 : 0.02,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: 2,
+            },
+          }),
         }}
       >
-        {/* Left Side Info */}
-        <View className="flex-1 justify-center">
-          <View className="flex-row items-center gap-1">
-            <MapPin size={10} color="#e20a22" />
-            <Text className="text-rose-600 dark:text-rose-400 text-[9px] font-black tracking-widest uppercase">
-              Fast Delivery In
+        {/* Glossy decorative background accents */}
+        <View className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full border border-white/5 bg-white/[0.03] z-0" />
+        <View className="absolute right-[-20px] bottom-[-20px] w-36 h-36 rounded-full border border-white/10 bg-white/[0.05] z-0" />
+
+        <View className="flex-row justify-between items-start gap-4">
+          <View className="flex-1">
+            {/* Time-Aware Greeting Badge */}
+            <View className={`flex-row items-center gap-1.5 self-start px-2 py-0.5 rounded-full mb-2 border ${themeConfig.badgeBg} ${themeConfig.badgeBorder}`}>
+              <View className="relative flex justify-center items-center w-2.5 h-2.5">
+                <Animated.View 
+                  style={animatedDotStyle}
+                  className={`w-1.5 h-1.5 rounded-full absolute ${themeConfig.dotColor}`} 
+                />
+                <View className={`w-1.5 h-1.5 rounded-full ${themeConfig.dotColor}`} />
+              </View>
+              <View className="flex-row items-center gap-1">
+                {themeConfig.icon}
+                <Text className={`text-[9px] font-black uppercase tracking-wider ${themeConfig.badgeText}`}>
+                  {themeConfig.badge}
+                </Text>
+              </View>
+            </View>
+
+            <Text className="text-base font-black leading-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+              {themeConfig.greeting}
+            </Text>
+            <Text className="text-[10px] font-semibold mt-1 leading-normal" style={{ color: isDarkMode ? '#cbd5e1' : '#475569' }}>
+              {themeConfig.subtitle}
             </Text>
           </View>
-          
-          <Text className="text-slate-800 dark:text-zinc-100 text-lg font-black mt-1 leading-tight" numberOfLines={1}>
-            {selectedLocation || 'Ghatampur'}
-          </Text>
-          
-          <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-semibold mt-1.5 leading-normal" numberOfLines={2}>
-            Milk, Fruits, Vegetables, Snacks & more
-          </Text>
 
-          <Pressable 
-            onPress={() => {
-              triggerHaptic('light');
-            }}
-            style={({ pressed }) => [{
-              transform: [{ scale: pressed ? 0.96 : 1 }],
-              opacity: pressed ? 0.9 : 1
-            }]}
-            className="flex-row items-center gap-1.5 bg-rose-600 rounded-full px-4 py-1.5 mt-3.5 self-start shadow-sm"
+          {/* Right Side Illustration - Polaroid Photo Sticker Frame */}
+          <View 
+            style={{ transform: [{ rotate: '4deg' }], marginTop: 2 }}
+            className="w-16 h-16 rounded-xl bg-white p-1 border border-slate-100 dark:border-zinc-800 shadow-md overflow-hidden justify-center items-center"
           >
-            <Text className="text-white font-bold text-[11px]">Shop Now</Text>
-            <ArrowRight size={11} color="#ffffff" strokeWidth={3} />
-          </Pressable>
+            <Image
+              source={require('../../assets/grocery_bag_banner.png')}
+              style={{ width: '100%', height: '100%' }}
+              contentFit="cover"
+            />
+          </View>
         </View>
 
-        {/* Right Side Illustration - Polaroid Photo Sticker Frame */}
-        <View 
-          style={{ transform: [{ rotate: '4deg' }] }}
-          className="w-24 h-24 rounded-2xl bg-white p-1 border border-slate-100 dark:border-zinc-800 shadow-md overflow-hidden justify-center items-center"
-        >
-          <Image
-            source={require('../../assets/grocery_bag_banner.png')}
-            style={{ width: '100%', height: '100%' }}
-            contentFit="cover"
-          />
-        </View>
+
       </LinearGradient>
     </View>
   );
 }
-

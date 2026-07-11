@@ -4,7 +4,7 @@ import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { API_BASE_URL } from '../../lib/constants';
-import Animated, { FadeInDown } from 'react-native-reanimated';
+import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { triggerHaptic } from '../../lib/haptic';
 import { useTheme } from '../../app/context/ThemeContext';
 import { getAppImageSource } from '../../lib/utils';
@@ -29,6 +29,88 @@ const LOCAL_CONFIGS: Record<string, LocalConfig> = {
   'household': { name: 'Home Care', image: require('../../assets/household_category.png'), colors: ['#ecfeff', '#cffafe'], darkColors: ['#164e63', '#083344'] },
 };
 
+function CategoryGridItem({ category, index, isDarkMode }: { category: any; index: number; isDarkMode: boolean }) {
+  const scale = useSharedValue(1);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }]
+  }));
+
+  return (
+    <Animated.View
+      entering={FadeInDown.duration(250).delay(index * 20)}
+      style={{ width: 72, alignItems: 'center' }}
+    >
+      <Animated.View style={[{ width: '100%', alignItems: 'center' }, animatedStyle]}>
+        <Pressable
+          onPress={() => {
+            triggerHaptic('light');
+            router.push(`/category/${category.slug}`);
+          }}
+          onPressIn={() => {
+            scale.value = withSpring(0.93, { damping: 12, stiffness: 180 });
+          }}
+          onPressOut={() => {
+            scale.value = withSpring(1, { damping: 12, stiffness: 180 });
+          }}
+          className="items-center w-full"
+        >
+          {/* Squircle Capsule Container */}
+          <View 
+            style={{
+              width: 62,
+              height: 62,
+              borderRadius: 31,
+              overflow: 'hidden',
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 1,
+                },
+                web: {
+                  // @ts-ignore
+                  boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)',
+                }
+              })
+            }}
+          >
+            {/* Visual Gradient Background */}
+            <LinearGradient
+              colors={isDarkMode ? category.darkColors : category.colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
+
+            <ExpoImage 
+              source={category.source}
+              contentFit="cover"
+              style={{ width: '100%', height: '100%' }}
+            />
+          </View>
+          
+          {/* Label */}
+          <Text 
+            numberOfLines={1} 
+            className="text-zinc-800 dark:text-zinc-200 text-[10px] font-black text-center mt-2.5 tracking-tight leading-3 w-full"
+          >
+            {category.name}
+          </Text>
+        </Pressable>
+      </Animated.View>
+    </Animated.View>
+  );
+}
+
 export default function CategoryGrid() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -41,34 +123,27 @@ export default function CategoryGrid() {
       return res.json();
     },
     initialData: [],
+    staleTime: 1000 * 60 * 15, // 15 mins cache validity
   });
 
   const displayCategories = useMemo(() => {
-    if (serverCategories.length > 0) {
-      return serverCategories.map(cat => {
-        const local = LOCAL_CONFIGS[cat.slug] || {
-          name: cat.name,
-          image: null,
-          colors: ['#fff5f5', '#ffe4e6'] as [string, string],
-          darkColors: ['#881337', '#4c0519'] as [string, string]
-        };
-        const source = local.image || getAppImageSource(cat.imageUrl);
-        return {
-          name: local.name,
-          slug: cat.slug,
-          colors: local.colors,
-          darkColors: local.darkColors,
-          source
-        };
-      });
-    }
-    return Object.keys(LOCAL_CONFIGS).map(slug => ({
-      name: LOCAL_CONFIGS[slug].name,
-      slug,
-      colors: LOCAL_CONFIGS[slug].colors,
-      darkColors: LOCAL_CONFIGS[slug].darkColors,
-      source: LOCAL_CONFIGS[slug].image
-    }));
+    // Map local configurations and merge server properties if found to ensure they never disappear
+    return Object.keys(LOCAL_CONFIGS).map(slug => {
+      const local = LOCAL_CONFIGS[slug];
+      const serverCat = serverCategories.find(c => c.slug === slug);
+      
+      const source = (serverCat && serverCat.imageUrl) 
+        ? getAppImageSource(serverCat.imageUrl) 
+        : local.image;
+
+      return {
+        name: local.name,
+        slug: slug,
+        colors: local.colors,
+        darkColors: local.darkColors,
+        source: source
+      };
+    });
   }, [serverCategories]);
 
   // Exclude cafe from scroll strip since it has the prominent cover banner below it
@@ -81,83 +156,16 @@ export default function CategoryGrid() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 14, paddingBottom: 4 }}
+        contentContainerStyle={{ flexDirection: 'row', paddingHorizontal: 16, gap: 14, paddingBottom: 4 }}
         decelerationRate="fast"
       >
         {scrollCategories.map((category, index) => (
-          <Animated.View
+          <CategoryGridItem 
             key={category.slug}
-            entering={FadeInDown.delay(index * 35).springify().damping(14)}
-            style={{ width: 72, alignItems: 'center' }}
-          >
-            <Pressable
-              onPress={() => {
-                triggerHaptic('light');
-                router.push(`/category/${category.slug}`);
-              }}
-              style={({ pressed }) => [{ transform: [{ scale: pressed ? 0.94 : 1 }] }]}
-              className="items-center w-full"
-            >
-              {/* Squircle Capsule Container */}
-              <View 
-                style={{
-                  width: 62,
-                  height: 62,
-                  borderRadius: 20,
-                  overflow: 'hidden',
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  ...Platform.select({
-                    ios: {
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 2 },
-                      shadowOpacity: 0.04,
-                      shadowRadius: 4,
-                    },
-                    android: {
-                      elevation: 1,
-                    },
-                    web: {
-                      // @ts-ignore
-                      boxShadow: '0 4px 6px -1px rgba(0,0,0,0.02), 0 2px 4px -1px rgba(0,0,0,0.01)',
-                    }
-                  })
-                }}
-              >
-                {/* Visual Gradient Background */}
-                <LinearGradient
-                  colors={isDarkMode ? category.darkColors : category.colors}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={StyleSheet.absoluteFill}
-                />
-
-                {Platform.OS === 'web' ? (
-                  <RNImage 
-                    source={typeof category.source === 'string' ? { uri: category.source } : category.source}
-                    resizeMode="contain"
-                    style={{ width: '82%', height: '82%' }}
-                  />
-                ) : (
-                  <ExpoImage 
-                    source={category.source}
-                    contentFit="contain"
-                    className="w-[82%] h-[82%]"
-                  />
-                )}
-              </View>
-              
-              {/* Label */}
-              <Text 
-                numberOfLines={1} 
-                className="text-zinc-800 dark:text-zinc-200 text-[10px] font-black text-center mt-2.5 tracking-tight leading-3 w-full"
-              >
-                {category.name}
-              </Text>
-            </Pressable>
-          </Animated.View>
+            category={category}
+            index={index}
+            isDarkMode={isDarkMode}
+          />
         ))}
       </ScrollView>
     </View>

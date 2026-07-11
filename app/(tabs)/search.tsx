@@ -1,8 +1,9 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { Search, X, ShoppingBag, Clock, Mic, Sparkles, ChevronRight, ChevronDown, Sun, Moon } from 'lucide-react-native';
+import { Search, X, ShoppingBag, Clock, Mic, Sparkles, ChevronRight, ChevronDown, Sun, Moon, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
@@ -11,7 +12,7 @@ import { Image as ExpoImage } from 'expo-image';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, formatHeaderAddress } from '../../lib/utils';
 import { useCart } from '../../hooks/use-cart';
 import { API_BASE_URL } from '../../lib/constants';
 import { useTheme } from '../context/ThemeContext';
@@ -57,19 +58,12 @@ const GROCERY_CATEGORIES: CategoryItem[] = [
   { name: 'Atta, Rice & Dal', slug: 'atta-rice-dal', emoji: '🌾' },
 ];
 
-let storage: any;
-try {
-  const { createMMKV } = require('react-native-mmkv');
-  storage = createMMKV();
-} catch (e) {
-  console.warn('[Search] MMKV is not available in this environment. Falling back to in-memory storage.');
-  const memoryMap = new Map<string, string>();
-  storage = {
-    getString: (key: string) => memoryMap.get(key) || undefined,
-    set: (key: string, value: string) => { memoryMap.set(key, value); },
-    remove: (key: string) => { memoryMap.delete(key); return true; },
-  };
-}
+const memoryMap = new Map<string, string>();
+const storage = {
+  getString: (key: string) => memoryMap.get(key) || undefined,
+  set: (key: string, value: string) => { memoryMap.set(key, value); },
+  remove: (key: string) => { memoryMap.delete(key); return true; },
+};
 const HISTORY_KEY = 'search_history';
 
 function VoicePulse() {
@@ -229,8 +223,8 @@ export default function SearchScreen() {
     const lowerQuery = searchQuery.toLowerCase();
     // Try local matching first so we get instant results
     const localMatched = allProducts.filter((p) =>
-      p.name.toLowerCase().includes(lowerQuery) ||
-      p.slug.toLowerCase().includes(lowerQuery) ||
+      p.name?.toLowerCase().includes(lowerQuery) ||
+      p.slug?.toLowerCase().includes(lowerQuery) ||
       (p.category?.name && p.category.name.toLowerCase().includes(lowerQuery)) ||
       (p.tags && p.tags.some((t: string) => t.toLowerCase().includes(lowerQuery)))
     );
@@ -274,6 +268,7 @@ export default function SearchScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Premium Header */}
       <View 
         style={{
@@ -287,69 +282,66 @@ export default function SearchScreen() {
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
           {/* Top Row: Location & Theme */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            {/* Left: Brand Logo & Text */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDark ? '#18181b' : '#f1f5f9', 
+                padding: 4, 
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDark ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={24} />
+              </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDark ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+
+            {/* Right: Location Capsule Picker */}
             <Pressable 
               onPress={() => {
                 triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => [{
-                flex: 1,
-                marginRight: 16,
+              style={({ pressed }) => ({
                 opacity: pressed ? 0.85 : 1,
-              }]}
+                maxWidth: '60%'
+              })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View className="bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-xs">
-                  <Logo size={24} />
-                </View>
-                
-                <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View className="bg-rose-600 dark:bg-rose-700 rounded-md px-1.5 py-0.5" style={{ alignSelf: 'center' }}>
-                      <Text className="text-white text-[8px] font-black tracking-widest uppercase">INSTANT</Text>
-                    </View>
-                    <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider" style={{ marginLeft: 6 }}>
-                      Delivery to
-                    </Text>
-                  </View>
-                  
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <Text 
-                      className="text-slate-800 dark:text-zinc-100 text-sm font-black tracking-tight"
-                      numberOfLines={1}
-                      style={{ maxWidth: '85%' }}
-                    >
-                      {selectedLocation && selectedLocation.startsWith('Lat:') ? 'Swaroop Nagar, Kanpur' : (selectedLocation || 'Select Location')}
-                    </Text>
-                    <ChevronDown size={12} color={isDark ? '#e4e4e7' : '#1e293b'} style={{ marginLeft: 2 }} />
-                  </View>
-                </View>
-              </View>
-            </Pressable>
-
-            {/* Right: Theme Toggle */}
-            <Pressable 
-              onPress={() => {
-                toggleTheme();
-                triggerHaptic('light');
-              }}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.92 : 1 }],
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: isDark ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: isDark ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+                borderWidth: 1, 
+                borderColor: isDark ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+                borderRadius: 20, 
+                paddingHorizontal: 8, 
+                paddingVertical: 5,
                 justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-              }]}
-            >
-              {isDark ? (
-                <Sun size={16} color="#fbbf24" />
-              ) : (
-                <Moon size={16} color="#3b82f6" />
-              )}
+              }}>
+                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+                <Text 
+                  numberOfLines={1} 
+                  style={{ 
+                    fontSize: 10, 
+                    fontWeight: 'bold', 
+                    color: isDark ? '#fafafa' : '#0f172a',
+                    flexShrink: 1,
+                    marginRight: 3
+                  }}
+                >
+                  {formatHeaderAddress(selectedLocation)}
+                </Text>
+                <ChevronDown size={8} color={isDark ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+              </View>
             </Pressable>
           </View>
 
@@ -386,11 +378,53 @@ export default function SearchScreen() {
                 <X size={16} color={isDark ? '#a1a1aa' : '#64748b'} />
               </Pressable>
             ) : (
-              <Pressable onPress={handleStartVoiceSearch} className="p-1 active:scale-90">
-                <Mic size={16} color="#94a3b8" />
-              </Pressable>
+              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+                <Pressable onPress={handleStartVoiceSearch} className="p-1 active:scale-90">
+                  <Mic size={16} color="#16a34a" />
+                </Pressable>
+              </View>
             )}
           </View>
+
+          {/* Quick Search Autocomplete Chips */}
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 2, gap: 8, paddingTop: 10 }}
+            className="mt-1"
+          >
+            {[
+              { label: '🥛 Milk', query: 'Milk' },
+              { label: '🍞 Bread', query: 'Bread' },
+              { label: '🍜 Maggi', query: 'Maggi' },
+              { label: '☕ Tea', query: 'Chai' },
+              { label: '🥔 Chips', query: 'Chips' },
+              { label: '🧀 Paneer', query: 'Paneer' },
+              { label: '🥤 Cold Drink', query: 'Cold Drink' },
+              { label: '🍦 Ice Cream', query: 'Ice Cream' }
+            ].map((chip) => (
+              <Pressable
+                key={chip.label}
+                onPress={() => {
+                  setSearchQuery(chip.query);
+                  saveToHistory(chip.query);
+                  triggerHaptic('light');
+                }}
+                style={({ pressed }) => ({
+                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 1 },
+                  shadowOpacity: isDark ? 0.2 : 0.03,
+                  shadowRadius: 3,
+                  elevation: 1,
+                })}
+                className="bg-slate-50/80 dark:bg-zinc-850 border border-slate-200/80 dark:border-zinc-800/80 rounded-full px-4 py-2"
+              >
+                <Text className="text-slate-800 dark:text-zinc-200 text-[11px] font-black">{chip.label}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
         </View>
       </View>
 
@@ -434,14 +468,18 @@ export default function SearchScreen() {
             </View>
           </ScrollView>
         ) : searchQuery.length === 0 ? (
-          // Suggestions screen
-          <View className="p-4 bg-white dark:bg-zinc-900 flex-1">
+          // Upgraded Premium Suggestions screen
+          <ScrollView 
+            className="bg-white dark:bg-zinc-900 flex-1"
+            contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
+            showsVerticalScrollIndicator={false}
+          >
             {recentSearches.length > 0 && (
               <View className="mb-6">
                 <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Recent Searches</Text>
-                  <Pressable onPress={clearHistory}>
-                    <Text className="text-rose-600 dark:text-rose-400 font-bold text-xs">Clear All</Text>
+                  <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider">Recent Searches</Text>
+                  <Pressable onPress={clearHistory} className="active:opacity-60">
+                    <Text className="text-rose-600 dark:text-rose-400 font-black text-xs">Clear All</Text>
                   </Pressable>
                 </View>
                 <View className="flex-row flex-wrap gap-2">
@@ -451,67 +489,96 @@ export default function SearchScreen() {
                       onPress={() => {
                         setSearchQuery(tag);
                         saveToHistory(tag);
+                        triggerHaptic('light');
                       }}
-                      className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3.5 py-2 rounded-xl flex-row items-center gap-1 active:bg-rose-50 dark:active:bg-rose-950/20"
+                      style={({ pressed }) => ({
+                        transform: [{ scale: pressed ? 0.95 : 1 }],
+                      })}
+                      className="bg-slate-50/50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-800/80 px-3.5 py-2 rounded-2xl flex-row items-center gap-1.5"
                     >
                       <Clock size={12} color={isDark ? '#a1a1aa' : '#64748b'} />
-                      <Text className="text-slate-600 dark:text-zinc-300 text-xs font-bold">{tag}</Text>
+                      <Text className="text-slate-600 dark:text-zinc-350 text-xs font-bold">{tag}</Text>
                     </Pressable>
                   ))}
                 </View>
               </View>
             )}
 
-            <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider mb-3">🔥 Trending Now</Text>
+            <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider mb-3">🔥 Trending Now</Text>
             <View className="flex-row flex-wrap gap-2 mb-6">
-              {trendingTags.map((tag, idx) => (
-                <Pressable
-                  key={tag}
-                  onPress={() => {
-                    setSearchQuery(tag);
-                    saveToHistory(tag);
-                    triggerHaptic('light');
-                  }}
-                  style={({ pressed }) => [{
-                    transform: [{ scale: pressed ? 0.95 : 1 }],
-                    opacity: pressed ? 0.85 : 1,
-                    overflow: 'hidden',
-                    borderRadius: 16,
-                  }]}
-                >
-                  <View
-                    style={{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 8,
-                      paddingHorizontal: 16,
-                      paddingVertical: 10,
-                      borderWidth: 1,
-                      borderColor: isDark ? '#27272a' : '#f1f5f9',
-                      backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
-                      borderRadius: 16,
+              {trendingTags.map((tag, idx) => {
+                // Gamified gold/silver/bronze/neutral styling for ranks
+                let badgeBg = isDark ? '#27272a' : '#f1f5f9';
+                let badgeText = isDark ? '#a1a1aa' : '#64748b';
+                let tagBg = isDark ? '#1c1c1e' : '#f8fafc';
+                let borderCol = isDark ? '#27272a' : '#f1f5f9';
+
+                if (idx === 0) {
+                  badgeBg = '#f59e0b'; // Gold
+                  badgeText = '#ffffff';
+                  tagBg = isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.04)';
+                  borderCol = 'rgba(245,158,11,0.2)';
+                } else if (idx === 1) {
+                  badgeBg = '#94a3b8'; // Silver
+                  badgeText = '#ffffff';
+                  tagBg = isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.04)';
+                  borderCol = 'rgba(148,163,184,0.2)';
+                } else if (idx === 2) {
+                  badgeBg = '#b45309'; // Bronze
+                  badgeText = '#ffffff';
+                  tagBg = isDark ? 'rgba(180,83,9,0.06)' : 'rgba(180,83,9,0.04)';
+                  borderCol = 'rgba(180,83,9,0.2)';
+                }
+
+                return (
+                  <Pressable
+                    key={tag}
+                    onPress={() => {
+                      setSearchQuery(tag);
+                      saveToHistory(tag);
+                      triggerHaptic('light');
                     }}
+                    style={({ pressed }) => [{
+                      transform: [{ scale: pressed ? 0.95 : 1 }],
+                      opacity: pressed ? 0.85 : 1,
+                      overflow: 'hidden',
+                      borderRadius: 16,
+                    }]}
                   >
-                    <View style={{ 
-                      width: 18, height: 18, borderRadius: 9, 
-                      backgroundColor: idx < 3 ? '#e20a22' : (isDark ? '#27272a' : '#e2e8f0'), 
-                      alignItems: 'center', justifyContent: 'center' 
-                    }}>
-                      <Text style={{ 
-                        color: idx < 3 ? '#fff' : (isDark ? '#a1a1aa' : '#64748b'), 
-                        fontSize: 9, fontWeight: '900' 
-                      }}>{idx + 1}</Text>
+                    <View
+                      style={{
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 8,
+                        paddingHorizontal: 14,
+                        paddingVertical: 9,
+                        borderWidth: 1,
+                        borderColor: borderCol,
+                        backgroundColor: tagBg,
+                        borderRadius: 16,
+                      }}
+                    >
+                      <View style={{ 
+                        width: 18, height: 18, borderRadius: 9, 
+                        backgroundColor: badgeBg, 
+                        alignItems: 'center', justifyContent: 'center' 
+                      }}>
+                        <Text style={{ 
+                          color: badgeText, 
+                          fontSize: 9, fontWeight: '900' 
+                        }}>{idx + 1}</Text>
+                      </View>
+                      <Text className="text-slate-850 dark:text-zinc-200 text-xs font-black">{tag}</Text>
+                      {idx === 0 && <Text style={{ fontSize: 10 }}>👑</Text>}
                     </View>
-                    <Text className="text-slate-850 dark:text-zinc-200 text-xs font-bold">{tag}</Text>
-                    {idx < 2 && <Text style={{ fontSize: 10 }}>🔥</Text>}
-                  </View>
-                </Pressable>
-              ))}
+                  </Pressable>
+                );
+              })}
             </View>
 
-            {/* Quick Category Access */}
-            <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider mb-3">Browse Categories</Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
+            {/* Upgraded Premium Category Access with Double-Border & Soft Shadow Depth */}
+            <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider mb-4">Browse Categories</Text>
+            <View className="flex-row flex-wrap justify-between gap-y-5 mb-10">
               {[
                 { label: 'Fruits & Veggies', slug: 'fruits-vegetables' },
                 { label: 'Dairy', slug: 'dairy-breakfast' },
@@ -533,26 +600,45 @@ export default function SearchScreen() {
                       }
                     }}
                     style={({ pressed }) => [
-                      { transform: [{ scale: pressed ? 0.93 : 1 }] },
-                      { width: '31%' }
+                      { transform: [{ scale: pressed ? 0.92 : 1 }] },
+                      { width: '31%', alignItems: 'center' }
                     ]}
-                    className="bg-white dark:bg-zinc-800/80 border border-slate-100 dark:border-zinc-700 px-3.5 py-3 rounded-2xl items-center gap-1.5"
                   >
-                    {img ? (
-                      <ExpoImage
-                        source={img}
-                        style={{ width: 44, height: 44 }}
-                        contentFit="contain"
-                      />
-                    ) : (
-                      <Text style={{ fontSize: 22 }}>📦</Text>
-                    )}
-                    <Text className="text-slate-600 dark:text-zinc-300 text-[10px] font-extrabold text-center" numberOfLines={1}>{cat.label}</Text>
+                    <View style={{
+                      width: 84,
+                      height: 84,
+                      borderRadius: 42,
+                      overflow: 'hidden',
+                      borderWidth: 2.5,
+                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 4 },
+                      shadowOpacity: isDark ? 0.3 : 0.06,
+                      shadowRadius: 10,
+                      elevation: 3,
+                      marginBottom: 8,
+                    }}>
+                      {img ? (
+                        <ExpoImage
+                          source={img}
+                          style={{ width: '100%', height: '100%' }}
+                          contentFit="cover"
+                        />
+                      ) : (
+                        <Text style={{ fontSize: 24 }}>📦</Text>
+                      )}
+                    </View>
+                    <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
+                      {cat.label}
+                    </Text>
                   </Pressable>
                 );
               })}
             </View>
-          </View>
+          </ScrollView>
         ) : (
           // Search Results Grid
           <TypedFlashList

@@ -1,5 +1,6 @@
 import { View, Text, Pressable, TextInput, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
 import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles } from 'lucide-react-native';
@@ -8,6 +9,7 @@ import { useUIStore } from '../stores/ui-store';
 import { useTheme } from './context/ThemeContext';
 import { triggerHaptic } from '../lib/haptic';
 import { API_BASE_URL } from '../lib/constants';
+import { api } from '../lib/api-client';
 
 let MapView: any;
 let Marker: any;
@@ -16,9 +18,9 @@ let Circle: any;
 if (Platform.OS !== 'web') {
   try {
     const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Marker = Maps.Marker;
-    Circle = Maps.Circle;
+    MapView = Maps.default || Maps;
+    Marker = Maps.Marker || require('react-native-maps').Marker;
+    Circle = Maps.Circle || require('react-native-maps').Circle;
   } catch (e) {
     console.warn('Failed to load react-native-maps:', e);
   }
@@ -33,10 +35,7 @@ export default function LocationPickerScreen() {
     userCoords, 
     deliveryRadius, 
     storeLat,
-    storeLng,
-    setSelectedLocation, 
-    setUserCoords,
-    setAssignedStore
+    storeLng
   } = useUIStore();
 
   const [searchQuery, setSearchQuery] = useState('');
@@ -46,15 +45,15 @@ export default function LocationPickerScreen() {
 
   // Default region points to userCoords or fallback to Store
   const [region, setRegion] = useState({
-    latitude: userCoords?.lat || storeLat,
-    longitude: userCoords?.lng || storeLng,
+    latitude: userCoords?.lat || storeLat || 26.1534185,
+    longitude: userCoords?.lng || storeLng || 80.1714024,
     latitudeDelta: 0.05,
     longitudeDelta: 0.05,
   });
 
   const [markerCoords, setMarkerCoords] = useState({
-    latitude: userCoords?.lat || storeLat,
-    longitude: userCoords?.lng || storeLng,
+    latitude: userCoords?.lat || storeLat || 26.1534185,
+    longitude: userCoords?.lng || storeLng || 80.1714024,
   });
 
   const [addressText, setAddressText] = useState(selectedLocation || 'Select Location');
@@ -75,11 +74,39 @@ export default function LocationPickerScreen() {
     return R * c;
   };
 
-  // Update distance when marker coordinate changes
+  // Update distance & address when marker coordinate changes with 1000ms debounce
   useEffect(() => {
     const d = calculateDistance(storeLat, storeLng, markerCoords.latitude, markerCoords.longitude);
     setDistance(d);
+
+    const timer = setTimeout(async () => {
+      try {
+        const [geocode] = await Location.reverseGeocodeAsync({
+          latitude: markerCoords.latitude,
+          longitude: markerCoords.longitude
+        });
+        if (geocode) {
+          const name = geocode.name || geocode.street || '';
+          const area = geocode.district || geocode.subregion || '';
+          const city = geocode.city || '';
+          const code = geocode.postalCode || '';
+          const resolvedAddress = [name, area, city, code].filter(Boolean).join(', ');
+          setAddressText(resolvedAddress || `Lat: ${markerCoords.latitude.toFixed(4)}, Lng: ${markerCoords.longitude.toFixed(4)}`);
+        }
+      } catch (err) {
+        console.warn('Marker reverse geocode failed:', err);
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
   }, [markerCoords]);
+
+  // Auto-detect current location on mount if no coords are set yet
+  useEffect(() => {
+    if (!userCoords) {
+      handleUseCurrentLocation();
+    }
+  }, []);
 
   // Request GPS Location
   const handleUseCurrentLocation = async () => {
@@ -142,7 +169,20 @@ export default function LocationPickerScreen() {
     setIsSearching(true);
     triggerHaptic('light');
     try {
-      const results = await Location.geocodeAsync(searchQuery);
+      let results = await Location.geocodeAsync(searchQuery).catch(() => []);
+      
+      if (!results || results.length === 0) {
+        console.log('Local geocoding returned no results, fetching from backend geocoder:', searchQuery);
+        const response = await api.get(`/geocode?address=${encodeURIComponent(searchQuery)}`);
+        const apiResults = response?.data?.results || response?.results;
+        if (apiResults && apiResults.length > 0) {
+          const loc = apiResults[0]?.geometry?.location;
+          if (loc && loc.lat && loc.lng) {
+            results = [{ latitude: loc.lat, longitude: loc.lng }];
+          }
+        }
+      }
+
       if (results && results.length > 0) {
         const { latitude, longitude } = results[0];
         
@@ -183,9 +223,15 @@ export default function LocationPickerScreen() {
       const store = await response.json();
       
       // Save details to stores
-      setSelectedLocation(addressText);
-      setUserCoords({ lat: markerCoords.latitude, lng: markerCoords.longitude });
-      setAssignedStore(store);
+      useUIStore.setState({
+        selectedLocation: addressText,
+        userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
+        assignedStoreId: store ? store.id : null,
+        shopName: store ? store.name : 'FastKirana',
+        surgeCharge: store ? store.surgeCharge : 0.0,
+        groceryMartOpen: store ? (store.groceryOpen ?? true) : true,
+        cafeOpen: store ? (store.cafeOpen ?? true) : true
+      });
 
       triggerHaptic('success');
       Alert.alert(
@@ -193,18 +239,36 @@ export default function LocationPickerScreen() {
         `Your order will be fulfilled by: ${store.name || 'FastKirana Hub'}.${
           store.surgeCharge > 0 ? `\n\nNote: A weather/surge charge of ₹${store.surgeCharge} is currently applicable in this area.` : ''
         }`,
-        [{ text: 'Continue', onPress: () => router.back() }]
+        [{ text: 'Continue', onPress: () => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/');
+          }
+        }}]
       );
     } catch (err) {
       console.error(err);
       // Fallback
-      setSelectedLocation(addressText);
-      setUserCoords({ lat: markerCoords.latitude, lng: markerCoords.longitude });
-      setAssignedStore(null); // Fallback to default
+      useUIStore.setState({
+        selectedLocation: addressText,
+        userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
+        assignedStoreId: null,
+        shopName: 'FastKirana',
+        surgeCharge: 0.0,
+        groceryMartOpen: true,
+        cafeOpen: true
+      });
       Alert.alert(
         'Location Confirmed',
         'Your location has been set. Fulfilling from central default store.',
-        [{ text: 'Continue', onPress: () => router.back() }]
+        [{ text: 'Continue', onPress: () => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/');
+          }
+        }}]
       );
     } finally {
       setIsValidating(false);
@@ -215,8 +279,25 @@ export default function LocationPickerScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3">
+        <Pressable 
+          onPress={() => {
+            triggerHaptic('light');
+            router.back();
+          }}
+          style={{
+            width: 32,
+            height: 32,
+            borderRadius: 16,
+            alignItems: 'center',
+            justifyContent: 'center',
+            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+          }}
+        >
+          <ArrowLeft size={18} color={isDark ? '#ffffff' : '#0f172a'} />
+        </Pressable>
         <View className="flex-1">
           <Text className="text-slate-850 dark:text-zinc-100 font-black text-base">Select Delivery Location</Text>
           <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold mt-0.5">Dark Store Delivery Validation</Text>
@@ -277,9 +358,21 @@ export default function LocationPickerScreen() {
               />
               <View className="absolute bottom-2 left-2 bg-white/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 shadow-sm">
                 <Text className="text-[9px] text-slate-600 dark:text-zinc-400 font-bold">
-                  Coordinates: {markerCoords.latitude.toFixed(6)}, {markerCoords.longitude.toFixed(6)}
+                  Coordinates: {(markerCoords?.latitude || 26.1534185).toFixed(6)}, {(markerCoords?.longitude || 80.1714024).toFixed(6)}
                 </Text>
               </View>
+            </View>
+          ) : !MapView ? (
+            <View className="w-full h-full justify-center items-center p-6 bg-slate-50 dark:bg-zinc-900 gap-2">
+              <View className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 items-center justify-center">
+                <MapPin size={22} color="#e20a22" />
+              </View>
+              <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs text-center">
+                Maps Module Not Available
+              </Text>
+              <Text className="text-slate-400 dark:text-zinc-450 text-[10px] text-center max-w-[280px]">
+                Google Maps Services are not configured or supported on this device. You can still auto-detect GPS coordinates or proceed using manual address text entry.
+              </Text>
             </View>
           ) : (
             <>
@@ -297,6 +390,7 @@ export default function LocationPickerScreen() {
                   coordinate={{ latitude: storeLat, longitude: storeLng }}
                   title="FastKirana Dark Store"
                   description="Fulfillment Center"
+                  tracksViewChanges={false}
                 >
                   <View className="w-8 h-8 rounded-full bg-rose-600 items-center justify-center border-2 border-white shadow-md">
                     <Text className="text-[12px]">📦</Text>

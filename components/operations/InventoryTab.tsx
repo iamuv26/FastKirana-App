@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Modal, Switch, Alert, Platform } from 'react-native';
-import { Search, X, Plus, Package, Sparkles, AlertCircle, Download, FileText, ChevronLeft, ChevronRight } from 'lucide-react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Modal, Switch, Alert, Platform, useColorScheme } from 'react-native';
+import { Search, X, Plus, Package, Sparkles, AlertCircle, Download, FileText, ChevronLeft, ChevronRight, Eye, EyeOff, Edit2 } from 'lucide-react-native';
 import { Image } from 'expo-image';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import * as ImagePicker from 'expo-image-picker';
@@ -95,6 +95,7 @@ const CAFE_MENU_SECTIONS = [
 export default function InventoryTab() {
   const { user } = useAuthStore();
   const queryClient = useQueryClient();
+  const isDarkMode = useColorScheme() === 'dark';
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState<string>('');
@@ -546,7 +547,7 @@ export default function InventoryTab() {
         {/* Filters and Action Buttons Row */}
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8 }}>
           {/* Type Filter */}
-          <View className="flex-row bg-slate-50 dark:bg-slate-955 p-1 rounded-full border border-slate-200/60 dark:border-zinc-850">
+          <View className="flex-row bg-slate-100 dark:bg-zinc-800 p-1 rounded-full border border-slate-200/60 dark:border-zinc-700">
             {[
               { id: 'all', label: 'All Items' },
               { id: 'grocery', label: 'Grocery 📦' },
@@ -558,9 +559,9 @@ export default function InventoryTab() {
                   setTypeFilter(t.id as any);
                   triggerHaptic('light');
                 }}
-                className={`px-4 py-1.5 rounded-full ${typeFilter === t.id ? 'bg-indigo-650' : 'bg-transparent'}`}
+                className={`px-4 py-1.5 rounded-full ${typeFilter === t.id ? 'bg-indigo-600 shadow' : 'bg-transparent'}`}
               >
-                <Text className={`text-[9px] font-black uppercase tracking-wider ${typeFilter === t.id ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
+                <Text className={`text-[9px] font-extrabold uppercase tracking-wider ${typeFilter === t.id ? 'text-white' : 'text-slate-700 dark:text-slate-300'}`}>
                   {t.label}
                 </Text>
               </Pressable>
@@ -616,69 +617,80 @@ export default function InventoryTab() {
           <Text className="text-slate-500 text-xs mt-1">Try tweaking your search keywords or filter options.</Text>
         </View>
       ) : (
-        <View className="gap-3 mb-10">
+        <View className="gap-2.5 mb-10">
           {filteredInventoryProducts.map((p: any) => (
-            <View key={p.id} className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200/50 dark:border-zinc-800/80 p-4 shadow-sm gap-3.5">
-              <View className="flex-row items-center justify-between">
-                <View className="flex-row items-center flex-1 mr-3">
-                  <View className="w-14 h-14 rounded-2xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-100 dark:border-zinc-800 overflow-hidden shadow-xs">
-                    {getAppImageSource(p.imageUrl) ? (
-                      <Image source={getAppImageSource(p.imageUrl)!} className="w-full h-full" contentFit="cover" />
-                    ) : (
-                      <Text className="text-2xl">{p.imageUrl || '📦'}</Text>
+            <View key={p.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200/60 dark:border-zinc-850 p-3.5 flex-row items-center justify-between shadow-sm">
+              <View className="flex-row items-center flex-1 min-w-0 gap-3">
+                {/* Product Image */}
+                <View className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-100 dark:border-zinc-800 overflow-hidden">
+                  {getAppImageSource(p.imageUrl) ? (
+                    <Image source={getAppImageSource(p.imageUrl)!} className="w-full h-full" contentFit="cover" />
+                  ) : (
+                    <Text className="text-xl">{p.imageUrl || '📦'}</Text>
+                  )}
+                </View>
+                
+                {/* Details */}
+                <View className="flex-1 min-w-0 pr-2">
+                  <Text className="text-slate-800 dark:text-zinc-100 font-bold text-xs truncate" numberOfLines={1}>
+                    {p.name}
+                  </Text>
+                  <Text className="text-slate-400 dark:text-slate-500 text-[9px] font-semibold mt-0.5 uppercase tracking-wide truncate">
+                    {p.category?.name || 'Uncategorized'} · {p.unit || '1 pc'}
+                  </Text>
+                  
+                  {/* Price Row */}
+                  <View className="flex-row items-center gap-1.5 mt-1.5 flex-wrap">
+                    <Text className="text-slate-900 dark:text-zinc-100 font-black text-xs">{formatPrice(p.price)}</Text>
+                    {p.mrp > p.price && (
+                      <Text className="text-slate-450 text-[9px] line-through font-bold">₹{p.mrp}</Text>
+                    )}
+                    {p.costPrice > 0 && (
+                      <View className="bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700 px-1 py-0.2 rounded">
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-extrabold uppercase">CP: ₹{p.costPrice}</Text>
+                      </View>
                     )}
                   </View>
-                  <View className="flex-1 ml-3">
-                    <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-[13px] leading-tight" numberOfLines={2}>{p.name}</Text>
-                    <Text className="text-slate-400 dark:text-slate-400 text-[10px] font-bold mt-1">
-                      {p.category?.name || 'Uncategorized'}  •  {p.unit || '1 pc'}
-                    </Text>
-                  </View>
                 </View>
+              </View>
 
+              {/* Right Side: Status Badge, Stock & Actions */}
+              <View className="items-end gap-2.5">
                 <View className="flex-row items-center gap-2">
+                  {/* Eye Toggle */}
                   <Pressable
                     onPress={() => handleToggleAvailability(p)}
                     className={`p-2 rounded-full border ${
                       p.isAvailable !== false
-                        ? 'border-emerald-100 dark:border-emerald-900/60 bg-emerald-50 dark:bg-emerald-950/20'
-                        : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/40'
+                        ? 'border-emerald-100 dark:border-emerald-950 bg-emerald-50 dark:bg-emerald-950/20 active:bg-emerald-100'
+                        : 'border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800/40 active:bg-slate-100'
                     }`}
                   >
-                    <Text style={{ fontSize: 13, lineHeight: 14 }}>{p.isAvailable !== false ? '👁️' : '👁️‍🗨️'}</Text>
+                    {p.isAvailable !== false ? (
+                      <Eye size={12} color="#10b981" />
+                    ) : (
+                      <EyeOff size={12} color="#94a3b8" />
+                    )}
                   </Pressable>
 
+                  {/* Edit Button */}
                   <Pressable
                     onPress={() => {
                       triggerHaptic('light');
                       handleEditProductClick(p);
                     }}
-                    className="px-4 py-2 rounded-full border border-indigo-100 dark:border-indigo-900/60 bg-indigo-50/60 dark:bg-indigo-950/20 active:bg-indigo-100/80"
+                    className="p-2 rounded-full border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-800 active:bg-slate-100 dark:active:bg-zinc-700"
                   >
-                    <Text className="text-indigo-650 dark:text-indigo-400 font-extrabold text-[10px] uppercase tracking-wider">Edit</Text>
+                    <Edit2 size={12} color={isDarkMode ? '#cbd5e1' : '#475569'} />
                   </Pressable>
                 </View>
-              </View>
 
-              {/* Specs pill strip */}
-              <View className="flex-row items-center justify-between border-t border-slate-100 dark:border-zinc-800/60 pt-3">
+                {/* Stock & Status Row */}
                 <View className="flex-row items-center gap-2">
-                  <Text className="text-slate-850 dark:text-zinc-100 font-black text-sm">{formatPrice(p.price)}</Text>
-                  {p.mrp > p.price && (
-                    <Text className="text-slate-400 text-[10px] line-through font-bold">₹{p.mrp}</Text>
-                  )}
-                  {p.costPrice > 0 && (
-                    <Text className="text-slate-500 dark:text-slate-450 text-[9px] font-bold bg-slate-50 dark:bg-zinc-800/50 px-1.5 py-0.5 rounded-md border border-slate-100 dark:border-zinc-800">
-                      CP: ₹{p.costPrice}
-                    </Text>
-                  )}
-                </View>
-
-                <View className="flex-row items-center gap-3">
-                  <View className={`px-2.5 py-1 rounded-full border ${
+                  <View className={`px-2 py-0.5 rounded-lg border ${
                     p.stock <= (p.minStock || 10) 
-                      ? 'bg-rose-50 dark:bg-rose-955/10 border-rose-100 dark:border-rose-900/30' 
-                      : 'bg-slate-50 dark:bg-zinc-800/50 border-slate-100 dark:border-zinc-800'
+                      ? 'bg-rose-50 dark:bg-rose-955/15 border-rose-100 dark:border-rose-900/30' 
+                      : 'bg-slate-50 dark:bg-zinc-800/50 border-slate-200/50 dark:border-zinc-750'
                   }`}>
                     <Text className={`text-[8.5px] font-black uppercase tracking-wider ${
                       p.stock <= (p.minStock || 10) ? 'text-rose-600 dark:text-rose-450' : 'text-slate-500 dark:text-slate-400'
@@ -686,12 +698,7 @@ export default function InventoryTab() {
                       Stock: {p.stock}
                     </Text>
                   </View>
-                  <View className="flex-row items-center gap-1.5">
-                    <View className={`w-2 h-2 rounded-full ${p.isAvailable ? 'bg-emerald-500 shadow-xs shadow-emerald-500/50' : 'bg-rose-500 shadow-xs shadow-rose-500/50'}`} />
-                    <Text style={{ fontSize: 9, fontWeight: '800', color: p.isAvailable ? '#10b981' : '#ef4444' }}>
-                      {p.isAvailable ? 'Active' : 'Inactive'}
-                    </Text>
-                  </View>
+                  <View className={`w-2 h-2 rounded-full ${p.isAvailable !== false ? 'bg-emerald-500' : 'bg-rose-500'}`} />
                 </View>
               </View>
             </View>

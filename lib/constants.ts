@@ -15,6 +15,13 @@ const getDevApiUrl = () => {
 };
 
 const getApiUrl = () => {
+  try {
+    if (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_API_BASE_URL) {
+      return process.env.EXPO_PUBLIC_API_BASE_URL;
+    }
+  } catch (e) {
+    console.warn('Failed to read process.env:', e);
+  }
   if (Platform.OS === 'web') {
     if (typeof window !== 'undefined' && window.location) {
       const hostname = window.location.hostname;

@@ -1,11 +1,12 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { View, Text, Pressable, ScrollView, FlatList, ActivityIndicator, Dimensions, Platform, StyleSheet, Image as RNImage } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
-import { ArrowLeft, SlidersHorizontal, ArrowUpDown, Sun, Moon, MapPin, ChevronDown, ChevronRight, Search } from 'lucide-react-native';
+import { ArrowLeft, SlidersHorizontal, ArrowUpDown, Sun, Moon, MapPin, ChevronDown, ChevronRight, Search, Mic } from 'lucide-react-native';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
@@ -16,6 +17,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { BlurView } from 'expo-blur';
+import { formatHeaderAddress } from '../../lib/utils';
 
 const { width: rawWidth } = Dimensions.get('window');
 const screenWidth = rawWidth > 768 ? 540 : rawWidth;
@@ -284,8 +286,8 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
 
     // Keyword matching
     return list.filter(p => {
-      const nameLower = p.name.toLowerCase();
-      const slugLower = p.slug.toLowerCase();
+      const nameLower = (p.name || '').toLowerCase();
+      const slugLower = (p.slug || '').toLowerCase();
       const pTags = p.tags?.map((t: string) => t.toLowerCase()) || [];
 
       return activeSubItem.tags.some(tag => {
@@ -313,19 +315,23 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
           showsVerticalScrollIndicator={false} 
           contentContainerStyle={{ paddingVertical: 12, gap: 10, alignItems: 'center' }}
         >
-          {subcategoryList.map((sub) => {
+          {subcategoryList.map((sub, index) => {
             const isActive = activeSub === sub.name;
             return (
-              <SubcategoryItem
+              <Animated.View
                 key={sub.name}
-                sub={sub}
-                isActive={isActive}
-                isDarkMode={isDarkMode}
-                onPress={() => {
-                  setActiveSub(sub.name);
-                  triggerHaptic('light');
-                }}
-              />
+                entering={FadeInDown.duration(250).delay(index * 15)}
+              >
+                <SubcategoryItem
+                  sub={sub}
+                  isActive={isActive}
+                  isDarkMode={isDarkMode}
+                  onPress={() => {
+                    setActiveSub(sub.name);
+                    triggerHaptic('light');
+                  }}
+                />
+              </Animated.View>
             );
           })}
         </ScrollView>
@@ -350,7 +356,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
             showsVerticalScrollIndicator={false}
             renderItem={({ item, index }) => (
               <View style={{ width: '48%', marginBottom: 12 }}>
-                <ProductCard product={item} index={index} className="w-full" />
+                <ProductCard product={item} index={index} className="w-full" isCategoryGrid={true} />
               </View>
             )}
             ListEmptyComponent={
@@ -501,6 +507,14 @@ export default function CategoryDetailScreen() {
   
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_LOW' | 'PRICE_HIGH'>('RELEVANCE');
   const [activeSlug, setActiveSlug] = useState(slug);
+  const [initialRenderDone, setInitialRenderDone] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setInitialRenderDone(true);
+    }, 150);
+    return () => clearTimeout(timer);
+  }, []);
 
   const flatListRef = useRef<FlatList>(null);
   const tabScrollViewRef = useRef<ScrollView>(null);
@@ -607,6 +621,7 @@ export default function CategoryDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
       <View style={{
         paddingHorizontal: 12,
@@ -628,44 +643,43 @@ export default function CategoryDetailScreen() {
           <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)' }]} />
         )}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            {/* Brand Identity (Logo + Name) */}
-            <Pressable 
-              onPress={() => {
-                triggerHaptic('light');
-                router.replace('/(tabs)');
-              }} 
-              style={({ pressed }) => [
-                { opacity: pressed ? 0.85 : 1 }
-              ]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Logo size={28} />
-                <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
-                  <Text style={{ 
-                    fontSize: 13, 
-                    fontWeight: '900', 
-                    color: '#e20a22', 
-                    letterSpacing: -0.4,
-                  }}>
-                    Fast<Text style={{ color: isDarkMode ? '#ffffff' : '#1e293b' }}>Kirana</Text>
-                  </Text>
-                  <Text style={{ 
-                    fontSize: 7, 
-                    fontWeight: '900', 
-                    color: '#0c831f', 
-                    letterSpacing: 0.5,
-                    marginTop: -1,
-                    textTransform: 'uppercase'
-                  }}>
-                    Delivery App
-                  </Text>
-                </View>
+          {/* Left: Brand Logo & Text (Matched with Landing Page) */}
+          <Pressable 
+            onPress={() => {
+              triggerHaptic('light');
+              router.replace('/(tabs)');
+            }} 
+            style={({ pressed }) => [
+              { opacity: pressed ? 0.85 : 1 }
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={22} />
               </View>
-            </Pressable>
-          </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+          </Pressable>
           
-          {/* Center: Premium Centered Location Selector */}
+          {/* Right: Location Capsule Picker (Matched with Landing Page) */}
           <Pressable 
             onPress={() => {
               triggerHaptic('light');
@@ -673,94 +687,67 @@ export default function CategoryDetailScreen() {
             }} 
             style={({ pressed }) => [
               {
-                marginHorizontal: 8,
                 opacity: pressed ? 0.85 : 1,
+                maxWidth: '60%'
               }
             ]}
           >
-            <View 
-              style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: 4, 
-                backgroundColor: isDarkMode ? 'rgba(39,39,42,0.5)' : '#f1f5f9',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                borderRadius: 20,
-                paddingHorizontal: 8,
-                paddingVertical: 5,
-              }}
-            >
-              <MapPin size={10} color="#e20a22" />
-              <Text 
-                style={{ 
-                  fontSize: 9.5, 
-                  fontWeight: '800', 
-                  color: isDarkMode ? '#e4e4e7' : '#334155', 
-                  maxWidth: 90 
-                }} 
-                numberOfLines={1}
-              >
-                {selectedLocation || 'Select Location'}
-              </Text>
-              <ChevronDown size={8} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
-            </View>
-          </Pressable>
-
-          {/* Theme Toggle Button */}
-          <Pressable 
-            onPress={() => {
-              toggleTheme();
-              triggerHaptic('light');
-            }}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: isDarkMode ? '#1c1c1e' : '#f8fafc',
-              alignItems: 'center',
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+              borderWidth: 1, 
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+              borderRadius: 20, 
+              paddingHorizontal: 8, 
+              paddingVertical: 5,
               justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-              marginLeft: 8
-            }}
-          >
-            {isDarkMode ? (
-              <Sun size={14} color="#fbbf24" />
-            ) : (
-              <Moon size={14} color="#3b82f6" />
-            )}
+            }}>
+              <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+              <Text 
+                numberOfLines={1} 
+                style={{ 
+                  fontSize: 10, 
+                  fontWeight: 'bold', 
+                  color: isDarkMode ? '#fafafa' : '#0f172a',
+                  flexShrink: 1,
+                  marginRight: 3
+                }}
+              >
+                {formatHeaderAddress(selectedLocation)}
+              </Text>
+              <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+            </View>
           </Pressable>
         </View>
 
-        {/* Row 2: Search input placeholder */}
+        {/* Row 2: Search input placeholder (Matched with Landing Page) */}
         <Pressable 
           onPress={() => {
             triggerHaptic('light');
             router.push('/search');
           }}
-          style={{
+          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+          style={Platform.OS === 'ios' ? {
             marginTop: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-            borderWidth: 1,
-            borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-            borderRadius: 24,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 2,
-            elevation: 1
-          }}
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 6,
+          } : Platform.OS === 'android' ? {
+            marginTop: 10,
+            elevation: 2,
+          } : { marginTop: 10 }}
         >
-          <Search size={16} color="#e20a22" style={{ marginRight: 8 }} />
-          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500' }}>
+          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
             Search in {categoryName}
           </Text>
+          
+          {/* Vertical Divider */}
+          <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+          
+          <Mic size={16} color="#16a34a" />
         </Pressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
@@ -895,19 +882,23 @@ export default function CategoryDetailScreen() {
         showsHorizontalScrollIndicator={false}
         initialScrollIndex={initialIndex}
         getItemLayout={getItemLayout}
-        onScroll={handleScroll}
-        scrollEventThrottle={16}
         onMomentumScrollEnd={handleMomentumScrollEnd}
         onScrollEndDrag={handleMomentumScrollEnd}
         style={{ flex: 1 }}
-        renderItem={({ item }) => (
-          <CategoryProductPage
-            categorySlug={item.slug}
-            sortBy={sortBy}
-            isDarkMode={isDarkMode}
-            screenWidth={screenWidth}
-          />
-        )}
+        renderItem={({ item }) => {
+          const isActive = item.slug === activeSlug;
+          if (!initialRenderDone && !isActive) {
+            return <View style={{ width: screenWidth, flex: 1 }} />;
+          }
+          return (
+            <CategoryProductPage
+              categorySlug={item.slug}
+              sortBy={sortBy}
+              isDarkMode={isDarkMode}
+              screenWidth={screenWidth}
+            />
+          );
+        }}
       />
 
       {/* Sticky Bottom Cart Bar */}

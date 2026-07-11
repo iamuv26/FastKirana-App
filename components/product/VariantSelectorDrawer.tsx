@@ -305,12 +305,9 @@ export default function VariantSelectorDrawer() {
                   triggerHaptic('light');
                   setActiveProduct(null);
                 }}
-                style={({ pressed }) => [
-                  styles.continueBtn,
-                  { opacity: pressed ? 0.9 : 1 }
-                ]}
+                className="mt-5 bg-[#e20a22] py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-sm active:opacity-90"
               >
-                <Text style={styles.continueBtnText}>CONTINUE SHOPPING  →</Text>
+                <Text className="text-white font-black text-xs tracking-widest uppercase">Continue Shopping</Text>
               </Pressable>
             </View>
           )}

@@ -60,7 +60,7 @@ export const useUIStore = create<UIState>()(
       activeVariantProduct: null,
       assignedStoreId: null,
       surgeCharge: 0.0,
-      minOrderValue: 99,
+      minOrderValue: 0,
       storeOpenHour: 7,
       storeCloseHour: 23,
       holidays: [],
@@ -104,13 +104,27 @@ export const useUIStore = create<UIState>()(
         assignedStoreId: store ? store.id : null,
         shopName: store ? store.name : 'FastKirana',
         surgeCharge: store ? store.surgeCharge : 0.0,
-        groceryMartOpen: store ? store.groceryOpen : true,
-        cafeOpen: store ? store.cafeOpen : true
+        groceryMartOpen: store ? (store.groceryOpen ?? true) : true,
+        cafeOpen: store ? (store.cafeOpen ?? true) : true
       }),
     }),
     {
       name: 'fastkirana-ui-storage',
       storage: createJSONStorage(() => mmkvStorage),
+      merge: (persistedState: any, currentState) => {
+        if (!persistedState) return currentState;
+        return {
+          ...currentState,
+          ...persistedState,
+          storeLat: typeof persistedState.storeLat === 'number' ? persistedState.storeLat : currentState.storeLat,
+          storeLng: typeof persistedState.storeLng === 'number' ? persistedState.storeLng : currentState.storeLng,
+          deliveryRadius: typeof persistedState.deliveryRadius === 'number' ? persistedState.deliveryRadius : currentState.deliveryRadius,
+          minOrderValue: typeof persistedState.minOrderValue === 'number' ? persistedState.minOrderValue : currentState.minOrderValue,
+          surgeMultiplier: typeof persistedState.surgeMultiplier === 'number' ? persistedState.surgeMultiplier : currentState.surgeMultiplier,
+          storeOpenHour: typeof persistedState.storeOpenHour === 'number' ? persistedState.storeOpenHour : currentState.storeOpenHour,
+          storeCloseHour: typeof persistedState.storeCloseHour === 'number' ? persistedState.storeCloseHour : currentState.storeCloseHour,
+        };
+      }
     }
   )
 );

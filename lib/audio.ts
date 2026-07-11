@@ -98,3 +98,40 @@ export async function playNotificationChime() {
     console.warn('Audio playback error (playNotificationChime):', error);
   }
 }
+
+let alertSound: any = null;
+
+/**
+ * Play a looped notification alert sound when a new order is received
+ */
+export async function playOrderAlert() {
+  if (!isAudioAvailable || !Audio) {
+    console.log('[Audio] Play Order Alert (skipped - audio unavailable)');
+    return;
+  }
+  try {
+    if (!alertSound) {
+      const { sound } = await Audio.Sound.createAsync(
+        require('../assets/sounds/notification.wav'),
+        { shouldLoop: true }
+      );
+      alertSound = sound;
+    }
+    await alertSound.setIsLoopingAsync(true);
+    await alertSound.playAsync();
+  } catch (error) {
+    console.warn('Audio playback error (playOrderAlert):', error);
+  }
+}
+
+/**
+ * Stop the looped order alert sound
+ */
+export async function stopOrderAlert() {
+  if (!isAudioAvailable || !alertSound) return;
+  try {
+    await alertSound.stopAsync();
+  } catch (error) {
+    console.warn('Audio playback error (stopOrderAlert):', error);
+  }
+}

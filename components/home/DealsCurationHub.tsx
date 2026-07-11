@@ -5,6 +5,7 @@ import { router } from 'expo-router';
 import { ChevronRight, Clock } from 'lucide-react-native';
 import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import ProductCard, { Product } from '../product/ProductCard';
+import ProductCardSkeleton from '../product/ProductCardSkeleton';
 import { useTheme } from '../../app/context/ThemeContext';
 import { triggerHaptic } from '../../lib/haptic';
 
@@ -138,9 +139,10 @@ function PremiumLateNightIcon({ width = 50, height = 50 }) {
 
 interface DealsCurationHubProps {
   products: Product[];
+  isLoading?: boolean;
 }
 
-export default function DealsCurationHub({ products }: DealsCurationHubProps) {
+export default function DealsCurationHub({ products, isLoading }: DealsCurationHubProps) {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const [activeCuration, setActiveCuration] = useState<'all' | 'flash-deals' | 'best-sellers' | 'trending' | 'dynamic-craving'>('all');
@@ -305,16 +307,93 @@ export default function DealsCurationHub({ products }: DealsCurationHubProps) {
     return Object.values(groups).sort((a, b) => a.sortOrder - b.sortOrder);
   }, [currentCuration]);
 
+  if (isLoading) {
+    return (
+      <View className="my-5 mx-4">
+        {/* Title & Subtitle */}
+        <View className="mb-4">
+          <Text className="text-lg font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+            Curated For You
+          </Text>
+          <Text className="text-[10px] font-bold mt-0.5" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+            Handpicked collections for every mood
+          </Text>
+        </View>
+
+        {/* Static Tabs list scroll for loader */}
+        <ScrollView
+          horizontal
+          showsHorizontalScrollIndicator={false}
+          contentContainerStyle={{ gap: 20, paddingBottom: 12, paddingTop: 4 }}
+        >
+          {curations.map((c) => {
+            const isActive = activeCuration === c.id;
+            const IconComponent = c.icon;
+            return (
+              <View key={c.id} className="items-center opacity-40">
+                <View
+                  className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900 border flex items-center justify-center shadow-xs"
+                  style={{
+                    borderColor: isActive ? c.activeBorderColor : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                    borderWidth: isActive ? 2 : 1,
+                  }}
+                >
+                  <IconComponent width={44} height={44} />
+                </View>
+                <Text
+                  className="text-[10px] font-black mt-2 text-center"
+                  style={{
+                    color: isActive ? (isDarkMode ? '#fff' : '#0f172a') : (isDarkMode ? '#a1a1aa' : '#64748b'),
+                  }}
+                >
+                  {c.title}
+                </Text>
+              </View>
+            );
+          })}
+        </ScrollView>
+
+        <View className="mt-4">
+          {['Fruits & Vegetables', 'Snacks & Beverages'].map((categoryName) => (
+            <View key={categoryName} className="mb-6">
+              {/* Category subheader row */}
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="text-base font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+                    {categoryName}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Horizontal scroll track of skeletons */}
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+              >
+                {[1, 2, 3].map((id) => (
+                  <View key={id} className="w-[155px]" style={{ height: 290 }}>
+                    <ProductCardSkeleton />
+                  </View>
+                ))}
+              </ScrollView>
+            </View>
+          ))}
+        </View>
+      </View>
+    );
+  }
+
   if (products.length === 0) return null;
 
   return (
     <View className="my-5 mx-4">
       {/* Title & Subtitle */}
       <View className="mb-4">
-        <Text className="text-slate-800 dark:text-zinc-100 text-lg font-black tracking-tight">
+        <Text className="text-lg font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
           Curated For You
         </Text>
-        <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold mt-0.5">
+        <Text className="text-[10px] font-bold mt-0.5" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
           Handpicked collections for every mood
         </Text>
       </View>
@@ -437,7 +516,7 @@ export default function DealsCurationHub({ products }: DealsCurationHubProps) {
               {/* Category subheader row */}
               <View className="flex-row items-center justify-between mb-3">
                 <View className="flex-row items-center gap-1.5">
-                  <Text className="text-slate-800 dark:text-zinc-100 text-base font-black">
+                  <Text className="text-base font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                     {group.categoryName}
                   </Text>
                   <View className="bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-full">
@@ -473,11 +552,64 @@ export default function DealsCurationHub({ products }: DealsCurationHubProps) {
                 contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
                 decelerationRate="fast"
               >
-                {group.products.slice(0, 10).map((product, idx) => (
-                  <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
-                    <ProductCard product={product} index={idx} className="w-full" />
-                  </View>
-                ))}
+                {group.products.length <= 10 ? (
+                  group.products.map((product, idx) => (
+                    <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
+                      <ProductCard product={product} index={idx} className="w-full" isFlashDeal={true} />
+                    </View>
+                  ))
+                ) : (
+                  <>
+                    {group.products.slice(0, 10).map((product, idx) => (
+                      <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
+                        <ProductCard product={product} index={idx} className="w-full" isFlashDeal={true} />
+                      </View>
+                    ))}
+                    
+                    {/* See More + N Items Left Card */}
+                    <Pressable
+                      onPress={() => {
+                        triggerHaptic('light');
+                        if (group.categorySlug === 'cafe') {
+                          router.push('/cafe');
+                        } else if (group.categorySlug) {
+                          router.push(`/category/${group.categorySlug}`);
+                        } else {
+                          router.push('/(tabs)/categories');
+                        }
+                      }}
+                      style={{
+                        width: 155,
+                        height: 255,
+                        borderRadius: 16,
+                        backgroundColor: isDarkMode ? '#18181b' : '#f8fafc',
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        padding: 16,
+                      }}
+                    >
+                      <View style={{
+                        width: 44,
+                        height: 44,
+                        borderRadius: 22,
+                        backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        marginBottom: 12,
+                      }}>
+                        <ChevronRight size={20} color="#e20a22" />
+                      </View>
+                      <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', textAlign: 'center' }}>
+                        See More
+                      </Text>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#e20a22', marginTop: 4, textAlign: 'center' }}>
+                        {`+${group.products.length - 10} Items Left`}
+                      </Text>
+                    </Pressable>
+                  </>
+                )}
               </ScrollView>
             </View>
           ))

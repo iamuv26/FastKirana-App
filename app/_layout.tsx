@@ -1,5 +1,9 @@
 import React, { useEffect } from 'react';
 import { Stack, router, usePathname } from 'expo-router';
+import * as SplashScreen from 'expo-splash-screen';
+
+// Prevent the splash screen from auto-hiding before asset loading is complete.
+SplashScreen.preventAutoHideAsync().catch(() => {});
 import { useAuthStore } from '../stores/auth-store';
 import { useCartStore } from '../stores/cart-store';
 import { StatusBar } from 'expo-status-bar';
@@ -41,61 +45,9 @@ import VariantSelectorDrawer from '../components/product/VariantSelectorDrawer';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
 import { isWithinOperatingHours, isHoliday } from '../lib/store-hours';
+import { usePushSync } from '../hooks/use-push-sync';
+import ErrorBoundary from '../components/shared/ErrorBoundary';
 console.log('🚀 API_BASE_URL being used by Web App:', API_BASE_URL);
-
-
-function RouteProgressBar() {
-  const pathname = usePathname();
-  const [progress, setProgress] = React.useState(0);
-  const [visible, setVisible] = React.useState(false);
-
-  React.useEffect(() => {
-    setVisible(true);
-    setProgress(0.1);
-    
-    const interval = setInterval(() => {
-      setProgress((prev) => {
-        if (prev >= 0.9) {
-          clearInterval(interval);
-          return 0.9;
-        }
-        return prev + 0.15;
-      });
-    }, 80);
-
-    const timeout = setTimeout(() => {
-      setProgress(1);
-      setTimeout(() => {
-        setVisible(false);
-        setProgress(0);
-      }, 150);
-    }, 400);
-
-    return () => {
-      clearInterval(interval);
-      clearTimeout(timeout);
-    };
-  }, [pathname]);
-
-  if (!visible) return null;
-
-  return (
-    <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, zIndex: 99999, backgroundColor: 'transparent' }}>
-      <View 
-        style={{ 
-          height: '100%', 
-          backgroundColor: '#e20a22', 
-          width: `${progress * 100}%`,
-          shadowColor: '#e20a22',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.5,
-          shadowRadius: 4,
-          elevation: 3
-        }} 
-      />
-    </View>
-  );
-}
 
 
 
@@ -165,6 +117,9 @@ export default function RootLayout() {
   const { width } = useWindowDimensions();
   const isWide = width > 768;
 
+  // Sync push notifications reactively on login
+  usePushSync();
+
   // Load Plus Jakarta Sans font family
   const [fontsLoaded] = useFonts({
     PlusJakartaSans_300Light,
@@ -174,6 +129,12 @@ export default function RootLayout() {
     PlusJakartaSans_700Bold,
     PlusJakartaSans_800ExtraBold,
   });
+
+  useEffect(() => {
+    if (fontsLoaded) {
+      SplashScreen.hideAsync().catch(() => {});
+    }
+  }, [fontsLoaded]);
 
   useEffect(() => {
     // Request push notification token on startup
@@ -192,7 +153,7 @@ export default function RootLayout() {
           const storeLng = settings.store_lng ? parseFloat(settings.store_lng) : undefined;
           
           // Operational Controls
-          const minOrderValue = settings.min_order_value ? parseInt(settings.min_order_value) : 99;
+          const minOrderValue = settings.min_order_value ? parseInt(settings.min_order_value) : 0;
           const storeOpenHour = settings.store_open_hour ? parseInt(settings.store_open_hour) : 7;
           const storeCloseHour = settings.store_close_hour ? parseInt(settings.store_close_hour) : 23;
           const holidays = settings.holidays ? settings.holidays.split(',').map((h: string) => h.trim()) : [];
@@ -205,7 +166,8 @@ export default function RootLayout() {
           let finalGroceryOpen = groceryOpen;
           let finalCafeOpen = cafeOpen;
           
-          if (!inHours || onHoliday) {
+          // Bypassed midnight auto-close to allow testing 24/7. Stores close only when manually toggled off.
+          if (onHoliday) {
             finalGroceryOpen = false;
             finalCafeOpen = false;
           }
@@ -229,7 +191,28 @@ export default function RootLayout() {
     };
     
     syncStoreSettings();
-    const settingsPoll = setInterval(syncStoreSettings, 10000);
+    const settingsPoll = setInterval(syncStoreSettings, 60000);
+
+    // Handle notification tap to navigate to tracking page
+    let responseSubscription: any = null;
+    try {
+      // expo-notifications is not supported in Expo Go since SDK 53
+      const Constants = require('expo-constants').default;
+      const isExpoGo = Constants.appOwnership === 'expo';
+      if (!isExpoGo) {
+        const Notifications = require('expo-notifications');
+        if (Notifications && typeof Notifications.addNotificationResponseReceivedListener === 'function') {
+          responseSubscription = Notifications.addNotificationResponseReceivedListener((response: any) => {
+            const orderId = response.notification.request.content.data?.orderId;
+            if (orderId) {
+              router.push(`/order/${orderId}`);
+            }
+          });
+        }
+      }
+    } catch (e) {
+      // Silently skip — notifications not available in this environment
+    }
 
     // Redirect staff members to their console
     let redirectTimer: any = null;
@@ -244,6 +227,9 @@ export default function RootLayout() {
 
     return () => {
       clearInterval(settingsPoll);
+      if (responseSubscription) {
+        responseSubscription.remove();
+      }
       if (redirectTimer) clearTimeout(redirectTimer);
     };
   }, [isLoggedIn, user]);
@@ -262,34 +248,35 @@ export default function RootLayout() {
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
           <StatusBar style="auto" />
-          <RouteProgressBar />
           <RootThemeWrapper>
-            <View
-              style={shouldRestrictWidth ? {
-                maxWidth: 540,
-                width: '100%',
-                height: '100%',
-                alignSelf: 'center',
-                backgroundColor: 'transparent',
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                elevation: 5,
-              } : { width: '100%', height: '100%' }}
-            >
-              <Stack screenOptions={{ headerShown: false, gestureEnabled: true, animation: 'slide_from_right', headerBackVisible: false }}>
-                <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
-                <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
-                <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
-                <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: true, title: 'Your Cart' }} />
-                <Stack.Screen name="checkout" options={{ headerShown: true, title: 'Checkout' }} />
-                <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
-              </Stack>
-              <VariantSelectorDrawer />
-              <CartSynchronizer />
-            </View>
+            <ErrorBoundary>
+              <View
+                style={shouldRestrictWidth ? {
+                  maxWidth: 540,
+                  width: '100%',
+                  height: '100%',
+                  alignSelf: 'center',
+                  backgroundColor: 'transparent',
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  elevation: 5,
+                } : { width: '100%', height: '100%' }}
+              >
+                <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureDirection: 'horizontal', animation: 'slide_from_right', headerBackVisible: false }}>
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
+                  <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
+                  <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="checkout" options={{ headerShown: false }} />
+                  <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+                </Stack>
+                <VariantSelectorDrawer />
+                <CartSynchronizer />
+              </View>
+            </ErrorBoundary>
           </RootThemeWrapper>
         </QueryClientProvider>
       </ThemeProvider>

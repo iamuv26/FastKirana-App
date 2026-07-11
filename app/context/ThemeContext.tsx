@@ -13,31 +13,16 @@ const ThemeContext = createContext<ThemeContextProps | undefined>(undefined);
 
 export const ThemeProvider = ({ children }: { children: ReactNode }) => {
   const { setColorScheme } = useColorScheme();
-  const systemColorScheme = Appearance.getColorScheme() ?? 'light';
-  const [theme, setTheme] = useState<ColorSchemeName>(
-    (mmkvStorage.getItem('theme') as ColorSchemeName) || systemColorScheme
-  );
+  const [theme, setTheme] = useState<ColorSchemeName>('light');
 
   useEffect(() => {
-    if (theme === 'light' || theme === 'dark') {
-      setColorScheme(theme);
-    }
-  }, [theme]);
-
-  useEffect(() => {
-    const listener = Appearance.addChangeListener(({ colorScheme }) => {
-      const stored = mmkvStorage.getItem('theme');
-      if (!stored) {
-        setTheme(colorScheme);
-      }
-    });
-    return () => listener.remove();
+    setColorScheme('light');
   }, []);
 
   const toggleTheme = () => {
-    const newTheme = theme === 'dark' ? 'light' : 'dark';
-    setTheme(newTheme);
-    mmkvStorage.setItem('theme', newTheme);
+    // Force light theme, ignore toggle
+    setTheme('light');
+    setColorScheme('light');
   };
 
   // Apply theme class to root <html> equivalent – using NativeWind, we add class to top view via className

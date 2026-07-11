@@ -78,8 +78,8 @@ export default function TimeSuggestions({ products }: TimeSuggestionsProps) {
             {icon}
           </View>
           <View>
-            <Text className="text-title text-sm">{title}</Text>
-            <Text className="text-subtitle text-[10px]">{subtitle}</Text>
+            <Text className="text-sm font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>{title}</Text>
+            <Text className="text-[10px] font-semibold" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>{subtitle}</Text>
           </View>
         </View>
 

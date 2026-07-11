@@ -1,14 +1,14 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Animated as RNAnimated, Platform, Image as RNImage } from 'react-native';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Animated as RNAnimated, Platform, Image as RNImage, InteractionManager } from 'react-native';
+import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown, interpolate } from 'react-native-reanimated';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Image as ExpoImage } from 'expo-image';
 import { useQuery } from '@tanstack/react-query';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { router, useLocalSearchParams } from 'expo-router';
-import { ArrowLeft, Search, ShoppingBag, Menu, X, Plus, Minus, Check, ChevronRight, MapPin, ChevronDown, Sun, Moon } from 'lucide-react-native';
+import { ArrowLeft, Search, ShoppingBag, Menu, X, Plus, Minus, Check, ChevronRight, MapPin, ChevronDown, Sun, Moon, Mic, Coffee } from 'lucide-react-native';
 import { useCart } from '../hooks/use-cart';
 import { useUIStore } from '../stores/ui-store';
-import { formatPrice } from '../lib/utils';
+import { formatPrice, formatHeaderAddress } from '../lib/utils';
 import { DEFAULT_CAFE_MENU_SECTIONS, API_BASE_URL } from '../lib/constants';
 import { triggerHaptic } from '../lib/haptic';
 import { StatusBar } from 'expo-status-bar';
@@ -19,6 +19,8 @@ import FloatingCartBar from '../components/shared/FloatingCartBar';
 import { SkeletonShimmer } from '../components/shared/SkeletonShimmer';
 import { useTheme } from './context/ThemeContext';
 import Logo from '../components/shared/Logo';
+import StoreSelectorHeader from '../components/shared/StoreSelectorHeader';
+import CafePromoCarousel from '../components/shared/CafePromoCarousel';
 
 const { width: rawWidth, height } = Dimensions.get('window');
 const width = rawWidth > 768 ? 540 : rawWidth;
@@ -26,18 +28,44 @@ const width = rawWidth > 768 ? 540 : rawWidth;
 const MOCK_CAFE_PRODUCTS: any[] = [];
 
 const CATEGORY_SIDEBAR_IMAGES: Record<string, string> = {
-  'hot-bite': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781008426/qqndbejndns9kr7sl9nk.png',
-  'chinese': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781009115/hkhgalsbhqp0pqzsgft0.png',
-  'frankie-rolls': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781033205/zpu9843cf5ehawocadv7.png',
-  'sandwiches': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781232401/xlimxbbx1blqidujuel9.png',
-  'italian-pasta': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781121488/t9qmcgycpxtmgjtvx316.png',
-  'bombay-bites': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781122608/ouglyiehjertzyc9bqo5.png',
-  'hot-beverage': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781036231/e5j1slyq1r2v4y9z7fcf.png',
-  'south-indian': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781120117/gbiikta7wioj2fhofh1l.png',
-  'shakes': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781204854/ovdfhpqpk9ln4x1upkvb.png',
-  'mocktails': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781204854/ovdfhpqpk9ln4x1upkvb.png',
-  'cold-coffee': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781204854/ovdfhpqpk9ln4x1upkvb.png',
-  'rice-dishes': 'https://res.cloudinary.com/dvcsjvpbg/image/upload/v1781115514/qqr9nlo6d9ybyhj2hhjp.png',
+  'hot-beverage': 'https://www.fastkirana.in/cafe_brews_category.png',
+  'hot-bite': 'https://www.fastkirana.in/cafe_snacks_category.png',
+  'sandwiches': 'https://www.fastkirana.in/cafe_sandwiches_category.png',
+  'frankie-rolls': 'https://www.fastkirana.in/cafe_rolls_category.png',
+  'chinese': 'https://www.fastkirana.in/cafe_chinese_category.png',
+  'italian-pasta': 'https://www.fastkirana.in/cafe_pasta_category.png',
+  'bombay-bites': 'https://www.fastkirana.in/cafe_bombay_bites_category.png',
+  'rice-dishes': 'https://www.fastkirana.in/cafe_rice_category.png',
+  'shakes': 'https://www.fastkirana.in/cafe_shakes_category.png',
+  'mocktails': 'https://www.fastkirana.in/cafe_mocktails_category.png',
+  'cold-coffee': 'https://www.fastkirana.in/cafe_coffee_category.png',
+  'south-indian': 'https://www.fastkirana.in/cafe_south_indian_category.png',
+  'chilled': 'https://www.fastkirana.in/cafe_cold_drinks_category.png',
+  'bakery': 'https://www.fastkirana.in/bakery_biscuits_category.png',
+  'pizza': 'https://www.fastkirana.in/cafe_pizza_category.png',
+  'burgers': 'https://www.fastkirana.in/cafe_burgers_category.png',
+  'garlic-bread': 'https://www.fastkirana.in/cafe_garlic_bread_category.png',
+  'desserts': 'https://www.fastkirana.in/cafe_desserts_category.png',
+};
+
+const getCategoryThemeColor = (tag: string) => {
+  const mapping: Record<string, string> = {
+    'hot-bite': '#ea580c', // Orange
+    'sandwiches': '#16a34a', // Green
+    'frankie-rolls': '#eab308', // Yellow
+    'chinese': '#dc2626', // Red
+    'italian-pasta': '#0891b2', // Teal
+    'bombay-bites': '#ea580c', // Orange
+    'hot-beverage': '#1e40af', // Blue
+    'south-indian': '#16a34a', // Green
+    'shakes': '#db2777', // Pink
+    'mocktails': '#71717a', // Gray
+    'cold-coffee': '#7c3aed', // Purple
+    'rice-dishes': '#0d9488', // Teal
+    'chilled': '#dc2626', // Red
+    'bakery': '#d97706', // Amber
+  };
+  return mapping[tag.toLowerCase()] || '#ea580c';
 };
 
 export function VegIndicator({ isNonVeg }: { isNonVeg: boolean }) {
@@ -103,21 +131,67 @@ function CafeRowSkeleton() {
   );
 }
 
+const getGridCategoryColors = (tag: string, isActive: boolean, isDarkMode: boolean) => {
+  const colorsMap: Record<string, { bg: string, border: string, text: string }> = {
+    'hot-bite': { bg: '#fff7ed', border: '#ffedd5', text: '#ea580c' },
+    'chinese': { bg: '#fef9c3', border: '#fef08a', text: '#ca8a04' },
+    'frankie-rolls': { bg: '#faf5ff', border: '#f3e8ff', text: '#9333ea' },
+    'sandwiches': { bg: '#fefce8', border: '#fef9c3', text: '#ca8a04' },
+    'italian-pasta': { bg: '#ecfeff', border: '#cffafe', text: '#0891b2' },
+    'bombay-bites': { bg: '#fff1f2', border: '#ffe4e6', text: '#e11d48' },
+    'hot-beverage': { bg: '#eff6ff', border: '#dbeafe', text: '#1e40af' },
+    'south-indian': { bg: '#f0fdf4', border: '#dcfce7', text: '#16a34a' },
+    'shakes': { bg: '#fdf2f8', border: '#fce7f3', text: '#db2777' },
+    'mocktails': { bg: '#f5f5f4', border: '#e7e5e4', text: '#57534e' },
+    'cold-coffee': { bg: '#faf5ff', border: '#f3e8ff', text: '#7c3aed' },
+    'rice-dishes': { bg: '#f0fdfa', border: '#ccfbf1', text: '#0d9488' },
+  };
+
+  const normalizedTag = tag.toLowerCase().includes('sandwich') ? 'sandwiches' : tag.toLowerCase();
+  const defaultColors = { bg: '#fafafa', border: '#f1f5f9', text: '#64748b' };
+  const palette = colorsMap[normalizedTag] || defaultColors;
+
+  if (isDarkMode) {
+    return {
+      bg: isActive ? 'rgba(234, 88, 12, 0.2)' : '#1c1c1e',
+      border: isActive ? '#ea580c' : '#27272a',
+      text: isActive ? '#f97316' : '#a1a1aa',
+    };
+  } else {
+    return {
+      bg: isActive ? '#fff7ed' : palette.bg,
+      border: isActive ? '#ea580c' : palette.border,
+      text: isActive ? '#ea580c' : '#334155',
+    };
+  }
+};
+
 export default function CafeScreen() {
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
   const { getItemQuantity, addItem, updateQuantity, getTotalItems, getSubtotal } = useCart();
   const cafeOpen = useUIStore((s) => s.cafeOpen);
+  const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const params = useLocalSearchParams<{ category?: string }>();
 
   const [activeCategory, setActiveCategory] = useState<string>('');
   const [vegOnly, setVegOnly] = useState<boolean>(false);
   const [searchQuery, setSearchQuery] = useState<string>('');
+  const [isScreenTransitioning, setIsScreenTransitioning] = useState<boolean>(true);
+
+  useEffect(() => {
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsScreenTransitioning(false);
+    });
+    return () => task.cancel();
+  }, []);
+
   const [showFloatingMenuBtn, setShowFloatingMenuBtn] = useState<boolean>(false);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
 
   const scrollViewRef = useRef<ScrollView>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
+  const stickyHorizontalTabsRef = useRef<ScrollView>(null);
   const isProgrammaticScrollRef = useRef(false);
   const [sectionOffsets, setSectionOffsets] = useState<Record<string, number>>({});
   const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
@@ -127,6 +201,54 @@ export default function CafeScreen() {
   const indicatorLeft = useSharedValue(0);
   const indicatorWidth = useSharedValue(0);
   const hasLayouts = useSharedValue(0);
+
+  const insets = useSafeAreaInsets();
+  const scrollY = useSharedValue(0);
+  const [isCollapsed, setIsCollapsed] = useState(false);
+  const [showStickyBar, setShowStickyBar] = useState(false);
+
+  const headerAnimatedStyle = useAnimatedStyle(() => {
+    const translateY = interpolate(
+      scrollY.value,
+      [0, 50],
+      [0, -48],
+      'clamp'
+    );
+    return {
+      transform: [{ translateY }],
+    };
+  });
+
+  const topRowAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [0, 40],
+      [1, 0],
+      'clamp'
+    );
+    const scale = interpolate(
+      scrollY.value,
+      [0, 40],
+      [1, 0.95],
+      'clamp'
+    );
+    return {
+      opacity,
+      transform: [{ scale }],
+    };
+  });
+
+  const stickyBarAnimatedStyle = useAnimatedStyle(() => {
+    const opacity = interpolate(
+      scrollY.value,
+      [140, 160],
+      [0, 1],
+      'clamp'
+    );
+    return {
+      opacity,
+    };
+  });
 
   useEffect(() => {
     const layoutKeys = Object.keys(tabLayouts);
@@ -154,34 +276,16 @@ export default function CafeScreen() {
     opacity: hasLayouts.value,
   }));
 
-  const pulseAnim = useRef(new RNAnimated.Value(0.4)).current;
-  
-  useEffect(() => {
-    RNAnimated.loop(
-      RNAnimated.sequence([
-        RNAnimated.timing(pulseAnim, {
-          toValue: 1,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-        RNAnimated.timing(pulseAnim, {
-          toValue: 0.4,
-          duration: 900,
-          useNativeDriver: true,
-        }),
-      ])
-    ).start();
-  }, []);
-
   // Query Cafe Products from Server
   const { data: products = [], isLoading } = useQuery<any[]>({
-    queryKey: ['cafe-products'],
+    queryKey: ['cafe-products', assignedStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=500`);
+      const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
       if (!response.ok) throw new Error('API Failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
+    staleTime: 1000 * 60 * 5, // 5 min cache for instant loading
   });
 
   // Check if item is non-veg
@@ -232,7 +336,7 @@ export default function CafeScreen() {
       if (searchQuery.trim()) {
         const query = searchQuery.toLowerCase();
         return (
-          p.name.toLowerCase().includes(query) ||
+          p.name?.toLowerCase().includes(query) ||
           p.description?.toLowerCase().includes(query) ||
           p.tags?.some((t: string) => t.toLowerCase().includes(query))
         );
@@ -377,32 +481,58 @@ export default function CafeScreen() {
   // Scroll to category on initial load when section offsets are populated
   useEffect(() => {
     if (params.category && sectionOffsets[params.category] !== undefined && scrollViewRef.current) {
-      scrollViewRef.current.scrollTo({ y: sectionOffsets[params.category] - 110, animated: true });
+      scrollViewRef.current.scrollTo({ y: sectionOffsets[params.category] - (insets.top > 0 ? insets.top + 152 : 156), animated: true });
     }
   }, [params.category, sectionOffsets]);
 
   useEffect(() => {
-    if (activeCategory && horizontalTabsRef.current) {
+    if (activeCategory) {
       const activeIdx = menuCategories.findIndex((c) => c.tag === activeCategory);
       if (activeIdx !== -1) {
-        const tabWidth = 130;
-        const targetX = Math.max(0, (activeIdx * tabWidth) - (width / 2) + (tabWidth / 2));
-        horizontalTabsRef.current.scrollTo({ x: targetX, animated: true });
+        // 1. Scroll main category strip (explore by category)
+        if (horizontalTabsRef.current) {
+          const tabWidth = 116; // card width (104) + margin (12)
+          const targetX = Math.max(0, (activeIdx * tabWidth) - (width / 2) + (tabWidth / 2));
+          horizontalTabsRef.current.scrollTo({ x: targetX, animated: true });
+        }
+        // 2. Scroll top sticky horizontal tabs automatically
+        if (stickyHorizontalTabsRef.current) {
+          const pillWidth = 135; // average width of text pill tabs
+          const targetX = Math.max(0, (activeIdx * pillWidth) - (width / 2) + (pillWidth / 2));
+          stickyHorizontalTabsRef.current.scrollTo({ x: targetX, animated: true });
+        }
       }
     }
   }, [activeCategory, menuCategories]);
 
   // Track scrolling coordinates to update active category highlighting in vertical sidebar
   const handleScroll = (event: any) => {
+    const scrollYVal = event.nativeEvent.contentOffset.y;
+    scrollY.value = scrollYVal;
+
+    // Update isCollapsed state
+    if (scrollYVal > 40 && !isCollapsed) {
+      setIsCollapsed(true);
+    } else if (scrollYVal <= 40 && isCollapsed) {
+      setIsCollapsed(false);
+    }
+
+    // Update showStickyBar state
+    if (scrollYVal > 130 && !showStickyBar) {
+      setShowStickyBar(true);
+    } else if (scrollYVal <= 130 && showStickyBar) {
+      setShowStickyBar(false);
+    }
+
     if (isProgrammaticScrollRef.current) return;
-    const scrollY = event.nativeEvent.contentOffset.y;
 
     let currentActive = '';
     const buffer = 40; // buffer for natural scroll alignment
+    const paddingTop = insets.top > 0 ? insets.top + 152 : 156;
 
     for (const cat of menuCategories) {
       const top = sectionOffsets[cat.tag];
-      if (top !== undefined && scrollY >= top - buffer) {
+      if (top !== undefined && scrollYVal >= (top - paddingTop - buffer)) {
         currentActive = cat.tag;
       }
     }
@@ -418,7 +548,8 @@ export default function CafeScreen() {
     if (offset !== undefined && scrollViewRef.current) {
       isProgrammaticScrollRef.current = true;
       setActiveCategory(tag);
-      scrollViewRef.current.scrollTo({ y: offset - 10, animated: true });
+      const paddingTop = insets.top > 0 ? insets.top + 104 : 108; // align under collapsed header
+      scrollViewRef.current.scrollTo({ y: offset - paddingTop, animated: true });
       triggerHaptic('light');
       
       // Release programmatic scroll flag after animation completes
@@ -437,477 +568,595 @@ export default function CafeScreen() {
   }, [menuCategories, activeCategory]);
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <View className="flex-1 bg-white dark:bg-zinc-950 relative">
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       
       {/* 1. Redesigned Sticky Header (Row 1, Row 2, Row 3) */}
-      <View
-        style={{
-          paddingHorizontal: 16,
-          paddingTop: 12,
-          paddingBottom: 12,
-          borderBottomWidth: 1,
-          borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-          backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)',
-          zIndex: 20
-        }}
+      <Animated.View
+        style={[
+          headerAnimatedStyle,
+          {
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            right: 0,
+            zIndex: 20,
+            paddingHorizontal: 16,
+            paddingTop: insets.top > 0 ? insets.top + 5 : 8,
+            paddingBottom: 8,
+            backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDarkMode ? 0.2 : 0.03,
+                shadowRadius: 8,
+              },
+              android: {
+                elevation: 2,
+              },
+              web: {
+                // @ts-ignore
+                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
+              },
+            }),
+          }
+        ]}
       >
-        {/* Row 1: Back Button + Logo + Location dropdown + Theme Toggle */}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 10 }}>
-            {/* Logo & Location Details */}
-            <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, gap: 8 }}>
-              <Logo size={32} />
-              <Pressable 
-                onPress={() => {
-                  triggerHaptic('light');
-                  router.push('/location-picker');
-                }} 
-                style={({ pressed }) => [{
-                  opacity: pressed ? 0.75 : 1,
-                  flex: 1
-                }]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 }}>
-                  <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
-                    <MapPin size={14} color="#e20a22" />
-                  </View>
-                  <View style={{ flexDirection: 'column', alignItems: 'flex-start', flex: 1 }}>
-                    <Text style={{ fontSize: 11, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', letterSpacing: -0.2 }}>
-                      Fast Delivery
-                    </Text>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 0.5, gap: 2 }}>
-                      <Text 
-                        style={{ fontSize: 9.5, fontWeight: '700', color: '#64748b', maxWidth: 180 }} 
-                        numberOfLines={1}
-                      >
-                        {selectedLocation || 'Select Location'}
-                      </Text>
-                      <ChevronDown size={8} color="#94a3b8" />
-                    </View>
-                  </View>
-                </View>
-              </Pressable>
-            </View>
-          </View>
-
-          {/* Theme Toggle Button */}
+        {/* Row 1: Brand Info & Location */}
+        <Animated.View 
+          pointerEvents={isCollapsed ? 'none' : 'auto'}
+          style={[
+            topRowAnimatedStyle,
+            { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%' }
+          ]}
+        >
+          {/* Left: Brand Logo & Text */}
           <Pressable 
             onPress={() => {
-              toggleTheme();
+              triggerHaptic('light');
+              router.replace('/(tabs)');
+            }} 
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.97 : 1 }]
+            })}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={22} />
+              </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+          </Pressable>
+ 
+          {/* Right: Location Capsule Picker */}
+          <Pressable 
+            onPress={() => {
+              triggerHaptic('light');
+              router.push('/location-picker');
+            }} 
+            style={({ pressed }) => ({
+              opacity: pressed ? 0.85 : 1,
+              transform: [{ scale: pressed ? 0.96 : 1 }],
+              maxWidth: '60%'
+            })}
+          >
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+              borderWidth: 1, 
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+              borderRadius: 20, 
+              paddingHorizontal: 8, 
+              paddingVertical: 5,
+              justifyContent: 'center',
+            }}>
+              <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+              <Text 
+                numberOfLines={1} 
+                style={{ 
+                  fontSize: 10, 
+                  fontWeight: 'bold', 
+                  color: isDarkMode ? '#fafafa' : '#0f172a',
+                  flexShrink: 1,
+                  marginRight: 3
+                }}
+              >
+                {formatHeaderAddress(selectedLocation)}
+              </Text>
+              <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+            </View>
+          </Pressable>
+        </Animated.View>
+ 
+        {/* Store Switcher Tab Pills - Inline (Cafe Active) */}
+        <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginVertical: 10 }}>
+          {/* Grocery Pill (Inactive) */}
+          <Pressable
+            onPress={() => {
+              triggerHaptic('light');
+              router.replace('/(tabs)');
+            }}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: 38,
+              borderRadius: 19,
+              paddingHorizontal: 12,
+              borderWidth: 1.5,
+              backgroundColor: '#ffffff',
+              borderColor: '#fecdd3',
+              marginRight: 8,
+              elevation: 1,
+            }}
+          >
+            <ShoppingBag size={14} color="#e20a22" strokeWidth={2.5} style={{ marginRight: 5 }} />
+            <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#e20a22' }}>
+              Grocery
+            </Text>
+          </Pressable>
+
+          {/* Café Pill (Active) */}
+          <Pressable
+            onPress={() => {
               triggerHaptic('light');
             }}
             style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: isDarkMode ? '#1c1c1e' : '#f8fafc',
+              flex: 1,
+              flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-              marginLeft: 8
+              height: 38,
+              borderRadius: 19,
+              paddingHorizontal: 12,
+              borderWidth: 1.5,
+              backgroundColor: '#ea580c',
+              borderColor: '#ea580c',
+              elevation: 1,
             }}
           >
-            {isDarkMode ? (
-              <Sun size={14} color="#fbbf24" />
-            ) : (
-              <Moon size={14} color="#3b82f6" />
-            )}
+            <Coffee size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 5 }} />
+            <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#ffffff' }}>
+              Café
+            </Text>
           </Pressable>
         </View>
 
-        {/* Row 2: Search Box Shortcut */}
-        <Pressable 
-          onPress={() => {
-            triggerHaptic('light');
-            router.push('/search');
-          }}
+        {/* Row 3: Real Search Box */}
+        <View
           style={{
             flexDirection: 'row',
             alignItems: 'center',
-            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
             borderWidth: 1,
-            borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-            borderRadius: 24,
+            borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+            borderRadius: 22,
             paddingHorizontal: 16,
-            paddingVertical: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 2,
-            elevation: 1
+            height: 44,
+            width: '100%',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 6,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
           }}
         >
-          <Search size={16} color="#e20a22" style={{ marginRight: 8 }} />
-          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
-            Search "atta"
-          </Text>
-        </Pressable>
-
-        {/* Row 3: Breadcrumbs Capsule */}
-        <View style={{
-          flexDirection: 'row',
-          alignItems: 'center',
-          alignSelf: 'flex-start',
-          borderWidth: 1,
-          borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-          borderRadius: 99,
-          paddingHorizontal: 12,
-          paddingVertical: 5,
-          marginTop: 12,
-          backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff'
-        }}>
-          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
-          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6 }} />
-          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>
-            FASTKIRANA CAFE 🍩
-          </Text>
-          <ChevronRight size={8} color="#e20a22" style={{ marginHorizontal: 6 }} />
-          <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
-            {activeCategoryObj ? activeCategoryObj.title : 'ALL MENU'}
-          </Text>
-        </View>
-      </View>
-      {/* 2. Main Two-Column Split Layout */}
-      <View style={{ flex: 1, flexDirection: 'row' }}>
-        
-        {/* Left Column: Vertical Category Sidebar */}
-        {menuCategories.length > 0 && (
-          <View style={{
-            width: 90,
-            borderRightWidth: 1,
-            borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
-            backgroundColor: isDarkMode ? '#09090b' : '#ffffff'
-          }}>
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingVertical: 12 }}
-              nestedScrollEnabled={true}
+          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+          <TextInput
+            placeholder="Search Cafe Menu..."
+            placeholderTextColor="#94a3b8"
+            value={searchQuery}
+            onChangeText={setSearchQuery}
+            style={{
+              flex: 1,
+              fontSize: 13,
+              fontWeight: '600',
+              color: isDarkMode ? '#f4f4f5' : '#1e293b',
+              padding: 0
+            }}
+          />
+          {searchQuery.length > 0 && (
+            <Pressable 
+              onPress={() => {
+                triggerHaptic('light');
+                setSearchQuery('');
+              }}
+              style={{ padding: 4 }}
             >
-              {menuCategories.map((cat) => {
-                const isActive = activeCategory === cat.tag;
-                const imgUrl = CATEGORY_SIDEBAR_IMAGES[cat.tag] || '';
-                
-                return (
-                  <Pressable
-                    key={cat.tag}
-                    onPress={() => scrollToCategory(cat.tag)}
-                    style={{
-                      paddingVertical: 12,
-                      alignItems: 'center',
-                      position: 'relative',
-                      width: '100%',
-                      backgroundColor: isActive 
-                        ? (isDarkMode ? 'rgba(225,29,72,0.05)' : 'rgba(225,29,72,0.02)') 
-                        : 'transparent'
-                    }}
-                  >
-                    {/* Left red indicator bar */}
-                    {isActive && (
-                      <View style={{
-                        position: 'absolute',
-                        left: 0,
-                        top: 14,
-                        bottom: 14,
-                        width: 3.5,
-                        backgroundColor: '#e11d48',
-                        borderTopRightRadius: 4,
-                        borderBottomRightRadius: 4
-                      }} />
-                    )}
-                    
-                    {/* Circular Category Thumbnail */}
-                    <View style={{
-                      width: 50,
-                      height: 50,
-                      borderRadius: 25,
-                      borderWidth: 1.5,
-                      borderColor: isActive ? '#e11d48' : (isDarkMode ? '#27272a' : '#e2e8f0'),
-                      overflow: 'hidden',
-                      backgroundColor: isDarkMode ? '#18181b' : '#f8fafc',
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                      padding: 1.5
-                    }}>
-                      {(!imgUrl || imageErrors[cat.tag]) ? (
-                        <Text style={{ fontSize: 20 }}>{cat.emoji}</Text>
-                      ) : Platform.OS === 'web' ? (
-                        <RNImage
-                          source={{ uri: imgUrl }}
-                          style={{ width: '100%', height: '100%', borderRadius: 23 }}
-                          resizeMode="cover"
-                          onError={() => setImageErrors(prev => ({ ...prev, [cat.tag]: true }))}
-                        />
-                      ) : (
-                        <ExpoImage
-                          source={{ uri: imgUrl }}
-                          contentFit="cover"
-                          style={{ width: '100%', height: '100%', borderRadius: 23 }}
-                          onError={() => setImageErrors(prev => ({ ...prev, [cat.tag]: true }))}
-                        />
-                      )}
-                    </View>
-
-                    {/* Category Label */}
-                    <Text style={{
-                      fontSize: 9,
-                      fontWeight: isActive ? '900' : '600',
-                      color: isActive ? '#e11d48' : (isDarkMode ? '#a1a1aa' : '#475569'),
-                      textAlign: 'center',
-                      marginTop: 6,
-                      paddingHorizontal: 4,
-                      lineHeight: 11
-                    }} numberOfLines={2}>
-                      {cat.title}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </ScrollView>
-          </View>
-        )}
-
-        {/* Right Column: Scrollable Content Grid */}
-        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}>
+              <X size={16} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+            </Pressable>
+          )}
           
-          {isLoading ? (
-            <ScrollView 
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 120 }}
-            >
-              <SkeletonShimmer height={128} borderRadius={16} style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 20 }} />
-              <View style={{ paddingHorizontal: 12 }}><SkeletonShimmer width={120} height={16} /></View>
-              <CafeRowSkeleton />
-              <CafeRowSkeleton />
-            </ScrollView>
-          ) : filteredProducts.length === 0 ? (
-            <View className="flex-1 justify-center items-center p-8 bg-white dark:bg-zinc-950">
-              <Text className="text-5xl">🥪</Text>
-              <Text className="text-slate-800 dark:text-zinc-200 font-black text-base mt-4">No café specials found</Text>
-              <Text className="text-slate-400 dark:text-zinc-400 text-xs mt-1 text-center">
-                {searchQuery ? `No matches found for "${searchQuery}"` : "Check back later or try clearing filters."}
-              </Text>
-            </View>
-          ) : (
-            <ScrollView
-              ref={scrollViewRef}
-              onScroll={handleScroll}
-              scrollEventThrottle={16}
-              showsVerticalScrollIndicator={false}
-              contentContainerStyle={{ paddingBottom: 140 }}
-              nestedScrollEnabled={true}
-            >
+          {/* Vertical Divider */}
+          <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginHorizontal: 10 }} />
+          
+          <Mic size={16} color="#16a34a" />
+        </View>
+
+        {/* Glassmorphic border underline line */}
+        <LinearGradient
+          colors={isDarkMode 
+            ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
+            : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
+          }
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 0 }}
+          style={{ height: 1.2, width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }}
+        />
+      </Animated.View>
+
+      {/* Sticky Categories Selector (fades in when scrolling past carousel) */}
+      {menuCategories.length > 0 && (
+        <Animated.View
+          pointerEvents={showStickyBar ? 'auto' : 'none'}
+          style={[
+            stickyBarAnimatedStyle,
+            {
+              position: 'absolute',
+              top: insets.top > 0 ? insets.top + 104 : 108,
+              left: 0,
+              right: 0,
+              zIndex: 15,
+              backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+              borderBottomWidth: 1,
+              borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+              paddingVertical: 8,
+              ...Platform.select<any>({
+                ios: {
+                  shadowColor: '#000000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: isDarkMode ? 0.2 : 0.03,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 2,
+                },
+              })
+            }
+          ]}
+        >
+          <ScrollView
+            ref={stickyHorizontalTabsRef}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={{ paddingHorizontal: 12 }}
+          >
+            {menuCategories.map((cat) => {
+              const isActive = activeCategory === cat.tag;
               
-
-
-              {/* 2.2 Cover Category Hero Banner */}
-              <LinearGradient
-                colors={isDarkMode ? ['#1e0c10', '#0a0304'] : ['#3f121a', '#1e0508']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  marginHorizontal: 12,
-                  marginTop: 8,
-                  marginBottom: 16,
-                  borderRadius: 16,
-                  padding: 16,
-                  position: 'relative',
-                  overflow: 'hidden'
-                }}
-              >
-                {/* Floating Category Emoji Backdrop */}
-                <View style={{ position: 'absolute', right: -6, bottom: -12, opacity: 0.15 }}>
-                  <Text style={{ fontSize: 84 }}>{activeCategoryObj?.emoji || '🥟'}</Text>
-                </View>
-
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-                  <View style={{ flex: 1, paddingRight: 8 }}>
-                    <Text style={{ color: '#fb7185', fontSize: 9, fontWeight: '900', letterSpacing: 1, marginBottom: 4 }}>
-                      ⚡ FASTKIRANA CAFÉ
-                    </Text>
-                    <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '900', marginBottom: 2 }}>
-                      {activeCategoryObj?.title || 'Quick Bites & Snacks'}
-                    </Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.7)', fontSize: 9.5, fontWeight: '600', lineHeight: 13 }}>
-                      {categorySections.sections.find(s => s.tag === activeCategory)?.description || 'Prepared Fresh & Delivered Fast'}
-                    </Text>
-                  </View>
-                  <Text style={{ fontSize: 38 }}>{activeCategoryObj?.emoji || '🥟'}</Text>
-                </View>
-              </LinearGradient>
-
-              {/* 2.3 Search Input Box */}
-              <View style={{
-                marginHorizontal: 12,
-                marginBottom: 12,
-                backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-                flexDirection: 'row',
-                alignItems: 'center',
-                paddingHorizontal: 12,
-                paddingVertical: 8,
-                borderRadius: 20,
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0'
-              }}>
-                <Search size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} />
-                <TextInput
-                  placeholder="Search Cafe Menu..."
-                  placeholderTextColor="#94a3b8"
-                  value={searchQuery}
-                  onChangeText={setSearchQuery}
-                  style={{
-                    flex: 1,
-                    marginLeft: 8,
-                    fontSize: 11,
-                    fontWeight: '600',
-                    color: isDarkMode ? '#f4f4f5' : '#1e293b',
-                    padding: 0
-                  }}
-                />
-                {searchQuery.length > 0 && (
-                  <Pressable onPress={() => setSearchQuery('')}>
-                    <X size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} />
-                  </Pressable>
-                )}
-              </View>
-
-              {/* 2.4 Veg Only Toggle */}
-              <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginHorizontal: 12, marginBottom: 16 }}>
-                <Pressable 
-                  onPress={() => {
-                    setVegOnly(!vegOnly);
-                    triggerHaptic('light');
-                  }}
+              return (
+                <Pressable
+                  key={cat.tag}
+                  onPress={() => scrollToCategory(cat.tag)}
                   style={{
                     flexDirection: 'row',
                     alignItems: 'center',
-                    gap: 6,
-                    paddingHorizontal: 10,
-                    paddingVertical: 5,
-                    borderRadius: 12,
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    marginRight: 8,
+                    borderRadius: 14,
                     borderWidth: 1,
-                    borderColor: vegOnly ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0'),
-                    backgroundColor: vegOnly ? (isDarkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5') : 'transparent'
+                    borderColor: isActive ? '#ea580c' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                    backgroundColor: isActive 
+                      ? (isDarkMode ? 'rgba(234, 88, 12, 0.15)' : '#fff7ed') 
+                      : (isDarkMode ? '#1c1c1e' : '#f8fafc'),
                   }}
                 >
-                  <View style={{
-                    width: 10,
-                    height: 10,
-                    borderWidth: 1,
-                    borderColor: vegOnly ? '#059669' : (isDarkMode ? '#52525b' : '#94a3b8'),
-                    backgroundColor: vegOnly ? '#10b981' : 'transparent',
-                    justifyContent: 'center',
-                    alignItems: 'center',
-                    borderRadius: 2
-                  }}>
-                    {vegOnly && <Check size={7} color="#ffffff" strokeWidth={4} />}
-                  </View>
-                  <Text style={{ fontSize: 8.5, fontWeight: '900', color: vegOnly ? '#059669' : (isDarkMode ? '#a1a1aa' : '#64748b'), textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    Veg Only
+                  <Text style={{ fontSize: 13, marginRight: 4 }}>{cat.emoji}</Text>
+                  <Text 
+                    style={{
+                      fontSize: 10,
+                      fontWeight: '900',
+                      color: isActive ? '#ea580c' : (isDarkMode ? '#a1a1aa' : '#475569'),
+                    }}
+                  >
+                    {cat.title}
                   </Text>
                 </Pressable>
+              );
+            })}
+          </ScrollView>
+        </Animated.View>
+      )}
+
+      {(isLoading || isScreenTransitioning) ? (
+        <ScrollView
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafafa' }}
+          contentContainerStyle={{ 
+            paddingTop: insets.top > 0 ? insets.top + 172 : 176, 
+            paddingBottom: 140 
+          }}
+        >
+          {/* Promo Banner Shimmer */}
+          <SkeletonShimmer height={128} borderRadius={16} style={{ marginHorizontal: 12, marginTop: 12, marginBottom: 20 }} />
+          
+          {/* Category Grid Shimmer */}
+          <View style={{ paddingHorizontal: 12, marginBottom: 24, gap: 12 }}>
+            <SkeletonShimmer width={180} height={18} />
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              {[1, 2, 3, 4].map((i) => (
+                <SkeletonShimmer key={i} width={64} height={80} borderRadius={12} />
+              ))}
+            </View>
+          </View>
+          
+          {/* Section Shimmer */}
+          <CafeRowSkeleton />
+          <CafeRowSkeleton />
+        </ScrollView>
+      ) : filteredProducts.length === 0 ? (
+        <View className="flex-1 justify-center items-center p-8 bg-white dark:bg-zinc-950">
+          <Text className="text-5xl">🥪</Text>
+          <Text className="text-slate-800 dark:text-zinc-200 font-black text-base mt-4">No café specials found</Text>
+          <Text className="text-slate-400 dark:text-zinc-400 text-xs mt-1 text-center">
+            {searchQuery ? `No matches found for "${searchQuery}"` : "Check back later or try clearing filters."}
+          </Text>
+        </View>
+      ) : (
+        <ScrollView
+          ref={scrollViewRef}
+          onScroll={handleScroll}
+          scrollEventThrottle={16}
+          showsVerticalScrollIndicator={false}
+          style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafafa' }}
+          contentContainerStyle={{ 
+            paddingTop: insets.top > 0 ? insets.top + 172 : 176, 
+            paddingBottom: 140 
+          }}
+          nestedScrollEnabled={true}
+        >
+          {/* 2.1 Premium Cafe Sliding Promotions */}
+          <CafePromoCarousel />
+
+          {/* 2.2 Explore by category 💜 */}
+          {menuCategories.length > 0 && (
+            <View style={{ marginBottom: 12 }}>
+              {/* Header Title */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10, paddingHorizontal: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: -0.15 }}>
+                  Explore by category 💜
+                </Text>
               </View>
 
-              {/* 2.5 Render Grouped Category Sections */}
-              {categorySections.sections.map((section) => (
-                <View 
-                  key={section.tag}
-                  onLayout={(e) => {
-                    const y = e.nativeEvent.layout.y;
-                    setSectionOffsets(prev => ({ ...prev, [section.tag]: y }));
-                  }}
-                  style={{
-                    marginBottom: 20,
-                    backgroundColor: isDarkMode ? '#121214' : '#ffffff',
-                    borderTopWidth: 1,
-                    borderBottomWidth: 1,
-                    borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                    paddingHorizontal: 12,
-                    paddingVertical: 14
-                  }}
-                >
-                  {/* Category Section Header matching web exactly */}
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 15 }}>{section.emoji}</Text>
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                        {section.title}
-                      </Text>
-                    </View>
-                    <View style={{
-                      backgroundColor: isDarkMode ? 'rgba(225,29,72,0.15)' : '#ffe4e6',
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 10
-                    }}>
-                      <Text style={{ fontSize: 8, fontWeight: '900', color: '#e11d48' }}>
-                        {section.products.length} Items
-                      </Text>
-                    </View>
-                  </View>
+              <ScrollView
+                horizontal
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 12, paddingBottom: 6 }}
+              >
+                {menuCategories.map((cat) => {
+                  const isActive = activeCategory === cat.tag;
+                  const imgUrl = CATEGORY_SIDEBAR_IMAGES[cat.tag] || '';
+                  const themeColor = getCategoryThemeColor(cat.tag);
+                  
+                  return (
+                    <Pressable
+                      key={cat.tag}
+                      onPress={() => scrollToCategory(cat.tag)}
+                      style={{
+                        width: 104,
+                        height: 156,
+                        marginRight: 12,
+                        borderRadius: 24,
+                        borderWidth: isActive ? 2 : 1,
+                        borderColor: isActive ? themeColor : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                        backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                        alignItems: 'center',
+                        paddingTop: 12,
+                        paddingBottom: 8,
+                        justifyContent: 'space-between',
+                        ...Platform.select<any>({
+                          ios: {
+                            shadowColor: isActive ? themeColor : '#000',
+                            shadowOffset: { width: 0, height: 4 },
+                            shadowOpacity: isActive ? 0.15 : 0.03,
+                            shadowRadius: 6,
+                          },
+                          android: {
+                            elevation: isActive ? 3 : 1,
+                          },
+                        })
+                      }}
+                    >
+                      {/* Circular Image Container with Overlaid Badge */}
+                      <View style={{ width: 62, height: 62, position: 'relative', alignItems: 'center' }}>
+                        <View style={{
+                          width: 62,
+                          height: 62,
+                          borderRadius: 31,
+                          overflow: 'hidden',
+                          backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+                          borderWidth: 1.5,
+                          borderColor: themeColor,
+                        }}>
+                          {imgUrl && !imageErrors[cat.tag] ? (
+                            <ExpoImage
+                              source={{ uri: imgUrl }}
+                              contentFit="cover"
+                              style={{ width: '100%', height: '100%' }}
+                              onError={() => setImageErrors(prev => ({ ...prev, [cat.tag]: true }))}
+                            />
+                          ) : (
+                            <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                              <Text style={{ fontSize: 24 }}>🍽️</Text>
+                            </View>
+                          )}
+                        </View>
 
-                  {/* 2-Column Product Grid */}
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 4 }}>
-                    {section.products.map((product: any, idx: number) => (
-                      <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} />
-                    ))}
-                  </View>
-                </View>
-              ))}
-
-              {/* 2.6 Catch-all More Specials */}
-              {categorySections.moreItems.length > 0 && (
-                <View 
-                  onLayout={(e) => {
-                    const y = e.nativeEvent.layout.y;
-                    setSectionOffsets(prev => ({ ...prev, more: y }));
-                  }}
-                  style={{
-                    marginBottom: 20,
-                    backgroundColor: isDarkMode ? '#121214' : '#ffffff',
-                    borderTopWidth: 1,
-                    borderBottomWidth: 1,
-                    borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                    paddingHorizontal: 12,
-                    paddingVertical: 14
-                  }}
-                >
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                      <Text style={{ fontSize: 15 }}>🍽️</Text>
-                      <Text style={{ fontSize: 11, fontWeight: '900', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                        More Specials
+                        {/* Overlaid Badge under the circle */}
+                        <View style={{
+                          position: 'absolute',
+                          bottom: -6,
+                          width: 20,
+                          height: 20,
+                          borderRadius: 10,
+                          backgroundColor: themeColor,
+                          justifyContent: 'center',
+                          alignItems: 'center',
+                          borderWidth: 1.5,
+                          borderColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                          zIndex: 10,
+                        }}>
+                          <Text style={{ fontSize: 9, color: '#ffffff' }}>{cat.emoji}</Text>
+                        </View>
+                      </View>
+                      
+                      {/* Title */}
+                      <Text 
+                        style={{
+                          fontSize: 10,
+                          fontWeight: '800',
+                          color: isDarkMode ? '#f4f4f5' : '#1e293b',
+                          textAlign: 'center',
+                          paddingHorizontal: 8,
+                          lineHeight: 12,
+                          marginTop: 10,
+                        }}
+                        numberOfLines={2}
+                      >
+                        {cat.title}
                       </Text>
-                    </View>
-                    <View style={{
-                      backgroundColor: isDarkMode ? 'rgba(225,29,72,0.15)' : '#ffe4e6',
-                      paddingHorizontal: 8,
-                      paddingVertical: 2,
-                      borderRadius: 10
-                    }}>
-                      <Text style={{ fontSize: 8, fontWeight: '900', color: '#e11d48' }}>
-                        {categorySections.moreItems.length} Items
-                      </Text>
-                    </View>
-                  </View>
 
-                  <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 4 }}>
-                    {categorySections.moreItems.map((product: any, idx: number) => (
-                      <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} />
-                    ))}
-                  </View>
-                </View>
-              )}
-
-            </ScrollView>
+                      {/* Small horizontal dash indicator at the bottom */}
+                      <View style={{
+                        width: 18,
+                        height: 3,
+                        borderRadius: 1.5,
+                        backgroundColor: isActive ? themeColor : 'transparent',
+                        marginTop: 4,
+                      }} />
+                    </Pressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
           )}
 
-        </View>
-      </View>
+          {/* 2.3 Veg Only Toggle */}
+          <View style={{ flexDirection: 'row', justifyContent: 'flex-end', marginHorizontal: 12, marginBottom: 16 }}>
+            <Pressable 
+              onPress={() => {
+                setVegOnly(!vegOnly);
+                triggerHaptic('light');
+              }}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 6,
+                paddingHorizontal: 10,
+                paddingVertical: 5,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: vegOnly ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                backgroundColor: vegOnly ? (isDarkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5') : 'transparent'
+              }}
+            >
+              <View style={{
+                width: 10,
+                height: 10,
+                borderWidth: 1,
+                borderColor: vegOnly ? '#059669' : (isDarkMode ? '#52525b' : '#94a3b8'),
+                backgroundColor: vegOnly ? '#10b981' : 'transparent',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 2
+              }}>
+                {vegOnly && <Check size={7} color="#ffffff" strokeWidth={4} />}
+              </View>
+              <Text style={{ fontSize: 8.5, fontWeight: '900', color: vegOnly ? '#059669' : (isDarkMode ? '#a1a1aa' : '#64748b'), textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Veg Only
+              </Text>
+            </Pressable>
+          </View>
+
+          {/* 2.4 Render Grouped Category Sections */}
+          {categorySections.sections.map((section) => (
+            <View 
+              key={section.tag}
+              onLayout={(e) => {
+                const y = e.nativeEvent.layout.y;
+                setSectionOffsets(prev => ({ ...prev, [section.tag]: y }));
+              }}
+              style={{ marginBottom: 24 }}
+            >
+              {/* Category Section Header matching mockup */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 16 }}>{section.emoji}</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: -0.15 }}>
+                    {section.title}
+                  </Text>
+                </View>
+              </View>
+
+              {/* 2-Column Product Grid */}
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 12 }}>
+                {section.products.map((product: any, idx: number) => (
+                  <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} isCafeStyle={true} />
+                ))}
+              </View>
+            </View>
+          ))}
+
+          {/* 2.5 Catch-all More Specials */}
+          {categorySections.moreItems.length > 0 && (
+            <View 
+              onLayout={(e) => {
+                const y = e.nativeEvent.layout.y;
+                setSectionOffsets(prev => ({ ...prev, more: y }));
+              }}
+              style={{ marginBottom: 24 }}
+            >
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12, paddingHorizontal: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Text style={{ fontSize: 16 }}>🍽️</Text>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: -0.15 }}>
+                    More Specials
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 12 }}>
+                {categorySections.moreItems.map((product: any, idx: number) => (
+                  <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} isCafeStyle={true} />
+                ))}
+              </View>
+            </View>
+          )}
+
+        </ScrollView>
+      )}
 
       {/* 3. Sticky Bottom Cart Bar */}
       <FloatingCartBar bottomOffset={8} />
-    </SafeAreaView>
+    </View>
   );
 }

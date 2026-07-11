@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, Alert, Modal, ActivityIndicator, Image, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Modal, ActivityIndicator, Image, Platform, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
@@ -62,15 +62,21 @@ export default function RiderScreen() {
   const [offlineSyncQueue, setOfflineSyncQueue] = useState<{ orderId: string, nextStatus: string, extraPayload: any }[]>([]);
 
   const getAuthHeaders = (): Record<string, string> => {
-    if (!user) return {};
-    return {
+    const { token } = useAuthStore.getState();
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'x-user-id': user.id,
-      'x-user-role': user.role,
-      'x-user-email': user.email || '',
-      'x-user-name': user.name || '',
-      'x-user-phone': user.phone || '',
     };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (user) {
+      headers['x-user-id'] = user.id;
+      headers['x-user-role'] = user.role;
+      headers['x-user-email'] = user.email || '';
+      headers['x-user-name'] = user.name || '';
+      headers['x-user-phone'] = user.phone || '';
+    }
+    return headers;
   };
 
   const fetchServerOrders = async (showLoader = false) => {
@@ -99,8 +105,10 @@ export default function RiderScreen() {
             street: ord.address.street || '',
             area: ord.address.area || '',
             city: ord.address.city || '',
-            pincode: ord.address.pincode || ''
-          } : { houseNo: '', street: '', area: '', city: '', pincode: '' },
+            pincode: ord.address.pincode || '',
+            lat: ord.address.lat || null,
+            lng: ord.address.lng || null,
+          } : { houseNo: '', street: '', area: '', city: '', pincode: '', lat: null, lng: null },
           items: (ord.items || []).map((it: any) => ({
             id: it.id,
             name: it.name,
@@ -182,6 +190,41 @@ export default function RiderScreen() {
       }
     };
   }, [orders]);
+
+  const handleNavigateToAddress = (address: any) => {
+    triggerHaptic('light');
+    const lat = address.lat;
+    const lng = address.lng;
+    
+    let url = '';
+    if (lat && lng) {
+      // Direct exact coordinates navigation
+      url = Platform.select({
+        ios: `maps://app?daddr=${lat},${lng}`,
+        android: `google.navigation:q=${lat},${lng}`,
+        default: `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`
+      });
+    } else {
+      // Address text query navigation fallback
+      const query = encodeURIComponent(`${address.houseNo} ${address.street} ${address.area} ${address.city} ${address.pincode}`);
+      url = Platform.select({
+        ios: `maps://app?daddr=${query}`,
+        android: `google.navigation:q=${query}`,
+        default: `https://www.google.com/maps/search/?api=1&query=${query}`
+      });
+    }
+
+    Linking.canOpenURL(url).then(supported => {
+      if (supported) {
+        Linking.openURL(url);
+      } else {
+        const webUrl = `https://www.google.com/maps/search/?api=1&query=${lat && lng ? `${lat},${lng}` : encodeURIComponent(address.area + ' ' + address.city)}`;
+        Linking.openURL(webUrl);
+      }
+    }).catch(err => {
+      console.warn('Failed to open maps url:', err);
+    });
+  };
 
   const queueOfflineUpdate = (orderId: string, nextStatus: string, extraPayload: any = {}) => {
     setOfflineSyncQueue(prev => {
@@ -472,11 +515,19 @@ export default function RiderScreen() {
                     </View>
                   </View>
 
-                  <View className="flex-row items-center gap-1.5 mb-1.5">
-                    <MapPin size={10} color="#ef4444" />
-                    <Text className="text-slate-200 text-[11px] font-semibold flex-1 leading-4">
-                      {ord.address.houseNo}, {ord.address.street}, {ord.address.area}, {ord.address.city}
-                    </Text>
+                  <View className="flex-row items-center justify-between gap-2 mb-1.5">
+                    <View className="flex-row items-center gap-1.5 flex-1">
+                      <MapPin size={10} color="#ef4444" />
+                      <Text className="text-slate-200 text-[11px] font-semibold flex-1 leading-4">
+                        {ord.address.houseNo}, {ord.address.street}, {ord.address.area}, {ord.address.city}
+                      </Text>
+                    </View>
+                    <Pressable
+                      onPress={() => handleNavigateToAddress(ord.address)}
+                      className="bg-indigo-650 active:bg-indigo-800 px-2.5 py-1 rounded-md flex-row items-center gap-1 shrink-0"
+                    >
+                      <Text className="text-white text-[9.5px] font-black uppercase">Navigate 🗺️</Text>
+                    </Pressable>
                   </View>
 
                   <View className="flex-row items-center gap-1.5 mb-3">

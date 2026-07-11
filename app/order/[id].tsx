@@ -8,12 +8,15 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { toast } from '../../lib/toast';
 import { useAuthStore } from '../../stores/auth-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS } from '../../lib/constants';
+import { api } from '../../lib/api-client';
 import { formatPrice } from '../../lib/utils';
 import { triggerHaptic } from '../../lib/haptic';
 import Confetti from '../../components/shared/Confetti';
 import { useTheme } from '../context/ThemeContext';
 import { useCart } from '../../hooks/use-cart';
 import { Image } from 'expo-image';
+import { playSuccessChime } from '../../lib/audio';
+import { useOrderStream } from '../../hooks/use-order-stream';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -341,11 +344,7 @@ export default function OrderTrackingScreen() {
     setIsSubmittingReview(true);
     triggerHaptic('medium');
     try {
-      await fetch(`${API_BASE_URL}/orders/${order.id}/review`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ rating, tip })
-      });
+      await api.post(`/orders/${order.id}/review`, { rating, tip });
       setReviewSubmitted(true);
       toast.success('Thank you for rating your delivery! ⭐');
     } catch (err) {
@@ -396,89 +395,42 @@ export default function OrderTrackingScreen() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/orders/${id}`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setOrder((prev) => ({
-          ...prev,
-          ...data,
-          address: {
-            label: data.address?.label || 'Pickup Location',
-            houseNo: data.address?.houseNo || '',
-            street: data.address?.street || '',
-            area: data.address?.area || 'Hub Store',
-            city: data.address?.city || 'Kanpur',
-            pincode: data.address?.pincode || '209206',
-            lat: data.address?.lat || 26.1534185,
-            lng: data.address?.lng || 80.1714024,
-          }
-        }));
-        setFetchError(null);
+      const data = await api.get(`/orders/${id}`);
+      setOrder((prev) => ({
+        ...prev,
+        ...data,
+        address: {
+          label: data.address?.label || 'Pickup Location',
+          houseNo: data.address?.houseNo || '',
+          street: data.address?.street || '',
+          area: data.address?.area || 'Hub Store',
+          city: data.address?.city || 'Kanpur',
+          pincode: data.address?.pincode || '209206',
+          lat: data.address?.lat || 26.1534185,
+          lng: data.address?.lng || 80.1714024,
+        }
+      }));
+      setFetchError(null);
 
-        // Check for companion split orders (placed within 5s)
-        try {
-          const ordersRes = await fetch(`${API_BASE_URL}/orders`, {
-            method: 'GET',
-            headers: getAuthHeaders(),
-          });
-          if (ordersRes.ok) {
-            const allOrders = await ordersRes.json();
-            if (Array.isArray(allOrders)) {
-              const orderCreatedAt = new Date(data.createdAt).getTime();
-              const companion = allOrders.find((o: any) =>
-                o.id !== data.id &&
-                Math.abs(new Date(o.createdAt).getTime() - orderCreatedAt) <= 5000
-              );
-              if (companion) {
-                setCompanionOrder(companion);
-              }
-            }
+      // Check for companion split orders (placed within 5s)
+      try {
+        const allOrders = await api.get('/orders');
+        if (Array.isArray(allOrders)) {
+          const orderCreatedAt = new Date(data.createdAt).getTime();
+          const companion = allOrders.find((o: any) =>
+            o.id !== data.id &&
+            Math.abs(new Date(o.createdAt).getTime() - orderCreatedAt) <= 5000
+          );
+          if (companion) {
+            setCompanionOrder(companion);
           }
-        } catch (compErr) {
-          // Ignore non-critical companion order error
         }
-      } else {
-        // Try fallback search in local storage on API failure
-        try {
-          const { mmkvStorage } = require('../../lib/storage');
-          const localKey = `local_orders_${user?.id || 'guest'}`;
-          const localData = mmkvStorage.getItem(localKey);
-          if (localData) {
-            const list = JSON.parse(localData);
-            const found = list.find((o: any) => o.id === id);
-            if (found) {
-              setOrder((prev) => ({
-                ...prev,
-                ...found,
-                address: {
-                  label: found.address?.label || 'Pickup Location',
-                  houseNo: found.address?.houseNo || '',
-                  street: found.address?.street || '',
-                  area: found.address?.area || 'Hub Store',
-                  city: found.address?.city || 'Kanpur',
-                  pincode: found.address?.pincode || '209206',
-                  lat: found.address?.lat || 26.1534185,
-                  lng: found.address?.lng || 80.1714024,
-                }
-              }));
-              setFetchError(null);
-              return;
-            }
-          }
-        } catch (localErr) {
-          console.warn('Local fallback search failed:', localErr);
-        }
-
-        if (showLoader) {
-          setFetchError(data.error || 'Failed to fetch order');
-        }
+      } catch (compErr) {
+        // Ignore non-critical companion order error
       }
     } catch (err: any) {
       console.warn('Error loading order tracking:', err);
-      // Fallback search in local storage on network error
+      // Fallback search in local storage on network error or API error
       try {
         const { mmkvStorage } = require('../../lib/storage');
         const localKey = `local_orders_${user?.id || 'guest'}`;
@@ -506,7 +458,7 @@ export default function OrderTrackingScreen() {
           }
         }
       } catch (localErr) {
-        console.warn('Local fallback search on network error failed:', localErr);
+        console.warn('Local fallback search failed:', localErr);
       }
 
       if (showLoader) {
@@ -523,15 +475,44 @@ export default function OrderTrackingScreen() {
     fetchOrderDetails(false);
   };
 
+  useOrderStream({
+    orderId: id as string,
+    onEvent: (event, data) => {
+      if (event === 'poll:update' || event === 'order:status') {
+        setOrder((prev) => {
+          if (prev && prev.status !== data.status) {
+            triggerHaptic('success');
+            if (data.status === 'DELIVERED') {
+              playSuccessChime();
+            }
+          }
+          return {
+            ...prev,
+            ...data,
+            address: {
+              label: data.address?.label || prev?.address?.label || 'Pickup Location',
+              houseNo: data.address?.houseNo || prev?.address?.houseNo || '',
+              street: data.address?.street || prev?.address?.street || '',
+              area: data.address?.area || prev?.address?.area || 'Hub Store',
+              city: data.address?.city || prev?.address?.city || 'Kanpur',
+              pincode: data.address?.pincode || prev?.address?.pincode || '209206',
+              lat: data.address?.lat || prev?.address?.lat || 26.1534185,
+              lng: data.address?.lng || prev?.address?.lng || 80.1714024,
+            }
+          };
+        });
+      } else if (event === 'order:location') {
+        setOrder((prev) => prev ? {
+          ...prev,
+          deliveryLat: data.lat,
+          deliveryLng: data.lng,
+        } : null);
+      }
+    }
+  });
+
   useEffect(() => {
     fetchOrderDetails(true);
-
-    // Poll status updates every 4 seconds to match live database updates frequency
-    const interval = setInterval(() => {
-      fetchOrderDetails(false);
-    }, 4000);
-
-    return () => clearInterval(interval);
   }, [id]);
 
   if (isLoading) {
@@ -700,7 +681,7 @@ export default function OrderTrackingScreen() {
          </LinearGradient>
 
         {/* Live Tracking Map */}
-        {order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng && (
+        {order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng && MapView && Marker && (
           <View style={{ width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
             {Platform.OS === 'web' ? (
               <iframe
@@ -724,6 +705,7 @@ export default function OrderTrackingScreen() {
                   coordinate={{ latitude: order.deliveryLat, longitude: order.deliveryLng }}
                   title="Rider Partner"
                   description="Carrying your groceries"
+                  tracksViewChanges={false}
                 >
                   <Text style={{ fontSize: 24 }}>🛵</Text>
                 </Marker>
@@ -734,6 +716,7 @@ export default function OrderTrackingScreen() {
                     coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
                     title="Your Home"
                     description="Delivery destination"
+                    tracksViewChanges={false}
                   >
                     <Text style={{ fontSize: 24 }}>🏠</Text>
                   </Marker>
@@ -1031,6 +1014,31 @@ export default function OrderTrackingScreen() {
                {order.address?.area ? `${order.address.area}, ` : ''}
                {order.address?.city || 'Kanpur'} {order.address?.pincode ? `- ${order.address.pincode}` : ''}
              </Text>
+           </View>
+
+           <View className="h-px bg-slate-100 dark:bg-zinc-800 my-1" />
+
+           <View className="flex-row items-center justify-between">
+             <View className="flex-row items-center gap-1.5">
+               <Text style={{ fontSize: 11 }}>💳</Text>
+               <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase">Payment:</Text>
+               <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black uppercase">
+                 {order.paymentMethod === 'COD' ? '💵 Cash on Delivery' : '⚡ UPI Transaction'}
+               </Text>
+             </View>
+             {order.paymentMethod === 'UPI' && (
+               <View className={`px-2 py-0.5 rounded-md border ${
+                 order.status === 'PENDING' 
+                   ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30' 
+                   : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
+               }`}>
+                 <Text className={`font-extrabold text-[8.5px] uppercase ${
+                   order.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                 }`}>
+                   {order.status === 'PENDING' ? 'Pending Verification' : 'PAID'}
+                 </Text>
+               </View>
+             )}
            </View>
 
            {(order.deliverySlot || order.deliveryInstructions) && (

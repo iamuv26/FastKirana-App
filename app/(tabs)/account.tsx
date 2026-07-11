@@ -1,5 +1,6 @@
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { User, LogIn, LogOut, ShoppingBag, MapPin, Settings, HelpCircle, PhoneCall, ShieldCheck, Edit3, Save, X, Moon, Sun, ChevronRight, ChevronDown, Search } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
@@ -10,6 +11,7 @@ import Logo from '../../components/shared/Logo';
 import { API_BASE_URL } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { LinearGradient } from 'expo-linear-gradient';
+import { formatHeaderAddress } from '../../lib/utils';
 
 export default function AccountScreen() {
   const { isLoggedIn, user, token, setAuth, logout } = useAuthStore();
@@ -22,6 +24,7 @@ export default function AccountScreen() {
   const [editName, setEditName] = useState(user?.name || '');
   const [editPhone, setEditPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
+  const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
 
   const getAuthHeaders = (): Record<string, string> => {
     if (!token || !user) return {};
@@ -93,29 +96,8 @@ export default function AccountScreen() {
   };
 
   const handleLogout = () => {
-    if (Platform.OS === 'web') {
-      const confirmLogout = window.confirm('Are you sure you want to log out?');
-      if (confirmLogout) {
-        triggerHaptic('medium');
-        logout();
-      }
-    } else {
-      Alert.alert(
-        'Logout',
-        'Are you sure you want to log out?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Logout', 
-            style: 'destructive',
-            onPress: () => {
-              triggerHaptic('medium');
-              logout();
-            }
-          }
-        ]
-      );
-    }
+    triggerHaptic('light');
+    setIsLogoutModalVisible(true);
   };
 
   const formatEmailForDisplay = (email: string) => {
@@ -128,6 +110,7 @@ export default function AccountScreen() {
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Premium Header */}
       <View 
         style={{
@@ -141,69 +124,66 @@ export default function AccountScreen() {
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
           {/* Top Row: Location & Theme */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            {/* Left: Brand Logo & Text */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                padding: 4, 
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={24} />
+              </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+
+            {/* Right: Location Capsule Picker */}
             <Pressable 
               onPress={() => {
                 triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => [{
-                flex: 1,
-                marginRight: 16,
+              style={({ pressed }) => ({
                 opacity: pressed ? 0.85 : 1,
-              }]}
+                maxWidth: '60%'
+              })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View className="bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-xs">
-                  <Logo size={24} />
-                </View>
-                
-                <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View className="bg-rose-600 dark:bg-rose-700 rounded-md px-1.5 py-0.5" style={{ alignSelf: 'center' }}>
-                      <Text className="text-white text-[8px] font-black tracking-widest uppercase">INSTANT</Text>
-                    </View>
-                    <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider" style={{ marginLeft: 6 }}>
-                      Delivery to
-                    </Text>
-                  </View>
-                  
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <Text 
-                      className="text-slate-800 dark:text-zinc-100 text-sm font-black tracking-tight"
-                      numberOfLines={1}
-                      style={{ maxWidth: '85%' }}
-                    >
-                      {selectedLocation && selectedLocation.startsWith('Lat:') ? 'Swaroop Nagar, Kanpur' : (selectedLocation || 'Select Location')}
-                    </Text>
-                    <ChevronDown size={12} color={isDarkMode ? '#e4e4e7' : '#1e293b'} style={{ marginLeft: 2 }} />
-                  </View>
-                </View>
-              </View>
-            </Pressable>
-
-            {/* Right: Theme Toggle */}
-            <Pressable 
-              onPress={() => {
-                toggleTheme();
-                triggerHaptic('light');
-              }}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.92 : 1 }],
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+                borderRadius: 20, 
+                paddingHorizontal: 8, 
+                paddingVertical: 5,
                 justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-              }]}
-            >
-              {isDarkMode ? (
-                <Sun size={16} color="#fbbf24" />
-              ) : (
-                <Moon size={16} color="#3b82f6" />
-              )}
+              }}>
+                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+                <Text 
+                  numberOfLines={1} 
+                  style={{ 
+                    fontSize: 10, 
+                    fontWeight: 'bold', 
+                    color: isDarkMode ? '#fafafa' : '#0f172a',
+                    flexShrink: 1,
+                    marginRight: 3
+                  }}
+                >
+                  {formatHeaderAddress(selectedLocation)}
+                </Text>
+                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+              </View>
             </Pressable>
           </View>
 
@@ -280,7 +260,7 @@ export default function AccountScreen() {
                             {user.name || 'FastKirana User'}
                           </Text>
                           <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
-                            {formatEmailForDisplay(user.email)}
+                            {formatEmailForDisplay(user.email || '')}
                           </Text>
                           
                           <View style={{
@@ -552,53 +532,6 @@ export default function AccountScreen() {
               </Text>
             </Pressable>
 
-            {/* Toggle Theme */}
-            <Pressable 
-              onPress={() => {
-                triggerHaptic('light');
-                toggleTheme();
-              }}
-              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[22px] py-5 px-3.5 items-center active:scale-95"
-              style={Platform.OS === 'ios' ? {
-                shadowColor: '#f59e0b',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isDarkMode ? 0.25 : 0.06,
-                shadowRadius: 14,
-              } : Platform.OS === 'android' ? {
-                elevation: 3,
-              } : undefined}
-            >
-              <LinearGradient
-                colors={['#f59e0b', '#d97706']}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  shadowColor: '#f59e0b',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
-                  shadowRadius: 8,
-                  elevation: 4
-                }}
-              >
-                {theme === 'dark' ? (
-                  <Sun size={22} color="#ffffff" strokeWidth={2.2} />
-                ) : (
-                  <Moon size={22} color="#ffffff" strokeWidth={2.2} />
-                )}
-              </LinearGradient>
-              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '900', fontSize: 11, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
-                {theme === 'dark' ? 'Light Mode' : 'Dark Mode'}
-              </Text>
-              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 9.5, fontWeight: '600', marginTop: 3 }}>
-                Appearance
-              </Text>
-            </Pressable>
-
             {/* Contact Support */}
             <Pressable 
               onPress={() => router.push('tel:1800123456')}
@@ -761,6 +694,48 @@ export default function AccountScreen() {
               <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
             </Pressable>
 
+            {/* Theme Toggle (Dark / Light Mode) */}
+            <Pressable 
+              onPress={() => {
+                triggerHaptic('medium');
+                toggleTheme();
+              }}
+              className="flex-row items-center justify-between p-4 border-b border-slate-100 dark:border-zinc-800 active:bg-slate-50 dark:active:bg-zinc-800"
+            >
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                <LinearGradient
+                  colors={isDarkMode ? ['#3f3f46', '#27272a'] : ['#fef3c7', '#fde68a']}
+                  style={{
+                    width: 38,
+                    height: 38,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center'
+                  }}
+                >
+                  {isDarkMode ? (
+                    <Sun size={18} color="#fbbf24" strokeWidth={2.2} />
+                  ) : (
+                    <Moon size={18} color="#d97706" strokeWidth={2.2} />
+                  )}
+                </LinearGradient>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={{ color: isDarkMode ? '#f4f4f5' : '#1e293b', fontWeight: '800', fontSize: 13 }}>
+                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
+                  </Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
+                    Switch to {isDarkMode ? 'light' : 'dark'} theme
+                  </Text>
+                </View>
+              </View>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+                  {isDarkMode ? 'Dark' : 'Light'}
+                </Text>
+                <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
+              </View>
+            </Pressable>
+
             {/* Help & FAQs */}
             <Pressable 
               onPress={() => Alert.alert('Support', 'Please call our support at 1800-123-456.')}
@@ -839,6 +814,143 @@ export default function AccountScreen() {
           </Text>
         </View>
       </ScrollView>
+
+      {/* Premium Custom Logout Modal */}
+      <Modal
+        visible={isLogoutModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setIsLogoutModalVisible(false)}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 24
+        }}>
+          <View style={{
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#ffe4e6',
+            borderRadius: 32,
+            width: '100%',
+            maxWidth: 320,
+            padding: 24,
+            alignItems: 'center',
+            shadowColor: '#ef4444',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: isDarkMode ? 0.35 : 0.08,
+            shadowRadius: 24,
+            elevation: 8,
+          }}>
+            {/* Warning Circle Icon */}
+            <LinearGradient
+              colors={['#ffe4e6', '#fecdd3']}
+              style={{
+                width: 64,
+                height: 64,
+                borderRadius: 32,
+                alignItems: 'center',
+                justifyContent: 'center',
+                marginBottom: 16
+              }}
+            >
+              <LogOut size={28} color="#ef4444" strokeWidth={2.5} />
+            </LinearGradient>
+
+            {/* Title */}
+            <Text style={{
+              color: isDarkMode ? '#ffffff' : '#1e293b',
+              fontWeight: '900',
+              fontSize: 18,
+              textAlign: 'center',
+              marginBottom: 8
+            }}>
+              Logout Account
+            </Text>
+
+            {/* Description */}
+            <Text style={{
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
+              fontSize: 12.5,
+              fontWeight: '600',
+              textAlign: 'center',
+              lineHeight: 18,
+              marginBottom: 24
+            }}>
+              Are you sure you want to log out from FastKirana? You will need to sign in again to access your orders and settings.
+            </Text>
+
+            {/* Action Buttons Row */}
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  setIsLogoutModalVisible(false);
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                  borderRadius: 16,
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  backgroundColor: pressed 
+                    ? (isDarkMode ? '#27272a' : '#f8fafc')
+                    : (isDarkMode ? '#18181b' : '#ffffff'),
+                  transform: [{ scale: pressed ? 0.97 : 1 }]
+                })}
+              >
+                <Text style={{
+                  color: isDarkMode ? '#cbd5e1' : '#475569',
+                  fontWeight: '800',
+                  fontSize: 12,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5
+                }}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('medium');
+                  setIsLogoutModalVisible(false);
+                  logout();
+                }}
+                style={({ pressed }) => ({
+                  flex: 1,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                  transform: [{ scale: pressed ? 0.97 : 1 }]
+                })}
+              >
+                <LinearGradient
+                  colors={['#ef4444', '#dc2626']}
+                  style={{
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                    height: '100%'
+                  }}
+                >
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: '900',
+                    fontSize: 12,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5
+                  }}>
+                    Logout
+                  </Text>
+                </LinearGradient>
+              </Pressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

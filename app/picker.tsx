@@ -10,6 +10,9 @@ import { toast } from '../lib/toast';
 import { useAuthStore } from '../stores/auth-store';
 import { API_BASE_URL } from '../lib/constants';
 import { StatusBar } from 'expo-status-bar';
+import { useNewOrderAlert } from '../hooks/use-new-order-alert';
+import { NewOrderAlertModal } from '../components/operations/NewOrderAlertModal';
+import { useTheme } from './context/ThemeContext';
 
 interface OrderItem {
   id: string;
@@ -72,7 +75,10 @@ const INITIAL_SIMULATION_ORDERS: Order[] = [
 ];
 
 export default function PickerScreen() {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
   const { user, logout } = useAuthStore();
+  const { activeAlertOrder, acknowledgeAlert, acceptOrder, refreshAlerts } = useNewOrderAlert(user?.role === 'PICKER');
   const [orders, setOrders] = useState<Order[]>(INITIAL_SIMULATION_ORDERS);
   const [isOnline, setIsOnline] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -98,15 +104,21 @@ export default function PickerScreen() {
   }, [isCameraActive, permission]);
 
   const getAuthHeaders = (): Record<string, string> => {
-    if (!user) return {};
-    return {
+    const { token } = useAuthStore.getState();
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'x-user-id': user.id,
-      'x-user-role': user.role,
-      'x-user-email': user.email || '',
-      'x-user-name': user.name || '',
-      'x-user-phone': user.phone || '',
     };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (user) {
+      headers['x-user-id'] = user.id;
+      headers['x-user-role'] = user.role;
+      headers['x-user-email'] = user.email || '';
+      headers['x-user-name'] = user.name || '';
+      headers['x-user-phone'] = user.phone || '';
+    }
+    return headers;
   };
 
   const fetchServerOrders = async (showLoader = false) => {
@@ -943,6 +955,16 @@ export default function PickerScreen() {
           </SafeAreaView>
         </Modal>
       )}
+      <NewOrderAlertModal
+        order={activeAlertOrder}
+        onAccept={async (id) => {
+          const success = await acceptOrder(id);
+          if (success) refreshAlerts();
+          return success;
+        }}
+        onDismiss={acknowledgeAlert}
+        isDarkMode={isDarkMode}
+      />
     </SafeAreaView>
   );
 }

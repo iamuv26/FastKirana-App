@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import { ArrowLeft, Phone, ShieldCheck, Mail, Lock, User as UserIcon, Fingerprint, ScanFace, ShoppingBag, ChevronRight, ChevronDown, MapPin, Sun, Moon, Search } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/auth-store';
+import * as Linking from 'expo-linking';
 import { API_BASE_URL } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { toast } from '../../lib/toast';
@@ -11,6 +12,8 @@ import { useTheme } from '../context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
+import { formatHeaderAddress } from '../../lib/utils';
+import AppFooter from '../../components/home/AppFooter';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -23,10 +26,10 @@ import Animated, {
 
 // Pre-configured Local Mock Accounts for testing/demo
 const localAccounts: Record<string, { id: string, role: 'ADMIN' | 'PICKER' | 'CHEF' | 'DELIVERY', name: string, phone: string, pass: string }> = {
-  'admin': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'admin123' },
-  'picker': { id: 'cmqgzqf2k0002vkid1f3wpwg4', role: 'PICKER', name: 'Warehouse Picker', phone: '+919888811111', pass: 'picker123' },
-  'chef': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Kitchen Chef', phone: '+919888822222', pass: 'chef123' },
-  'rider': { id: 'cmqgzqf630003vkiderv1r9ur', role: 'DELIVERY', name: 'Delivery Rider', phone: '+919888833333', pass: 'rider123' },
+  'admin': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'Yuvraj@26' },
+  'picker': { id: 'cmqgzqf2k0002vkid1f3wpwg4', role: 'PICKER', name: 'Warehouse Picker', phone: '+919888811111', pass: 'Yuvraj@26' },
+  'chef': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Kitchen Chef', phone: '+919888822222', pass: 'Yuvraj@26' },
+  'rider': { id: 'cmqgzqf630003vkiderv1r9ur', role: 'DELIVERY', name: 'Delivery Rider', phone: '+919888833333', pass: 'Yuvraj@26' },
 };
 
 export default function LoginScreen() {
@@ -81,6 +84,76 @@ export default function LoginScreen() {
       cancelAnimation(blob2Y);
     };
   }, []);
+
+  // Handle incoming deep links for OAuth login callback
+  useEffect(() => {
+    const handleDeepLink = (event: { url: string }) => {
+      try {
+        console.log('Incoming deep link:', event.url);
+        const parsed = Linking.parse(event.url);
+        // Normalize path by removing leading/trailing slashes
+        const path = parsed.path ? parsed.path.replace(/^\/|\/$/g, '') : '';
+        
+        if (path === 'login-callback' && parsed.queryParams?.user) {
+          let userStr = parsed.queryParams.user as string;
+          if (userStr.includes('%')) {
+            userStr = decodeURIComponent(userStr);
+          }
+          const userObj = JSON.parse(userStr);
+          
+          // Extract the token dynamically from query params or user object
+          const token = (parsed.queryParams?.token as string) || userObj.token || 'google-oauth-session-token';
+          
+          triggerHaptic('success');
+          setAuth(token, userObj);
+          toast.success('Successfully logged in with Google!');
+          
+          // Redirect to appropriate console or homepage based on role
+          if (userObj.role === 'PICKER') router.replace('/picker');
+          else if (userObj.role === 'CHEF') router.replace('/chef');
+          else if (userObj.role === 'DELIVERY') router.replace('/rider');
+          else if (userObj.role === 'ADMIN') router.replace('/operations');
+          else router.replace('/(tabs)');
+        }
+      } catch (err) {
+        console.error('Failed to parse Google OAuth callback user data:', err);
+        toast.error('Google login failed. Please try again.');
+      }
+    };
+
+    // Listen for deep links when the app is already open
+    const subscription = Linking.addEventListener('url', handleDeepLink);
+
+    // Check if the app was opened from a deep link (cold start)
+    Linking.getInitialURL().then((url) => {
+      if (url) {
+        handleDeepLink({ url });
+      }
+    });
+
+    return () => {
+      subscription.remove();
+    };
+  }, []);
+
+  const handleGoogleSignIn = () => {
+    triggerHaptic('light');
+    
+    // Generate redirect URL for mobile callback dynamically using Linking.createURL
+    let mobileRedirectUrl = Linking.createURL('login-callback');
+    
+    // For standalone production builds (APK), force the custom scheme so it works over 5G/cellular data
+    if (!__DEV__) {
+      mobileRedirectUrl = 'fastkirana://login-callback';
+    }
+    
+    // Format Next.js custom entry URL
+    const domain = API_BASE_URL.replace('/api', ''); // e.g. https://www.fastkirana.in
+    const entryUrl = `${domain}/auth/mobile-login?redirect=${encodeURIComponent(mobileRedirectUrl)}`;
+    
+    console.log('Initiating Google sign-in with entry URL:', entryUrl);
+    Linking.openURL(entryUrl);
+  };
 
   const animatedBlob1 = useAnimatedStyle(() => ({
     transform: [
@@ -296,7 +369,7 @@ export default function LoginScreen() {
     const lowerEmail = email.toLowerCase().trim();
     const cleanPassword = password.trim();
 
-    if (localAccounts[lowerEmail] && (cleanPassword === 'admin123' || cleanPassword === 'admin' || cleanPassword === 'picker123' || cleanPassword === 'picker' || cleanPassword === 'chef123' || cleanPassword === 'chef' || cleanPassword === 'rider123' || cleanPassword === 'rider')) {
+    if (localAccounts[lowerEmail] && cleanPassword === localAccounts[lowerEmail].pass) {
       const mockUser = {
         id: localAccounts[lowerEmail].id,
         email: lowerEmail.includes('@') ? lowerEmail : `${lowerEmail}@fastkirana.com`,
@@ -466,69 +539,66 @@ export default function LoginScreen() {
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
           {/* Top Row: Location & Theme */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+            {/* Left: Brand Logo & Text */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                padding: 4, 
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={24} />
+              </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+
+            {/* Right: Location Capsule Picker */}
             <Pressable 
               onPress={() => {
                 triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => [{
-                flex: 1,
-                marginRight: 16,
+              style={({ pressed }) => ({
                 opacity: pressed ? 0.85 : 1,
-              }]}
+                maxWidth: '60%'
+              })}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1 }}>
-                <View className="bg-slate-100 dark:bg-zinc-900 p-1.5 rounded-xl border border-slate-200/50 dark:border-zinc-800/50 shadow-xs">
-                  <Logo size={24} />
-                </View>
-                
-                <View style={{ flex: 1, justifyContent: 'center', marginLeft: 12 }}>
-                  <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                    <View className="bg-rose-600 dark:bg-rose-700 rounded-md px-1.5 py-0.5" style={{ alignSelf: 'center' }}>
-                      <Text className="text-white text-[8px] font-black tracking-widest uppercase">INSTANT</Text>
-                    </View>
-                    <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold uppercase tracking-wider" style={{ marginLeft: 6 }}>
-                      Delivery to
-                    </Text>
-                  </View>
-                  
-                  <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 2 }}>
-                    <Text 
-                      className="text-slate-800 dark:text-zinc-100 text-sm font-black tracking-tight"
-                      numberOfLines={1}
-                      style={{ maxWidth: '85%' }}
-                    >
-                      {selectedLocation && selectedLocation.startsWith('Lat:') ? 'Swaroop Nagar, Kanpur' : (selectedLocation || 'Select Location')}
-                    </Text>
-                    <ChevronDown size={12} color={isDarkMode ? '#e4e4e7' : '#1e293b'} style={{ marginLeft: 2 }} />
-                  </View>
-                </View>
-              </View>
-            </Pressable>
-
-            {/* Right: Theme Toggle */}
-            <Pressable 
-              onPress={() => {
-                toggleTheme();
-                triggerHaptic('light');
-              }}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.92 : 1 }],
-                width: 38,
-                height: 38,
-                borderRadius: 19,
-                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
+              <View style={{ 
+                flexDirection: 'row', 
+                alignItems: 'center', 
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+                borderRadius: 20, 
+                paddingHorizontal: 8, 
+                paddingVertical: 5,
                 justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-              }]}
-            >
-              {isDarkMode ? (
-                <Sun size={16} color="#fbbf24" />
-              ) : (
-                <Moon size={16} color="#3b82f6" />
-              )}
+              }}>
+                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+                <Text 
+                  numberOfLines={1} 
+                  style={{ 
+                    fontSize: 10, 
+                    fontWeight: 'bold', 
+                    color: isDarkMode ? '#fafafa' : '#0f172a',
+                    flexShrink: 1,
+                    marginRight: 3
+                  }}
+                >
+                  {formatHeaderAddress(selectedLocation)}
+                </Text>
+                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+              </View>
             </Pressable>
           </View>
 
@@ -562,9 +632,10 @@ export default function LoginScreen() {
       >
         <ScrollView 
           contentContainerStyle={{ flexGrow: 1 }} 
-          style={{ flex: 1, paddingHorizontal: 20 }} 
+          style={{ flex: 1 }} 
           showsVerticalScrollIndicator={false}
         >
+          <View style={{ paddingHorizontal: 20, flex: 1 }}>
           {/* Decorative ambient blobs in background */}
           <Animated.View 
             style={[
@@ -840,7 +911,7 @@ export default function LoginScreen() {
 
                   {/* Google Sign In Button */}
                   <TouchableOpacity
-                    onPress={() => Alert.alert('Google Sign-In', 'Google sign-in is disabled in this build.')}
+                    onPress={handleGoogleSignIn}
                     activeOpacity={0.8}
                     style={{
                       width: '100%',
@@ -986,52 +1057,7 @@ export default function LoginScreen() {
                     </LinearGradient>
                   </TouchableOpacity>
 
-                  {/* Quick demo accounts buttons matching exactly like webapp pills */}
-                  <View style={{
-                    backgroundColor: isDarkMode ? '#1c1c1e' : '#f8fafc',
-                    borderWidth: 1,
-                    borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-                    borderRadius: 24,
-                    padding: 16,
-                    marginTop: 8
-                  }}>
-                    <Text style={{
-                      color: isDarkMode ? '#a1a1aa' : '#4b5563',
-                      fontWeight: '800',
-                      fontSize: 10,
-                      textTransform: 'uppercase',
-                      letterSpacing: 0.6,
-                      marginBottom: 10
-                    }}>
-                      ⚡ Quick Dev Selectors
-                    </Text>
-                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 10 }}>
-                      {Object.keys(localAccounts).map((role) => (
-                        <TouchableOpacity
-                          key={role}
-                          onPress={() => handleQuickDemo(role)}
-                          activeOpacity={0.7}
-                          style={{
-                            width: '48%',
-                            backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
-                            borderWidth: 1,
-                            borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-                            paddingHorizontal: 12,
-                            paddingVertical: 8,
-                            borderRadius: 10,
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            justifyContent: 'space-between'
-                          }}
-                        >
-                          <Text style={{ color: isDarkMode ? '#e4e4e7' : '#1e293b', fontWeight: '700', fontSize: 10, textTransform: 'uppercase' }}>
-                            {role}
-                          </Text>
-                          <ChevronRight size={12} color="#94a3b8" />
-                        </TouchableOpacity>
-                      ))}
-                    </View>
-                  </View>
+                  {/* Dev selectors removed */}
                 </View>
               )}
 
@@ -1306,6 +1332,10 @@ export default function LoginScreen() {
                 </Text>
               </View>
             )}
+          </View>
+          </View>
+          <View style={{ marginTop: 40 }}>
+            <AppFooter />
           </View>
         </ScrollView>
       </KeyboardAvoidingView>

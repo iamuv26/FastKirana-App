@@ -1,15 +1,17 @@
 import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
-import { router, useFocusEffect } from 'expo-router';
-import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase } from 'lucide-react-native';
+import { router, usePathname, Stack, useFocusEffect } from 'expo-router';
+import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase, ArrowLeft } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice, isCafeProduct } from '../lib/utils';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, COMBINED_FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, TAX_RATE } from '../lib/constants';
+import { api } from '../lib/api-client';
 import { getDeliveryRules } from '../lib/distance';
 import { toast } from '../lib/toast';
 import { triggerHaptic } from '../lib/haptic';
@@ -29,6 +31,7 @@ interface Address {
 }
 
 export default function CheckoutScreen() {
+  const pathname = usePathname();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const { items, getSubtotal, clearCart, updateQuantity, updateCartProduct } = useCart();
@@ -83,6 +86,18 @@ export default function CheckoutScreen() {
           if (geoResults && geoResults.length > 0) {
             lat = geoResults[0].latitude;
             lng = geoResults[0].longitude;
+          } else {
+            console.log('Local geocoding returned no results, fetching from backend geocoder:', addrString);
+            const response = await api.get(`/geocode?address=${encodeURIComponent(addrString)}`);
+            const results = response?.data?.results || response?.results;
+            if (results && results.length > 0) {
+              const loc = results[0]?.geometry?.location;
+              if (loc && loc.lat && loc.lng) {
+                lat = loc.lat;
+                lng = loc.lng;
+                console.log('Backend geocoder resolved coords in checkout:', lat, lng);
+              }
+            }
           }
         } catch (err) {
           console.warn('Geocoding error in checkout distance check:', err);
@@ -107,7 +122,6 @@ export default function CheckoutScreen() {
     return deliveryDistance > deliveryRadius;
   }, [deliveryDistance, deliveryRadius, deliveryMethod]);
 
-  const isCheckoutBlocked = deliveryMethod === 'DELIVERY' && (!selectedAddressId || isOutsideDeliveryZone || isDistanceValidating);
   const [isPlacingOrder, setIsPlacingOrder] = useState(false);
   const [showSuccessOverlay, setShowSuccessOverlay] = useState(false);
   const [deliveryInstructions, setDeliveryInstructions] = useState('');
@@ -159,7 +173,7 @@ export default function CheckoutScreen() {
     cafeItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [cafeItems]);
 
   const surgeMultiplier = useUIStore((s) => s.surgeMultiplier || 1.0);
-  const minOrderValue = useUIStore((s) => s.minOrderValue || 99);
+  const minOrderValue = useUIStore((s) => typeof s.minOrderValue === 'number' ? s.minOrderValue : 99);
 
   const deliveryRules = useMemo(() => {
     if (deliveryDistance === null || deliveryDistance === undefined) return null;
@@ -175,6 +189,8 @@ export default function CheckoutScreen() {
   }
 
   const total = subtotal + tax + deliveryFee;
+  const isLessThanMinOrder = subtotal < minOrderValue;
+  const isCheckoutBlocked = (deliveryMethod === 'DELIVERY' && (!selectedAddressId || isOutsideDeliveryZone || isDistanceValidating)) || isLessThanMinOrder;
 
   const getAuthHeaders = (): Record<string, string> => {
     if (!user) return {};
@@ -193,74 +209,81 @@ export default function CheckoutScreen() {
       return;
     }
     setIsAddressesLoading(true);
+    let localList: Address[] = [];
+    try {
+      const { mmkvStorage } = require('../lib/storage');
+      const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (Array.isArray(parsed)) {
+          localList = parsed;
+        }
+      }
+    } catch (e) {
+      console.warn('Failed to load local addresses:', e);
+    }
 
     if (user?.id?.startsWith('mock-')) {
-      try {
-        const { mmkvStorage } = require('../lib/storage');
-        const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-        if (localData) {
-          const list = JSON.parse(localData);
-          setAddresses(list);
-          if (list.length > 0) {
-            const def = list.find((a: any) => a.isDefault);
-            setSelectedAddressId(def ? def.id : list[0].id);
-          }
-        }
-      } catch (e) {
-        console.warn('Failed to load local addresses:', e);
+      setAddresses(localList);
+      if (localList.length > 0) {
+        const def = localList.find((a: any) => a.isDefault);
+        setSelectedAddressId(def ? def.id : localList[0].id);
       }
       setIsAddressesLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAddresses(data);
-        if (data.length > 0) {
-          const def = data.find((a: Address) => a.isDefault);
-          setSelectedAddressId(def ? def.id : data[0].id);
+      const backendList = await api.get('/addresses');
+      const mergedMap = new Map<string, Address>();
+      
+      // Load local ones first, then overwrite/append backend ones
+      if (Array.isArray(localList)) {
+        localList.forEach(addr => {
+          if (addr && addr.id) mergedMap.set(addr.id, addr);
+        });
+      }
+      
+      if (Array.isArray(backendList)) {
+        backendList.forEach((addr: Address) => {
+          if (addr && addr.id) mergedMap.set(addr.id, addr);
+        });
+      }
+      
+      const mergedList = Array.from(mergedMap.values());
+      setAddresses(mergedList);
+      if (mergedList.length > 0) {
+        const exists = mergedList.some((a) => a.id === selectedAddressId);
+        if (!exists) {
+          const def = mergedList.find((a) => a.isDefault);
+          setSelectedAddressId(def ? def.id : mergedList[0].id);
         }
       } else {
-        const { mmkvStorage } = require('../lib/storage');
-        const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-        if (localData) {
-          const list = JSON.parse(localData);
-          setAddresses(list);
-          if (list.length > 0) {
-            const def = list.find((a: any) => a.isDefault);
-            setSelectedAddressId(def ? def.id : list[0].id);
-          }
-        }
+        setSelectedAddressId('');
       }
-    } catch (err) {
-      console.warn('Error loading addresses on checkout, trying local storage:', err);
-      try {
-        const { mmkvStorage } = require('../lib/storage');
-        const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-        if (localData) {
-          const list = JSON.parse(localData);
-          setAddresses(list);
-          if (list.length > 0) {
-            const def = list.find((a: any) => a.isDefault);
-            setSelectedAddressId(def ? def.id : list[0].id);
-          }
+    } catch (err: any) {
+      console.warn('Error loading addresses on checkout, using local storage:', err);
+      setAddresses(localList);
+      if (localList.length > 0) {
+        const exists = localList.some((a) => a.id === selectedAddressId);
+        if (!exists) {
+          const def = localList.find((a) => a.isDefault);
+          setSelectedAddressId(def ? def.id : localList[0].id);
         }
-      } catch (storageErr) {
-        console.warn('Failed to load local addresses after network catch:', storageErr);
+      } else {
+        setSelectedAddressId('');
       }
     } finally {
       setIsAddressesLoading(false);
     }
   };
 
+  // Reload addresses every time screen comes into focus
   useFocusEffect(
     useCallback(() => {
-      loadAddresses();
+      if (isLoggedIn) {
+        loadAddresses();
+      }
     }, [isLoggedIn, user])
   );
 
@@ -277,13 +300,7 @@ export default function CheckoutScreen() {
       return;
     }
 
-    if (subtotal < minOrderValue) {
-      Alert.alert(
-        'Minimum Order Required 🛒',
-        `The minimum cart subtotal required to place an order is ₹${minOrderValue}. Your current subtotal is ₹${subtotal}. Please add more items to proceed.`
-      );
-      return;
-    }
+
 
     if (deliveryMethod === 'DELIVERY' && !selectedAddressId) {
       Alert.alert('Delivery Address Required', 'Please select or add a delivery address.');
@@ -304,48 +321,38 @@ export default function CheckoutScreen() {
     try {
       // 1. Validate cart against live database stock & prices
       try {
-        const validateRes = await fetch(`${API_BASE_URL}/products/validate-cart`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ items }),
-        });
+        const validateData = await api.post('/products/validate-cart', { items });
+        if (validateData.hasChanges && validateData.updates?.length > 0) {
+          triggerHaptic('warning');
+          // Apply updates to client cart
+          validateData.updates?.forEach((update: any) => {
+            if (update.type === 'OUT_OF_STOCK') {
+              updateCartProduct(update.productId, { isAvailable: false, stock: 0 });
+            } else if (update.type === 'QUANTITY_CAP') {
+              updateQuantity(update.productId, update.name, update.newVal);
+            } else if (update.type === 'PRICE_UPDATE') {
+              updateCartProduct(update.productId, { price: update.newVal });
+            } else if (update.type === 'MRP_UPDATE') {
+              updateCartProduct(update.productId, { mrp: update.newVal });
+            }
+          });
 
-        if (validateRes.ok) {
-          const validateData = await validateRes.json();
-          if (validateData.hasChanges && validateData.updates.length > 0) {
-            triggerHaptic('warning');
-            // Apply updates to client cart
-            validateData.updates.forEach((update: any) => {
-              if (update.type === 'OUT_OF_STOCK') {
-                updateCartProduct(update.productId, { isAvailable: false, stock: 0 });
-              } else if (update.type === 'QUANTITY_CAP') {
-                updateQuantity(update.productId, update.name, update.newVal);
-              } else if (update.type === 'PRICE_UPDATE') {
-                updateCartProduct(update.productId, { price: update.newVal });
-              } else if (update.type === 'MRP_UPDATE') {
-                updateCartProduct(update.productId, { mrp: update.newVal });
-              }
-            });
-
-            Alert.alert(
-              'Cart Updated 🛒',
-              'Some items in your cart had stock or price changes. We have adjusted your cart. Please review and try again.',
-              [{ text: 'Review Cart' }]
-            );
-            setIsPlacingOrder(false);
-            return;
-          }
-        } else {
-          console.warn(`Cart validation returned status: ${validateRes.status}, skipping to direct order placement.`);
+          Alert.alert(
+            'Cart Updated 🛒',
+            'Some items in your cart had stock or price changes. We have adjusted your cart. Please review and try again.',
+            [{ text: 'Review Cart' }]
+          );
+          setIsPlacingOrder(false);
+          return;
         }
       } catch (validationErr) {
-        console.warn('Cart validation failed (offline/unsupported endpoint), skipping directly to order placement:', validationErr);
+        console.warn('Cart validation failed, skipping directly to order placement:', validationErr);
       }
 
       // 2. Resolve target address (or store pickup marker)
       const addressId = deliveryMethod === 'PICKUP' ? 'STORE_PICKUP' : selectedAddressId;
 
-      // 3. Resolve order data (with local MMKV fallback for mock users or network failure)
+      // 3. Resolve order data
       const isMockUser = user?.id?.startsWith('mock-');
       let orderData: any;
 
@@ -381,91 +388,21 @@ export default function CheckoutScreen() {
         list.unshift(orderData);
         mmkvStorage.setItem(localKey, JSON.stringify(list));
       } else {
-        try {
-          const orderRes = await fetch(`${API_BASE_URL}/orders`, {
-            method: 'POST',
-            headers: getAuthHeaders(),
-            body: JSON.stringify({
-              addressId,
-              paymentMethod,
-              deliveryMethod,
-              items,
-              subtotal,
-              discount: 0,
-              deliveryFee,
-              taxes: tax,
-              total,
-              storeId: assignedStoreId,
-              deliveryInstructions: deliveryInstructions.trim() || undefined,
-              deliverySlot: deliverySlot
-            }),
-          });
-
-          if (orderRes.ok) {
-            orderData = await orderRes.json();
-          } else {
-            const errData = await orderRes.json().catch(() => ({}));
-            console.warn('Backend order placement failed, falling back to local fallback order:', errData);
-            orderData = {
-              id: `local-fallback-order-${Date.now()}`,
-              status: 'PENDING',
-              items,
-              subtotal,
-              deliveryFee,
-              taxes: tax,
-              total,
-              paymentMethod,
-              deliveryMethod,
-              createdAt: new Date().toISOString(),
-              deliveryInstructions: deliveryInstructions.trim() || undefined,
-              deliverySlot: deliverySlot,
-              address: deliveryMethod === 'PICKUP' ? null : {
-                label: 'Home',
-                houseNo: '-',
-                street: '-',
-                area: 'Local Fallback Address',
-                city: 'Kanpur',
-                pincode: '209206'
-              }
-            };
-
-            const { mmkvStorage } = require('../lib/storage');
-            const localKey = `local_orders_${user?.id || 'guest'}`;
-            const localData = mmkvStorage.getItem(localKey);
-            const list = localData ? JSON.parse(localData) : [];
-            list.unshift(orderData);
-            mmkvStorage.setItem(localKey, JSON.stringify(list));
-          }
-        } catch (networkErr) {
-          console.warn('Network error placing order, falling back to local fallback order:', networkErr);
-          orderData = {
-            id: `local-fallback-order-${Date.now()}`,
-            status: 'PENDING',
-            items,
-            subtotal,
-            deliveryFee,
-            taxes: tax,
-            total,
-            paymentMethod,
-            deliveryMethod,
-            createdAt: new Date().toISOString(),
-            address: deliveryMethod === 'PICKUP' ? null : {
-              label: 'Home',
-              houseNo: '-',
-              street: '-',
-              area: 'Local Fallback Address',
-              city: 'Kanpur',
-              pincode: '209206'
-            }
-          };
-
-          const { mmkvStorage } = require('../lib/storage');
-          const localKey = `local_orders_${user?.id || 'guest'}`;
-          const localData = mmkvStorage.getItem(localKey);
-          const list = localData ? JSON.parse(localData) : [];
-          list.unshift(orderData);
-          mmkvStorage.setItem(localKey, JSON.stringify(list));
-        }
+        // Place real order via API
+        orderData = await api.post('/orders', {
+          addressId,
+          paymentMethod,
+          deliveryMethod,
+          items,
+          subtotal,
+          discount: 0,
+          deliveryFee,
+          taxes: tax,
+          total,
+          storeId: assignedStoreId,
+          deliveryInstructions: deliveryInstructions.trim() || undefined,
+          deliverySlot: deliverySlot
+        });
       }
 
       // Success
@@ -496,6 +433,7 @@ export default function CheckoutScreen() {
         router.replace(`/order/${orderData.id}?celebrate=true`);
       }, 2800);
     } catch (err: any) {
+      triggerHaptic('warning');
       Alert.alert('Order Placement Failed', err.message || 'Something went wrong while placing your order.');
     } finally {
       setIsPlacingOrder(false);
@@ -504,6 +442,35 @@ export default function CheckoutScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
+      <Stack.Screen options={{ headerShown: false }} />
+      
+      {/* Sticky Custom Premium Header with Back Button */}
+      <View 
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+          backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+        }}
+      >
+        <Pressable 
+          onPress={() => {
+            triggerHaptic('light');
+            router.back();
+          }} 
+          style={{ marginRight: 12, padding: 4 }}
+        >
+          <ArrowLeft size={20} color={isDarkMode ? '#fafafa' : '#0f172a'} />
+        </Pressable>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', letterSpacing: -0.5 }}>
+          Checkout
+        </Text>
+      </View>
+
       <ScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
         {/* Fulfillment Option */}
         <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
@@ -554,17 +521,18 @@ export default function CheckoutScreen() {
             </View>
 
             {isAddressesLoading ? (
-              <ActivityIndicator size="small" color="#e20a22" className="py-4" />
+               <ActivityIndicator size="small" color="#e20a22" className="py-4" />
             ) : addresses.length === 0 ? (
-              <View className="items-center py-4">
-                <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">No saved addresses found</Text>
-                <Pressable onPress={() => router.push('/addresses')} className="mt-2">
-                  <Text className="text-rose-600 font-extrabold text-xs underline">Manage Addresses</Text>
+               <View className="items-center py-4">
+                 <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">No saved addresses found</Text>
+
+                 <Pressable onPress={() => router.push('/addresses')} className="mt-3">
+                   <Text className="text-rose-600 font-extrabold text-xs underline">Manage Addresses</Text>
                 </Pressable>
               </View>
             ) : (
               <View className="gap-2.5">
-                {addresses.map((addr) => {
+                {addresses.filter(addr => addr && addr.id).map((addr) => {
                   const isSelected = selectedAddressId === addr.id;
                   const labelLower = (addr.label || '').toLowerCase();
                   
@@ -648,7 +616,7 @@ export default function CheckoutScreen() {
                       <View className="flex-1">
                         <Text className="text-emerald-700 dark:text-emerald-300 font-black text-[11px]">Inside Delivery Zone</Text>
                         <Text className="text-emerald-600 dark:text-emerald-400 text-[9px] font-bold mt-0.5 leading-4">
-                          Your address is {deliveryDistance.toFixed(1)} km away from the dark store. Delivered in 8-10 minutes.
+                          Your address is {deliveryDistance.toFixed(1)} km away from the dark store.
                         </Text>
                       </View>
                     </View>
@@ -706,7 +674,7 @@ export default function CheckoutScreen() {
                       }`}
                     >
                       <Text style={{ fontSize: 11 }} className={isSelected ? 'text-primary font-black' : 'text-slate-500 dark:text-zinc-400 font-bold'}>
-                        {slot === 'Instant' ? '⚡ Instant (8-10 min)' : slot}
+                        {slot === 'Instant' ? '⚡ Instant' : slot}
                       </Text>
                     </Pressable>
                   );
@@ -799,9 +767,20 @@ export default function CheckoutScreen() {
                 </View>
               </Pressable>
             ))}
-          </View>
+          {isLessThanMinOrder && (
+            <View className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-3.5 rounded-2xl flex-row items-start gap-2.5 mt-4">
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <View className="flex-1">
+                <Text className="text-amber-800 dark:text-amber-400 font-extrabold text-xs">Minimum Order Amount Required</Text>
+                <Text className="text-amber-600 dark:text-amber-500/80 text-[10px] font-semibold mt-0.5 leading-relaxed">
+                  Minimum order value is {formatPrice(minOrderValue)}. Add items worth {formatPrice(minOrderValue - subtotal)} more to place order.
+                </Text>
+              </View>
+            </View>
+          )}
         </View>
-      </ScrollView>
+      </View>
+    </ScrollView>
  
       {/* Place Order Sticky bottom */}
       <View className="bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 px-4 py-3.5 flex-row justify-between items-center shadow-lg">
@@ -925,27 +904,7 @@ export default function CheckoutScreen() {
               Your delicious items are being prepared with care. Sit tight — they're on their way!
             </Text>
             
-            {/* Estimated Delivery Card */}
-            <View style={{ 
-              marginTop: 28, paddingHorizontal: 24, paddingVertical: 14,
-              backgroundColor: isDarkMode ? '#18181b' : '#f8fafc',
-              borderRadius: 16, borderWidth: 1,
-              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-              flexDirection: 'row', alignItems: 'center', gap: 12,
-            }}>
-              <Text style={{ fontSize: 24 }}>⚡</Text>
-              <View>
-                <Text style={{ 
-                  color: isDarkMode ? '#a1a1aa' : '#64748b',
-                  fontSize: 9, fontWeight: '900', textTransform: 'uppercase',
-                  letterSpacing: 1,
-                }}>Estimated Delivery</Text>
-                <Text style={{ 
-                  color: '#10b981', fontSize: 20, fontWeight: '900',
-                  letterSpacing: -0.5, marginTop: 2,
-                }}>8-10 Minutes</Text>
-              </View>
-            </View>
+
 
             {/* Pulsing delivery path line */}
             <View style={{ 

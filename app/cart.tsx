@@ -1,9 +1,10 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet, Modal, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { router, Stack } from 'expo-router';
 import { useState, useMemo, useEffect } from 'react';
 import { Image } from 'expo-image';
-import { ArrowLeft, ShoppingCart, Tag, Trash2, ArrowRight, Clock, ShieldCheck, RefreshCw, Sparkles, CheckCircle2 } from 'lucide-react-native';
+import { ArrowLeft, ShoppingCart, Tag, Trash2, ArrowRight, Clock, ShieldCheck, RefreshCw, Sparkles, CheckCircle2, KeyRound } from 'lucide-react-native';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice } from '../lib/utils';
 import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, COMBINED_FREE_DELIVERY_THRESHOLD, TAX_RATE, API_BASE_URL } from '../lib/constants';
@@ -30,13 +31,14 @@ export default function CartScreen() {
     updateItemNotes
   } = useCart();
 
-  const { user } = useAuthStore();
+  const { user, isLoggedIn } = useAuthStore();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
 
   const [couponCode, setCouponCode] = useState('');
+  const [showLoginModal, setShowLoginModal] = useState(false);
   const [appliedCoupon, setAppliedCoupon] = useState<{
     code: string;
     discountAmount: number;
@@ -63,7 +65,6 @@ export default function CartScreen() {
     };
   };
 
-  // Fetch cheap product suggestions from backend
   useEffect(() => {
     let active = true;
     const fetchSuggestions = async () => {
@@ -72,12 +73,11 @@ export default function CartScreen() {
         const res = await fetch(`${API_BASE_URL}/products?limit=500`);
         const data = await res.json();
         if (active && data && data.products) {
-          // Filter cheap products under ₹30, not already in cart, isAvailable is true, and stock > 0
+          // Filter cheap products under ₹30, isAvailable is true, and stock > 0
           const cheapProducts = data.products.filter((p: any) => 
             p.price <= 30 && 
             p.stock > 0 && 
-            p.isAvailable !== false &&
-            !items.some(item => item.product.id === p.id)
+            p.isAvailable !== false
           );
           setSuggestions(cheapProducts);
         }
@@ -92,7 +92,7 @@ export default function CartScreen() {
     return () => {
       active = false;
     };
-  }, [items]);
+  }, []);
 
   const handleApplyCoupon = async () => {
     if (!couponCode.trim()) return;
@@ -157,8 +157,8 @@ export default function CartScreen() {
     (item) => item.quantity > item.product.stock || item.product.stock <= 0 || item.product.isAvailable === false
   ), [items]);
 
-  const hasClosedGroceryItems = groceryItems.length > 0 && !groceryMartOpen;
-  const hasClosedCafeItems = cafeItems.length > 0 && !cafeOpen;
+  const hasClosedGroceryItems = groceryItems.length > 0 && !groceryMartOpen && !__DEV__;
+  const hasClosedCafeItems = cafeItems.length > 0 && !cafeOpen && !__DEV__;
   const isCheckoutBlocked = hasClosedGroceryItems || hasClosedCafeItems || hasInventoryIssues;
 
   const handleAutoAdjust = () => {
@@ -186,6 +186,12 @@ export default function CartScreen() {
   };
 
   const handleCheckoutRedirect = () => {
+    if (!isLoggedIn) {
+      triggerHaptic('warning');
+      setShowLoginModal(true);
+      return;
+    }
+    
     if (isCheckoutBlocked) {
       if (hasInventoryIssues) {
         Alert.alert('Inventory Issue', 'Please adjust quantities to match available stock.');
@@ -288,6 +294,7 @@ export default function CartScreen() {
   if (items.length === 0) {
     return (
       <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+        <StatusBar style={isDarkMode ? "light" : "dark"} />
         <Stack.Screen options={{ headerShown: false }} />
         {/* Header */}
         <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3">
@@ -342,6 +349,7 @@ export default function CartScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
       <View 
@@ -772,6 +780,67 @@ export default function CartScreen() {
           <ArrowRight size={16} color="#fff" />
         </Pressable>
       </View>
+      {/* Premium Login Required Modal */}
+      <Modal
+        visible={showLoginModal}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowLoginModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center', padding: 24 }}>
+          {Platform.OS !== 'web' ? (
+            <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
+          ) : null}
+          
+          <Animated.View 
+            entering={FadeInRight.duration(300)}
+            className="w-full max-w-[340px] bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-6 items-center shadow-2xl"
+          >
+            {/* Golden Key Badge wrapper */}
+            <View className="w-16 h-16 rounded-full bg-amber-55/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 items-center justify-center mb-4">
+              <KeyRound size={28} color="#d97706" strokeWidth={2.5} />
+            </View>
+
+            <Text className="text-slate-800 dark:text-zinc-100 font-black text-lg text-center mb-2">
+              Login Required
+            </Text>
+            
+            <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold text-center leading-relaxed mb-6 px-2">
+              Please log in or sign up to proceed to checkout and place your order.
+            </Text>
+
+            {/* Action buttons */}
+            <View className="w-full gap-3">
+              <Pressable
+                onPress={() => {
+                  setShowLoginModal(false);
+                  triggerHaptic('light');
+                  router.push('/(auth)/login');
+                }}
+                style={({ pressed }) => ({
+                  transform: [{ scale: pressed ? 0.97 : 1 }]
+                })}
+                className="w-full py-3.5 bg-rose-600 rounded-2xl items-center justify-center shadow-xs"
+              >
+                <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Log In / Sign Up</Text>
+              </Pressable>
+
+              <Pressable
+                onPress={() => {
+                  setShowLoginModal(false);
+                  triggerHaptic('light');
+                }}
+                style={({ pressed }) => ({
+                  transform: [{ scale: pressed ? 0.97 : 1 }]
+                })}
+                className="w-full py-3.5 bg-slate-50 dark:bg-zinc-800 border border-slate-200/50 dark:border-zinc-700/50 rounded-2xl items-center justify-center"
+              >
+                <Text className="text-slate-600 dark:text-zinc-350 font-bold text-xs uppercase tracking-wider">Cancel</Text>
+              </Pressable>
+            </View>
+          </Animated.View>
+        </View>
+      </Modal>
     </SafeAreaView>
   );
 }

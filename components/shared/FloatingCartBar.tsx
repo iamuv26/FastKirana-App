@@ -10,6 +10,7 @@ import { useMemo, useEffect, useRef } from 'react';
 import { GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, COMBINED_FREE_DELIVERY_THRESHOLD } from '../../lib/constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -35,7 +36,7 @@ interface FloatingCartBarProps {
 export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarProps) {
   const { items, getTotalItems, getSubtotal, getSavings } = useCart();
   const { theme } = useTheme();
-  const minOrderValue = useUIStore((s) => s.minOrderValue || 99);
+  const minOrderValue = useUIStore((s) => typeof s.minOrderValue === 'number' ? s.minOrderValue : 99);
   const isDarkMode = theme === 'dark';
   
   const cartItemCount = getTotalItems();
@@ -159,6 +160,8 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
     return `${hours}:${minutesStr} ${ampm}`;
   }, [cartItemCount]);
 
+  const insets = useSafeAreaInsets();
+
   if (cartItemCount === 0) return null;
 
   const handlePress = () => {
@@ -169,10 +172,12 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
   const isFreeDelivery = cartSubtotal >= threshold;
   const amountNeeded = threshold - cartSubtotal;
 
+  const finalBottom = bottomOffset + (insets.bottom > 0 ? insets.bottom - 8 : 0);
+
   return (
     <Animated.View 
       className="absolute left-4 right-4 z-40" 
-      style={{ bottom: bottomOffset }}
+      style={{ bottom: finalBottom }}
       entering={SlideInDown.duration(350).easing(Easing.out(Easing.quad))}
     >
       <TouchableOpacity 

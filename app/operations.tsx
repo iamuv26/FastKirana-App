@@ -1,12 +1,12 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useColorScheme, useWindowDimensions, TouchableOpacity } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useColorScheme, useWindowDimensions, TouchableOpacity, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
-import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon } from 'lucide-react-native';
+import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon, Send, MessageSquare, Edit2, Trash2 } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle as SvgCircle, Line, Text as SvgText, G } from 'react-native-svg';
 import { useCart } from '../hooks/use-cart';
-import { formatPrice, getAppImageSource } from '../lib/utils';
+import { formatPrice, getAppImageSource, formatHeaderAddress } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
 import { useAuthStore } from '../stores/auth-store';
@@ -16,7 +16,10 @@ import { registerForPushNotificationsAsync } from '../lib/push-notifications';
 import OrdersTab from '../components/operations/OrdersTab';
 import InventoryTab from '../components/operations/InventoryTab';
 import UsersTab from '../components/operations/UsersTab';
+import { useNewOrderAlert } from '../hooks/use-new-order-alert';
+import { NewOrderAlertModal } from '../components/operations/NewOrderAlertModal';
 import { useTheme } from './context/ThemeContext';
+import { useOrderStream } from '../hooks/use-order-stream';
 import Logo from '../components/shared/Logo';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -244,6 +247,15 @@ export default function OperationsScreen() {
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'PICKER' | 'RIDER' | 'CHEF' | 'ANALYTICS' | 'SETTINGS' | 'INVENTORY' | 'NOTIFICATIONS' | 'COUPONS' | 'ORDERS' | 'BANNERS' | 'USERS' | 'REVIEWS' | 'HIGHLIGHTS' | 'LIVEOPS' | 'CATEGORIES' | 'ALERTS' | 'INWARD' | 'BULK_UPDATE' | 'REPORTS' | 'FORECAST'>('ANALYTICS');
   const [activeHub, setActiveHub] = useState<'BI' | 'OPS' | 'CATALOG' | 'MARKETING'>('BI');
+  const [isTransitioning, setIsTransitioning] = useState(false);
+
+  useEffect(() => {
+    setIsTransitioning(true);
+    const task = InteractionManager.runAfterInteractions(() => {
+      setIsTransitioning(false);
+    });
+    return () => task.cancel();
+  }, [activeTab]);
 
   useEffect(() => {
     if (['ANALYTICS', 'FORECAST', 'REPORTS'].includes(activeTab)) {
@@ -260,16 +272,24 @@ export default function OperationsScreen() {
   const WorkspaceContainer = Platform.OS === 'web' ? View : ScrollView;
 
   const getAuthHeaders = (): Record<string, string> => {
-    if (!user) return {};
-    return {
+    const { token } = useAuthStore.getState();
+    const headers: Record<string, string> = {
       'Content-Type': 'application/json',
-      'x-user-id': user.id,
-      'x-user-role': user.role,
-      'x-user-email': user.email || '',
-      'x-user-name': user.name || '',
-      'x-user-phone': user.phone || '',
     };
+    if (token) {
+      headers['Authorization'] = `Bearer ${token}`;
+    }
+    if (user) {
+      headers['x-user-id'] = user.id;
+      headers['x-user-role'] = user.role;
+      headers['x-user-email'] = user.email || '';
+      headers['x-user-name'] = user.name || '';
+      headers['x-user-phone'] = user.phone || '';
+    }
+    return headers;
   };
+
+  const { activeAlertOrder, acknowledgeAlert, acceptOrder } = useNewOrderAlert(user?.role === 'ADMIN');
 
   const [pushToken, setPushToken] = useState<string | null>(null);
   const [activeGpsSimulations, setActiveGpsSimulations] = useState<Record<string, { lat: number; lng: number; step: number; totalSteps: number }>>({});
@@ -473,7 +493,7 @@ export default function OperationsScreen() {
   const [categoryStatuses, setCategoryStatuses] = useState<Record<string, boolean>>({});
 
   // New Operational Settings State variables
-  const [minOrderValueState, setMinOrderValueState] = useState<string>('99');
+  const [minOrderValueState, setMinOrderValueState] = useState<string>('0');
   const [storeOpenHourState, setStoreOpenHourState] = useState<string>('7');
   const [storeCloseHourState, setStoreCloseHourState] = useState<string>('23');
   const [holidaysState, setHolidaysState] = useState<string>('');
@@ -570,6 +590,14 @@ export default function OperationsScreen() {
 
 
 
+  // Load initial stats & LiveOps data on mount
+  useEffect(() => {
+    if (user?.role === 'ADMIN') {
+      fetchAnalyticsData();
+      fetchLiveopsData();
+    }
+  }, [user]);
+
   // Trigger loading data depending on tab selections
   useEffect(() => {
     if (user?.role === 'ADMIN') {
@@ -593,23 +621,16 @@ export default function OperationsScreen() {
     }
   }, [activeTab]);
 
-  // Poll LiveOps data (orders + active carts) every 30 seconds only if activeTab is 'LIVEOPS'
-  useEffect(() => {
-    let active = true;
-    let intervalId: any = null;
-
-    if (activeTab === 'LIVEOPS' && user?.role === 'ADMIN') {
+  // Stream LiveOps data (orders + active carts) reactively
+  useOrderStream({
+    role: 'ADMIN',
+    enabled: user?.role === 'ADMIN',
+    onEvent: (event) => {
+      // Refresh data on any incoming SSE event or poll fallback tick
       fetchLiveopsData();
-      intervalId = setInterval(() => {
-        if (active) fetchLiveopsData();
-      }, 30000);
+      fetchAnalyticsData();
     }
-
-    return () => {
-      active = false;
-      if (intervalId) clearInterval(intervalId);
-    };
-  }, [activeTab, user]);
+  });
 
   // --- API Integrations for Admin Workspace ---
   // --- Settings Management ---
@@ -728,43 +749,83 @@ export default function OperationsScreen() {
     }
   };
 
-  const sendCartNotification = async (userId: string, userName: string) => {
-    const defaultMsg = `Hey ${userName}! Your items are waiting. Checkout now for instant delivery!`;
+  // --- Abandoned Cart Recovery Modal States ---
+  const [alertModalVisible, setAlertModalVisible] = useState<boolean>(false);
+  const [selectedCartForAlert, setSelectedCartForAlert] = useState<any>(null);
+  const [alertMessageText, setAlertMessageText] = useState<string>('');
+  const [isSendingNotification, setIsSendingNotification] = useState<boolean>(false);
+
+  const handleOpenAlertModal = (cart: any) => {
+    setSelectedCartForAlert(cart);
+    const defaultMsg = `Hey ${cart.userName}! Your items are waiting. Checkout now for instant delivery!`;
+    setAlertMessageText(defaultMsg);
+    setAlertModalVisible(true);
+  };
+
+  const handleSendPushNotification = async () => {
+    if (!selectedCartForAlert) return;
+    setIsSendingNotification(true);
+    triggerHaptic('medium');
+    try {
+      const res = await fetch(`${API_BASE_URL}/admin/live-carts/notify`, {
+        method: 'POST',
+        headers: getAuthHeaders(),
+        body: JSON.stringify({
+          userId: selectedCartForAlert.userId,
+          title: 'Cart Waiting 🛒',
+          body: alertMessageText
+        })
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success('Push notification sent successfully!');
+        setAlertModalVisible(false);
+      } else {
+        toast.error(data.error || 'Failed to send push notification');
+      }
+    } catch (err) {
+      toast.error('Failed to send push notification');
+    } finally {
+      setIsSendingNotification(false);
+    }
+  };
+
+  const handleSendWhatsApp = async () => {
+    if (!selectedCartForAlert) return;
+    triggerHaptic('medium');
     
-    Alert.alert(
-      "Send Push Notification",
-      `Send cart reminder to ${userName}?\n\n"${defaultMsg}"`,
-      [
-        { text: "Cancel", style: "cancel" },
-        { 
-          text: "Send Alert", 
-          onPress: async () => {
-            setIsLoadingCarts(true);
-            try {
-              const res = await fetch(`${API_BASE_URL}/admin/live-carts/notify`, {
-                method: 'POST',
-                headers: getAuthHeaders(),
-                body: JSON.stringify({
-                  userId,
-                  title: 'Cart Waiting 🛒',
-                  body: defaultMsg
-                })
-              });
-              const data = await res.json();
-              if (res.ok) {
-                toast.success('Push notification sent successfully!');
-              } else {
-                toast.error(data.error || 'Failed to send push notification');
-              }
-            } catch (err) {
-              toast.error('Failed to send push notification');
-            } finally {
-              setIsLoadingCarts(false);
-            }
-          }
-        }
-      ]
-    );
+    let cleanPhone = selectedCartForAlert.userPhone.replace(/[^\d]/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = `91${cleanPhone}`;
+    }
+    
+    const itemsStr = selectedCartForAlert.items.map((item: any) => `${item.productName} (x${item.quantity})`).join(', ');
+    
+    let msg = `*Hey ${selectedCartForAlert.userName}!* 🛒\n\n${alertMessageText}\n\n📦 *Items:* ${itemsStr}\n💰 Total: *${formatPrice(selectedCartForAlert.subtotal)}*`;
+    
+    if (selectedCartForAlert.address) {
+      msg += `\n\n📍 *Delivery Address:* ${selectedCartForAlert.address}`;
+    }
+    if (selectedCartForAlert.lat && selectedCartForAlert.lng) {
+      msg += `\n🗺️ *Google Maps:* https://www.google.com/maps/search/?api=1&query=${selectedCartForAlert.lat},${selectedCartForAlert.lng}`;
+    }
+    
+    const url = `whatsapp://send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+    const fallbackUrl = `https://wa.me/${cleanPhone}?text=${encodeURIComponent(msg)}`;
+    
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        await Linking.openURL(fallbackUrl);
+      }
+      setAlertModalVisible(false);
+    } catch (e) {
+      console.warn('Failed to open WhatsApp:', e);
+      Linking.openURL(fallbackUrl);
+      setAlertModalVisible(false);
+    }
   };
 
   // --- Categories Management ---
@@ -1457,6 +1518,17 @@ export default function OperationsScreen() {
       const weeklyRevenue: { [key: string]: number } = { 'Mon': 0, 'Tue': 0, 'Wed': 0, 'Thu': 0, 'Fri': 0, 'Sat': 0, 'Sun': 0 };
       const daysMap = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
       
+      // Calculate start and end of the current week (Monday 00:00 to Sunday 23:59)
+      const now = new Date();
+      const currentDay = now.getDay();
+      const diffToMonday = now.getDate() - currentDay + (currentDay === 0 ? -6 : 1);
+      const startOfWeek = new Date(now.setDate(diffToMonday));
+      startOfWeek.setHours(0, 0, 0, 0);
+      
+      const endOfWeek = new Date(startOfWeek);
+      endOfWeek.setDate(startOfWeek.getDate() + 6);
+      endOfWeek.setHours(23, 59, 59, 999);
+      
       const categoryCounts: { [key: string]: number } = { 'grocery': 0, 'cafe': 0, 'dairy': 0, 'beverages': 0 };
       let totalItemsCount = 0;
 
@@ -1467,9 +1539,12 @@ export default function OperationsScreen() {
             deliveredCount++;
             
             const orderDate = new Date(o.createdAt);
-            const dayName = daysMap[orderDate.getDay()];
-            if (dayName in weeklyRevenue) {
-              weeklyRevenue[dayName] += o.total;
+            // Only add to the weekly chart if the order was placed in the current week
+            if (orderDate >= startOfWeek && orderDate <= endOfWeek) {
+              const dayName = daysMap[orderDate.getDay()];
+              if (dayName in weeklyRevenue) {
+                weeklyRevenue[dayName] += o.total;
+              }
             }
           } else if (o.status !== 'CANCELLED') {
             activeCount++;
@@ -2759,9 +2834,9 @@ export default function OperationsScreen() {
       nativeGradient: ['rgba(59,130,246,0.12)', 'rgba(6,182,212,0.08)'] as [string, string],
       nativeBorder: 'rgba(59,130,246,0.4)',
       tabs: [
-        { id: 'ANALYTICS', label: 'Analytics' },
-        { id: 'FORECAST', label: 'AI Forecasting' },
-        { id: 'REPORTS', label: 'Reports' }
+        { id: 'ANALYTICS', label: 'Analytics', emoji: '📊' },
+        { id: 'FORECAST', label: 'AI Forecasting', emoji: '📈' },
+        { id: 'REPORTS', label: 'Reports', emoji: '📋' }
       ]
     },
     {
@@ -2776,12 +2851,12 @@ export default function OperationsScreen() {
       nativeGradient: ['rgba(245,158,11,0.12)', 'rgba(249,115,22,0.08)'] as [string, string],
       nativeBorder: 'rgba(245,158,11,0.4)',
       tabs: [
-        { id: 'LIVEOPS', label: 'LiveOps' },
-        { id: 'ORDERS', label: 'Store Orders' },
-        { id: 'USERS', label: 'Customers' },
-        { id: 'REVIEWS', label: 'Reviews' },
-        { id: 'PICKER', label: 'Picker Mode' },
-        { id: 'RIDER', label: 'Rider Mode' }
+        { id: 'LIVEOPS', label: 'LiveOps', emoji: '🚨' },
+        { id: 'ORDERS', label: 'Store Orders', emoji: '📋' },
+        { id: 'USERS', label: 'Customers', emoji: '👥' },
+        { id: 'REVIEWS', label: 'Reviews', emoji: '⭐' },
+        { id: 'PICKER', label: 'Picker Mode', emoji: '📦' },
+        { id: 'RIDER', label: 'Rider Mode', emoji: '🛵' }
       ]
     },
     {
@@ -2796,11 +2871,11 @@ export default function OperationsScreen() {
       nativeGradient: ['rgba(16,185,129,0.12)', 'rgba(20,184,166,0.08)'] as [string, string],
       nativeBorder: 'rgba(16,185,129,0.4)',
       tabs: [
-        { id: 'INVENTORY', label: 'Products' },
-        { id: 'CATEGORIES', label: 'Categories' },
-        { id: 'INWARD', label: 'GRN Inward' },
-        { id: 'BULK_UPDATE', label: 'Bulk Update' },
-        { id: 'ALERTS', label: 'Alerts' }
+        { id: 'INVENTORY', label: 'Products', emoji: '🍎' },
+        { id: 'CATEGORIES', label: 'Categories', emoji: '📁' },
+        { id: 'INWARD', label: 'GRN Inward', emoji: '📥' },
+        { id: 'BULK_UPDATE', label: 'Bulk Update', emoji: '⚡' },
+        { id: 'ALERTS', label: 'Alerts', emoji: '⚠️' }
       ]
     },
     {
@@ -2815,12 +2890,12 @@ export default function OperationsScreen() {
       nativeGradient: ['rgba(236,72,153,0.12)', 'rgba(244,63,94,0.08)'] as [string, string],
       nativeBorder: 'rgba(236,72,153,0.4)',
       tabs: [
-        { id: 'BANNERS', label: 'Promo Banners' },
-        { id: 'HIGHLIGHTS', label: 'Flash Deals' },
-        { id: 'COUPONS', label: 'Offers' },
-        { id: 'NOTIFICATIONS', label: 'Push Notifications' },
-        { id: 'SETTINGS', label: 'Store Settings' },
-        { id: 'CHEF', label: 'Chef Kitchen' }
+        { id: 'BANNERS', label: 'Promo Banners', emoji: '🖼️' },
+        { id: 'HIGHLIGHTS', label: 'Flash Deals', emoji: '⚡' },
+        { id: 'COUPONS', label: 'Offers', emoji: '🎟️' },
+        { id: 'NOTIFICATIONS', label: 'Push Notifications', emoji: '📣' },
+        { id: 'SETTINGS', label: 'Store Settings', emoji: '⚙️' },
+        { id: 'CHEF', label: 'Chef Kitchen', emoji: '🍳' }
       ]
     }
   ] as const;
@@ -2953,7 +3028,7 @@ export default function OperationsScreen() {
                     </Text>
                     <View className="flex-row items-center gap-1">
                       <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold max-w-[140px]" numberOfLines={1}>
-                        {selectedLocation || 'Select Location'}
+                        {formatHeaderAddress(selectedLocation)}
                       </Text>
                       <ChevronDown size={8} color="#94a3b8" />
                     </View>
@@ -3103,7 +3178,7 @@ export default function OperationsScreen() {
             </View>
 
             {/* Sub-Tabs Row */}
-            <View className="bg-slate-50 dark:bg-zinc-955 p-1 rounded-full mb-6 flex-row self-start gap-1 flex-wrap border border-slate-200/60 dark:border-zinc-850">
+            <View className="bg-slate-150 dark:bg-zinc-900/60 p-1 rounded-full mb-6 flex-row self-start gap-1 flex-wrap border border-slate-200/30 dark:border-zinc-800/40">
               {activeHubDetails.tabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
@@ -3113,15 +3188,16 @@ export default function OperationsScreen() {
                       setActiveTab(tab.id as any);
                       triggerHaptic('light');
                     }}
-                    className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 ${
+                    className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 transition-all ${
                       isActive 
-                        ? 'bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 shadow-xs' 
+                        ? 'bg-indigo-600 dark:bg-indigo-550 shadow-sm' 
                         : 'bg-transparent'
                     }`}
                     style={{ cursor: 'pointer' } as any}
                   >
-                    <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${
-                      isActive ? 'text-indigo-650 dark:text-indigo-400 font-black' : 'text-slate-500 dark:text-zinc-400'
+                    {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
                     }`}>
                       {tab.label}
                     </Text>
@@ -3174,7 +3250,7 @@ export default function OperationsScreen() {
                       </Text>
                       <View className="flex-row items-center gap-1">
                         <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold max-w-[120px]" numberOfLines={1}>
-                          {selectedLocation || 'Select Location'}
+                          {formatHeaderAddress(selectedLocation)}
                         </Text>
                         <ChevronDown size={8} color="#94a3b8" />
                       </View>
@@ -3256,7 +3332,7 @@ export default function OperationsScreen() {
                 return (
                   <Animated.View 
                     key={idx}
-                    entering={FadeInDown.delay(idx * 50).springify().damping(14)}
+                    entering={FadeInDown.delay(idx * 40).duration(200)}
                     style={{ width: cardWidth }}
                   >
                     <View 
@@ -3293,7 +3369,7 @@ export default function OperationsScreen() {
                 return (
                   <Animated.View
                     key={hub.id}
-                    entering={FadeInDown.delay(hIdx * 60).springify().damping(14)}
+                    entering={FadeInDown.delay(hIdx * 50).duration(200)}
                   >
                     <Pressable
                       onPress={() => {
@@ -3360,36 +3436,19 @@ export default function OperationsScreen() {
                         setActiveTab(tab.id as any);
                         triggerHaptic('light');
                       }}
-                      style={({ pressed }) => [{
-                        paddingHorizontal: 15,
-                        paddingVertical: 6,
-                        borderRadius: 99,
-                        borderWidth: 1,
-                        borderColor: isActive 
-                          ? (isDarkMode ? 'rgba(99,102,241,0.4)' : 'rgba(99,102,241,0.25)') 
-                          : (isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
-                        backgroundColor: isActive 
-                          ? (isDarkMode ? 'rgba(99,102,241,0.12)' : '#ffffff') 
-                          : (isDarkMode ? 'rgba(255,255,255,0.03)' : '#f8fafc'),
-                        transform: [{ scale: pressed ? 0.96 : 1 }],
-                        ...(isActive ? {
-                          shadowColor: '#6366f1',
-                          shadowOffset: { width: 0, height: 2 },
-                          shadowOpacity: 0.08,
-                          shadowRadius: 4,
-                          elevation: 1,
-                        } : {}),
-                      }]}
+                      className={`px-4 py-2 rounded-full flex-row items-center gap-1.5 border active:scale-95 transition-all ${
+                        isActive 
+                          ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                          : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                      }`}
+                      style={({ pressed }) => ({
+                        transform: [{ scale: pressed ? 0.96 : 1 }]
+                      })}
                     >
-                      <Text style={{
-                        fontSize: 10,
-                        fontWeight: isActive ? '900' : '700',
-                        textTransform: 'uppercase',
-                        letterSpacing: 0.8,
-                        color: isActive 
-                          ? (isDarkMode ? '#a5b4fc' : '#4f46e5') 
-                          : (isDarkMode ? '#71717a' : '#94a3b8'),
-                      }}>
+                      {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
+                      <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                        isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                      }`}>
                         {tab.label}
                       </Text>
                     </Pressable>
@@ -3455,6 +3514,17 @@ export default function OperationsScreen() {
   );
 
   function renderWorkspaceContent() {
+    if (isTransitioning) {
+      return (
+        <View className="flex-1 justify-center items-center py-20 gap-3" style={{ minHeight: 350 }}>
+          <ActivityIndicator size="large" color="#6366f1" />
+          <Text className="text-slate-500 dark:text-zinc-400 font-extrabold text-[10px] uppercase tracking-widest">
+            Loading Workspace...
+          </Text>
+        </View>
+      );
+    }
+
     return (
       <>
         {activeTab === 'ANALYTICS' && (
@@ -3831,60 +3901,85 @@ export default function OperationsScreen() {
                 <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-1">Configure live operational parameters, cosmetics, and financials.</Text>
               </View>
 
-              {/* Settings Sub-Tab Switcher */}
-              <View className="flex-row bg-slate-50 dark:bg-zinc-955 p-1 rounded-full border border-slate-200/60 dark:border-zinc-850 mb-5 gap-1 flex-wrap">
-                <Pressable
-                  onPress={() => {
-                    setSettingsSubTab('ops');
-                    triggerHaptic('light');
-                  }}
-                  className={`flex-1 min-w-[80px] items-center py-2 rounded-full ${
-                    settingsSubTab === 'ops' ? 'bg-indigo-650 shadow-xs' : 'bg-transparent'
-                  }`}
+              {/* Settings Sub-Tab Switcher (Horizontal Slider) */}
+              <View className="mb-5">
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
                 >
-                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${settingsSubTab === 'ops' ? 'text-white' : 'text-slate-550 dark:text-slate-400'}`}>
-                    🚚 Operations
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setSettingsSubTab('cosmetics');
-                    triggerHaptic('light');
-                  }}
-                  className={`flex-1 min-w-[80px] items-center py-2 rounded-full ${
-                    settingsSubTab === 'cosmetics' ? 'bg-indigo-650 shadow-xs' : 'bg-transparent'
-                  }`}
-                >
-                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${settingsSubTab === 'cosmetics' ? 'text-white' : 'text-slate-550 dark:text-slate-400'}`}>
-                    🎨 Branding
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setSettingsSubTab('greetings');
-                    triggerHaptic('light');
-                  }}
-                  className={`flex-1 min-w-[80px] items-center py-2 rounded-full ${
-                    settingsSubTab === 'greetings' ? 'bg-indigo-650 shadow-xs' : 'bg-transparent'
-                  }`}
-                >
-                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${settingsSubTab === 'greetings' ? 'text-white' : 'text-slate-550 dark:text-slate-400'}`}>
-                    👋 Greetings
-                  </Text>
-                </Pressable>
-                <Pressable
-                  onPress={() => {
-                    setSettingsSubTab('finance');
-                    triggerHaptic('light');
-                  }}
-                  className={`flex-1 min-w-[80px] items-center py-2 rounded-full ${
-                    settingsSubTab === 'finance' ? 'bg-indigo-650 shadow-xs' : 'bg-transparent'
-                  }`}
-                >
-                  <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${settingsSubTab === 'finance' ? 'text-white' : 'text-slate-550 dark:text-slate-400'}`}>
-                    🔑 Financials
-                  </Text>
-                </Pressable>
+                  <Pressable
+                    onPress={() => {
+                      setSettingsSubTab('ops');
+                      triggerHaptic('light');
+                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'ops' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
+                  >
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'ops' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
+                      🚚 Operations
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      setSettingsSubTab('cosmetics');
+                      triggerHaptic('light');
+                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'cosmetics' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
+                  >
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'cosmetics' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
+                      🎨 Branding
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      setSettingsSubTab('greetings');
+                      triggerHaptic('light');
+                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'greetings' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
+                  >
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'greetings' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
+                      👋 Greetings
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
+                      setSettingsSubTab('finance');
+                      triggerHaptic('light');
+                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'finance' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
+                  >
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'finance' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
+                      🔑 Financials
+                    </Text>
+                  </Pressable>
+                </ScrollView>
               </View>
 
               {isSettingsLoading ? (
@@ -4268,30 +4363,43 @@ export default function OperationsScreen() {
                   {/* SUB-TAB: GREETINGS */}
                   {settingsSubTab === 'greetings' && (
                     <View className="gap-4">
-                      {/* Greetings Time Sub-Tab Switcher */}
-                      <View className="flex-row bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-850/60 gap-1 flex-wrap">
-                        {[
-                          { id: 'closed', label: 'Closed' },
-                          { id: 'morning', label: 'Morning' },
-                          { id: 'afternoon', label: 'Afternoon' },
-                          { id: 'evening', label: 'Evening' },
-                          { id: 'night', label: 'Night' }
-                        ].map((timeTab) => (
-                          <Pressable
-                            key={timeTab.id}
-                            onPress={() => {
-                              setGreetingsSubTab(timeTab.id as any);
-                              triggerHaptic('light');
-                            }}
-                            className={`flex-1 min-w-[60px] items-center py-2 rounded-lg ${
-                              greetingsSubTab === timeTab.id ? 'bg-indigo-600' : 'bg-transparent'
-                            }`}
-                          >
-                            <Text className={`text-[9px] font-black uppercase ${greetingsSubTab === timeTab.id ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
-                              {timeTab.label}
-                            </Text>
-                          </Pressable>
-                        ))}
+                      {/* Greetings Time Sub-Tab Switcher (Horizontal Slider) */}
+                      <View className="mb-2">
+                        <ScrollView 
+                          horizontal 
+                          showsHorizontalScrollIndicator={false} 
+                          contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
+                        >
+                          {[
+                            { id: 'closed', label: 'Closed 💤' },
+                            { id: 'morning', label: 'Morning 🌅' },
+                            { id: 'afternoon', label: 'Afternoon ☀️' },
+                            { id: 'evening', label: 'Evening 🌇' },
+                            { id: 'night', label: 'Night 🌙' }
+                          ].map((timeTab) => {
+                            const isActive = greetingsSubTab === timeTab.id;
+                            return (
+                              <Pressable
+                                key={timeTab.id}
+                                onPress={() => {
+                                  setGreetingsSubTab(timeTab.id as any);
+                                  triggerHaptic('light');
+                                }}
+                                className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                                  isActive 
+                                    ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                                    : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                                }`}
+                              >
+                                <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                                  isActive ? 'text-white' : 'text-slate-600 dark:text-zinc-400'
+                                }`}>
+                                  {timeTab.label}
+                                </Text>
+                              </Pressable>
+                            );
+                          })}
+                        </ScrollView>
                       </View>
 
                       {/* Closed Greeting Settings */}
@@ -5764,6 +5872,14 @@ export default function OperationsScreen() {
                               <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-semibold mt-0.5">
                                 {cart.userPhone} • {cart.userEmail}
                               </Text>
+                              {cart.address && (
+                                <View className="flex-row items-center gap-1 mt-1">
+                                  <MapPin size={10} color="#f43f5e" />
+                                  <Text className="text-rose-500 dark:text-rose-400 text-[8px] font-bold flex-1" numberOfLines={1}>
+                                    {cart.address}
+                                  </Text>
+                                </View>
+                              )}
                             </View>
                             <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-bold">{timeString}</Text>
                           </View>
@@ -5791,7 +5907,7 @@ export default function OperationsScreen() {
                             </View>
 
                             <Pressable
-                              onPress={() => sendCartNotification(cart.userId, cart.userName)}
+                              onPress={() => handleOpenAlertModal(cart)}
                               disabled={isLoadingCarts}
                               className="bg-amber-500 active:bg-amber-600 px-3 py-1.5 rounded-lg flex-row items-center gap-1"
                             >
@@ -5812,7 +5928,7 @@ export default function OperationsScreen() {
         {activeTab === 'CATEGORIES' && (
           <View className="px-4 py-4 gap-4">
             {/* Sub-view Toggle Header */}
-            <View className="flex-row bg-white dark:bg-zinc-900 p-1.5 rounded-2xl border border-slate-200 dark:border-zinc-850 gap-1 mb-2">
+            <View className="flex-row bg-slate-100 dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-805 gap-1 mb-2">
               <Pressable
                 onPress={() => {
                   setCategorySubView('grocery');
@@ -5844,17 +5960,18 @@ export default function OperationsScreen() {
             {categorySubView === 'grocery' ? (
               // Existing Categories View
               <View className="gap-4">
-                <View className="flex-row justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850">
-                  <View>
-                    <Text className="text-slate-900 dark:text-white font-black text-sm">Store Categories</Text>
-                    <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-0.5">Control category grouping and weights.</Text>
+                {/* Clean, Simple Header Banner */}
+                <View className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-slate-900 dark:text-white font-extrabold text-sm">Store Categories</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-0.5">Control category grouping and weights.</Text>
                   </View>
                   <Pressable
                     onPress={() => {
                       setShowAddCategory(!showAddCategory);
                       triggerHaptic('light');
                     }}
-                    className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl"
+                    className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl shadow-sm"
                   >
                     <PlusCircle size={14} color="#fff" />
                     <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Add New</Text>
@@ -5872,7 +5989,7 @@ export default function OperationsScreen() {
                         onChangeText={setNewCategoryName}
                         placeholder="e.g. Gourmet Sweets"
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="gap-2">
@@ -5882,7 +5999,7 @@ export default function OperationsScreen() {
                         onChangeText={setNewCategoryImageUrl}
                         placeholder="e.g. 🍫 or https://cloudinary.com/..."
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="gap-2">
@@ -5893,7 +6010,7 @@ export default function OperationsScreen() {
                         keyboardType="numeric"
                         placeholder="e.g. 9"
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="flex-row gap-2 mt-2">
@@ -5919,41 +6036,47 @@ export default function OperationsScreen() {
                 {isCategoriesLoading ? (
                   <ActivityIndicator size="large" color="#6366f1" className="py-10" />
                 ) : (
-                  <View className="gap-3">
+                  <View className="gap-2.5">
                     {categories.map((c) => (
-                      <View key={c.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-3">
-                          <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center border border-slate-700 overflow-hidden">
+                      <View key={c.id} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
+                        <View className="flex-row items-center gap-3.5 flex-1 min-w-0">
+                          {/* Soft circular icon container */}
+                          <View className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200/60 dark:border-zinc-700 overflow-hidden">
                             {getAppImageSource(c.imageUrl) ? (
                               <Image source={getAppImageSource(c.imageUrl)!} className="w-full h-full" contentFit="cover" />
                             ) : (
                               <Text className="text-lg">{c.imageUrl || '📦'}</Text>
                             )}
                           </View>
-                          <View>
-                            <Text className="text-white font-extrabold text-sm">{c.name}</Text>
-                            <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-mono mt-0.5 uppercase">Slug: {c.slug} • Weight: {c.sortOrder}</Text>
+                          <View className="flex-1 min-w-0 pr-2">
+                            {/* Corrected Text Visibility & Styling */}
+                            <Text className="text-slate-900 dark:text-white font-bold text-sm truncate">{c.name}</Text>
+                            <Text className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-0.5 uppercase tracking-wide truncate">
+                              {c.slug} · weight: {c.sortOrder}
+                            </Text>
                           </View>
                         </View>
+
+                        {/* Modern Action Buttons */}
                         <View className="flex-row items-center gap-2">
                           <Pressable
                             onPress={() => {
                               setEditingCategory(c);
                               triggerHaptic('light');
                             }}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 active:bg-slate-700"
+                            className="p-2.5 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-200/60 dark:border-zinc-750 active:bg-slate-100 dark:active:bg-zinc-700"
                           >
-                            <Text className="text-white font-extrabold text-[9px] uppercase">Edit</Text>
+                            <Edit2 size={13} color={isDarkMode ? '#cbd5e1' : '#475569'} />
                           </Pressable>
                           <Pressable
                             onPress={() => handleDeleteCategory(c.id)}
                             disabled={deletingCategoryId === c.id}
-                            className="p-1.5 rounded-lg bg-red-600/10 border border-red-500/25 active:bg-red-600/30"
+                            className="p-2.5 rounded-full bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 active:bg-red-100 dark:active:bg-red-950/40"
                           >
                             {deletingCategoryId === c.id ? (
                               <ActivityIndicator size="small" color="#f43f5e" />
                             ) : (
-                              <XCircle size={14} color="#f43f5e" />
+                              <Trash2 size={13} color="#f43f5e" />
                             )}
                           </Pressable>
                         </View>
@@ -5965,10 +6088,11 @@ export default function OperationsScreen() {
             ) : (
               // Café Menu Sections View
               <View className="gap-4">
-                <View className="flex-row justify-between items-center bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850">
+                {/* Clean, Simple Header Banner */}
+                <View className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-slate-200 dark:border-zinc-800">
                   <View className="flex-1 pr-2">
-                    <Text className="text-slate-900 dark:text-white font-black text-sm">Café Menu Sections</Text>
-                    <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-0.5">Configure and reorder sections on Cafe storefront.</Text>
+                    <Text className="text-slate-900 dark:text-white font-extrabold text-sm">Café Menu Sections</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-0.5">Configure and reorder sections on Cafe storefront.</Text>
                   </View>
                   {!(isAddingNewCafeSec || editingCafeSecIndex !== null) && (
                     <Pressable
@@ -5982,7 +6106,7 @@ export default function OperationsScreen() {
                         setSecMatchTags('');
                         triggerHaptic('light');
                       }}
-                      className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl"
+                      className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl shadow-sm"
                     >
                       <PlusCircle size={14} color="#fff" />
                       <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Add Section</Text>
@@ -6004,7 +6128,7 @@ export default function OperationsScreen() {
                         onChangeText={setSecTitle}
                         placeholder="e.g. Gourmet Sandwiches"
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-805 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
@@ -6026,7 +6150,7 @@ export default function OperationsScreen() {
                           onChangeText={setSecEmoji}
                           placeholder="e.g. 🥪"
                           placeholderTextColor="#64748b"
-                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-bold text-xs text-center"
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-805 dark:text-white font-bold text-xs text-center"
                         />
                       </View>
                     </View>
@@ -6038,7 +6162,7 @@ export default function OperationsScreen() {
                         onChangeText={setSecDescription}
                         placeholder="e.g. Freshly grilled loaded sandwiches"
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
@@ -6049,7 +6173,7 @@ export default function OperationsScreen() {
                         onChangeText={setSecMatchTags}
                         placeholder="e.g. sandwich, sandwiches"
                         placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
@@ -6109,27 +6233,30 @@ export default function OperationsScreen() {
                 {isCafeSectionsLoading ? (
                   <ActivityIndicator size="large" color="#6366f1" className="py-10" />
                 ) : (
-                  <View className="gap-3">
+                  <View className="gap-2.5">
                     {cafeMenuSections.map((sec, idx) => (
-                      <View key={sec.tag} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-row items-center justify-between">
-                        <View className="flex-row items-center gap-3 flex-1 min-w-0">
-                          <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center border border-slate-700 overflow-hidden">
+                      <View key={sec.tag} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
+                        <View className="flex-row items-center gap-3.5 flex-1 min-w-0">
+                          {/* Soft rounded icon container */}
+                          <View className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200/60 dark:border-zinc-700 overflow-hidden">
                             <Text className="text-lg">{sec.emoji || '☕'}</Text>
                           </View>
                           <View className="flex-1 min-w-0 pr-2">
-                            <View className="flex-row items-center gap-1.5 flex-wrap">
-                              <Text className="text-white font-extrabold text-sm truncate">{sec.title}</Text>
-                              <Text className="text-indigo-400 text-[8px] font-bold uppercase tracking-wider bg-indigo-950/40 border border-indigo-900/50 px-1 py-0.5 rounded">#{sec.tag}</Text>
+                            <View className="flex-row items-center gap-2 flex-wrap">
+                              <Text className="text-slate-900 dark:text-white font-bold text-sm truncate">{sec.title}</Text>
+                              <View className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-md">
+                                <Text className="text-indigo-600 dark:text-indigo-400 text-[8px] font-extrabold uppercase tracking-wider">#{sec.tag}</Text>
+                              </View>
                             </View>
                             {sec.description ? (
-                              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-0.5 truncate">{sec.description}</Text>
+                              <Text className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-1 truncate">{sec.description}</Text>
                             ) : null}
                           </View>
                         </View>
 
                         <View className="flex-row items-center gap-2">
-                          {/* Reordering */}
-                          <View className="flex-row gap-1 border-r border-slate-100 dark:border-zinc-800 pr-2 mr-1">
+                          {/* Reordering controls */}
+                          <View className="flex-row gap-1 border-r border-slate-100 dark:border-zinc-805 pr-2 mr-1">
                             <Pressable
                               disabled={idx === 0}
                               onPress={() => {
@@ -6138,9 +6265,9 @@ export default function OperationsScreen() {
                                 copy.splice(idx - 1, 0, moved);
                                 handleSaveCafeSections(copy);
                               }}
-                              className={`p-1 rounded ${idx === 0 ? 'opacity-30' : 'active:bg-slate-800'}`}
+                              className={`p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === 0 ? 'opacity-30' : 'active:bg-slate-100 dark:active:bg-zinc-800'}`}
                             >
-                              <ArrowUp size={12} color="#94a3b8" />
+                              <ArrowUp size={11} color="#94a3b8" />
                             </Pressable>
                             <Pressable
                               disabled={idx === cafeMenuSections.length - 1}
@@ -6150,9 +6277,9 @@ export default function OperationsScreen() {
                                 copy.splice(idx + 1, 0, moved);
                                 handleSaveCafeSections(copy);
                               }}
-                              className={`p-1 rounded ${idx === cafeMenuSections.length - 1 ? 'opacity-30' : 'active:bg-slate-800'}`}
+                              className={`p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === cafeMenuSections.length - 1 ? 'opacity-30' : 'active:bg-slate-100 dark:active:bg-zinc-800'}`}
                             >
-                              <ArrowDown size={12} color="#94a3b8" />
+                              <ArrowDown size={11} color="#94a3b8" />
                             </Pressable>
                           </View>
 
@@ -6167,9 +6294,9 @@ export default function OperationsScreen() {
                               setSecMatchTags(sec.matchTags ? sec.matchTags.join(', ') : sec.tag);
                               triggerHaptic('light');
                             }}
-                            className="px-2.5 py-1.5 rounded-lg border border-slate-700 bg-slate-800 active:bg-slate-700"
+                            className="p-2.5 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-200/60 dark:border-slate-750 active:bg-slate-100 dark:active:bg-zinc-700"
                           >
-                            <Text className="text-white font-extrabold text-[9px] uppercase">Edit</Text>
+                            <Edit2 size={13} color={isDarkMode ? '#cbd5e1' : '#475569'} />
                           </Pressable>
                           
                           <Pressable
@@ -6215,7 +6342,7 @@ export default function OperationsScreen() {
                       <TextInput
                         value={editingCategory.name}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, name: t })}
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="gap-2">
@@ -6223,7 +6350,7 @@ export default function OperationsScreen() {
                       <TextInput
                         value={editingCategory.imageUrl}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, imageUrl: t })}
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="gap-2">
@@ -6232,7 +6359,7 @@ export default function OperationsScreen() {
                         value={String(editingCategory.sortOrder)}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, sortOrder: t })}
                         keyboardType="numeric"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
                     <View className="flex-row gap-2 mt-2">
@@ -6538,7 +6665,7 @@ export default function OperationsScreen() {
                   {recentInwardLogs.map((log) => (
                     <View key={log.id} className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 p-3 rounded-xl flex-row justify-between items-center">
                       <View>
-                        <Text className="text-slate-800 dark:text-white font-bold text-xs">{log.productName}</Text>
+<Text className="text-slate-800 dark:text-white font-bold text-xs">{log.productName}</Text>
                         <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-mono mt-0.5 uppercase">
                           Batch: {log.batchCode} • Exp: {log.expiryDate}
                         </Text>
@@ -6558,42 +6685,42 @@ export default function OperationsScreen() {
         {/* ------------------- BULK UPDATE TAB WORKSPACE ------------------- */}
         {activeTab === 'BULK_UPDATE' && (
           <View className="px-4 py-4 gap-4">
-            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-4">
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-5 rounded-3xl gap-5 shadow-sm">
               <View className="flex-row items-center gap-2 mb-1">
                 <Zap size={18} color="#e11d48" />
                 <Text className="text-slate-900 dark:text-white font-black text-sm">Bulk Inventory Update</Text>
               </View>
 
               {/* Category Dropdown Selection */}
-              <View className="gap-1.5">
-                <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Filter Category Scope</Text>
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Filter Category Scope</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                   <Pressable
                     onPress={() => setBulkCategoryId('ALL')}
-                    className={`px-3 py-1.5 rounded-lg border ${
-                      bulkCategoryId === 'ALL' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-800/80 border-slate-700/60'
+                    className={`px-4 py-2 rounded-full border ${
+                      bulkCategoryId === 'ALL' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
                     }`}
                   >
-                    <Text className="text-white font-extrabold text-[9px] uppercase">All Products</Text>
+                    <Text className={`font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === 'ALL' ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>All Products</Text>
                   </Pressable>
                   {categories.map((cat) => (
                     <Pressable
                       key={cat.id}
                       onPress={() => setBulkCategoryId(cat.id)}
-                      className={`px-3 py-1.5 rounded-lg border ${
-                        bulkCategoryId === cat.id ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-800/80 border-slate-700/60'
+                      className={`px-4 py-2 rounded-full border ${
+                        bulkCategoryId === cat.id ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
                       }`}
                     >
-                      <Text className="text-white font-extrabold text-[9px] uppercase">{cat.name}</Text>
+                      <Text className={`font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === cat.id ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>{cat.name}</Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               </View>
 
-              {/* Update Type */}
-              <View className="gap-1.5">
-                <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Update Target Field</Text>
-                <View className="flex-row gap-2">
+              {/* Update Type - Fixed layout to prevent text clipping */}
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Update Target Field</Text>
+                <View className="flex-row flex-wrap gap-2">
                   {[
                     { key: 'PRICE', label: 'Price' },
                     { key: 'STOCK', label: 'Stock' },
@@ -6610,11 +6737,12 @@ export default function OperationsScreen() {
                         }
                         triggerHaptic('light');
                       }}
-                      className={`flex-1 py-2 rounded-lg border items-center ${
-                        bulkUpdateType === field.key ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-850 border-slate-100 dark:border-zinc-800'
+                      style={{ width: '48.5%' }}
+                      className={`py-2.5 rounded-xl border items-center justify-center ${
+                        bulkUpdateType === field.key ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
                       }`}
                     >
-                      <Text className="text-white font-bold text-[9px] uppercase">{field.label}</Text>
+                      <Text className={`font-bold text-xs ${bulkUpdateType === field.key ? 'text-white' : 'text-slate-600 dark:text-zinc-400'}`}>{field.label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -6622,8 +6750,8 @@ export default function OperationsScreen() {
 
               {/* Mode Selection */}
               {bulkUpdateType !== 'AVAILABILITY' && (
-                <View className="gap-1.5">
-                  <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Update Mode</Text>
+                <View className="gap-2">
+                  <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Update Mode</Text>
                   <View className="flex-row gap-2 flex-wrap">
                     {[
                       { key: 'FLAT_INCREASE', label: 'Flat +' },
@@ -6638,11 +6766,11 @@ export default function OperationsScreen() {
                           setBulkMode(m.key as any);
                           triggerHaptic('light');
                         }}
-                        className={`px-3 py-1.5 rounded-lg border ${
-                          bulkMode === m.key ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-850 border-slate-100 dark:border-zinc-800'
+                        className={`px-4 py-2 rounded-full border ${
+                          bulkMode === m.key ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
                         }`}
                       >
-                        <Text className="text-white font-bold text-[8px] uppercase">{m.label}</Text>
+                        <Text className={`font-bold text-[9px] uppercase ${bulkMode === m.key ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>{m.label}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -6650,27 +6778,27 @@ export default function OperationsScreen() {
               )}
 
               {/* Value Input */}
-              <View className="gap-1.5">
-                <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">
                   {bulkUpdateType === 'AVAILABILITY' ? 'Enable / Disable Toggle' : 'Modification Value'}
                 </Text>
                 {bulkUpdateType === 'AVAILABILITY' ? (
                   <View className="flex-row gap-2">
                     <Pressable
                       onPress={() => setBulkValue('1')}
-                      className={`flex-1 py-2 rounded-lg border items-center ${
-                        bulkValue === '1' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-850 border-slate-100 dark:border-zinc-800'
+                      className={`flex-1 py-2.5 rounded-xl border items-center ${
+                        bulkValue === '1' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
                       }`}
                     >
-                      <Text className="text-white font-bold text-[9px] uppercase">Available</Text>
+                      <Text className={`font-bold text-xs ${bulkValue === '1' ? 'text-white' : 'text-slate-655 dark:text-zinc-400'}`}>Available</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => setBulkValue('0')}
-                      className={`flex-1 py-2 rounded-lg border items-center ${
-                        bulkValue === '0' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-850 border-slate-100 dark:border-zinc-800'
+                      className={`flex-1 py-2.5 rounded-xl border items-center ${
+                        bulkValue === '0' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
                       }`}
                     >
-                      <Text className="text-white font-bold text-[9px] uppercase">Unavailable</Text>
+                      <Text className={`font-bold text-xs ${bulkValue === '0' ? 'text-white' : 'text-slate-655 dark:text-zinc-400'}`}>Unavailable</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -6679,31 +6807,31 @@ export default function OperationsScreen() {
                     value={bulkValue}
                     onChangeText={setBulkValue}
                     placeholder="e.g. 10"
-                    placeholderTextColor="#475569"
-                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
+                    placeholderTextColor="#94a3b8"
+                    className="bg-slate-50 dark:bg-zinc-955 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-semibold text-xs"
                   />
                 )}
               </View>
 
               {/* Action Buttons */}
-              <View className="flex-row gap-2.5 mt-2">
+              <View className="flex-row gap-3 mt-2">
                 <Pressable
                   onPress={handleBulkPreview}
                   disabled={isBulkPreviewing}
-                  className="flex-1 border border-slate-200 dark:border-zinc-850 py-3 rounded-xl items-center justify-center flex-row"
+                  className="flex-1 border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/10 py-3 rounded-2xl items-center justify-center flex-row active:bg-indigo-100"
                 >
-                  {isBulkPreviewing && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                  <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-[10px] uppercase">Calculate Preview</Text>
+                  {isBulkPreviewing && <ActivityIndicator size="small" color="#4f46e5" style={{ marginRight: 6 }} />}
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[10px] uppercase">Calculate Preview</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleBulkApply}
                   disabled={isBulkApplying || bulkPreviews.length === 0}
-                  className={`flex-1 py-3 rounded-xl items-center justify-center flex-row ${
-                    bulkPreviews.length > 0 ? 'bg-indigo-600 active:bg-indigo-700' : 'bg-indigo-900/30 border border-indigo-950'
+                  className={`flex-1 py-3 rounded-2xl items-center justify-center flex-row ${
+                    bulkPreviews.length > 0 ? 'bg-indigo-600 active:bg-indigo-700 shadow-md' : 'bg-slate-100 dark:bg-zinc-800'
                   }`}
                 >
                   {isBulkApplying && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                  <Text className={`font-extrabold text-[10px] uppercase ${bulkPreviews.length > 0 ? 'text-white' : 'text-slate-500'}`}>
+                  <Text className={`font-extrabold text-[10px] uppercase ${bulkPreviews.length > 0 ? 'text-white' : 'text-slate-400 dark:text-slate-600'}`}>
                     Apply Batch
                   </Text>
                 </Pressable>
@@ -6712,16 +6840,16 @@ export default function OperationsScreen() {
 
             {/* Previews List */}
             {bulkPreviews.length > 0 && (
-              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-3">
+              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-3xl gap-3 shadow-sm">
                 <Text className="text-slate-900 dark:text-white font-black text-xs">Previewing Changes ({bulkPreviews.length} products)</Text>
                 <View className="gap-2 max-h-60 overflow-y-auto">
                   {bulkPreviews.slice(0, 10).map((p, i) => (
-                    <View key={i} className="flex-row justify-between items-center bg-slate-950 p-2.5 rounded-xl border border-slate-100 dark:border-zinc-800/50">
-                      <Text className="text-white font-bold text-[10px] flex-1 mr-2" numberOfLines={1}>{p.name}</Text>
+                    <View key={i} className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-950 p-2.5 rounded-xl border border-slate-100 dark:border-zinc-800">
+                      <Text className="text-slate-800 dark:text-white font-bold text-[10px] flex-1 mr-2" numberOfLines={1}>{p.name}</Text>
                       <View className="flex-row items-center gap-1.5">
                         <Text className="text-slate-500 dark:text-slate-400 text-[8px] line-through">{String(p.oldValue)}</Text>
                         <ArrowRight size={10} color="#94a3b8" />
-                        <Text className="text-emerald-400 font-black text-[10px]">{String(p.newValue)}</Text>
+                        <Text className="text-emerald-500 dark:text-emerald-400 font-black text-[10px]">{String(p.newValue)}</Text>
                       </View>
                     </View>
                   ))}
@@ -6735,7 +6863,7 @@ export default function OperationsScreen() {
             )}
 
             {/* Batch Update History */}
-            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-3">
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-3xl gap-3 shadow-sm">
               <Text className="text-slate-900 dark:text-white font-black text-xs">Modification Batch History</Text>
               {isBulkHistoryLoading ? (
                 <ActivityIndicator size="small" color="#6366f1" />
@@ -6744,7 +6872,7 @@ export default function OperationsScreen() {
               ) : (
                 <View className="gap-2.5">
                   {bulkHistory.map((batch) => (
-                    <View key={batch.batchId} className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 p-3 rounded-xl flex-row justify-between items-center">
+                    <View key={batch.batchId} className="bg-slate-50 dark:bg-zinc-955 p-3 rounded-2xl border border-slate-100 dark:border-zinc-800 flex-row justify-between items-center">
                       <View className="flex-1 mr-2">
                         <Text className="text-slate-800 dark:text-white font-bold text-xs">{batch.changeType} Batch</Text>
                         <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">
@@ -6754,12 +6882,12 @@ export default function OperationsScreen() {
                       <Pressable
                         onPress={() => handleBulkUndo(batch.batchId)}
                         disabled={undoingBatchId === batch.batchId}
-                        className="px-2.5 py-1.5 bg-rose-600/10 border border-rose-500/20 rounded-lg active:bg-rose-600/20"
+                        className="px-3 py-2 bg-rose-50 border border-rose-200 dark:bg-rose-955/20 dark:border-rose-900/50 rounded-xl"
                       >
                         {undoingBatchId === batch.batchId ? (
                           <ActivityIndicator size="small" color="#f43f5e" />
                         ) : (
-                          <Text className="text-rose-400 font-extrabold text-[9px] uppercase">Revert</Text>
+                          <Text className="text-rose-500 font-extrabold text-[9px] uppercase">Revert</Text>
                         )}
                       </Pressable>
                     </View>
@@ -6814,7 +6942,7 @@ export default function OperationsScreen() {
               </View>
 
               {/* Date Presets Selector */}
-              <View className="flex-row gap-2 bg-slate-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-850">
+              <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-1 rounded-2xl border border-slate-100 dark:border-zinc-800">
                 {[
                   { key: 'today', label: 'Today' },
                   { key: '7days', label: '7 Days' },
@@ -6847,8 +6975,8 @@ export default function OperationsScreen() {
                     value={reportStartDate}
                     onChangeText={setReportStartDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#475569"
-                    className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 rounded-lg px-2.5 py-1.5 text-white font-semibold text-[10px]"
+                    placeholderTextColor="#94a3b8"
+                    className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-100 font-semibold text-[10px]"
                   />
                 </View>
                 <View className="flex-1 gap-1">
@@ -6857,8 +6985,8 @@ export default function OperationsScreen() {
                     value={reportEndDate}
                     onChangeText={setReportEndDate}
                     placeholder="YYYY-MM-DD"
-                    placeholderTextColor="#475569"
-                    className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 rounded-lg px-2.5 py-1.5 text-white font-semibold text-[10px]"
+                    placeholderTextColor="#94a3b8"
+                    className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-100 font-semibold text-[10px]"
                   />
                 </View>
                 <Pressable
@@ -6866,9 +6994,9 @@ export default function OperationsScreen() {
                     setReportDateRange('custom');
                     fetchReportsData();
                   }}
-                  className="bg-indigo-600/10 border border-indigo-500/25 justify-center px-4 rounded-lg active:bg-indigo-600/20 mt-3.5"
+                  className="bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-900/50 justify-center px-4 rounded-lg mt-3.5"
                 >
-                  <Text className="text-indigo-400 font-extrabold text-[9px] uppercase">Get</Text>
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[9px] uppercase">Get</Text>
                 </Pressable>
               </View>
 
@@ -6879,10 +7007,10 @@ export default function OperationsScreen() {
                   {/* KPI Metrics summaries */}
                   <View className="flex-row gap-2 flex-wrap">
                     {[
-                      { label: 'Total Sales', val: `₹${reportSummary.totalSales}`, color: 'text-indigo-400' },
-                      { label: 'Total profit', val: `₹${reportSummary.totalProfit}`, color: 'text-emerald-400' },
-                      { label: 'Margin %', val: `${reportSummary.profitMargin}%`, color: 'text-amber-400' },
-                      { label: 'AOV Revenue', val: `₹${Math.round(reportSummary.averageOrderValue || 0)}`, color: 'text-blue-400' }
+                      { label: 'Total Sales', val: `₹${reportSummary.totalSales}`, color: 'text-indigo-500 dark:text-indigo-400' },
+                      { label: 'Total profit', val: `₹${reportSummary.totalProfit}`, color: 'text-emerald-500 dark:text-emerald-400' },
+                      { label: 'Margin %', val: `${reportSummary.profitMargin}%`, color: 'text-amber-500 dark:text-amber-400' },
+                      { label: 'AOV Revenue', val: `₹${Math.round(reportSummary.averageOrderValue || 0)}`, color: 'text-blue-500 dark:text-blue-400' }
                     ].map((kpi, i) => (
                       <View key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-1 min-w-[45%]">
                         <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.label}</Text>
@@ -6895,7 +7023,7 @@ export default function OperationsScreen() {
                   {reportDailySales.length > 1 && (
                     <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
                       <Text className="text-slate-900 dark:text-white font-black text-xs">Revenue & profit Trend</Text>
-                      <View className="items-center bg-slate-950 rounded-xl p-1 border border-slate-100 dark:border-zinc-800/50 overflow-hidden">
+                      <View className="items-center bg-slate-50 dark:bg-zinc-950 rounded-xl p-1 border border-slate-100 dark:border-zinc-800 overflow-hidden">
                         <Svg width={chartWidth} height={chartHeight}>
                           {/* Sales line */}
                           {salesPathStr ? (
@@ -6920,11 +7048,11 @@ export default function OperationsScreen() {
                       <View className="flex-row justify-center gap-4 mt-1">
                         <View className="flex-row items-center gap-1.5">
                           <View className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Revenue</Text>
+                          <Text className="text-slate-600 dark:text-slate-300 font-bold text-[8px] uppercase">Revenue</Text>
                         </View>
                         <View className="flex-row items-center gap-1.5">
                           <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Net Profit</Text>
+                          <Text className="text-slate-600 dark:text-slate-300 font-bold text-[8px] uppercase">Net Profit</Text>
                         </View>
                       </View>
                     </View>
@@ -6935,14 +7063,14 @@ export default function OperationsScreen() {
                     <Text className="text-slate-900 dark:text-white font-black text-xs">Top Selling Products</Text>
                     <View className="gap-2.5">
                       {reportTopProducts.map((p, i) => (
-                        <View key={p.productId || i} className="flex-row justify-between items-center bg-slate-950 border border-slate-100 dark:border-zinc-800/50 p-2.5 rounded-xl">
+                        <View key={p.productId || i} className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-2.5 rounded-xl">
                           <View className="flex-1 mr-2">
-                            <Text className="text-white font-extrabold text-[11px]" numberOfLines={1}>{p.name}</Text>
+                            <Text className="text-slate-800 dark:text-white font-extrabold text-[11px]" numberOfLines={1}>{p.name}</Text>
                             <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">{p.quantity} units sold</Text>
                           </View>
                           <View className="items-end">
-                            <Text className="text-indigo-400 font-black text-[11px]">₹{p.sales}</Text>
-                            <Text className="text-emerald-400 font-bold text-[8px] mt-0.5">+₹{p.profit} profit</Text>
+                            <Text className="text-indigo-500 dark:text-indigo-400 font-black text-[11px]">₹{p.sales}</Text>
+                            <Text className="text-emerald-500 dark:text-emerald-400 font-bold text-[8px] mt-0.5">+₹{p.profit} profit</Text>
                           </View>
                         </View>
                       ))}
@@ -6967,7 +7095,7 @@ export default function OperationsScreen() {
                 <Pressable
                   onPress={() => fetchForecastData(true)}
                   disabled={isForecastLoading}
-                  className="p-2 bg-indigo-600/10 border border-indigo-500/20 rounded-xl active:bg-indigo-600/20"
+                  className="p-2 bg-indigo-50 border border-indigo-200 dark:bg-zinc-950 dark:border-zinc-800 rounded-xl"
                 >
                   {isForecastLoading ? (
                     <ActivityIndicator size="small" color="#6366f1" />
@@ -6979,17 +7107,17 @@ export default function OperationsScreen() {
               <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold">AI estimated velocity and stock depletion warning boards.</Text>
               
               <View className="flex-row gap-2.5 mt-2">
-                <View className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 p-3 rounded-xl flex-1">
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
                   <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Items At Risk</Text>
                   <Text className="text-sm font-black text-rose-500 mt-0.5">{forecastMetrics.itemsAtRisk || 0}</Text>
                 </View>
-                <View className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 p-3 rounded-xl flex-1">
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
                   <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Revenue At Risk</Text>
                   <Text className="text-sm font-black text-amber-500 mt-0.5">₹{forecastMetrics.totalRevenueAtRisk || 0}</Text>
                 </View>
-                <View className="bg-slate-100 dark:bg-slate-950 border border-slate-100 dark:border-zinc-800/50 p-3 rounded-xl flex-1">
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
                   <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Avg Velocity</Text>
-                  <Text className="text-sm font-black text-indigo-400 mt-0.5">{forecastMetrics.averageVelocity?.toFixed(1) || '0.0'}/day</Text>
+                  <Text className="text-sm font-black text-indigo-500 mt-0.5">{forecastMetrics.averageVelocity?.toFixed(1) || '0.0'}/day</Text>
                 </View>
               </View>
 
@@ -7000,17 +7128,17 @@ export default function OperationsScreen() {
                 className="bg-indigo-600 py-3 rounded-xl items-center justify-center flex-row mt-2"
               >
                 {isForecastRestocking && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Auto-Replenish All Stockouts</Text>
+                <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Auto-Replenish All Stockouts</Text>
               </Pressable>
             </View>
 
             {/* Filter Search */}
             <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
-              <View className="flex-row items-center bg-slate-950 border border-slate-100 dark:border-zinc-800/50 rounded-xl px-3 h-10">
+              <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 h-10">
                 <Search size={14} color="#94a3b8" />
                 <TextInput
                   placeholder="Filter forecast catalog..."
-                  placeholderTextColor="#64748b"
+                  placeholderTextColor="#94a3b8"
                   value={forecastSearchQuery}
                   onChangeText={setForecastSearchQuery}
                   className="flex-1 text-white font-extrabold text-[11px] ml-2"
@@ -7054,11 +7182,11 @@ export default function OperationsScreen() {
                   <View key={item.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
                     <View className="flex-row justify-between items-start">
                       <View className="flex-row items-center flex-1 mr-2">
-                        <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center border border-slate-700 mr-2.5 overflow-hidden">
+                        <View className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-200 dark:border-zinc-800 mr-2.5 overflow-hidden">
                           {getAppImageSource(item.imageUrl) ? (
                             <Image source={getAppImageSource(item.imageUrl)!} className="w-full h-full" contentFit="cover" />
                           ) : (
-                            <Text className="text-lg">{item.imageUrl || '📦'}</Text>
+                            <Text className="text-lg text-slate-800 dark:text-zinc-200">{item.imageUrl || '📦'}</Text>
                           )}
                         </View>
                         <View className="flex-1">
@@ -7643,6 +7771,111 @@ export default function OperationsScreen() {
         </Modal>
       )}
 
+      {/* New Order Alert Overlay */}
+      <NewOrderAlertModal
+        order={activeAlertOrder}
+        onAccept={acceptOrder}
+        onDismiss={acknowledgeAlert}
+        isDarkMode={isDarkMode}
+      />
+
+      {/* ── Abandoned Cart Recovery Modal ── */}
+      {selectedCartForAlert && (
+        <Modal
+          visible={alertModalVisible}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setAlertModalVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-slate-205 dark:border-zinc-805 rounded-3xl overflow-hidden shadow-2xl p-5">
+              
+              {/* Header */}
+              <View className="flex-row justify-between items-center mb-4">
+                <View className="flex-row items-center gap-2.5">
+                  <View className="bg-amber-100 dark:bg-amber-950/40 p-2.5 rounded-2xl">
+                    <ShoppingBag size={18} color="#d97706" />
+                  </View>
+                  <View>
+                    <Text className="text-slate-900 dark:text-white font-black text-sm">Cart Recovery Alert</Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mt-0.5">{selectedCartForAlert.userName}</Text>
+                  </View>
+                </View>
+                <Pressable onPress={() => setAlertModalVisible(false)} className="bg-slate-50 dark:bg-zinc-800 p-2 rounded-full">
+                  <X size={12} color={isDarkMode ? '#94a3b8' : '#64748b'} />
+                </Pressable>
+              </View>
+
+              {/* Cart Summary */}
+              <View className="bg-slate-50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-3.5 mb-4">
+                <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mb-1.5">Cart Content</Text>
+                <Text className="text-slate-700 dark:text-zinc-300 text-xs font-bold leading-5">
+                  {selectedCartForAlert.items.map((item: any) => `${item.productName} (x${item.quantity})`).join(', ')}
+                </Text>
+                <View className="flex-row items-center justify-between mt-2 pt-2 border-t border-slate-200/50 dark:border-zinc-855">
+                  <Text className="text-slate-450 dark:text-zinc-500 text-[9px] font-black uppercase">Subtotal</Text>
+                  <Text className="text-slate-900 dark:text-white text-xs font-black">{formatPrice(selectedCartForAlert.subtotal)}</Text>
+                </View>
+              </View>
+
+              {/* Message Editor */}
+              <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mb-1.5 ml-1">Customize Message</Text>
+              <View className="bg-slate-50 dark:bg-zinc-950/40 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 mb-4">
+                <TextInput
+                  value={alertMessageText}
+                  onChangeText={setAlertMessageText}
+                  multiline={true}
+                  numberOfLines={3}
+                  style={{ textAlignVertical: 'top', height: 60 }}
+                  className="text-slate-800 dark:text-zinc-100 text-xs font-bold leading-5 p-0"
+                />
+              </View>
+
+              {/* Location Info (if coordinates exist) */}
+              {selectedCartForAlert.address && (
+                <View className="bg-rose-50/50 dark:bg-rose-950/10 border border-rose-100/50 dark:border-rose-900/30 rounded-2xl p-3.5 mb-4 flex-row gap-2.5 items-center">
+                  <MapPin size={18} color="#f43f5e" />
+                  <View className="flex-1">
+                    <Text className="text-rose-600 dark:text-rose-455 text-[9px] font-black uppercase">WhatsApp Location Included</Text>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-bold mt-0.5" numberOfLines={1}>{selectedCartForAlert.address}</Text>
+                  </View>
+                </View>
+              )}
+
+              {/* Action Buttons */}
+              <View className="gap-2.5">
+                {/* Send via Push Notification */}
+                <Pressable
+                  onPress={handleSendPushNotification}
+                  disabled={isSendingNotification}
+                  style={({ pressed }) => ({
+                    transform: [{ scale: pressed ? 0.97 : 1 }],
+                    opacity: isSendingNotification ? 0.6 : 1
+                  })}
+                  className="bg-indigo-600 dark:bg-indigo-500 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
+                >
+                  <Send size={13} color="#ffffff" strokeWidth={3} />
+                  <Text className="text-white font-black text-xs uppercase tracking-wider">
+                    {isSendingNotification ? 'Sending Push...' : 'Send Push Notification'}
+                  </Text>
+                </Pressable>
+
+                {/* Send via WhatsApp */}
+                <Pressable
+                  onPress={handleSendWhatsApp}
+                  style={({ pressed }) => ({
+                    transform: [{ scale: pressed ? 0.97 : 1 }]
+                  })}
+                  className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
+                >
+                  <MessageSquare size={13} color="#ffffff" strokeWidth={3} />
+                  <Text className="text-white font-black text-xs uppercase tracking-wider">Send via WhatsApp</Text>
+                </Pressable>
+              </View>
+            </View>
+          </View>
+        </Modal>
+      )}
       </>
     );
   }

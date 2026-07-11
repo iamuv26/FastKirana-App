@@ -43,3 +43,22 @@ export function getAppImageSource(imgUrl: string | null | undefined): { uri: str
   }
   return null;
 }
+
+export function formatHeaderAddress(address: string | null | undefined): string {
+  if (!address || address === 'Select Location') return 'Select Location';
+  if (address.startsWith('Lat:')) return 'Swaroop Nagar, Kanpur';
+  
+  const parts = address.split(',')
+    .map(p => p.trim())
+    // Remove plus codes containing '+'
+    .filter(p => !p.includes('+'))
+    // Remove 6-digit postal/pin codes
+    .filter(p => !/^\d{6}$/.test(p))
+    // Remove country name
+    .filter(p => p.toLowerCase() !== 'india');
+
+  if (parts.length === 0) return address;
+  
+  // Take first 2 readable parts (e.g., street/area and city)
+  return parts.slice(0, 2).join(', ');
+}

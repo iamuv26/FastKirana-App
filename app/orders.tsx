@@ -1,12 +1,15 @@
 import { View, Text, Pressable, ScrollView, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useCallback } from 'react';
+import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
 import { ArrowLeft, Clock, ChevronRight } from 'lucide-react-native';
 import { useAuthStore } from '../stores/auth-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../lib/constants';
+import { api } from '../lib/api-client';
 import { formatPrice } from '../lib/utils';
 import { toast } from '../lib/toast';
+import { triggerHaptic } from '../lib/haptic';
 import { useTheme } from './context/ThemeContext';
 import BuyAgainSection from '../components/home/BuyAgainSection';
 
@@ -50,45 +53,43 @@ export default function OrdersScreen() {
     let serverOrders: Order[] = [];
     
     try {
-      const res = await fetch(`${API_BASE_URL}/orders`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
+      const data = await api.get('/orders');
+      if (Array.isArray(data)) {
         serverOrders = data;
       }
     } catch (err) {
       console.warn('Failed to load orders from backend:', err);
     }
 
-    // Merge with local fallback/mock orders from MMKV
-    try {
-      const { mmkvStorage } = require('../lib/storage');
-      const localKey = `local_orders_${user?.id || 'guest'}`;
-      const localData = mmkvStorage.getItem(localKey);
-      if (localData) {
-        const localList = JSON.parse(localData);
-        // Combine list, avoiding duplicates by id
-        const combined = [...localList];
-        serverOrders.forEach((so: Order) => {
-          if (!combined.some((lo) => lo.id === so.id)) {
-            combined.push(so);
-          }
-        });
-        
-        // Sort by date descending
-        combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-        setOrders(combined);
-      } else {
-        setOrders(serverOrders);
+    const isMockUser = user?.id?.startsWith('mock-');
+    if (__DEV__ || isMockUser) {
+      // Merge with local fallback/mock orders from MMKV
+      try {
+        const { mmkvStorage } = require('../lib/storage');
+        const localKey = `local_orders_${user?.id || 'guest'}`;
+        const localData = mmkvStorage.getItem(localKey);
+        if (localData) {
+          const localList = JSON.parse(localData);
+          // Combine list, avoiding duplicates by id
+          const combined = [...localList];
+          serverOrders.forEach((so: Order) => {
+            if (!combined.some((lo) => lo.id === so.id)) {
+              combined.push(so);
+            }
+          });
+          
+          // Sort by date descending
+          combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+          setOrders(combined);
+          setIsLoading(false);
+          return;
+        }
+      } catch (storageErr) {
+        console.warn('Failed to load local fallback orders:', storageErr);
       }
-    } catch (storageErr) {
-      console.warn('Failed to load local fallback orders:', storageErr);
-      setOrders(serverOrders);
-    } finally {
-      setIsLoading(false);
     }
+    setOrders(serverOrders);
+    setIsLoading(false);
   };
 
   useFocusEffect(
@@ -108,13 +109,29 @@ export default function OrdersScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row justify-between items-center shadow-xs">
         <View className="flex-row items-center gap-3">
-          <View style={{ width: 36 }} />
+          <Pressable 
+            onPress={() => {
+              triggerHaptic('light');
+              router.back();
+            }}
+            style={{
+              width: 32,
+              height: 32,
+              borderRadius: 16,
+              alignItems: 'center',
+              justifyContent: 'center',
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            }}
+          >
+            <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+          </Pressable>
           <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">My Orders</Text>
         </View>
-        <View style={{ width: 36 }} />
+        <View style={{ width: 32 }} />
       </View>
 
       <ScrollView className="flex-1 px-4 py-4" showsVerticalScrollIndicator={false}>

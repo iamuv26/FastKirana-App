@@ -1,12 +1,13 @@
 import { View, Text, Pressable, ScrollView, Dimensions, ActivityIndicator, Alert, Platform, Image as RNImage } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ShoppingBag, Share2, ShieldCheck, Heart, Truck, ChevronDown, ChevronRight, Search, Star, MapPin, Sun, Moon } from 'lucide-react-native';
+import { ArrowLeft, ShoppingBag, Share2, ShieldCheck, Heart, Truck, ChevronDown, ChevronRight, Search, Star, MapPin, Sun, Moon, Mic, Clock } from 'lucide-react-native';
 import { useCart } from '../../hooks/use-cart';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, getAppImageSource, formatHeaderAddress } from '../../lib/utils';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import { triggerHaptic } from '../../lib/haptic';
 import { playCartPop } from '../../lib/audio';
@@ -92,13 +93,66 @@ export default function ProductDetailScreen() {
     return relatedProductsData.filter((p: any) => p.id !== product.id && p.isAvailable !== false);
   }, [relatedProductsData, product.id]);
 
-  useEffect(() => {
+  // Generate variants list (uses JSON from DB if available, else auto-generates bulk options)
+  const variantsList = useMemo(() => {
     if (product && Array.isArray(product.variants) && product.variants.length > 0) {
-      setSelectedVariantId(product.variants[0].id);
+      return product.variants.map((v: any, idx: number) => ({
+        id: v.id || `v-${idx}`,
+        unit: v.unit || v.name || product.unit,
+        price: v.price || product.price,
+        mrp: v.mrp || product.mrp || v.price || product.price
+      }));
+    }
+    
+    if (!product || !product.id || product.id === '') return [];
+    
+    const baseUnit = product.unit || '1 unit';
+    const basePrice = product.price || 0;
+    const baseMrp = product.mrp || basePrice;
+    
+    // Parse unit number and label (e.g. "500 gms" -> 500, "gms")
+    const unitMatch = baseUnit.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
+    if (unitMatch) {
+      const val = parseFloat(unitMatch[1]);
+      const unitLabel = unitMatch[2] || '';
+      
+      const doubleVal = val * 2;
+      const doublePrice = basePrice * 2;
+      const doubleMrp = baseMrp * 2;
+      
+      return [
+        {
+          id: 'default',
+          unit: baseUnit,
+          price: basePrice,
+          mrp: baseMrp,
+        },
+        {
+          id: 'double',
+          unit: `${doubleVal} ${unitLabel}`.trim(),
+          price: doublePrice,
+          mrp: doubleMrp,
+        }
+      ];
+    }
+    
+    return [
+      {
+        id: 'default',
+        unit: baseUnit,
+        price: basePrice,
+        mrp: baseMrp,
+      }
+    ];
+  }, [product?.id, product?.variants, product?.price, product?.mrp, product?.unit]);
+
+  useEffect(() => {
+    if (variantsList.length > 0) {
+      setSelectedVariantId(variantsList[0].id);
     } else {
       setSelectedVariantId('default');
     }
-  }, [product]);
+  }, [product?.id, variantsList]);
 
   const handleNotify = () => {
     triggerHaptic('success');
@@ -106,7 +160,7 @@ export default function ProductDetailScreen() {
     Alert.alert("Stock Alert Set 🔔", `We will notify you as soon as ${product.name} is back in stock!`);
   };
 
-  const activeVariant = (Array.isArray(product.variants) ? product.variants : [])?.find((v: any) => v.id === selectedVariantId) || {
+  const activeVariant = variantsList.find((v: any) => v.id === selectedVariantId) || {
     price: product.price,
     mrp: product.mrp,
     unit: product.unit
@@ -120,7 +174,7 @@ export default function ProductDetailScreen() {
     imageUrl: product.imageUrl,
     mrp: activeVariant.mrp,
     price: activeVariant.price,
-    discount: activeVariant.mrp - activeVariant.price,
+    discount: (activeVariant.mrp ?? 0) - (activeVariant.price ?? 0),
     unit: activeVariant.unit,
     stock: product.stock
   };
@@ -135,11 +189,7 @@ export default function ProductDetailScreen() {
 
   const getProductImage = () => {
     if (product.imageUrl) {
-      if (product.imageUrl.startsWith('/')) {
-        const baseDomain = API_BASE_URL.replace('/api', '');
-        return { uri: `${baseDomain}${product.imageUrl}` };
-      }
-      return { uri: product.imageUrl };
+      return getAppImageSource(product.imageUrl);
     }
     
     // Fallback to Category slug matching
@@ -167,6 +217,7 @@ export default function ProductDetailScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* ── Web-Parity Header Redesign ── */}
       <View style={{
         paddingHorizontal: 16,
@@ -178,44 +229,40 @@ export default function ProductDetailScreen() {
         zIndex: 20
       }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, flex: 1 }}>
-            {/* Brand Identity (Logo + Name) */}
-            <Pressable 
-              onPress={() => {
-                triggerHaptic('light');
-                router.replace('/(tabs)');
-              }} 
-              style={({ pressed }) => [
-                { opacity: pressed ? 0.85 : 1 }
-              ]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                <Logo size={28} />
-                <View style={{ flexDirection: 'column', justifyContent: 'center' }}>
-                  <Text style={{ 
-                    fontSize: 13, 
-                    fontWeight: '900', 
-                    color: '#e20a22', 
-                    letterSpacing: -0.4,
-                  }}>
-                    Fast<Text style={{ color: isDarkMode ? '#ffffff' : '#1e293b' }}>Kirana</Text>
-                  </Text>
-                  <Text style={{ 
-                    fontSize: 7, 
-                    fontWeight: '900', 
-                    color: '#0c831f', 
-                    letterSpacing: 0.5,
-                    marginTop: -1,
-                    textTransform: 'uppercase'
-                  }}>
-                    Delivery App
-                  </Text>
-                </View>
+          {/* Left: Brand Logo & Text (Matched with Landing Page) */}
+          <Pressable 
+            onPress={() => {
+              triggerHaptic('light');
+              router.replace('/(tabs)');
+            }} 
+            style={({ pressed }) => [
+              { opacity: pressed ? 0.85 : 1 }
+            ]}
+          >
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                padding: 4, 
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={24} />
               </View>
-            </Pressable>
-          </View>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
+          </Pressable>
           
-          {/* Center: Premium Centered Location Selector */}
+          {/* Right: Location Capsule Picker (Matched with Landing Page) */}
           <Pressable 
             onPress={() => {
               triggerHaptic('light');
@@ -223,94 +270,67 @@ export default function ProductDetailScreen() {
             }} 
             style={({ pressed }) => [
               {
-                marginHorizontal: 8,
                 opacity: pressed ? 0.85 : 1,
+                maxWidth: '60%'
               }
             ]}
           >
-            <View 
-              style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                justifyContent: 'center',
-                gap: 4, 
-                backgroundColor: isDarkMode ? 'rgba(39,39,42,0.5)' : '#f1f5f9',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                borderRadius: 20,
-                paddingHorizontal: 8,
-                paddingVertical: 5,
-              }}
-            >
-              <MapPin size={10} color="#e20a22" />
-              <Text 
-                style={{ 
-                  fontSize: 9.5, 
-                  fontWeight: '800', 
-                  color: isDarkMode ? '#e4e4e7' : '#334155', 
-                  maxWidth: 90 
-                }} 
-                numberOfLines={1}
-              >
-                {selectedLocation || 'Select Location'}
-              </Text>
-              <ChevronDown size={8} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
-            </View>
-          </Pressable>
-
-          {/* Theme Toggle Button */}
-          <Pressable 
-            onPress={() => {
-              toggleTheme();
-              triggerHaptic('light');
-            }}
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: 16,
-              backgroundColor: isDarkMode ? '#1c1c1e' : '#f8fafc',
-              alignItems: 'center',
+            <View style={{ 
+              flexDirection: 'row', 
+              alignItems: 'center', 
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
+              borderWidth: 1, 
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
+              borderRadius: 20, 
+              paddingHorizontal: 8, 
+              paddingVertical: 5,
               justifyContent: 'center',
-              borderWidth: 1,
-              borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-              marginLeft: 8
-            }}
-          >
-            {isDarkMode ? (
-              <Sun size={14} color="#fbbf24" />
-            ) : (
-              <Moon size={14} color="#3b82f6" />
-            )}
+            }}>
+              <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+              <Text 
+                numberOfLines={1} 
+                style={{ 
+                  fontSize: 10, 
+                  fontWeight: 'bold', 
+                  color: isDarkMode ? '#fafafa' : '#0f172a',
+                  flexShrink: 1,
+                  marginRight: 3
+                }}
+              >
+                {formatHeaderAddress(selectedLocation)}
+              </Text>
+              <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
+            </View>
           </Pressable>
         </View>
 
-        {/* Row 2: Search input placeholder */}
+        {/* Row 2: Search input placeholder (Matched with Landing Page) */}
         <Pressable 
           onPress={() => {
             triggerHaptic('light');
             router.push('/search');
           }}
-          style={{
+          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+          style={Platform.OS === 'ios' ? {
             marginTop: 10,
-            flexDirection: 'row',
-            alignItems: 'center',
-            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-            borderWidth: 1,
-            borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
-            borderRadius: 24,
-            paddingHorizontal: 16,
-            paddingVertical: 10,
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.03,
-            shadowRadius: 2,
-            elevation: 1
-          }}
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 6,
+          } : Platform.OS === 'android' ? {
+            marginTop: 10,
+            elevation: 2,
+          } : { marginTop: 10 }}
         >
-          <Search size={16} color="#e20a22" style={{ marginRight: 8 }} />
-          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500' }}>
-            Search "{product.name || 'product'}"
+          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
+            Search for vegetables, dairy, snacks...
           </Text>
+          
+          {/* Vertical Divider */}
+          <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+          
+          <Mic size={16} color="#16a34a" />
         </Pressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
@@ -416,14 +436,14 @@ export default function ProductDetailScreen() {
             </Text>
             <View className="w-12 h-1 bg-[#e20a22] rounded-full mt-2.5 mb-4" />
 
-            {/* Select Size / Option Row */}
-            {Array.isArray(product.variants) && product.variants.length > 0 && (
-              <View className="mb-5">
-                <Text className="text-[10px] font-black text-slate-400 dark:text-zinc-400 mb-2.5 uppercase tracking-wider">
-                  Select Size / Option
+            {/* Select Size / Option Row (Styled like Blinkit/Zepto) */}
+            {variantsList.length > 0 && (
+              <View className="mb-6">
+                <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-sm mb-3">
+                  Select Size
                 </Text>
-                <View className="flex-row flex-wrap gap-2">
-                  {product.variants.map((v: any) => {
+                <View className="flex-row flex-wrap gap-3">
+                  {variantsList.map((v: any) => {
                     const isSelected = selectedVariantId === v.id;
                     return (
                       <Pressable
@@ -432,18 +452,30 @@ export default function ProductDetailScreen() {
                           triggerHaptic('light');
                           setSelectedVariantId(v.id);
                         }}
-                        className={`px-4 py-2.5 rounded-xl border-1.5 active:scale-95 transition-all ${
+                        style={({ pressed }) => ({
+                          transform: [{ scale: pressed ? 0.96 : 1 }]
+                        })}
+                        className={`w-28 py-3.5 rounded-2xl border-2 items-center justify-center ${
                           isSelected
-                            ? 'bg-rose-50/60 border-[#e20a22] dark:bg-rose-950/20 dark:border-rose-600'
+                            ? 'bg-emerald-50/20 border-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-500'
                             : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'
                         }`}
                       >
+                        {/* Variant Unit */}
                         <Text
-                          className={`text-[11px] font-black ${
-                            isSelected ? 'text-[#e20a22] dark:text-rose-400' : 'text-slate-700 dark:text-zinc-300'
+                          className={`text-xs font-black text-center ${
+                            isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-750 dark:text-zinc-300'
                           }`}
                         >
-                          {v.name || v.unit}
+                          {v.unit}
+                        </Text>
+                        {/* Variant Price */}
+                        <Text
+                          className={`text-xs font-bold text-center mt-1 ${
+                            isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-400'
+                          }`}
+                        >
+                          {formatPrice(v.price)}
                         </Text>
                       </Pressable>
                     );
@@ -471,33 +503,12 @@ export default function ProductDetailScreen() {
               )}
             </View>
 
-            {/* Delivery Info Capsule */}
-            <View className="flex-row items-center gap-2 bg-slate-50/50 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-900 p-3 rounded-xl mb-3">
-              <Text style={{ fontSize: 13 }}>⚡</Text>
-              <Text className="text-[10.5px] font-black text-slate-700 dark:text-zinc-300">
-                Lightning-fast doorstep delivery from our nearest darkstore
-              </Text>
-            </View>
-
-            {/* Fresh Verified Card */}
-            <View className="bg-emerald-50/20 dark:bg-emerald-950/5 border border-emerald-100/50 dark:border-emerald-900/20 p-3.5 rounded-xl mb-5">
-              <View className="flex-row items-center gap-1.5 mb-1">
-                <ShieldCheck size={14} color="#10b981" />
-                <Text className="text-emerald-700 dark:text-emerald-400 text-[11px] font-black">
-                  FastKirana DarkStore Fresh Verified
-                </Text>
-              </View>
-              <Text className="text-[9.5px] text-emerald-600/90 dark:text-emerald-500/80 leading-4 font-medium">
-                Sourced directly, sorted in hygienic, controlled environment, and packed under strict guidelines. Freshness guaranteed with zero small shelf-store.
-              </Text>
-            </View>
-
             {/* Add to Cart Actions */}
             {isStoreClosed ? (
               <View className="bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 py-3.5 rounded-xl items-center justify-center mb-6">
                 <Text className="font-black text-xs tracking-wider text-slate-400 dark:text-zinc-500 uppercase">STORE CLOSED</Text>
               </View>
-            ) : (product.stock <= 0 || product.isAvailable === false) ? (
+            ) : ((product.stock ?? 0) <= 0 || product.isAvailable === false) ? (
               <Pressable
                 onPress={() => {
                   if (!notified) handleNotify();
@@ -521,7 +532,10 @@ export default function ProductDetailScreen() {
                   playCartPop();
                   addItem(cartProduct);
                 }}
-                className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-xl items-center justify-center flex-row gap-2 active:scale-[0.98] transition-transform mb-6"
+                style={({ pressed }) => ({
+                  transform: [{ scale: pressed ? 0.96 : 1 }]
+                })}
+                className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-xl items-center justify-center flex-row gap-2 transition-transform mb-6"
               >
                 <Text className="text-white font-black text-sm uppercase tracking-wider">Add to Cart</Text>
                 <ShoppingBag size={15} color="#ffffff" strokeWidth={3} />
@@ -534,6 +548,7 @@ export default function ProductDetailScreen() {
                     playCartPop();
                     updateQuantity(cartProduct.id, cartProduct.name, quantity - 1);
                   }}
+                  style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
                   className="flex-1 py-3 items-center"
                 >
                   <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">-</Text>
@@ -545,12 +560,42 @@ export default function ProductDetailScreen() {
                     playCartPop();
                     updateQuantity(cartProduct.id, cartProduct.name, quantity + 1);
                   }}
+                  style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
                   className="flex-1 py-3 items-center"
                 >
                   <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">+</Text>
                 </Pressable>
               </View>
             )}
+
+            {/* Delivery Info Capsule */}
+            <View className="flex-row items-center gap-2 bg-slate-50/50 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-900 p-3 rounded-xl mb-3">
+              <Text style={{ fontSize: 13 }}>⚡</Text>
+              <Text className="text-[10.5px] font-black text-slate-700 dark:text-zinc-300">
+                Lightning-fast doorstep delivery from our nearest darkstore
+              </Text>
+            </View>
+
+            {/* Fresh Verified Card */}
+            <View className="bg-emerald-50/20 dark:bg-emerald-950/5 border border-emerald-100/50 dark:border-emerald-900/20 p-3.5 rounded-xl mb-5">
+              <View className="flex-row items-center gap-1.5 mb-1">
+                <ShieldCheck size={14} color="#10b981" />
+                <Text className="text-emerald-700 dark:text-emerald-400 text-[11px] font-black">
+                  FastKirana DarkStore Fresh Verified
+                </Text>
+              </View>
+              <Text className="text-[9.5px] text-emerald-600/90 dark:text-emerald-500/80 leading-4 font-medium">
+                Sourced directly, sorted in hygienic, controlled environment, and packed under strict guidelines. Freshness guaranteed with zero small shelf-store.
+              </Text>
+            </View>
+
+            {/* Delivery in 15-20 min text */}
+            <View className="flex-row items-center gap-1.5 mb-6 ml-1">
+              <Clock size={14} color="#16a34a" />
+              <Text className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
+                Delivery in 15-20 min
+              </Text>
+            </View>
 
             {/* Collapsible Accordions Details lists */}
             <View className="border-t border-slate-100 dark:border-zinc-900 pt-3">

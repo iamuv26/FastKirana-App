@@ -1,13 +1,15 @@
-import { View, Text, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Switch, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Switch, Platform, StyleSheet, BackHandler } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
-import { useLocalSearchParams, router } from 'expo-router';
-import { ArrowLeft, MapPin, Trash2, Plus, Check, Navigation, Compass, Sparkles } from 'lucide-react-native';
+import { StatusBar } from 'expo-status-bar';
+import { useState, useEffect, useCallback } from 'react';
+import { router, useFocusEffect } from 'expo-router';
+import { ArrowLeft, MapPin, Trash2, Plus, Check, Navigation, Compass, Home, Briefcase } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
-import { formatPrice } from '../lib/utils';
+import { api } from '../lib/api-client';
+
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
 import { useTheme } from './context/ThemeContext';
@@ -18,8 +20,8 @@ let Marker: any;
 if (Platform.OS !== 'web') {
   try {
     const Maps = require('react-native-maps');
-    MapView = Maps.default;
-    Marker = Maps.Marker;
+    MapView = Maps.default || Maps;
+    Marker = Maps.Marker || require('react-native-maps').Marker;
   } catch (e) {
     console.warn('Failed to load react-native-maps in addresses.tsx:', e);
   }
@@ -39,7 +41,7 @@ interface Address {
 
 export default function AddressesScreen() {
   const { user } = useAuthStore();
-  const { selectedLocation, userCoords, storeLat, storeLng, setSelectedLocation, setUserCoords } = useUIStore();
+  const { selectedLocation, userCoords, storeLat, storeLng } = useUIStore();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const [addresses, setAddresses] = useState<Address[]>([]);
@@ -57,17 +59,48 @@ export default function AddressesScreen() {
   const [gpsLoading, setGpsLoading] = useState(false);
 
   useEffect(() => {
-    if (selectedLocation && selectedLocation !== 'Select Location' && !fullAddress) {
+    if (showAddForm && selectedLocation && selectedLocation !== 'Select Location') {
       setFullAddress(selectedLocation);
+      
+      // Auto-detect pincode (6 digits)
+      const pinMatch = selectedLocation.match(/\b\d{6}\b/);
+      if (pinMatch) {
+        setPincode(pinMatch[0]);
+      }
+      
+      // Auto-detect city
+      const lowerLoc = selectedLocation.toLowerCase();
+      if (lowerLoc.includes('ghatampur')) {
+        setCity('Ghatampur');
+      } else if (lowerLoc.includes('kanpur')) {
+        setCity('Kanpur');
+      } else if (lowerLoc.includes('bangalore')) {
+        setCity('Bangalore');
+      }
     }
-  }, [selectedLocation]);
+  }, [showAddForm, selectedLocation]);
+
+  // BackHandler to handle Android physical back button when form is open
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      const onBackPress = () => {
+        if (showAddForm) {
+          setShowAddForm(false);
+          return true; // handled
+        }
+        return false; // propagate to system
+      };
+      const subscription = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+      return () => subscription.remove();
+    }
+  }, [showAddForm]);
 
   const handleDetectLocation = async () => {
     setGpsLoading(true);
     triggerHaptic('light');
 
     const applyCoordsAndReverseGeocode = async (latitude: number, longitude: number) => {
-      setUserCoords({ lat: latitude, lng: longitude });
+      useUIStore.setState({ userCoords: { lat: latitude, lng: longitude } });
       try {
         if (Platform.OS === 'web') {
           // Web OpenStreetMap Reverse Geocoding
@@ -84,7 +117,7 @@ export default function AddressesScreen() {
             setFullAddress(combined || data.display_name?.split(',').slice(0, 3).join(',') || 'Ghatampur Market');
             setCity(resolvedCity);
             setPincode(resolvedPin);
-            setSelectedLocation(combined || 'Current Location');
+            useUIStore.setState({ selectedLocation: combined || 'Current Location' });
           } else {
             setFullAddress('Ghatampur Market, Kanpur');
           }
@@ -102,7 +135,7 @@ export default function AddressesScreen() {
             if (resolvedPin) setPincode(resolvedPin);
             
             const resolvedAddress = [name, areaName, resolvedCity, resolvedPin].filter(Boolean).join(', ');
-            setSelectedLocation(resolvedAddress || 'Current Location');
+            useUIStore.setState({ selectedLocation: resolvedAddress || 'Current Location' });
           }
         }
         triggerHaptic('success');
@@ -164,84 +197,64 @@ export default function AddressesScreen() {
       'x-user-phone': user.phone || '',
     };
   };
+
   const loadAddresses = async () => {
     setIsLoading(true);
-    if (user?.id?.startsWith('mock-')) {
-      try {
-        const { mmkvStorage } = require('../lib/storage');
-        const localData = mmkvStorage.getItem(`local_addresses_${user.id}`);
-        if (localData) {
-          setAddresses(JSON.parse(localData));
-        } else {
-          setAddresses([]);
+    let localList: Address[] = [];
+    try {
+      const { mmkvStorage } = require('../lib/storage');
+      const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
+      if (localData) {
+        const parsed = JSON.parse(localData);
+        if (Array.isArray(parsed)) {
+          localList = parsed;
         }
-      } catch (e) {
-        setAddresses([]);
       }
+    } catch (e) {
+      console.warn('Failed to load local addresses:', e);
+    }
+
+    if (user?.id?.startsWith('mock-')) {
+      setAddresses(localList.filter(addr => addr && addr.id));
       setIsLoading(false);
       return;
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses`, {
-        method: 'GET',
-        headers: getAuthHeaders(),
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setAddresses(data);
-      } else {
-        const { mmkvStorage } = require('../lib/storage');
-        const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-        if (localData) {
-          setAddresses(JSON.parse(localData));
-        } else {
-          throw new Error(data.error || 'Failed to load addresses');
-        }
+      const backendList = await api.get('/addresses');
+      const mergedMap = new Map<string, Address>();
+      
+      // Load local ones first, then overwrite/append backend ones
+      if (Array.isArray(localList)) {
+        localList.forEach(addr => {
+          if (addr && addr.id) mergedMap.set(addr.id, addr);
+        });
       }
+      
+      if (Array.isArray(backendList)) {
+        backendList.forEach((addr: Address) => {
+          if (addr && addr.id) mergedMap.set(addr.id, addr);
+        });
+      }
+      
+      const mergedList = Array.from(mergedMap.values());
+      setAddresses(mergedList.filter(addr => addr && addr.id));
     } catch (err: any) {
-      toast.error(err.message || 'Error fetching addresses');
+      console.warn('Error loading addresses, showing local only:', err);
+      setAddresses(localList.filter(addr => addr && addr.id));
     } finally {
       setIsLoading(false);
     }
   };
 
-  useEffect(() => {
-    loadAddresses();
-  }, []);
+  // Reload addresses every time screen comes into focus
+  useFocusEffect(
+    useCallback(() => {
+      loadAddresses();
+    }, [user])
+  );
 
-  const handleAddAddress = async () => {
-    const cleanAddress = fullAddress.trim();
-    const cleanPhone = phone.replace(/\D/g, '');
-
-    if (!cleanAddress) {
-      Alert.alert('Address Required', 'Please enter your complete delivery address.');
-      return;
-    }
-
-    if (!cleanPhone || cleanPhone.length !== 10) {
-      Alert.alert('Mobile Number Required', 'Please enter a valid 10-digit contact mobile number.');
-      return;
-    }
-
-    if (!label || !city || !pincode) {
-      Alert.alert('Missing Info', 'Please fill in all address details.');
-      return;
-    }
-
-    const cleanPin = pincode.trim();
-    const cleanCity = city.trim().toLowerCase();
-
-    if (cleanPin !== '209206' && cleanPin !== '560034') {
-      Alert.alert('Out of Zone', 'FastKirana only delivers to Ghatampur area (Pincode: 209206)');
-      return;
-    }
-
-    if (!cleanCity.includes('ghatampur') && !cleanCity.includes('kanpur') && !cleanCity.includes('bangalore')) {
-      Alert.alert('Out of Zone', 'FastKirana delivery is currently only available in Ghatampur / Kanpur');
-      return;
-    }
-
+  const saveAddressData = async (cleanPin: string, cleanCity: string, cleanAddress: string, cleanPhone: string) => {
     setIsSaving(true);
     triggerHaptic('light');
 
@@ -257,10 +270,12 @@ export default function AddressesScreen() {
           houseNo: '-',
           street: '-',
           area: cleanAddress,
-          city,
+          city: cleanCity,
           pincode: cleanPin,
           phone: cleanPhone,
           isDefault: list.length === 0 ? true : isDefault,
+          lat: userCoords?.lat || storeLat,
+          lng: userCoords?.lng || storeLng,
         };
         const updatedList = isDefault ? list.map((a: any) => ({ ...a, isDefault: false })).concat(newAddr) : list.concat(newAddr);
         mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
@@ -273,7 +288,11 @@ export default function AddressesScreen() {
         setIsDefault(false);
         setAddresses(updatedList);
         setTimeout(() => {
-          router.back();
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/account');
+          }
         }, 600);
       } catch (e) {
         Alert.alert('Error', 'Failed to save address locally');
@@ -287,12 +306,26 @@ export default function AddressesScreen() {
     let lng: number | null = userCoords?.lng || null;
     if (!lat || !lng) {
       try {
-        const geoPromise = Location.geocodeAsync(`${cleanAddress}, ${city} ${cleanPin}`);
+        const geoPromise = Location.geocodeAsync(`${cleanAddress}, ${cleanCity} ${cleanPin}`);
         const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
         const geoResults = await Promise.race([geoPromise, timeoutPromise]);
         if (geoResults && geoResults.length > 0) {
           lat = geoResults[0].latitude;
           lng = geoResults[0].longitude;
+        } else {
+          // Fallback to backend geocoding route
+          const q = `${cleanAddress}, ${cleanCity} ${cleanPin}`;
+          console.log('Local geocoding returned no results, fetching from backend geocoder:', q);
+          const response = await api.get(`/geocode?address=${encodeURIComponent(q)}`);
+          const results = response?.data?.results || response?.results;
+          if (results && results.length > 0) {
+            const loc = results[0]?.geometry?.location;
+            if (loc && loc.lat && loc.lng) {
+              lat = loc.lat;
+              lng = loc.lng;
+              console.log('Backend geocoder resolved coords:', lat, lng);
+            }
+          }
         }
       } catch (e) {
         console.warn('Geocoding failed for address:', e);
@@ -300,73 +333,36 @@ export default function AddressesScreen() {
     }
 
     try {
-      const res = await fetch(`${API_BASE_URL}/addresses`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          label,
-          houseNo: '-',
-          street: '-',
-          area: cleanAddress,
-          city,
-          pincode: cleanPin,
-          phone: cleanPhone,
-          isDefault,
-          lat,
-          lng,
-        }),
+      const data = await api.post('/addresses', {
+        label,
+        houseNo: '-',
+        street: '-',
+        area: cleanAddress,
+        city: cleanCity,
+        pincode: cleanPin,
+        phone: cleanPhone,
+        isDefault,
+        lat,
+        lng,
       });
 
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Address saved!');
-        setShowAddForm(false);
-        setLabel('Home');
-        setFullAddress('');
-        setCity('Ghatampur');
-        setPincode('209206');
-        setIsDefault(false);
-        loadAddresses();
-        setTimeout(() => {
+      toast.success('Address saved!');
+      setShowAddForm(false);
+      setLabel('Home');
+      setFullAddress('');
+      setCity('Ghatampur');
+      setPincode('209206');
+      setIsDefault(false);
+      loadAddresses();
+      setTimeout(() => {
+        if (router.canGoBack()) {
           router.back();
-        }, 600);
-      } else {
-        if (res.status === 401 || res.status === 403) {
-          const { mmkvStorage } = require('../lib/storage');
-          const localKey = `local_addresses_${user?.id || 'guest'}`;
-          const localData = mmkvStorage.getItem(localKey);
-          const list = localData ? JSON.parse(localData) : [];
-          const newAddr = {
-            id: `local-addr-${Date.now()}`,
-            label,
-            houseNo: '-',
-            street: '-',
-            area: cleanAddress,
-            city,
-            pincode: cleanPin,
-            phone: cleanPhone,
-            isDefault: list.length === 0 ? true : isDefault,
-          };
-          const updatedList = isDefault ? list.map((a: any) => ({ ...a, isDefault: false })).concat(newAddr) : list.concat(newAddr);
-          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-          
-          toast.success('Address saved locally (Demo mode)');
-          setShowAddForm(false);
-          setLabel('Home');
-          setFullAddress('');
-          setCity('Ghatampur');
-          setPincode('209206');
-          setIsDefault(false);
-          setAddresses(updatedList);
-          setTimeout(() => {
-            router.back();
-          }, 600);
         } else {
-          throw new Error(data.error || 'Failed to save address');
+          router.replace('/(tabs)/account');
         }
-      }
+      }, 600);
     } catch (err: any) {
-      console.warn('Network error saving address, falling back to local MMKV:', err);
+      console.warn('Error saving address, falling back to local MMKV:', err);
       try {
         const { mmkvStorage } = require('../lib/storage');
         const localKey = `local_addresses_${user?.id || 'guest'}`;
@@ -378,10 +374,12 @@ export default function AddressesScreen() {
           houseNo: '-',
           street: '-',
           area: cleanAddress,
-          city,
+          city: cleanCity,
           pincode: cleanPin,
           phone: cleanPhone,
           isDefault: list.length === 0 ? true : isDefault,
+          lat: lat || storeLat,
+          lng: lng || storeLng,
         };
         const updatedList = isDefault ? list.map((a: any) => ({ ...a, isDefault: false })).concat(newAddr) : list.concat(newAddr);
         mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
@@ -394,12 +392,68 @@ export default function AddressesScreen() {
         setPincode('209206');
         setIsDefault(false);
         setAddresses(updatedList);
+        setTimeout(() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/account');
+          }
+        }, 600);
       } catch (storageErr) {
         Alert.alert('Error', err.message || 'Failed to create address.');
       }
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleAddAddress = async () => {
+    const cleanAddress = fullAddress.trim();
+    let cleanPhone = phone.replace(/\D/g, '');
+    if (cleanPhone.length > 10 && cleanPhone.startsWith('91')) {
+      cleanPhone = cleanPhone.slice(-10);
+    }
+
+    if (!cleanAddress) {
+      triggerHaptic('warning');
+      Alert.alert('Address Required', 'Please enter your complete delivery address.');
+      return;
+    }
+
+    if (!cleanPhone || cleanPhone.length !== 10) {
+      triggerHaptic('warning');
+      Alert.alert('Mobile Number Required', 'Please enter a valid 10-digit contact mobile number.');
+      return;
+    }
+
+    if (!label || !city || !pincode) {
+      triggerHaptic('warning');
+      Alert.alert('Missing Info', 'Please fill in all address details.');
+      return;
+    }
+
+    const cleanPin = pincode.trim();
+    const cleanCity = city.trim().toLowerCase();
+
+    const isPinValid = cleanPin === '209206' || cleanPin === '560034';
+    const isCityValid = cleanCity.includes('ghatampur') || cleanCity.includes('kanpur') || cleanCity.includes('bangalore');
+
+    if (!isPinValid || !isCityValid) {
+      Alert.alert(
+        'Out of Delivery Zone 📍',
+        'FastKirana delivery is currently only active in Ghatampur / Kanpur. Would you like to save this address anyway for testing?',
+        [
+          { text: 'Cancel', style: 'cancel' },
+          { 
+            text: 'Save Anyway', 
+            onPress: () => saveAddressData(cleanPin, city.trim(), cleanAddress, cleanPhone) 
+          }
+        ]
+      );
+      return;
+    }
+
+    await saveAddressData(cleanPin, city.trim(), cleanAddress, cleanPhone);
   };
 
   const handleDeleteAddress = (id: string) => {
@@ -433,31 +487,11 @@ export default function AddressesScreen() {
             }
 
             try {
-              const res = await fetch(`${API_BASE_URL}/addresses`, {
-                method: 'DELETE',
-                headers: getAuthHeaders(),
+              await api.delete('/addresses', {
                 body: JSON.stringify({ id }),
               });
-              const data = await res.json();
-              if (res.ok) {
-                toast.success('Address deleted');
-                loadAddresses();
-              } else {
-                if (res.status === 401 || res.status === 403) {
-                  const { mmkvStorage } = require('../lib/storage');
-                  const localKey = `local_addresses_${user?.id || 'guest'}`;
-                  const localData = mmkvStorage.getItem(localKey);
-                  if (localData) {
-                    const list = JSON.parse(localData);
-                    const updatedList = list.filter((a: any) => a.id !== id);
-                    mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-                    setAddresses(updatedList);
-                    toast.success('Address deleted locally (Demo)');
-                  }
-                } else {
-                  throw new Error(data.error || 'Failed to delete address');
-                }
-              }
+              toast.success('Address deleted');
+              loadAddresses();
             } catch (err: any) {
               console.warn('Error deleting address from backend, trying local:', err);
               try {
@@ -485,19 +519,30 @@ export default function AddressesScreen() {
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row justify-between items-center shadow-xs">
         <View className="flex-row items-center gap-2.5">
           <Pressable 
             onPress={() => {
               triggerHaptic('light');
-              router.back();
+              if (showAddForm) {
+                setShowAddForm(false);
+              } else {
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/(tabs)/account');
+                }
+              }
             }}
             className="w-8 h-8 rounded-full items-center justify-center active:bg-slate-100 dark:active:bg-zinc-800"
           >
             <ArrowLeft size={18} color={isDarkMode ? '#e4e4e7' : '#3f3f46'} />
           </Pressable>
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">My Addresses</Text>
+          <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">
+            {showAddForm ? 'Add New Address' : 'My Addresses'}
+          </Text>
         </View>
 
         {!showAddForm && (
@@ -523,32 +568,35 @@ export default function AddressesScreen() {
             {/* Embedded Google Maps Location Picker Section */}
             <View className="bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/80 dark:border-zinc-700/80 rounded-2xl overflow-hidden mb-2 shadow-xs">
               {/* Map Preview Container */}
-              <View className="h-36 w-full relative bg-slate-200 dark:bg-zinc-800 items-center justify-center overflow-hidden">
+              <View className="h-36 w-full relative bg-slate-100 dark:bg-zinc-850 items-center justify-center overflow-hidden">
                 {Platform.OS !== 'web' && MapView ? (
                   <MapView
                     pointerEvents="none"
-                    style={{ width: '100%', height: '100%' }}
+                    style={StyleSheet.absoluteFill}
                     region={{
-                      latitude: userCoords?.lat || storeLat,
-                      longitude: userCoords?.lng || storeLng,
-                      latitudeDelta: 0.012,
-                      longitudeDelta: 0.012,
+                      latitude: userCoords?.lat || storeLat || 26.1534185,
+                      longitude: userCoords?.lng || storeLng || 80.1714024,
+                      latitudeDelta: 0.005,
+                      longitudeDelta: 0.005,
                     }}
                   >
-                    <Marker 
+                    <Marker
                       coordinate={{
-                        latitude: userCoords?.lat || storeLat,
-                        longitude: userCoords?.lng || storeLng,
-                      }} 
+                        latitude: userCoords?.lat || storeLat || 26.1534185,
+                        longitude: userCoords?.lng || storeLng || 80.1714024,
+                      }}
                     />
                   </MapView>
                 ) : (
-                  <View className="w-full h-full bg-emerald-950/20 items-center justify-center p-4">
-                    <View className="w-12 h-12 rounded-full bg-emerald-500/20 items-center justify-center mb-1">
-                      <MapPin size={26} color="#10b981" />
+                  <View className="w-full h-full bg-slate-150 dark:bg-zinc-800/40 items-center justify-center p-6 gap-2">
+                    <View className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 items-center justify-center">
+                      <MapPin size={22} color="#e20a22" />
                     </View>
-                    <Text className="text-emerald-700 dark:text-emerald-400 font-black text-xs text-center">
-                      Google Maps Pinpoint Picker
+                    <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs text-center">
+                      Selected Location Coordinates
+                    </Text>
+                    <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold text-center">
+                      Lat: {(userCoords?.lat || storeLat || 26.1534185).toFixed(6)} | Lng: {(userCoords?.lng || storeLng || 80.1714024).toFixed(6)}
                     </Text>
                   </View>
                 )}
@@ -569,7 +617,7 @@ export default function AddressesScreen() {
                       {selectedLocation && selectedLocation !== 'Select Location' ? selectedLocation : 'Locate pin to auto-fill address'}
                     </Text>
                     <Text className="text-slate-400 dark:text-zinc-400 text-[9.5px] font-semibold mt-0.5">
-                      Lat: {(userCoords?.lat || storeLat).toFixed(4)}, Lng: {(userCoords?.lng || storeLng).toFixed(4)}
+                      Lat: {(userCoords?.lat || storeLat || 26.1534185).toFixed(4)}, Lng: {(userCoords?.lng || storeLng || 80.1714024).toFixed(4)}
                     </Text>
                   </View>
                 </View>
@@ -739,38 +787,65 @@ export default function AddressesScreen() {
         ) : (
           /* Addresses List */
           <View className="gap-3 mb-10">
-            {addresses.map((address) => (
-              <View key={address.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 flex-row justify-between items-center shadow-xs">
-                <View className="flex-1 pr-4">
-                  <View className="flex-row items-center gap-2 mb-2">
-                    <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm">{address.label}</Text>
-                    {address.isDefault && (
-                      <View className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900/30 px-2 py-0.5 rounded-full flex-row items-center gap-0.5">
-                        <Check size={8} color="#047857" strokeWidth={3} />
-                        <Text className="text-emerald-700 dark:text-emerald-400 font-black text-[7px] uppercase tracking-wider">Default</Text>
-                      </View>
-                    )}
-                  </View>
-                  <Text numberOfLines={1} className="text-slate-550 dark:text-zinc-350 text-xs font-semibold leading-relaxed">
-                    {[
-                      address.houseNo && address.houseNo !== '-' ? `House No ${address.houseNo}` : '',
-                      address.street && address.street !== '-' ? address.street : '',
-                      address.area && address.area !== '-' ? address.area : '',
-                      address.city,
-                      address.pincode ? `- ${address.pincode}` : ''
-                    ].filter(Boolean).join(', ')}
-                  </Text>
-                  <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1">Contact: {address.phone}</Text>
-                </View>
+            {addresses.filter(addr => addr && addr.id).map((address) => {
+              const labelLower = (address.label || '').toLowerCase();
+              let AddressIcon = MapPin;
+              let iconBg = isDarkMode ? 'rgba(113, 113, 122, 0.15)' : 'rgba(113, 113, 122, 0.08)';
+              let iconColor = isDarkMode ? '#a1a1aa' : '#71717a';
+              
+              if (labelLower.includes('home')) {
+                AddressIcon = Home;
+                iconBg = isDarkMode ? 'rgba(226, 10, 34, 0.15)' : 'rgba(226, 10, 34, 0.08)';
+                iconColor = '#e20a22';
+              } else if (labelLower.includes('work') || labelLower.includes('office')) {
+                AddressIcon = Briefcase;
+                iconBg = isDarkMode ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)';
+                iconColor = '#2563eb';
+              }
 
-                <Pressable
-                  onPress={() => handleDeleteAddress(address.id)}
-                  className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 items-center justify-center active:bg-rose-50 dark:active:bg-rose-950/20"
-                >
-                  <Trash2 size={16} color="#ef4444" />
-                </Pressable>
-              </View>
-            ))}
+              return (
+                <View key={address.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 flex-row items-center shadow-xs">
+                  {/* Left Icon */}
+                  <View 
+                    style={{ backgroundColor: iconBg }} 
+                    className="w-10 h-10 rounded-xl items-center justify-center mr-3"
+                  >
+                    <AddressIcon size={18} color={iconColor} />
+                  </View>
+
+                  {/* Details */}
+                  <View className="flex-1 pr-2">
+                    <View className="flex-row items-center gap-2 mb-1">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-sm">{address.label}</Text>
+                      {address.isDefault && (
+                        <View className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900/30 px-2 py-0.5 rounded-full flex-row items-center gap-0.5">
+                          <Check size={8} color="#047857" strokeWidth={3} />
+                          <Text className="text-emerald-700 dark:text-emerald-400 font-black text-[7px] uppercase tracking-wider">Default</Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text className="text-slate-600 dark:text-zinc-350 text-xs font-semibold leading-relaxed">
+                      {[
+                        address.houseNo && address.houseNo !== '-' ? `House No ${address.houseNo}` : '',
+                        address.street && address.street !== '-' ? address.street : '',
+                        address.area && address.area !== '-' ? address.area : '',
+                        address.city,
+                        address.pincode ? `- ${address.pincode}` : ''
+                      ].filter(Boolean).join(', ')}
+                    </Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1 font-semibold">Contact: {address.phone}</Text>
+                  </View>
+
+                  {/* Delete Button */}
+                  <Pressable
+                    onPress={() => handleDeleteAddress(address.id)}
+                    className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 items-center justify-center active:bg-rose-50 dark:active:bg-rose-950/20"
+                  >
+                    <Trash2 size={15} color="#ef4444" />
+                  </Pressable>
+                </View>
+              );
+            })}
           </View>
         )}
       </ScrollView>
