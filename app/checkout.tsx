@@ -17,6 +17,7 @@ import { toast } from '../lib/toast';
 import { triggerHaptic } from '../lib/haptic';
 import { playSuccessChime } from '../lib/audio';
 import { useTheme } from './context/ThemeContext';
+import Confetti from '../components/shared/Confetti';
 
 interface Address {
   id: string;
@@ -825,6 +826,7 @@ export default function CheckoutScreen() {
       {/* Success Overlay Sheet */}
       {showSuccessOverlay && (
         <View className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 z-50 items-center justify-center px-6">
+          <Confetti count={80} />
           <View className="items-center">
             {/* Animated Checkmark Circle with Glow */}
             <View style={{ 

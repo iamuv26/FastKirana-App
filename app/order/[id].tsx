@@ -254,6 +254,73 @@ function TimelineDot({ completed, isActive, stepIndex }: { completed: boolean; i
   );
 }
 
+function RiderPulseMarker({ latitude, longitude }: { latitude: number; longitude: number }) {
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.6);
+
+  useEffect(() => {
+    scale.value = withRepeat(
+      withTiming(2.4, { duration: 1800 }),
+      -1,
+      false
+    );
+    opacity.value = withRepeat(
+      withTiming(0, { duration: 1800 }),
+      -1,
+      false
+    );
+  }, []);
+
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
+
+  if (!Marker) return null;
+
+  return (
+    <Marker
+      coordinate={{ latitude, longitude }}
+      title="Rider Partner"
+      description="Carrying your order"
+    >
+      <View style={{ alignItems: 'center', justifyContent: 'center', width: 60, height: 60 }}>
+        <Animated.View 
+          style={[
+            {
+              position: 'absolute',
+              width: 28,
+              height: 28,
+              borderRadius: 14,
+              backgroundColor: 'rgba(226, 10, 34, 0.25)',
+              borderWidth: 1.5,
+              borderColor: '#e20a22',
+            },
+            pulseStyle
+          ]}
+        />
+        <View style={{
+          width: 34,
+          height: 34,
+          borderRadius: 17,
+          backgroundColor: '#ffffff',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 1.5,
+          borderColor: '#e20a22',
+          elevation: 4,
+          shadowColor: '#e20a22',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.25,
+          shadowRadius: 4,
+        }}>
+          <Text style={{ fontSize: 18 }}>🛵</Text>
+        </View>
+      </View>
+    </Marker>
+  );
+}
+
 export default function OrderTrackingScreen() {
   const { id, celebrate } = useLocalSearchParams<{ id: string; celebrate?: string }>();
   const { user } = useAuthStore();
@@ -700,15 +767,8 @@ export default function OrderTrackingScreen() {
                   longitudeDelta: Math.abs(order.deliveryLng - (order.address?.lng || 80.1724)) * 1.5 || 0.015,
                 }}
               >
-                {/* Rider Marker */}
-                <Marker
-                  coordinate={{ latitude: order.deliveryLat, longitude: order.deliveryLng }}
-                  title="Rider Partner"
-                  description="Carrying your groceries"
-                  tracksViewChanges={false}
-                >
-                  <Text style={{ fontSize: 24 }}>🛵</Text>
-                </Marker>
+                {/* Rider Marker with Pulse Ring */}
+                <RiderPulseMarker latitude={order.deliveryLat} longitude={order.deliveryLng} />
 
                 {/* Destination Marker */}
                 {order.address?.lat && order.address?.lng && (

@@ -1117,12 +1117,14 @@ export default function HomeScreen() {
 
       {/* Header Container */}
       <Animated.View style={[headerAnimatedStyle, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
-        <View
+        <BlurView
+          intensity={isDarkMode ? 45 : 65}
+          tint={isDarkMode ? 'dark' : 'light'}
           style={{
             paddingHorizontal: 16,
             paddingTop: insets.top > 0 ? insets.top + 5 : 8,
             paddingBottom: 8,
-            backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.72)' : 'rgba(255, 255, 255, 0.75)',
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
@@ -1305,7 +1307,7 @@ export default function HomeScreen() {
             
             <Mic size={16} color="#16a34a" />
           </Pressable>
-        </View>
+        </BlurView>
         {/* Glassmorphic border underline line */}
         <LinearGradient
           colors={isDarkMode 
