@@ -254,10 +254,11 @@ export default function LocationPickerScreen() {
       const store = await response.json();
       
       // Save details to stores
-      const rawStoreId = store ? store.id : 'ghatampur';
-      const resolvedStoreId = (!rawStoreId || rawStoreId === 'default-swaroop-nagar') ? 'ghatampur' : rawStoreId;
-      const rawStoreName = store ? store.name : 'Ghatampur Hub';
-      const resolvedStoreName = (!rawStoreName || rawStoreName === 'Swaroop Nagar Hub') ? 'Ghatampur Hub' : rawStoreName;
+      // Save details to stores
+      const rawStoreId = store ? store.id : 'default-Ghatampur Market';
+      const resolvedStoreId = (!rawStoreId || rawStoreId === 'default-swaroop-nagar' || rawStoreId === 'ghatampur') ? 'default-Ghatampur Market' : rawStoreId;
+      const rawStoreName = store ? store.name : 'Ghatampur';
+      const resolvedStoreName = (!rawStoreName || rawStoreName === 'Swaroop Nagar Hub' || rawStoreName === 'Ghatampur Hub') ? 'Ghatampur' : rawStoreName;
 
       useUIStore.setState({
         selectedLocation: addressText,
@@ -279,14 +280,14 @@ export default function LocationPickerScreen() {
       useUIStore.setState({
         selectedLocation: addressText,
         userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
-        assignedStoreId: 'ghatampur',
-        shopName: 'Ghatampur Hub',
+        assignedStoreId: 'default-Ghatampur Market',
+        shopName: 'Ghatampur',
         surgeCharge: 0.0,
         groceryMartOpen: true,
         cafeOpen: true
       });
       triggerHaptic('warning');
-      setConfirmedStoreName('Ghatampur Hub');
+      setConfirmedStoreName('Ghatampur');
       setConfirmedSurgeCharge(0.0);
       setSuccessModalVisible(true);
     } finally {
