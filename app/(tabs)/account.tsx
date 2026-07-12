@@ -883,7 +883,7 @@ export default function AccountScreen() {
             </Text>
 
             {/* Action Buttons Row */}
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%', marginTop: 8 }}>
               <Pressable
                 onPress={() => {
                   triggerHaptic('light');
@@ -891,11 +891,12 @@ export default function AccountScreen() {
                 }}
                 style={({ pressed }) => ({
                   flex: 1,
+                  height: 44,
                   borderWidth: 1,
                   borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                  borderRadius: 16,
-                  paddingVertical: 12,
+                  borderRadius: 14,
                   alignItems: 'center',
+                  justifyContent: 'center',
                   backgroundColor: pressed 
                     ? (isDarkMode ? '#27272a' : '#f8fafc')
                     : (isDarkMode ? '#18181b' : '#ffffff'),
@@ -921,7 +922,8 @@ export default function AccountScreen() {
                 }}
                 style={({ pressed }) => ({
                   flex: 1,
-                  borderRadius: 16,
+                  height: 44,
+                  borderRadius: 14,
                   overflow: 'hidden',
                   transform: [{ scale: pressed ? 0.97 : 1 }]
                 })}
@@ -929,10 +931,10 @@ export default function AccountScreen() {
                 <LinearGradient
                   colors={['#ef4444', '#dc2626']}
                   style={{
-                    paddingVertical: 12,
+                    width: '100%',
+                    height: '100%',
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '100%'
                   }}
                 >
                   <Text style={{

@@ -445,7 +445,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       width: 72,
                       height: 28,
                       borderRadius: 8,
-                      backgroundColor: '#ea580c',
+                      borderWidth: 1.5,
+                      borderColor: '#ea580c',
+                      backgroundColor: isDark ? '#18181b' : '#ffffff',
                       flexDirection: 'row',
                       alignItems: 'center',
                       overflow: 'hidden',
@@ -456,10 +458,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       onPress={handleDecrement} 
                       style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 }]}
                     >
-                      <Minus size={11} color="#ffffff" strokeWidth={3.5} />
+                      <Minus size={11} color="#ea580c" strokeWidth={3.5} />
                     </Pressable>
                     <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900' }}>{quantity}</Text>
+                      <Text style={{ color: isDark ? '#f4f4f5' : '#ea580c', fontSize: 11, fontWeight: '900' }}>{quantity}</Text>
                     </View>
                     <Pressable 
                       onPress={handleIncrement} 
@@ -469,7 +471,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                         quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.5 } : { opacity: 1 })
                       ]}
                     >
-                      <Plus size={11} color="#ffffff" strokeWidth={3.5} />
+                      <Plus size={11} color="#ea580c" strokeWidth={3.5} />
                     </Pressable>
                   </Animated.View>
                 )}
@@ -738,21 +740,21 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 </AnimatedPressable>
               ) : (
                 <Animated.View 
-                  entering={FadeInDown.springify().damping(11).stiffness(180)}
-                  exiting={FadeOut.duration(150)}
+                  entering={FadeIn.duration(120)}
+                  exiting={FadeOut.duration(120)}
                   style={[
                     styles.stepperWrap,
-                    resolvedIsFlash && { backgroundColor: '#dc2626' }
+                    { borderColor: '#e11d48', backgroundColor: isDark ? '#18181b' : '#ffffff' }
                   ]}
                 >
                   <Pressable 
                     onPress={handleDecrement} 
                     style={({ pressed }) => [styles.stepperBtn, pressed && { opacity: 0.5 }]}
                   >
-                    <Minus size={13} color="#ffffff" strokeWidth={3} />
+                    <Minus size={13} color="#e11d48" strokeWidth={3.5} />
                   </Pressable>
                   <View style={styles.stepperQty}>
-                    <Text style={styles.stepperQtyText}>{quantity}</Text>
+                    <Text style={[styles.stepperQtyText, { color: '#e11d48' }]}>{quantity}</Text>
                   </View>
                   <Pressable
                     onPress={handleIncrement}
@@ -762,7 +764,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       quantity >= resolvedStock ? { opacity: 0.4 } : (pressed && { opacity: 0.5 })
                     ]}
                   >
-                    <Plus size={13} color="#ffffff" strokeWidth={3} />
+                    <Plus size={13} color="#e11d48" strokeWidth={3.5} />
                   </Pressable>
                 </Animated.View>
               )}
@@ -1044,9 +1046,11 @@ const styles = StyleSheet.create({
     width: '100%',
     height: '100%',
     borderRadius: 10,
+    borderWidth: 1.5,
+    borderColor: '#e11d48',
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#dc2626',
+    backgroundColor: '#ffffff',
     overflow: 'hidden',
   },
   stepperBtn: {
@@ -1060,13 +1064,9 @@ const styles = StyleSheet.create({
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: 'rgba(0,0,0,0.18)',
-    borderLeftWidth: 1,
-    borderRightWidth: 1,
-    borderColor: 'rgba(255,255,255,0.15)',
   },
   stepperQtyText: {
-    color: '#ffffff',
+    color: '#e11d48',
     fontSize: 14,
     fontWeight: '800',
   },
