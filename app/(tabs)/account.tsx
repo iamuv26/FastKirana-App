@@ -879,7 +879,7 @@ export default function AccountScreen() {
               lineHeight: 18,
               marginBottom: 24
             }}>
-              Are you sure you want to log out from FastKirana? (v2) You will need to sign in again to access your orders and settings.
+              Are you sure you want to log out from FastKirana? You will need to sign in again to access your orders and settings.
             </Text>
 
             {/* Action Buttons Row */}
@@ -891,12 +891,13 @@ export default function AccountScreen() {
               marginTop: 16
             }}>
               {/* Cancel Button */}
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   triggerHaptic('light');
                   setIsLogoutModalVisible(false);
                 }}
-                style={({ pressed }) => ({
+                activeOpacity={0.7}
+                style={{
                   width: '48%',
                   height: 46,
                   borderWidth: 1.5,
@@ -904,11 +905,8 @@ export default function AccountScreen() {
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: pressed 
-                    ? (isDarkMode ? '#27272a' : '#f1f5f9')
-                    : (isDarkMode ? '#18181b' : '#ffffff'),
-                  transform: [{ scale: pressed ? 0.97 : 1 }]
-                })}
+                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                }}
               >
                 <Text style={{
                   color: isDarkMode ? '#cbd5e1' : '#475569',
@@ -919,24 +917,24 @@ export default function AccountScreen() {
                 }}>
                   Cancel
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
 
               {/* Logout Button */}
-              <Pressable
+              <TouchableOpacity
                 onPress={() => {
                   triggerHaptic('medium');
                   setIsLogoutModalVisible(false);
                   logout();
                 }}
-                style={({ pressed }) => ({
+                activeOpacity={0.8}
+                style={{
                   width: '48%',
                   height: 46,
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: pressed ? '#b91c1c' : '#ef4444',
-                  transform: [{ scale: pressed ? 0.97 : 1 }]
-                })}
+                  backgroundColor: '#ef4444',
+                }}
               >
                 <Text style={{
                   color: '#ffffff',
@@ -947,7 +945,7 @@ export default function AccountScreen() {
                 }}>
                   Logout
                 </Text>
-              </Pressable>
+              </TouchableOpacity>
             </View>
           </View>
         </View>
