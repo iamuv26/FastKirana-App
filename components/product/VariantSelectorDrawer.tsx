@@ -147,26 +147,26 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             overflow: 'hidden',
           }}>
             {/* Decrement Column */}
-            <View style={{ flex: 1, height: '100%' }}>
+            <View style={{ width: '32%', height: '100%' }}>
               <Pressable 
                 onPress={handleDecrement} 
                 style={({ pressed }) => [{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
               >
-                <Minus size={12} color={brandColor} strokeWidth={3.5} />
+                <Minus size={12} color={brandColor} strokeWidth={4.5} />
               </Pressable>
             </View>
             
             <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
             {/* Quantity Text Column */}
-            <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
             </View>
 
             <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
             {/* Increment Column */}
-            <View style={{ flex: 1, height: '100%' }}>
+            <View style={{ width: '32%', height: '100%' }}>
               <Pressable
                 onPress={handleIncrement}
                 disabled={quantity >= resolvedStock || isStoreClosed}
@@ -175,7 +175,7 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
                   (quantity >= resolvedStock || isStoreClosed) ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
                 ]}
               >
-                <Plus size={12} color={brandColor} strokeWidth={3.5} />
+                <Plus size={12} color={brandColor} strokeWidth={4.5} />
               </Pressable>
             </View>
           </View>

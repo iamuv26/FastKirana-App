@@ -455,26 +455,26 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     }}
                   >
                     {/* Decrement Column */}
-                    <View style={{ flex: 1, height: '100%' }}>
+                    <View style={{ width: '32%', height: '100%' }}>
                       <Pressable 
                         onPress={handleDecrement} 
                         style={({ pressed }) => [{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
                       >
-                        <Minus size={11} color="#ea580c" strokeWidth={3.5} />
+                        <Minus size={12} color="#ea580c" strokeWidth={4.5} />
                       </Pressable>
                     </View>
                     
                     <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fdba74' }} />
 
                     {/* Quantity Text Column */}
-                    <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
                     </View>
 
                     <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fdba74' }} />
 
                     {/* Increment Column */}
-                    <View style={{ flex: 1, height: '100%' }}>
+                    <View style={{ width: '32%', height: '100%' }}>
                       <Pressable 
                         onPress={handleIncrement} 
                         disabled={quantity >= resolvedStock}
@@ -483,7 +483,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                           quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
                         ]}
                       >
-                        <Plus size={11} color="#ea580c" strokeWidth={3.5} />
+                        <Plus size={12} color="#ea580c" strokeWidth={4.5} />
                       </Pressable>
                     </View>
                   </Animated.View>
@@ -768,26 +768,26 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   }}
                 >
                   {/* Decrement Column */}
-                  <View style={{ flex: 1, height: '100%' }}>
+                  <View style={{ width: '32%', height: '100%' }}>
                     <Pressable 
                       onPress={handleDecrement} 
                       style={({ pressed }) => [{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
                     >
-                      <Minus size={13} color="#e11d48" strokeWidth={3.5} />
+                      <Minus size={14} color="#e11d48" strokeWidth={4.5} />
                     </Pressable>
                   </View>
                   
                   <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fda4af' }} />
 
                   {/* Quantity Text Column */}
-                  <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 14, fontWeight: '900' }}>{quantity}</Text>
                   </View>
 
                   <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fda4af' }} />
 
                   {/* Increment Column */}
-                  <View style={{ flex: 1, height: '100%' }}>
+                  <View style={{ width: '32%', height: '100%' }}>
                     <Pressable
                       onPress={handleIncrement}
                       disabled={quantity >= resolvedStock}
@@ -796,7 +796,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                         quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
                       ]}
                     >
-                      <Plus size={13} color="#e11d48" strokeWidth={3.5} />
+                      <Plus size={14} color="#e11d48" strokeWidth={4.5} />
                     </Pressable>
                   </View>
                 </Animated.View>
