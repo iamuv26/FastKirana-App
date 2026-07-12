@@ -140,17 +140,18 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             height: 32,
             width: 80,
             alignItems: 'center',
+            justifyContent: 'space-evenly',
             borderRadius: 9999,
             borderWidth: 1,
             borderColor: brandColor,
             backgroundColor: brandBg,
             overflow: 'hidden',
           }}>
-            {/* Decrement Column */}
+            {/* Decrement */}
             <Pressable 
               onPress={handleDecrement} 
               style={({ pressed }) => ({
-                flex: 1,
+                paddingHorizontal: 8,
                 height: '100%',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -159,22 +160,16 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             >
               <Minus size={12} color={brandColor} strokeWidth={4.5} />
             </Pressable>
-            
-            <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
-            {/* Quantity Text Column */}
-            <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
-            </View>
+            {/* Quantity */}
+            <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
 
-            <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
-
-            {/* Increment Column */}
+            {/* Increment */}
             <Pressable
               onPress={handleIncrement}
               disabled={quantity >= resolvedStock || isStoreClosed}
               style={({ pressed }) => ({
-                flex: 1,
+                paddingHorizontal: 8,
                 height: '100%',
                 alignItems: 'center',
                 justifyContent: 'center',
