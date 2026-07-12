@@ -245,13 +245,20 @@ export default function RootLayout() {
                   elevation: 5,
                 } : { width: '100%', height: '100%' }}
               >
-                <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureDirection: 'horizontal', animation: 'default', headerBackVisible: false }}>
+                <Stack screenOptions={{ 
+                  headerShown: false, 
+                  gestureEnabled: true, 
+                  gestureDirection: 'horizontal', 
+                  animation: 'slide_from_right', 
+                  animationDuration: 220,
+                  headerBackVisible: false 
+                }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'fade', animationDuration: 150 }} />
+                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
                   <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
-                  <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: false }} />
+                  <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="checkout" options={{ headerShown: false }} />
                   <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
                 </Stack>
