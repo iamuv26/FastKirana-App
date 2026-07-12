@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
-import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles, CheckCircle2, AlertTriangle, ShoppingBag, ChevronRight } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useUIStore } from '../stores/ui-store';
 import { useTheme } from './context/ThemeContext';
@@ -710,31 +710,40 @@ export default function LocationPickerScreen() {
               }}
               style={({ pressed }) => ({
                 width: '100%',
-                borderRadius: 12,
-                overflow: 'hidden',
+                borderRadius: 24,
                 opacity: pressed ? 0.9 : 1,
                 transform: [{ scale: pressed ? 0.98 : 1 }],
+                elevation: 4,
+                shadowColor: '#e20a22',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.25,
+                shadowRadius: 8,
               })}
             >
               <LinearGradient
-                colors={['#e20a22', '#dc2626']}
+                colors={['#e20a22', '#f43f5e']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
-                  paddingVertical: 12,
+                  paddingVertical: 14,
                   alignItems: 'center',
                   justifyContent: 'center',
+                  flexDirection: 'row',
+                  borderRadius: 24,
+                  gap: 8,
                 }}
               >
+                <ShoppingBag size={15} color="#ffffff" style={{ marginRight: 2 }} />
                 <Text style={{
-                  fontSize: 12,
+                  fontSize: 13,
                   fontWeight: '900',
                   color: '#ffffff',
                   textTransform: 'uppercase',
-                  letterSpacing: 0.6,
+                  letterSpacing: 1.2,
                 }}>
                   Start Shopping
                 </Text>
+                <ChevronRight size={15} color="#ffffff" />
               </LinearGradient>
             </Pressable>
           </Animated.View>
