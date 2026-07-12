@@ -575,78 +575,227 @@ export default function AccountScreen() {
         </View>
 
         {/* Staff Operations Console Banner */}
+        {/* Staff Operations Console Banner */}
         {isLoggedIn && user && user.role !== 'USER' && (
           <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
-            <LinearGradient
-              colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#e0e7ff', '#c7d2fe']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{
-                borderRadius: 24,
-                padding: 1.5,
-                shadowColor: '#4f46e5',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isDarkMode ? 0.25 : 0.08,
-                shadowRadius: 16,
-                elevation: 3
-              }}
-            >
-              <Pressable 
-                onPress={() => {
-                  triggerHaptic('medium');
-                  if (user.role === 'PICKER') router.push('/picker');
-                  else if (user.role === 'CHEF') router.push('/chef');
-                  else if (user.role === 'DELIVERY') router.push('/rider');
-                  else router.push('/operations');
-                }}
-                style={({ pressed }) => [{
-                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-                  borderRadius: 22.5,
-                  padding: 16,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  opacity: pressed ? 0.95 : 1
-                }]}
-              >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                  <LinearGradient
-                    colors={['#e0e7ff', '#c7d2fe']}
-                    style={{
-                      width: 40,
-                      height: 40,
-                      borderRadius: 12,
-                      alignItems: 'center',
-                      justifyContent: 'center'
+            {user.role === 'ADMIN' ? (
+              <View style={{ gap: 10 }}>
+                <Text style={{ color: isDarkMode ? '#a1a1aa' : '#475569', fontWeight: '900', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, paddingLeft: 4, marginBottom: 2 }}>
+                  🛠️ Admin Control Hub
+                </Text>
+                
+                {/* 1. Operations & Settings */}
+                <LinearGradient
+                  colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#e0e7ff', '#c7d2fe']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 20, padding: 1 }}
+                >
+                  <Pressable 
+                    onPress={() => {
+                      triggerHaptic('medium');
+                      router.push('/operations');
                     }}
+                    style={({ pressed }) => [{
+                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                      borderRadius: 19,
+                      padding: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      opacity: pressed ? 0.95 : 1
+                    }]}
                   >
-                    <ShieldCheck size={20} color="#4f46e5" strokeWidth={2.5} />
-                  </LinearGradient>
-                  <View style={{ flexDirection: 'column' }}>
-                    <Text style={{ color: isDarkMode ? '#c7d2fe' : '#312e81', fontWeight: '800', fontSize: 13, letterSpacing: -0.2 }}>
-                      Operations Console
-                    </Text>
-                    <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
-                      Manage tasks & store controls
-                    </Text>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                        <ShieldCheck size={18} color="#4f46e5" />
+                      </View>
+                      <View>
+                        <Text style={{ color: isDarkMode ? '#ffffff' : '#1e1b4b', fontWeight: '800', fontSize: 12 }}>Operations Console</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Store configuration & live analytics</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={14} color="#94a3b8" />
+                  </Pressable>
+                </LinearGradient>
+
+                {/* 2. Picker Console */}
+                <LinearGradient
+                  colors={isDarkMode ? ['#1e3a8a', '#172554'] : ['#dbeafe', '#bfdbfe']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 20, padding: 1 }}
+                >
+                  <Pressable 
+                    onPress={() => {
+                      triggerHaptic('medium');
+                      router.push('/picker');
+                    }}
+                    style={({ pressed }) => [{
+                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                      borderRadius: 19,
+                      padding: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      opacity: pressed ? 0.95 : 1
+                    }]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 16 }}>📦</Text>
+                      </View>
+                      <View>
+                        <Text style={{ color: isDarkMode ? '#ffffff' : '#172554', fontWeight: '800', fontSize: 12 }}>Picker Console</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Packhouse inventory & dispatch queue</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={14} color="#94a3b8" />
+                  </Pressable>
+                </LinearGradient>
+
+                {/* 3. Chef Console */}
+                <LinearGradient
+                  colors={isDarkMode ? ['#14532d', '#052e16'] : ['#dcfce7', '#bbf7d0']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 20, padding: 1 }}
+                >
+                  <Pressable 
+                    onPress={() => {
+                      triggerHaptic('medium');
+                      router.push('/chef');
+                    }}
+                    style={({ pressed }) => [{
+                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                      borderRadius: 19,
+                      padding: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      opacity: pressed ? 0.95 : 1
+                    }]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 16 }}>🍳</Text>
+                      </View>
+                      <View>
+                        <Text style={{ color: isDarkMode ? '#ffffff' : '#052e16', fontWeight: '800', fontSize: 12 }}>Chef Kitchen Console</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Cafe kitchen orders & food prep</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={14} color="#94a3b8" />
+                  </Pressable>
+                </LinearGradient>
+
+                {/* 4. Rider Console */}
+                <LinearGradient
+                  colors={isDarkMode ? ['#701a75', '#4a044e'] : ['#fdf4ff', '#fae8ff']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{ borderRadius: 20, padding: 1 }}
+                >
+                  <Pressable 
+                    onPress={() => {
+                      triggerHaptic('medium');
+                      router.push('/rider');
+                    }}
+                    style={({ pressed }) => [{
+                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                      borderRadius: 19,
+                      padding: 14,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      justifyContent: 'space-between',
+                      opacity: pressed ? 0.95 : 1
+                    }]}
+                  >
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
+                        <Text style={{ fontSize: 16 }}>🛵</Text>
+                      </View>
+                      <View>
+                        <Text style={{ color: isDarkMode ? '#ffffff' : '#4a044e', fontWeight: '800', fontSize: 12 }}>Rider Console</Text>
+                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Delivery dispatch list & location tracking</Text>
+                      </View>
+                    </View>
+                    <ChevronRight size={14} color="#94a3b8" />
+                  </Pressable>
+                </LinearGradient>
+              </View>
+            ) : (
+              <LinearGradient
+                colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#e0e7ff', '#c7d2fe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  borderRadius: 24,
+                  padding: 1.5,
+                  shadowColor: '#4f46e5',
+                  shadowOffset: { width: 0, height: 6 },
+                  shadowOpacity: isDarkMode ? 0.25 : 0.08,
+                  shadowRadius: 16,
+                  elevation: 3
+                }}
+              >
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    if (user.role === 'PICKER') router.push('/picker');
+                    else if (user.role === 'CHEF') router.push('/chef');
+                    else if (user.role === 'DELIVERY') router.push('/rider');
+                    else router.push('/operations');
+                  }}
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                    borderRadius: 22.5,
+                    padding: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <LinearGradient
+                      colors={['#e0e7ff', '#c7d2fe']}
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 12,
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                    >
+                      <ShieldCheck size={20} color="#4f46e5" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <View style={{ flexDirection: 'column' }}>
+                      <Text style={{ color: isDarkMode ? '#c7d2fe' : '#312e81', fontWeight: '800', fontSize: 13, letterSpacing: -0.2 }}>
+                        Operations Console
+                      </Text>
+                      <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
+                        Manage tasks & store controls
+                      </Text>
+                    </View>
                   </View>
-                </View>
-                <View style={{
-                  backgroundColor: '#4f46e5',
-                  paddingHorizontal: 12,
-                  paddingVertical: 6,
-                  borderRadius: 12,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4
-                }}>
-                  <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                    {user.role} Console
-                  </Text>
-                  <ChevronRight size={11} color="#ffffff" strokeWidth={2.5} />
-                </View>
-              </Pressable>
-            </LinearGradient>
+                  <View style={{
+                    backgroundColor: '#4f46e5',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {user.role} Console
+                    </Text>
+                    <ChevronRight size={11} color="#ffffff" strokeWidth={2.5} />
+                  </View>
+                </Pressable>
+              </LinearGradient>
+            )}
           </View>
         )}
 

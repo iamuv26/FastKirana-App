@@ -129,30 +129,11 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
       onPress={onPress}
       className="items-center justify-center relative"
       style={{ 
-        width: 72, 
-        paddingVertical: 8, 
-        borderRadius: 12,
+        width: 80, 
+        paddingVertical: 12, 
         backgroundColor: isActive 
-          ? (isDarkMode ? '#1c1c1e' : '#ffffff')
+          ? (isDarkMode ? '#18181b' : '#ffffff')
           : 'transparent',
-        borderWidth: 1,
-        borderColor: isActive
-          ? (isDarkMode ? '#2c2c2e' : '#e2e8f0')
-          : 'transparent',
-        ...Platform.select({
-          ios: isActive ? {
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.05,
-            shadowRadius: 3,
-          } : {},
-          android: isActive ? {
-            elevation: 2,
-          } : {},
-          web: isActive ? {
-            boxShadow: '0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -1px rgba(0,0,0,0.03)',
-          } : {}
-        } as any)
       }}
     >
       {/* Vertical Brand-Red Accent Bar */}
@@ -160,11 +141,10 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
         <View 
           style={{
             position: 'absolute',
-            left: 2,
-            top: 10,
-            bottom: 10,
-            width: 3.5,
-            borderRadius: 99,
+            left: 0,
+            top: 0,
+            bottom: 0,
+            width: 4,
             backgroundColor: '#e20a22'
           }}
         />
@@ -194,7 +174,7 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
           fontWeight: isActive ? '900' : '600', 
           color: isActive ? '#e11d48' : (isDarkMode ? '#a1a1aa' : '#64748b'),
           textAlign: 'center',
-          marginTop: 4,
+          marginTop: 6,
           width: '90%',
           letterSpacing: -0.1
         }}
@@ -202,19 +182,6 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
       >
         {sub.name}
       </Text>
-      {/* Active Underline Dot */}
-      <Animated.View 
-        style={[
-          { 
-            width: 4, 
-            height: 4, 
-            borderRadius: 2, 
-            backgroundColor: '#e11d48', 
-            marginTop: 4 
-          },
-          animatedDotStyle
-        ]} 
-      />
     </Pressable>
   );
 });
@@ -354,6 +321,10 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
             contentContainerStyle={{ paddingBottom: 180, paddingTop: 10 }}
             style={{ flex: 1, width: '100%' }}
             showsVerticalScrollIndicator={false}
+            initialNumToRender={6}
+            maxToRenderPerBatch={10}
+            windowSize={5}
+            removeClippedSubviews={Platform.OS === 'android'}
             renderItem={({ item, index }) => (
               <View style={{ width: '48%', marginBottom: 12 }}>
                 <ProductCard product={item} index={index} className="w-full" isCategoryGrid={true} />

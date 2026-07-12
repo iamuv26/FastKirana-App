@@ -50,9 +50,16 @@ export default function CheckoutScreen() {
   const deliveryRadius = useUIStore((s) => s.deliveryRadius);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const taxRate = useUIStore((s) => s.taxRate);
+  const onlyCod = useUIStore((s) => s.onlyCod);
   
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
   const [isDistanceValidating, setIsDistanceValidating] = useState(false);
+
+  useEffect(() => {
+    if (onlyCod) {
+      setPaymentMethod('COD');
+    }
+  }, [onlyCod]);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of earth in km
@@ -738,7 +745,7 @@ export default function CheckoutScreen() {
               { id: 'COD', label: 'Cash on Delivery (COD)', desc: 'Pay with cash upon package receipt' },
               { id: 'UPI', label: 'UPI (GPay / PhonePe / Paytm)', desc: 'Scan and pay online instantly' },
               { id: 'CARD', label: 'Credit or Debit Card', desc: 'Secure payment with online cards' }
-            ].map((method) => (
+            ].filter(method => !onlyCod || method.id === 'COD').map((method) => (
               <Pressable
                 key={method.id}
                 onPress={() => {

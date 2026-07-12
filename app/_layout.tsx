@@ -161,6 +161,7 @@ export default function RootLayout() {
           const holidays = settings.holidays ? settings.holidays.split(',').map((h: string) => h.trim()) : [];
           const surgeMultiplier = settings.surge_multiplier ? parseFloat(settings.surge_multiplier) : 1.0;
           const taxRateSetting = settings.tax_rate !== undefined ? parseFloat(settings.tax_rate) : 5;
+          const onlyCodSetting = settings.only_cod === 'true';
 
           // Check store hours auto-close and holiday calendar
           const inHours = isWithinOperatingHours(storeOpenHour, storeCloseHour);
@@ -186,7 +187,8 @@ export default function RootLayout() {
             storeCloseHour,
             holidays,
             surgeMultiplier,
-            taxRateSetting
+            taxRateSetting,
+            onlyCodSetting
           );
         }
       } catch (err) {

@@ -26,10 +26,13 @@ export function getOptimizedImageUrl(url: string | null | undefined, width = 300
   return url;
 }
 
-export function getAppImageSource(imgUrl: string | null | undefined): { uri: string } | null {
+export function getAppImageSource(imgUrl: string | null | undefined, width = 250): { uri: string } | null {
   if (!imgUrl) return null;
-  if (imgUrl.startsWith('http') || imgUrl.startsWith('data:')) {
-    let url = imgUrl;
+  const optimizedUrl = getOptimizedImageUrl(imgUrl, width);
+  if (!optimizedUrl) return null;
+
+  if (optimizedUrl.startsWith('http') || optimizedUrl.startsWith('data:')) {
+    let url = optimizedUrl;
     if (url.includes('localhost:3000')) {
       url = url.replace('localhost:3000', 'www.fastkirana.in');
     } else if (url.includes('127.0.0.1:3000')) {
@@ -37,9 +40,9 @@ export function getAppImageSource(imgUrl: string | null | undefined): { uri: str
     }
     return { uri: url };
   }
-  if (imgUrl.startsWith('/')) {
+  if (optimizedUrl.startsWith('/')) {
     const baseDomain = API_BASE_URL.replace('/api', '');
-    return { uri: `${baseDomain}${imgUrl}` };
+    return { uri: `${baseDomain}${optimizedUrl}` };
   }
   return null;
 }
