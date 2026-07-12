@@ -167,7 +167,7 @@ interface Order {
 const CATEGORY_AISLES: Record<string, string> = {
   'fruits-vegetables': 'Aisle 1 (Produce Rack)',
   'dairy-breakfast': 'Aisle 2 (Chilled Dairy)',
-  'snacks-munchies': 'Aisle 3 (Snacks)',
+  'snacks-biscuits': 'Aisle 3 (Snacks)',
   'beverages': 'Aisle 4 (Beverages)',
   'atta-rice-dal': 'Aisle 5 (Staples)',
   'personal-care': 'Aisle 6 (Hygiene)',
@@ -207,7 +207,7 @@ export const mockOrdersList: Order[] = [
     user: { name: 'Priya Singh', phone: '9123456789' },
     address: { houseNo: 'House 12', street: 'Shanti Nagar', area: 'Ghatampur', city: 'Kanpur', pincode: '209206' },
     items: [
-      { id: 'it-3', name: 'Lay\'s Magic Masala Chips', price: 20, quantity: 5, imageUrl: null, location: 'Aisle 3 (Snacks)', categorySlug: 'snacks-munchies', cooked: false },
+      { id: 'it-3', name: 'Lay\'s Magic Masala Chips', price: 20, quantity: 5, imageUrl: null, location: 'Aisle 3 (Snacks)', categorySlug: 'snacks-biscuits', cooked: false },
       { id: 'it-4', name: 'Coca Cola 2L', price: 90, quantity: 2, imageUrl: null, location: 'Aisle 4 (Beverages)', categorySlug: 'beverages', cooked: false }
     ],
     binName: undefined

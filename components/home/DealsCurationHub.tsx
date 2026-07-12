@@ -222,7 +222,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 4 PM - 8 PM: Snacks
     else if (currentHour >= 16 && currentHour < 20) {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'snacks-munchies' || p.id.startsWith('sm') || p.tags?.includes('snacks')));
+      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'snacks-biscuits' || p.id.startsWith('sm') || p.tags?.includes('snacks')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Snacks',
@@ -233,7 +233,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 8 PM - 5 AM: Late Night
     else {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'beverages' || p.category?.slug === 'snacks-munchies' || p.category?.slug === 'ice-cream' || p.id.startsWith('bv') || p.id.startsWith('sm') || p.tags?.includes('late-night') || p.tags?.includes('midnight')));
+      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'beverages' || p.category?.slug === 'snacks-biscuits' || p.category?.slug === 'ice-cream' || p.id.startsWith('bv') || p.id.startsWith('sm') || p.tags?.includes('late-night') || p.tags?.includes('midnight')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Late Night',

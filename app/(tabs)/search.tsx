@@ -32,7 +32,7 @@ const TypedFlashList = FlashList as any;
 const CATEGORY_IMAGES: Record<string, any> = {
   'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
   'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-munchies': require('../../assets/snacks_munchies_category.png'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
   'beverages': require('../../assets/beverages_category.png'),
   'personal-care': require('../../assets/personal_care_category.png'),
   'cafe': require('../../assets/cafe_category.png'),
@@ -49,7 +49,7 @@ interface CategoryItem {
 const GROCERY_CATEGORIES: CategoryItem[] = [
   { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', emoji: '🥬' },
   { name: 'Dairy & Breakfast', slug: 'dairy-breakfast', emoji: '🥛' },
-  { name: 'Snacks & Munchies', slug: 'snacks-munchies', emoji: '🍿' },
+  { name: 'Snacks & Munchies', slug: 'snacks-biscuits', emoji: '🍿' },
   { name: 'Beverages', slug: 'beverages', emoji: '🥤' },
   { name: 'Ice Cream', slug: 'ice-cream', emoji: '🍦' },
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
@@ -582,7 +582,7 @@ export default function SearchScreen() {
               {[
                 { label: 'Fruits & Veggies', slug: 'fruits-vegetables' },
                 { label: 'Dairy', slug: 'dairy-breakfast' },
-                { label: 'Snacks', slug: 'snacks-munchies' },
+                { label: 'Snacks', slug: 'snacks-biscuits' },
                 { label: 'Beverages', slug: 'beverages' },
                 { label: 'Cafe', slug: 'cafe', isCafe: true },
                 { label: 'Personal Care', slug: 'personal-care' },

@@ -41,7 +41,7 @@ interface Order {
 const CATEGORY_AISLES: Record<string, string> = {
   'fruits-vegetables': 'Aisle 1 (Produce Rack)',
   'dairy-breakfast': 'Aisle 2 (Chilled Dairy)',
-  'snacks-munchies': 'Aisle 3 (Snacks)',
+  'snacks-biscuits': 'Aisle 3 (Snacks)',
   'beverages': 'Aisle 4 (Beverages)',
   'atta-rice-dal': 'Aisle 5 (Staples)',
   'personal-care': 'Aisle 6 (Hygiene)',
@@ -67,7 +67,7 @@ const INITIAL_SIMULATION_ORDERS: Order[] = [
     address: { houseNo: "C-12", street: "Nehru Nagar", area: "Ghatampur", city: "Kanpur", pincode: "209206" },
     items: [
       { id: "oi1", name: "Amul Taaza Milk Tetra", price: 27, quantity: 3, categorySlug: "dairy-breakfast" },
-      { id: "oi2", name: "Lays Classic Salted", price: 38, quantity: 2, categorySlug: "snacks-munchies" },
+      { id: "oi2", name: "Lays Classic Salted", price: 38, quantity: 2, categorySlug: "snacks-biscuits" },
       { id: "oi3", name: "Alphonso Mangoes (Hapus)", price: 199, quantity: 1, categorySlug: "fruits-vegetables" }
     ],
     binName: "Blue Bin"

@@ -15,6 +15,7 @@ import { StatusBar } from 'expo-status-bar';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
 import ProductCard from '../components/product/ProductCard';
+import ProductCardSkeleton from '../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../components/shared/FloatingCartBar';
 import { SkeletonShimmer } from '../components/shared/SkeletonShimmer';
 import { useTheme } from './context/ThemeContext';
@@ -89,44 +90,20 @@ export function VegIndicator({ isNonVeg }: { isNonVeg: boolean }) {
 }
 
 function CafeRowSkeleton() {
-  const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
-  const bgColor = isDarkMode ? '#18181b' : '#ffffff';
-  const borderColor = isDarkMode ? '#27272a' : '#f1f5f9';
-  const rowBorder = isDarkMode ? '#27272a' : '#f8f9fa';
   return (
-    <View style={{ marginBottom: 24, backgroundColor: bgColor, borderTopWidth: 1, borderBottomWidth: 1, borderColor: borderColor, paddingHorizontal: 16, paddingVertical: 16 }}>
+    <View style={{ marginBottom: 24, paddingHorizontal: 12 }}>
       {/* Section Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-        <SkeletonShimmer width={24} height={24} borderRadius={12} />
-        <View style={{ gap: 4 }}>
-          <SkeletonShimmer width={128} height={16} />
-          <SkeletonShimmer width={192} height={12} />
-        </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginBottom: 12 }}>
+        <SkeletonShimmer width={20} height={20} borderRadius={10} />
+        <SkeletonShimmer width={120} height={16} />
       </View>
       
-      {/* List Rows */}
-      {[1, 2].map((i) => (
-        <View key={i} style={{ paddingVertical: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: 16, borderTopWidth: 1, borderColor: rowBorder }}>
-          <View style={{ flex: 1, paddingRight: 8, gap: 8 }}>
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <SkeletonShimmer width={14} height={14} borderRadius={3} />
-              <SkeletonShimmer width={48} height={12} />
-            </View>
-            <SkeletonShimmer width={160} height={16} />
-            <SkeletonShimmer width={64} height={12} />
-            <SkeletonShimmer width="90%" height={12} />
-            <SkeletonShimmer width="75%" height={12} />
-          </View>
-          
-          <View style={{ alignItems: 'center', position: 'relative' }}>
-            <SkeletonShimmer width={96} height={96} borderRadius={12} />
-            <View style={{ position: 'absolute', bottom: -10, width: 76, height: 30, borderRadius: 8, overflow: 'hidden' }}>
-              <SkeletonShimmer width="100%" height="100%" />
-            </View>
-          </View>
-        </View>
-      ))}
+      {/* 2-Column Product Grid */}
+      <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
+        {[1, 2, 3, 4].map((i) => (
+          <ProductCardSkeleton key={i} />
+        ))}
+      </View>
     </View>
   );
 }
@@ -934,8 +911,32 @@ export default function CafeScreen() {
           }}
           nestedScrollEnabled={true}
         >
-          {/* 2.1 Premium Cafe Sliding Promotions */}
           <CafePromoCarousel />
+
+          {/* Café Closed Warning Banner */}
+          {!cafeOpen && (
+            <View style={{
+              backgroundColor: isDarkMode ? 'rgba(217, 119, 6, 0.1)' : '#fffbeb',
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(217, 119, 6, 0.2)' : '#fde68a',
+              borderRadius: 16,
+              padding: 12,
+              marginHorizontal: 12,
+              marginTop: 12,
+              marginBottom: 4,
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+            }}>
+              <Text style={{ fontSize: 18 }}>⚠️</Text>
+              <View style={{ flex: 1 }}>
+                <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? '#fbbf24' : '#b45309' }}>Café is Currently Closed</Text>
+                <Text style={{ fontSize: 10, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#d97706', marginTop: 2 }}>
+                  You can browse the menu, but ordering is disabled right now.
+                </Text>
+              </View>
+            </View>
+          )}
 
           {/* 2.2 Explore by category 💜 */}
           {menuCategories.length > 0 && (

@@ -138,7 +138,7 @@ export default function AppFooter() {
                 <Pressable onPress={() => handleLinkPress('/category/dairy-breakfast')} className="active:opacity-70">
                   <Text className="text-gray-400 text-[13px]">Dairy & Breakfast</Text>
                 </Pressable>
-                <Pressable onPress={() => handleLinkPress('/category/snacks-munchies')} className="active:opacity-70">
+                <Pressable onPress={() => handleLinkPress('/category/snacks-biscuits')} className="active:opacity-70">
                   <Text className="text-gray-400 text-[13px]">Snacks</Text>
                 </Pressable>
                 <Pressable onPress={() => handleLinkPress('/category/beverages')} className="active:opacity-70">

@@ -81,7 +81,7 @@ export function VegIndicator({ isNonVeg, isDark = false }: { isNonVeg: boolean; 
 const CATEGORY_IMAGES: Record<string, any> = {
   'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
   'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-munchies': require('../../assets/snacks_munchies_category.png'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
   'beverages': require('../../assets/beverages_category.png'),
   'personal-care': require('../../assets/personal_care_category.png'),
   'household': require('../../assets/household_category.png'),
@@ -190,7 +190,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     let categoryKey = '';
     if (prefix === 'fv') categoryKey = 'fruits-vegetables';
     else if (prefix === 'db') categoryKey = 'dairy-breakfast';
-    else if (prefix === 'sm') categoryKey = 'snacks-munchies';
+    else if (prefix === 'sm') categoryKey = 'snacks-biscuits';
     else if (prefix === 'bv') categoryKey = 'beverages';
     else if (prefix === 'pc') categoryKey = 'personal-care';
     else if (prefix === 'hh') categoryKey = 'household';
@@ -407,8 +407,23 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               </View>
 
               {/* Orange Square ADD Button / Stepper */}
-              <View style={{ width: 72, height: 28, justifyContent: 'center', alignItems: 'center' }}>
-                {quantity === 0 ? (
+              <View style={{ width: 84, height: 28, justifyContent: 'center', alignItems: 'center' }}>
+                {isStoreClosed ? (
+                  <View 
+                    style={{
+                      width: 84,
+                      height: 28,
+                      borderRadius: 8,
+                      backgroundColor: isDark ? '#27272a' : '#f1f5f9',
+                      borderWidth: 1,
+                      borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                      justifyContent: 'center',
+                      alignItems: 'center',
+                    }}
+                  >
+                    <Text style={{ color: isDark ? '#71717a' : '#94a3b8', fontSize: 8.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 }}>Closed</Text>
+                  </View>
+                ) : quantity === 0 ? (
                   <AnimatedPressable
                     onPress={handleAdd}
                     onPressIn={() => {
@@ -419,7 +434,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     }}
                     style={[
                       {
-                        width: 72,
+                        width: 84,
                         height: 28,
                         borderRadius: 8,
                         backgroundColor: '#ea580c',
@@ -442,7 +457,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       position: 'absolute',
                       right: 0,
                       bottom: 0,
-                      width: 72,
+                      width: 84,
                       height: 28,
                       borderRadius: 9999,
                       borderWidth: 1,
@@ -458,8 +473,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     {/* Decrement */}
                     <Pressable 
                       onPress={handleDecrement} 
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={({ pressed }) => ({
-                        paddingHorizontal: 8,
+                        paddingHorizontal: 12,
                         height: '100%',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -476,8 +492,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     <Pressable
                       onPress={handleIncrement}
                       disabled={quantity >= resolvedStock}
+                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
                       style={({ pressed }) => ({
-                        paddingHorizontal: 8,
+                        paddingHorizontal: 12,
                         height: '100%',
                         alignItems: 'center',
                         justifyContent: 'center',

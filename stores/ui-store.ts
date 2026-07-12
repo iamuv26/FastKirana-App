@@ -90,9 +90,8 @@ export const useUIStore = create<UIState>()(
         onlyCod
       ) => 
         set((state) => {
-          // Always keep store open in development mode for testing
-          const finalGroceryOpen = __DEV__ ? true : groceryOpen;
-          const finalCafeOpen = __DEV__ ? true : cafeOpen;
+          const finalGroceryOpen = groceryOpen;
+          const finalCafeOpen = cafeOpen;
           const updates: Partial<UIState> = { 
             groceryMartOpen: finalGroceryOpen, 
             cafeOpen: finalCafeOpen, 

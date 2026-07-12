@@ -51,7 +51,7 @@ export const STORE_CLOSE_HOUR = 23
 export const CATEGORIES = [
   { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', emoji: '🥬' },
   { name: 'Dairy & Breakfast', slug: 'dairy-breakfast', emoji: '🥛' },
-  { name: 'Snacks & Munchies', slug: 'snacks-munchies', emoji: '🍿' },
+  { name: 'Snacks & Munchies', slug: 'snacks-biscuits', emoji: '🍿' },
   { name: 'Beverages', slug: 'beverages', emoji: '🥤' },
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
   { name: 'Household', slug: 'household', emoji: '🏠' },

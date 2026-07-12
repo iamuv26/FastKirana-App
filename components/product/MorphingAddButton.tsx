@@ -48,7 +48,7 @@ export default function MorphingAddButton({
       width = interpolate(
         animState.value,
         [0, 1],
-        [78, 88],
+        [78, 96],
         Extrapolate.CLAMP
       );
     }
@@ -139,7 +139,7 @@ export default function MorphingAddButton({
             styles.controlBtn,
             pressed && { opacity: 0.7 }
           ]}
-          hitSlop={{ top: 8, bottom: 8, left: 10, right: 4 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Minus size={12} color="#ffffff" strokeWidth={3.5} />
         </Pressable>
@@ -158,7 +158,7 @@ export default function MorphingAddButton({
             pressed && { opacity: 0.7 },
             quantity >= maxQuantity && { opacity: 0.3 }
           ]}
-          hitSlop={{ top: 8, bottom: 8, left: 4, right: 10 }}
+          hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Plus size={12} color="#ffffff" strokeWidth={3.5} />
         </Pressable>
@@ -196,7 +196,7 @@ const styles = StyleSheet.create({
     marginTop: -2.5,
   },
   controlBtn: {
-    paddingHorizontal: 8,
+    paddingHorizontal: 12,
     height: '100%',
     alignItems: 'center',
     justifyContent: 'center',

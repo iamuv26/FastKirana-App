@@ -1023,7 +1023,7 @@ export default function HomeScreen() {
   };
 
   const trendingProducts = useMemo(() => {
-    return products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.category?.slug === 'snacks-munchies' || p.category?.slug === 'beverages' || p.id === 'sm1' || p.id === 'db2' || p.id === 'bv1')).slice(0, 6);
+    return products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.category?.slug === 'snacks-biscuits' || p.category?.slug === 'beverages' || p.id === 'sm1' || p.id === 'db2' || p.id === 'bv1')).slice(0, 6);
   }, [products]);
 
   const topPicksProducts = useMemo(() => {
@@ -1050,13 +1050,13 @@ export default function HomeScreen() {
       return {
         title: "Snack O'Clock",
         subtitle: 'Munchies, chips and quick bites',
-        categories: ['snacks-munchies']
+        categories: ['snacks-biscuits']
       };
     } else {
       return {
         title: 'Late Night Cravings',
         subtitle: 'Sweet bites & cool drinks',
-        categories: ['beverages', 'snacks-munchies']
+        categories: ['beverages', 'snacks-biscuits']
       };
     }
   }, [currentHour]);
@@ -1075,7 +1075,7 @@ export default function HomeScreen() {
       if (prefix === 'bb' && timeDetails.categories.includes('bakery')) return true;
       if (prefix === 'fv' && timeDetails.categories.includes('fruits-vegetables')) return true;
       if (prefix === 'de' && timeDetails.categories.includes('atta-rice-dal')) return true;
-      if (prefix === 'sm' && timeDetails.categories.includes('snacks-munchies')) return true;
+      if (prefix === 'sm' && timeDetails.categories.includes('snacks-biscuits')) return true;
       if (prefix === 'bv' && timeDetails.categories.includes('beverages')) return true;
       
       return false;

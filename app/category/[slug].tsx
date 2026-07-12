@@ -25,7 +25,7 @@ const screenWidth = rawWidth > 768 ? 540 : rawWidth;
 const GROCERY_CATEGORIES = [
   { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', emoji: '🥬' },
   { name: 'Dairy & Breakfast', slug: 'dairy-breakfast', emoji: '🥛' },
-  { name: 'Snacks & Munchies', slug: 'snacks-munchies', emoji: '🍿' },
+  { name: 'Snacks & Munchies', slug: 'snacks-biscuits', emoji: '🍿' },
   { name: 'Beverages', slug: 'beverages', emoji: '🥤' },
   { name: 'Ice Cream', slug: 'ice-cream', emoji: '🍦' },
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
@@ -43,7 +43,7 @@ const CATEGORIES_MAPPING: Record<string, { name: string; image: any; color: stri
   'household': { name: 'Household', image: require('../../assets/household_category.png'), color: '#e0f7fa' },
   'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.png'), color: '#efebe9' },
   'atta-rice-dal': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.png'), color: '#fffde7' },
-  'snacks-munchies': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.png'), color: '#fff8e1' },
+  'snacks-biscuits': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.png'), color: '#fff8e1' },
   'dairy-breakfast': { name: 'Dairy', image: require('../../assets/dairy_breakfast_category.png'), color: '#e8f4fd' },
 };
 
@@ -65,7 +65,7 @@ const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; ta
     { name: 'Bread & Eggs', emoji: '🍞', tags: ['bread', 'eggs', 'egg', 'bun'] },
     { name: 'Yogurt & Lassi', emoji: '🍧', tags: ['yogurt', 'curd', 'lassi', 'dahi'] }
   ],
-  'snacks-munchies': [
+  'snacks-biscuits': [
     { name: 'All', emoji: '🍿', tags: [] },
     { name: 'Chips & Crisps', emoji: '🍟', tags: ['chips', 'crisps', 'kurkure', 'lays', 'puff'] },
     { name: 'Cookies', emoji: '🍪', tags: ['cookies', 'biscuits', 'biscuit', 'oreo', 'fantasy', 'digestive'] },

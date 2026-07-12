@@ -40,7 +40,7 @@ const MOCK_BUY_AGAIN_ITEMS: BuyAgainItem[] = [
     mrp: 56,
     unit: '280 g (4-pack)',
     lastOrderedDays: 5,
-    categorySlug: 'snacks-munchies',
+    categorySlug: 'snacks-biscuits',
   },
   {
     id: 'def2',

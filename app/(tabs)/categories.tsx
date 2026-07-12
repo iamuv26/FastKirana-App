@@ -30,7 +30,7 @@ const LOCAL_CATEGORY_CONFIGS: Record<string, { name: string; image: any; descrip
     description: 'Milk, Butter, Bread & Eggs',
     color: '#1d4ed8' // blue-700
   },
-  'snacks-munchies': {
+  'snacks-biscuits': {
     name: 'Snacks & Munchies',
     image: require('../../assets/snacks_munchies_category.png'),
     description: 'Chips, Cookies & Popcorn',

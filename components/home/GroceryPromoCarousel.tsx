@@ -51,8 +51,8 @@ const PROMO_SLIDES: BannerSlide[] = [
     badge: 'MOVIE NIGHT SPECIAL',
     actionText: 'Grab Munchies',
     gradient: ['#f59e0b', '#d97706'], // Amber Yellow
-    route: '/category/snacks-munchies',
-    params: { slug: 'snacks-munchies' },
+    route: '/category/snacks-biscuits',
+    params: { slug: 'snacks-biscuits' },
     emoji: '🍿',
   },
   {

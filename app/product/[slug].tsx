@@ -21,7 +21,7 @@ import Logo from '../../components/shared/Logo';
 const CATEGORY_IMAGES: Record<string, any> = {
   'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
   'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-munchies': require('../../assets/snacks_munchies_category.png'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
   'beverages': require('../../assets/beverages_category.png'),
   'personal-care': require('../../assets/personal_care_category.png'),
   'household': require('../../assets/household_category.png'),
@@ -203,7 +203,7 @@ export default function ProductDetailScreen() {
     let categoryKey = '';
     if (prefix === 'fv') categoryKey = 'fruits-vegetables';
     else if (prefix === 'db') categoryKey = 'dairy-breakfast';
-    else if (prefix === 'sm') categoryKey = 'snacks-munchies';
+    else if (prefix === 'sm') categoryKey = 'snacks-biscuits';
     else if (prefix === 'bv') categoryKey = 'beverages';
     else if (prefix === 'pc') categoryKey = 'personal-care';
     else if (prefix === 'hh') categoryKey = 'household';

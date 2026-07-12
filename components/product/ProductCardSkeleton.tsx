@@ -48,7 +48,7 @@ export default function ProductCardSkeleton({ className }: ProductCardSkeletonPr
 
 const styles = StyleSheet.create({
   cardContainer: {
-    width: (width - 44) / 2, // Fits 2-column flex layout perfectly with gap margins
+    width: '48%',
     borderWidth: 1,
     borderRadius: 16,
     padding: 10,
