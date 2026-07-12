@@ -3,13 +3,17 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef } from 'react';
 import { router } from 'expo-router';
-import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles, CheckCircle2, AlertTriangle } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useUIStore } from '../stores/ui-store';
 import { useTheme } from './context/ThemeContext';
 import { triggerHaptic } from '../lib/haptic';
 import { API_BASE_URL } from '../lib/constants';
 import { api } from '../lib/api-client';
+import { WebView } from 'react-native-webview';
+import Constants from 'expo-constants';
+import { LinearGradient } from 'expo-linear-gradient';
+import Animated, { ZoomIn } from 'react-native-reanimated';
 
 let MapView: any;
 let Marker: any;
@@ -60,6 +64,33 @@ export default function LocationPickerScreen() {
   const [distance, setDistance] = useState(0);
 
   const mapRef = useRef<any>(null);
+  const webViewRef = useRef<any>(null);
+  const [successModalVisible, setSuccessModalVisible] = useState(false);
+  const [confirmedStoreName, setConfirmedStoreName] = useState('');
+  const [confirmedSurgeCharge, setConfirmedSurgeCharge] = useState(0);
+
+  const onWebViewMessage = (event: any) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === 'MAP_CLICK') {
+        triggerHaptic('light');
+        setMarkerCoords({
+          latitude: data.lat,
+          longitude: data.lng
+        });
+      }
+    } catch (err) {
+      console.warn('WebView message parse error:', err);
+    }
+  };
+
+  useEffect(() => {
+    webViewRef.current?.postMessage(JSON.stringify({
+      type: 'CENTER_MAP',
+      lat: markerCoords.latitude,
+      lng: markerCoords.longitude
+    }));
+  }, [markerCoords.latitude, markerCoords.longitude]);
 
   // Haversine formula to compute distance in km
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
@@ -234,19 +265,9 @@ export default function LocationPickerScreen() {
       });
 
       triggerHaptic('success');
-      Alert.alert(
-        'Delivery Store Configured',
-        `Your order will be fulfilled by: ${store.name || 'FastKirana Hub'}.${
-          store.surgeCharge > 0 ? `\n\nNote: A weather/surge charge of ₹${store.surgeCharge} is currently applicable in this area.` : ''
-        }`,
-        [{ text: 'Continue', onPress: () => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/');
-          }
-        }}]
-      );
+      setConfirmedStoreName(store ? store.name : 'FastKirana Hub');
+      setConfirmedSurgeCharge(store ? store.surgeCharge : 0.0);
+      setSuccessModalVisible(true);
     } catch (err) {
       console.error(err);
       // Fallback
@@ -259,23 +280,17 @@ export default function LocationPickerScreen() {
         groceryMartOpen: true,
         cafeOpen: true
       });
-      Alert.alert(
-        'Location Confirmed',
-        'Your location has been set. Fulfilling from central default store.',
-        [{ text: 'Continue', onPress: () => {
-          if (router.canGoBack()) {
-            router.back();
-          } else {
-            router.replace('/');
-          }
-        }}]
-      );
+      triggerHaptic('warning');
+      setConfirmedStoreName('FastKirana Central Hub');
+      setConfirmedSurgeCharge(0.0);
+      setSuccessModalVisible(true);
     } finally {
       setIsValidating(false);
     }
   };
 
   const isWithinZone = distance <= deliveryRadius;
+  const isExpoGo = Constants.appOwnership === 'expo';
 
   return (
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
@@ -348,19 +363,111 @@ export default function LocationPickerScreen() {
         </Pressable>
 
         {/* Map View */}
-        <View className="flex-1 min-h-[280px] relative bg-slate-100 dark:bg-zinc-900 border-y border-slate-200 dark:border-zinc-800">
+        <View className="flex-1 min-h-[300px] relative bg-slate-100 dark:bg-zinc-900 border-y border-slate-200 dark:border-zinc-800 overflow-hidden">
           {Platform.OS === 'web' ? (
-            <View className="w-full h-full relative" style={{ minHeight: 280 }}>
+            <View className="w-full h-full relative" style={{ minHeight: 300 }}>
               <iframe
                 title="Delivery Location Map"
                 src={`https://maps.google.com/maps?q=${markerCoords.latitude},${markerCoords.longitude}&z=15&output=embed`}
-                style={{ width: '100%', height: '100%', border: 'none', minHeight: 280 }}
+                style={{ width: '100%', height: '100%', border: 'none', minHeight: 300 }}
               />
               <View className="absolute bottom-2 left-2 bg-white/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 shadow-sm">
                 <Text className="text-[9px] text-slate-600 dark:text-zinc-400 font-bold">
                   Coordinates: {(markerCoords?.latitude || 26.1534185).toFixed(6)}, {(markerCoords?.longitude || 80.1714024).toFixed(6)}
                 </Text>
               </View>
+            </View>
+          ) : isExpoGo && Platform.OS === 'android' ? (
+            // Modern Interactive Leaflet Map for Expo Go Android
+            <View className="w-full h-full relative" style={{ minHeight: 300 }}>
+              <WebView
+                ref={webViewRef}
+                originWhitelist={['*']}
+                source={{ html: `
+                  <!DOCTYPE html>
+                  <html>
+                  <head>
+                    <meta charset="utf-8" />
+                    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+                    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+                    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+                    <style>
+                      body, html, #map {
+                        margin: 0; padding: 0; height: 100%; width: 100%;
+                        background-color: ${isDark ? '#09090b' : '#fafbfe'};
+                      }
+                      .leaflet-control-zoom {
+                        border: none !important;
+                        box-shadow: 0 4px 10px rgba(0,0,0,0.12) !important;
+                      }
+                      .leaflet-bar a {
+                        background-color: ${isDark ? '#1c1c1f' : '#ffffff'} !important;
+                        color: ${isDark ? '#ffffff' : '#0f172a'} !important;
+                        border: 1px solid ${isDark ? '#27272a' : '#e2e8f0'} !important;
+                      }
+                    </style>
+                  </head>
+                  <body>
+                    <div id="map"></div>
+                    <script>
+                      var map = L.map('map', {
+                        zoomControl: true,
+                        attributionControl: false
+                      }).setView([${markerCoords.latitude}, ${markerCoords.longitude}], 15);
+
+                      var tileUrl = '${isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'}';
+                      L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(map);
+
+                      var storeIcon = L.divIcon({
+                        className: 'store-icon',
+                        html: '<div style="width: 32px; height: 32px; border-radius: 16px; background-color: #e20a22; border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.25); font-size: 14px;">📦</div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                      });
+
+                      var userIcon = L.divIcon({
+                        className: 'user-icon',
+                        html: '<div style="width: 32px; height: 32px; border-radius: 16px; background-color: #4f46e5; border: 2.5px solid white; display: flex; align-items: center; justify-content: center; box-shadow: 0 4px 8px rgba(0,0,0,0.25); font-size: 14px;">📍</div>',
+                        iconSize: [32, 32],
+                        iconAnchor: [16, 16]
+                      });
+
+                      L.marker([${storeLat}, ${storeLng}], { icon: storeIcon }).addTo(map);
+                      var userMarker = L.marker([${markerCoords.latitude}, ${markerCoords.longitude}], { icon: userIcon, draggable: true }).addTo(map);
+
+                      L.circle([${storeLat}, ${storeLng}], {
+                        color: '#f43f5e',
+                        fillColor: '#f43f5e',
+                        fillOpacity: 0.08,
+                        radius: ${deliveryRadius * 1000}
+                      }).addTo(map);
+
+                      userMarker.on('dragend', function(e) {
+                        var pos = userMarker.getLatLng();
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_CLICK', lat: pos.lat, lng: pos.lng }));
+                      });
+
+                      map.on('click', function(e) {
+                        userMarker.setLatLng(e.latlng);
+                        window.ReactNativeWebView.postMessage(JSON.stringify({ type: 'MAP_CLICK', lat: e.latlng.lat, lng: e.latlng.lng }));
+                      });
+
+                      window.addEventListener('message', function(e) {
+                        try {
+                          var data = JSON.parse(e.data);
+                          if (data.type === 'CENTER_MAP') {
+                            map.setView([data.lat, data.lng], 15);
+                            userMarker.setLatLng([data.lat, data.lng]);
+                          }
+                        } catch(err) {}
+                      });
+                    </script>
+                  </body>
+                  </html>
+                ` }}
+                onMessage={onWebViewMessage}
+                style={{ width: '100%', height: '100%', backgroundColor: isDark ? '#09090b' : '#fafbfe' }}
+              />
             </View>
           ) : !MapView ? (
             <View className="w-full h-full justify-center items-center p-6 bg-slate-50 dark:bg-zinc-900 gap-2">
@@ -488,6 +595,146 @@ export default function LocationPickerScreen() {
           </Pressable>
         </View>
       </ScrollView>
+
+      {/* Premium Custom Success Modal */}
+      {successModalVisible && (
+        <View style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          bottom: 0,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          zIndex: 1000,
+          padding: 24,
+        }}>
+          <Animated.View 
+            entering={ZoomIn.duration(350).springify()}
+            style={{
+              width: '100%',
+              maxWidth: 320,
+              borderRadius: 24,
+              backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+              padding: 24,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 15,
+              elevation: 8,
+            }}
+          >
+            {/* Pulsing Success Icon */}
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 14,
+            }}>
+              <CheckCircle2 size={28} color="#10b981" strokeWidth={2.5} />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={{
+              fontSize: 16,
+              fontWeight: '900',
+              color: isDark ? '#ffffff' : '#0f172a',
+              textAlign: 'center',
+              marginBottom: 8,
+            }}>
+              Location Configured!
+            </Text>
+
+            {/* Store details */}
+            <Text style={{
+              fontSize: 12,
+              color: isDark ? '#a1a1aa' : '#475569',
+              textAlign: 'center',
+              lineHeight: 18,
+              marginBottom: 16,
+              fontWeight: '600',
+            }}>
+              Your order will be fulfilled by our {"\n"}
+              <Text style={{ fontWeight: '900', color: '#e20a22' }}>
+                {confirmedStoreName || 'FastKirana Store'}
+              </Text>.
+            </Text>
+
+            {/* Surge Charge Banner if applicable */}
+            {confirmedSurgeCharge > 0 && (
+              <View style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 8,
+                padding: 10,
+                borderRadius: 12,
+                backgroundColor: isDark ? 'rgba(217, 119, 6, 0.12)' : '#fffbeb',
+                borderWidth: 1,
+                borderColor: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fde68a',
+                marginBottom: 18,
+              }}>
+                <AlertTriangle size={14} color="#d97706" />
+                <Text style={{
+                  flex: 1,
+                  fontSize: 10,
+                  color: isDark ? '#fbbf24' : '#b45309',
+                  fontWeight: '700',
+                }}>
+                  Surge charge of ₹{confirmedSurgeCharge} is active due to weather/high demand.
+                </Text>
+              </View>
+            )}
+
+            {/* Continue Button */}
+            <Pressable
+              onPress={() => {
+                triggerHaptic('success');
+                setSuccessModalVisible(false);
+                if (router.canGoBack()) {
+                  router.back();
+                } else {
+                  router.replace('/');
+                }
+              }}
+              style={({ pressed }) => ({
+                width: '100%',
+                borderRadius: 12,
+                overflow: 'hidden',
+                opacity: pressed ? 0.9 : 1,
+                transform: [{ scale: pressed ? 0.98 : 1 }],
+              })}
+            >
+              <LinearGradient
+                colors={['#e20a22', '#dc2626']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
+                style={{
+                  paddingVertical: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                }}
+              >
+                <Text style={{
+                  fontSize: 12,
+                  fontWeight: '900',
+                  color: '#ffffff',
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.6,
+                }}>
+                  Start Shopping
+                </Text>
+              </LinearGradient>
+            </Pressable>
+          </Animated.View>
+        </View>
+      )}
     </SafeAreaView>
   );
 }
