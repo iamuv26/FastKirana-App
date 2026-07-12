@@ -153,13 +153,13 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
               <Minus size={12} color={brandColor} strokeWidth={3.5} />
             </Pressable>
             
-            <View style={{ width: 1, height: 14, backgroundColor: brandSep }} />
+            <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
-            <View style={{ flex: 1.2, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-              <Text style={{ color: isDarkMode ? '#fafafa' : '#1f2937', fontSize: 12, fontWeight: '950' }}>{quantity}</Text>
+            <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
             </View>
 
-            <View style={{ width: 1, height: 14, backgroundColor: brandSep }} />
+            <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
             <Pressable
               onPress={handleIncrement}

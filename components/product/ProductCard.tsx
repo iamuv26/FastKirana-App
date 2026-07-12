@@ -461,13 +461,13 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       <Minus size={11} color="#ea580c" strokeWidth={3.5} />
                     </Pressable>
                     
-                    <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fed7aa' }} />
+                    <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fdba74' }} />
 
-                    <View style={{ flex: 1.2, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: isDark ? '#fafafa' : '#1f2937', fontSize: 11, fontWeight: '950' }}>{quantity}</Text>
+                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
                     </View>
 
-                    <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fed7aa' }} />
+                    <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fdba74' }} />
 
                     <Pressable 
                       onPress={handleIncrement} 
@@ -767,13 +767,13 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     <Minus size={13} color="#e11d48" strokeWidth={3.5} />
                   </Pressable>
                   
-                  <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fbcfe8' }} />
+                  <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fda4af' }} />
 
-                  <View style={{ flex: 1.2, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
-                    <Text style={{ color: isDark ? '#fafafa' : '#1f2937', fontSize: 13, fontWeight: '950' }}>{quantity}</Text>
+                  <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 14, fontWeight: '900' }}>{quantity}</Text>
                   </View>
 
-                  <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fbcfe8' }} />
+                  <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fda4af' }} />
 
                   <Pressable
                     onPress={handleIncrement}
