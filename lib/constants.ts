@@ -56,7 +56,7 @@ export const CATEGORIES = [
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
   { name: 'Household', slug: 'household', emoji: '🏠' },
   { name: 'Bakery & Biscuits', slug: 'bakery', emoji: '🍞' },
-  { name: 'Atta, Rice & Dal', slug: 'atta-rice-dal', emoji: '🌾' },
+  { name: 'Atta, Rice & Dal', slug: 'grocery-essential', emoji: '🌾' },
 ] as const
 
 export const ORDER_STATUS_LABELS: Record<string, string> = {

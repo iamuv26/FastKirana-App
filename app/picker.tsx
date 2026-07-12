@@ -43,7 +43,7 @@ const CATEGORY_AISLES: Record<string, string> = {
   'dairy-breakfast': 'Aisle 2 (Chilled Dairy)',
   'snacks-biscuits': 'Aisle 3 (Snacks)',
   'beverages': 'Aisle 4 (Beverages)',
-  'atta-rice-dal': 'Aisle 5 (Staples)',
+  'grocery-essential': 'Aisle 5 (Staples)',
   'personal-care': 'Aisle 6 (Hygiene)',
   'household': 'Aisle 7 (Cleaning)',
   'bakery': 'Aisle 8 (Bakery)',

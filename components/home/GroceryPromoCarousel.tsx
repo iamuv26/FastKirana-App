@@ -29,8 +29,8 @@ const PROMO_SLIDES: BannerSlide[] = [
     badge: 'UP TO 30% OFF',
     actionText: 'Shop Staples',
     gradient: ['#e20a22', '#ff5a5a'], // Brand Red/Rose
-    route: '/category/atta-rice-dal',
-    params: { slug: 'atta-rice-dal' },
+    route: '/category/grocery-essential',
+    params: { slug: 'grocery-essential' },
     emoji: '🌾',
   },
   {

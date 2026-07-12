@@ -72,7 +72,7 @@ const LOCAL_CATEGORY_CONFIGS: Record<string, { name: string; image: any; descrip
     description: 'Fresh Bread, Buns & Cookies',
     color: '#c2410c' // orange-700
   },
-  'atta-rice-dal': {
+  'grocery-essential': {
     name: 'Atta, Rice & Dal',
     image: require('../../assets/atta_rice_dal_category.png'),
     description: 'Grains, Flours & Lentils',

@@ -169,7 +169,7 @@ const CATEGORY_AISLES: Record<string, string> = {
   'dairy-breakfast': 'Aisle 2 (Chilled Dairy)',
   'snacks-biscuits': 'Aisle 3 (Snacks)',
   'beverages': 'Aisle 4 (Beverages)',
-  'atta-rice-dal': 'Aisle 5 (Staples)',
+  'grocery-essential': 'Aisle 5 (Staples)',
   'personal-care': 'Aisle 6 (Hygiene)',
   'household': 'Aisle 7 (Cleaning)',
   'bakery': 'Aisle 8 (Bakery)',
@@ -236,8 +236,8 @@ export const mockOrdersList: Order[] = [
     user: { name: 'Sanjay Kumar', phone: '7766554433' },
     address: { houseNo: 'Plot 88', street: 'Kalyanpur', area: 'Ghatampur', city: 'Kanpur', pincode: '209206' },
     items: [
-      { id: 'it-6', name: 'Aashirvaad Atta 5kg', price: 270, quantity: 2, imageUrl: null, location: 'Aisle 5 (Staples)', categorySlug: 'atta-rice-dal', cooked: false },
-      { id: 'it-7', name: 'Fortune Soya Oil 1L', price: 140, quantity: 2, imageUrl: null, location: 'Aisle 5 (Staples)', categorySlug: 'atta-rice-dal', cooked: false }
+      { id: 'it-6', name: 'Aashirvaad Atta 5kg', price: 270, quantity: 2, imageUrl: null, location: 'Aisle 5 (Staples)', categorySlug: 'grocery-essential', cooked: false },
+      { id: 'it-7', name: 'Fortune Soya Oil 1L', price: 140, quantity: 2, imageUrl: null, location: 'Aisle 5 (Staples)', categorySlug: 'grocery-essential', cooked: false }
     ],
     binName: 'Bin-B12'
   }

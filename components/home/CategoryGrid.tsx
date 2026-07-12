@@ -20,7 +20,7 @@ interface LocalConfig {
 const LOCAL_CONFIGS: Record<string, LocalConfig> = {
   'fruits-vegetables': { name: 'Fruits & Veg', image: require('../../assets/fruits_vegetables_category.png'), colors: ['#f0fdf4', '#dcfce7'], darkColors: ['#064e3b', '#022c22'] },
   'dairy-breakfast': { name: 'Milk & Dairy', image: require('../../assets/dairy_breakfast_category.png'), colors: ['#eff6ff', '#dbeafe'], darkColors: ['#1e3a8a', '#172554'] },
-  'atta-rice-dal': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.png'), colors: ['#fefce8', '#fef9c3'], darkColors: ['#713f12', '#451a03'] },
+  'grocery-essential': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.png'), colors: ['#fefce8', '#fef9c3'], darkColors: ['#713f12', '#451a03'] },
   'snacks-biscuits': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.png'), colors: ['#fff7ed', '#ffedd5'], darkColors: ['#7c2d12', '#431407'] },
   'beverages': { name: 'Beverages', image: require('../../assets/beverages_category.png'), colors: ['#f0f9ff', '#e0f2fe'], darkColors: ['#0c4a6e', '#082f49'] },
   'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.png'), colors: ['#fafaf9', '#f5f5f4'], darkColors: ['#44403c', '#292524'] },

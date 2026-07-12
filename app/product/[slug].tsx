@@ -26,7 +26,7 @@ const CATEGORY_IMAGES: Record<string, any> = {
   'personal-care': require('../../assets/personal_care_category.png'),
   'household': require('../../assets/household_category.png'),
   'bakery': require('../../assets/bakery_biscuits_category.png'),
-  'atta-rice-dal': require('../../assets/atta_rice_dal_category.png'),
+  'grocery-essential': require('../../assets/atta_rice_dal_category.png'),
   'cafe': require('../../assets/cafe_category.png'),
 };
 
@@ -208,7 +208,7 @@ export default function ProductDetailScreen() {
     else if (prefix === 'pc') categoryKey = 'personal-care';
     else if (prefix === 'hh') categoryKey = 'household';
     else if (prefix === 'bb') categoryKey = 'bakery';
-    else if (prefix === 'de' || prefix === 'oi') categoryKey = 'atta-rice-dal';
+    else if (prefix === 'de' || prefix === 'oi') categoryKey = 'grocery-essential';
     
     return CATEGORY_IMAGES[categoryKey] || null;
   };

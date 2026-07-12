@@ -1044,7 +1044,7 @@ export default function HomeScreen() {
       return {
         title: 'Lunch Time Picks',
         subtitle: 'Spices, staples and produce',
-        categories: ['atta-rice-dal', 'fruits-vegetables']
+        categories: ['grocery-essential', 'fruits-vegetables']
       };
     } else if (currentHour >= 16 && currentHour < 20) {
       return {
@@ -1074,7 +1074,7 @@ export default function HomeScreen() {
       if (prefix === 'db' && timeDetails.categories.includes('dairy-breakfast')) return true;
       if (prefix === 'bb' && timeDetails.categories.includes('bakery')) return true;
       if (prefix === 'fv' && timeDetails.categories.includes('fruits-vegetables')) return true;
-      if (prefix === 'de' && timeDetails.categories.includes('atta-rice-dal')) return true;
+      if (prefix === 'de' && timeDetails.categories.includes('grocery-essential')) return true;
       if (prefix === 'sm' && timeDetails.categories.includes('snacks-biscuits')) return true;
       if (prefix === 'bv' && timeDetails.categories.includes('beverages')) return true;
       

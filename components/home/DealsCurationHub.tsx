@@ -211,7 +211,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 11 AM - 4 PM: Lunch
     else if (currentHour >= 11 && currentHour < 16) {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'atta-rice-dal' || p.category?.slug === 'fruits-vegetables' || p.id.startsWith('de') || p.id.startsWith('fv') || p.tags?.includes('lunch') || p.tags?.includes('staples')));
+      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'grocery-essential' || p.category?.slug === 'fruits-vegetables' || p.id.startsWith('de') || p.id.startsWith('fv') || p.tags?.includes('lunch') || p.tags?.includes('staples')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Lunch',

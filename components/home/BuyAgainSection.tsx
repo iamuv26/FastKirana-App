@@ -51,7 +51,7 @@ const MOCK_BUY_AGAIN_ITEMS: BuyAgainItem[] = [
     mrp: 295,
     unit: '5 kg',
     lastOrderedDays: 12,
-    categorySlug: 'atta-rice-dal',
+    categorySlug: 'grocery-essential',
   },
   {
     id: 'bb1',
