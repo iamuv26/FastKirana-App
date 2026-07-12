@@ -49,7 +49,7 @@ export function getAppImageSource(imgUrl: string | null | undefined, width = 250
 
 export function formatHeaderAddress(address: string | null | undefined): string {
   if (!address || address === 'Select Location') return 'Select Location';
-  if (address.startsWith('Lat:')) return 'Swaroop Nagar, Kanpur';
+  if (address.startsWith('Lat:')) return address;
   
   const parts = address.split(',')
     .map(p => p.trim())
