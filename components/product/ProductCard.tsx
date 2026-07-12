@@ -434,7 +434,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   </AnimatedPressable>
                 ) : (
                   <Animated.View
-                    entering={FadeIn.duration(150)}
+                    entering={FadeInDown.springify().damping(11).stiffness(180)}
                     exiting={FadeOut.duration(150)}
                     style={{
                       position: 'absolute',
@@ -452,7 +452,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   >
                     <Pressable 
                       onPress={handleDecrement} 
-                      style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}
+                      style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 }]}
                     >
                       <Minus size={11} color="#ffffff" strokeWidth={3.5} />
                     </Pressable>
@@ -462,7 +462,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     <Pressable 
                       onPress={handleIncrement} 
                       disabled={quantity >= resolvedStock}
-                      style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: quantity >= resolvedStock ? 0.4 : 1 }}
+                      style={({ pressed }) => [
+                        { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' },
+                        quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.5 } : { opacity: 1 })
+                      ]}
                     >
                       <Plus size={11} color="#ffffff" strokeWidth={3.5} />
                     </Pressable>
@@ -730,14 +733,17 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 </AnimatedPressable>
               ) : (
                 <Animated.View 
-                  entering={FadeIn.duration(150)}
+                  entering={FadeInDown.springify().damping(11).stiffness(180)}
                   exiting={FadeOut.duration(150)}
                   style={[
                     styles.stepperWrap,
                     resolvedIsFlash && { backgroundColor: '#dc2626' }
                   ]}
                 >
-                  <Pressable onPress={handleDecrement} style={styles.stepperBtn}>
+                  <Pressable 
+                    onPress={handleDecrement} 
+                    style={({ pressed }) => [styles.stepperBtn, pressed && { opacity: 0.5 }]}
+                  >
                     <Minus size={13} color="#ffffff" strokeWidth={3} />
                   </Pressable>
                   <View style={styles.stepperQty}>
@@ -746,7 +752,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   <Pressable
                     onPress={handleIncrement}
                     disabled={quantity >= resolvedStock}
-                    style={[styles.stepperBtn, quantity >= resolvedStock && { opacity: 0.4 }]}
+                    style={({ pressed }) => [
+                      styles.stepperBtn,
+                      quantity >= resolvedStock ? { opacity: 0.4 } : (pressed && { opacity: 0.5 })
+                    ]}
                   >
                     <Plus size={13} color="#ffffff" strokeWidth={3} />
                   </Pressable>

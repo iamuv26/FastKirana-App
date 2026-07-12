@@ -766,7 +766,7 @@ export default function CartScreen() {
         <Pressable 
           onPress={() => { triggerHaptic('medium'); handleCheckoutRedirect(); }}
           disabled={isCheckoutBlocked}
-          className={`px-6 py-3.5 rounded-xl flex-row items-center gap-1.5 shadow-xs ${
+          className={`px-6 py-3.5 rounded-xl flex-row items-center gap-1.5 shadow-xs active:scale-95 active:opacity-85 ${
             isCheckoutBlocked ? 'bg-slate-300 dark:bg-zinc-700' : 'bg-rose-600 active:bg-rose-700'
           }`}
         >

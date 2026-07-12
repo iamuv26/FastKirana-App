@@ -182,7 +182,7 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
     >
       <TouchableOpacity 
         onPress={handlePress}
-        activeOpacity={0.9}
+        activeOpacity={0.65}
         style={[
           styles.innerCard,
           {

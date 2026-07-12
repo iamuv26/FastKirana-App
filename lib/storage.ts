@@ -1,18 +1,17 @@
 import { StateStorage } from 'zustand/middleware';
 
-// Pure JavaScript in-memory storage for diagnostics.
-// This removes all native module dependencies (MMKV, FileSystem, etc.) to isolate the startup crash.
-const store: Record<string, string> = {};
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 const mmkvStorage: StateStorage = {
   setItem: (name, value) => {
-    store[name] = value;
+    return AsyncStorage.setItem(name, value);
   },
-  getItem: (name) => {
-    return store[name] || null;
+  getItem: async (name) => {
+    const value = await AsyncStorage.getItem(name);
+    return value ?? null;
   },
   removeItem: (name) => {
-    delete store[name];
+    return AsyncStorage.removeItem(name);
   },
 };
 

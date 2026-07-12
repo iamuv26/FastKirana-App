@@ -243,7 +243,7 @@ export default function RootLayout() {
                   elevation: 5,
                 } : { width: '100%', height: '100%' }}
               >
-                <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureDirection: 'horizontal', animation: 'slide_from_right', headerBackVisible: false }}>
+                <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureDirection: 'horizontal', animation: 'default', headerBackVisible: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
