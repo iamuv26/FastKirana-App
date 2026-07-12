@@ -884,62 +884,68 @@ export default function AccountScreen() {
 
             {/* Action Buttons Row */}
             <View style={{ flexDirection: 'row', gap: 12, width: '100%', marginTop: 8 }}>
-              <Pressable
-                onPress={() => {
-                  triggerHaptic('light');
-                  setIsLogoutModalVisible(false);
-                }}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 44,
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: pressed 
-                    ? (isDarkMode ? '#27272a' : '#f8fafc')
-                    : (isDarkMode ? '#18181b' : '#ffffff'),
-                  transform: [{ scale: pressed ? 0.97 : 1 }]
-                })}
-              >
-                <Text style={{
-                  color: isDarkMode ? '#cbd5e1' : '#475569',
-                  fontWeight: '800',
-                  fontSize: 12,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5
-                }}>
-                  Cancel
-                </Text>
-              </Pressable>
+              {/* Cancel Button Wrapper */}
+              <View style={{ flex: 1 }}>
+                <Pressable
+                  onPress={() => {
+                    triggerHaptic('light');
+                    setIsLogoutModalVisible(false);
+                  }}
+                  style={({ pressed }) => ({
+                    width: '100%',
+                    height: 44,
+                    borderWidth: 1.5,
+                    borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: pressed 
+                      ? (isDarkMode ? '#27272a' : '#f1f5f9')
+                      : (isDarkMode ? '#18181b' : '#ffffff'),
+                    transform: [{ scale: pressed ? 0.97 : 1 }]
+                  })}
+                >
+                  <Text style={{
+                    color: isDarkMode ? '#cbd5e1' : '#475569',
+                    fontWeight: '800',
+                    fontSize: 12,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5
+                  }}>
+                    Cancel
+                  </Text>
+                </Pressable>
+              </View>
 
-              <Pressable
-                onPress={() => {
-                  triggerHaptic('medium');
-                  setIsLogoutModalVisible(false);
-                  logout();
-                }}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: 44,
-                  borderRadius: 14,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: pressed ? '#b91c1c' : '#ef4444',
-                  transform: [{ scale: pressed ? 0.97 : 1 }]
-                })}
-              >
-                <Text style={{
-                  color: '#ffffff',
-                  fontWeight: '900',
-                  fontSize: 12,
-                  textTransform: 'uppercase',
-                  letterSpacing: 0.5
-                }}>
-                  Logout
-                </Text>
-              </Pressable>
+              {/* Logout Button Wrapper */}
+              <View style={{ flex: 1 }}>
+                <Pressable
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    setIsLogoutModalVisible(false);
+                    logout();
+                  }}
+                  style={({ pressed }) => ({
+                    width: '100%',
+                    height: 44,
+                    borderRadius: 14,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    backgroundColor: pressed ? '#b91c1c' : '#ef4444',
+                    transform: [{ scale: pressed ? 0.97 : 1 }]
+                  })}
+                >
+                  <Text style={{
+                    color: '#ffffff',
+                    fontWeight: '900',
+                    fontSize: 12,
+                    textTransform: 'uppercase',
+                    letterSpacing: 0.5
+                  }}>
+                    Logout
+                  </Text>
+                </Pressable>
+              </View>
             </View>
           </View>
         </View>
