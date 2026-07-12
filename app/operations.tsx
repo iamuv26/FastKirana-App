@@ -2208,7 +2208,9 @@ export default function OperationsScreen() {
           parseInt(storeOpenHourState),
           parseInt(storeCloseHourState),
           holidaysState.split(',').map(h => h.trim()),
-          parseFloat(surgeMultiplierState)
+          parseFloat(surgeMultiplierState),
+          parseFloat(taxRate),
+          onlyCod
         );
         toast.success('Settings saved successfully!');
       } else {
