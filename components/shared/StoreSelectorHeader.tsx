@@ -18,7 +18,7 @@ export default function StoreSelectorHeader({ activeStore }: StoreSelectorHeader
     
     triggerHaptic('light');
     if (store === 'grocery') {
-      router.replace('/(tabs)');
+      router.back();
     } else {
       router.push('/cafe');
     }

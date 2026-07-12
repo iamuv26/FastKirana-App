@@ -118,21 +118,19 @@ function TabBarBackground() {
           },
         ]}
       />
-      {Platform.OS !== 'android' ? (
-        <BlurView
-          intensity={isDarkMode ? 50 : 70}
-          tint={isDarkMode ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
-      ) : null}
+      <BlurView
+        intensity={isDarkMode ? 50 : 70}
+        tint={isDarkMode ? 'dark' : 'light'}
+        style={StyleSheet.absoluteFill}
+      />
       {/* Solid background to prevent content showing through and overlapping */}
       <View
         style={[
           StyleSheet.absoluteFill,
           {
             backgroundColor: isDarkMode
-              ? '#111827'
-              : '#ffffff',
+              ? 'rgba(17, 24, 39, 0.75)'
+              : 'rgba(255, 255, 255, 0.8)',
           },
         ]}
       />

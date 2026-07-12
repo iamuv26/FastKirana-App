@@ -615,7 +615,7 @@ export default function CafeScreen() {
           <Pressable 
             onPress={() => {
               triggerHaptic('light');
-              router.replace('/(tabs)');
+              router.back();
             }} 
             style={({ pressed }) => ({
               opacity: pressed ? 0.85 : 1,
@@ -695,7 +695,7 @@ export default function CafeScreen() {
           <Pressable
             onPress={() => {
               triggerHaptic('light');
-              router.replace('/(tabs)');
+              router.back();
             }}
             style={{
               flex: 1,
