@@ -674,18 +674,18 @@ export default function LocationPickerScreen() {
               Location Configured!
             </Text>
 
-            {/* Store details */}
+             {/* Store details */}
             <Text style={{
-              fontSize: 12,
-              color: isDark ? '#a1a1aa' : '#475569',
+              fontSize: 13,
+              color: isDark ? '#cbd5e1' : '#334155',
               textAlign: 'center',
-              lineHeight: 18,
-              marginBottom: 16,
+              lineHeight: 20,
+              marginBottom: 18,
               fontWeight: '600',
             }}>
-              Your order will be fulfilled by our {"\n"}
-              <Text style={{ fontWeight: '900', color: '#e20a22' }}>
-                {confirmedStoreName || 'FastKirana Store'}
+              Your order will be fulfilled by{"\n"}
+              <Text style={{ fontWeight: '800', color: '#e20a22' }}>
+                {confirmedStoreName === 'Ghatampur' ? 'FastKirana Store' : (confirmedStoreName || 'FastKirana Store')}
               </Text>.
             </Text>
 
@@ -742,25 +742,26 @@ export default function LocationPickerScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
                 style={{
-                  paddingVertical: 14,
+                  paddingVertical: 15,
+                  paddingHorizontal: 20,
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'row',
                   borderRadius: 24,
-                  gap: 8,
+                  gap: 10,
                 }}
               >
-                <ShoppingBag size={15} color="#ffffff" style={{ marginRight: 2 }} />
+                <ShoppingBag size={16} color="#ffffff" style={{ marginRight: 2 }} />
                 <Text style={{
-                  fontSize: 13,
-                  fontWeight: '900',
+                  fontSize: 14,
+                  fontWeight: '800',
                   color: '#ffffff',
                   textTransform: 'uppercase',
-                  letterSpacing: 1.2,
+                  letterSpacing: 1.0,
                 }}>
                   Start Shopping
                 </Text>
-                <ChevronRight size={15} color="#ffffff" />
+                <ChevronRight size={16} color="#ffffff" />
               </LinearGradient>
             </Pressable>
           </Animated.View>

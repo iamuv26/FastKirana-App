@@ -4,7 +4,7 @@ import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context'
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 const { width: rawWidth } = Dimensions.get('window');
 const width = rawWidth > 768 ? 540 : rawWidth;
-import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Bell } from 'lucide-react-native';
+import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Bell, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
@@ -326,42 +326,49 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           </Text>
           
           {/* Elegant Time Capsule */}
-          <View style={{
-            backgroundColor: isDarkMode ? 'rgba(226, 10, 34, 0.06)' : 'rgba(226, 10, 34, 0.03)',
-            borderWidth: 1,
-            borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.2)' : 'rgba(226, 10, 34, 0.08)',
-            borderRadius: 18,
-            paddingHorizontal: 24,
-            paddingVertical: 6,
-            marginTop: 6,
-            shadowColor: '#e20a22',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.04,
-            shadowRadius: 6,
-            elevation: 1,
-          }}>
+          <LinearGradient
+            colors={['#e20a22', '#f43f5e']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{
+              borderRadius: 24,
+              paddingHorizontal: 26,
+              paddingVertical: 10,
+              marginTop: 10,
+              shadowColor: '#e20a22',
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: 0.3,
+              shadowRadius: 12,
+              elevation: 6,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 8,
+            }}
+          >
+            <Sparkles size={18} color="#ffffff" />
             <Text
               style={{
-                fontSize: 28,
+                fontSize: 26,
                 fontWeight: '900',
-                color: '#e20a22',
+                color: '#ffffff',
                 textAlign: 'center',
-                letterSpacing: -0.5,
+                letterSpacing: 0.5,
               }}
             >
               {openTimeStr}
             </Text>
-          </View>
+          </LinearGradient>
           
           <Text
             style={{
-              fontSize: 12,
-              color: isDarkMode ? '#c7c7cc' : '#475569',
+              fontSize: 13,
+              color: isDarkMode ? '#a1a1aa' : '#475569',
               textAlign: 'center',
-              marginTop: 12,
-              lineHeight: 16,
-              maxWidth: 260,
-              fontWeight: '500',
+              marginTop: 16,
+              lineHeight: 18,
+              maxWidth: 270,
+              fontWeight: '600',
             }}
           >
             Our team is resting up to bring you the freshest groceries & cafe treats tomorrow!
@@ -372,24 +379,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View
           entering={FadeInUp.delay(300).duration(400).springify()}
           style={{
-            marginTop: 18,
+            marginTop: 22,
             width: '100%',
             maxWidth: 320,
-            borderRadius: 20,
+            borderRadius: 24,
             overflow: 'hidden',
-            borderWidth: 1,
-            borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+            borderWidth: 1.5,
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: isDarkMode ? 0.25 : 0.03,
-            shadowRadius: 15,
-            elevation: 2,
+            shadowOffset: { width: 0, height: 8 },
+            shadowOpacity: isDarkMode ? 0.3 : 0.04,
+            shadowRadius: 16,
+            elevation: 4,
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
           }}
         >
-          <LinearGradient
-            colors={isDarkMode ? ['rgba(24,24,27,0.95)', 'rgba(18,18,20,0.95)'] : ['rgba(255,255,255,0.98)', 'rgba(248,250,252,0.98)']}
-            style={{ paddingHorizontal: 16, paddingVertical: 14 }}
-          >
+          <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <Text
                 style={{
@@ -458,7 +463,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 </View>
               </View>
             ))}
-          </LinearGradient>
+          </View>
         </Animated.View>
 
         {/* Notify me button */}

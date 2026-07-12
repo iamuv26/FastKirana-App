@@ -52,9 +52,9 @@ interface UIState {
 export const useUIStore = create<UIState>()(
   persist(
     (set) => ({
-      selectedLocation: 'Select Location',
-      userCoords: null,
-      shopName: '',
+      selectedLocation: 'Ghatampur Market, Kanpur',
+      userCoords: { lat: 26.1534185, lng: 80.1714024 },
+      shopName: 'Ghatampur',
       shopPhone: '',
       groceryMartOpen: true,
       cafeOpen: true,
@@ -62,7 +62,7 @@ export const useUIStore = create<UIState>()(
       storeLat: 26.1534185,
       storeLng: 80.1714024,
       activeVariantProduct: null,
-      assignedStoreId: null,
+      assignedStoreId: 'default-Ghatampur Market',
       surgeCharge: 0.0,
       minOrderValue: 0,
       storeOpenHour: 7,
@@ -122,9 +122,29 @@ export const useUIStore = create<UIState>()(
       storage: createJSONStorage(() => mmkvStorage),
       merge: (persistedState: any, currentState) => {
         if (!persistedState) return currentState;
+        
+        let mergedStoreId = persistedState.assignedStoreId;
+        let mergedShopName = persistedState.shopName;
+        let mergedLocation = persistedState.selectedLocation;
+        let mergedCoords = persistedState.userCoords;
+
+        // Force migrate old/empty store details to Ghatampur
+        if (!mergedStoreId || mergedStoreId === 'default-swaroop-nagar' || mergedStoreId === 'ghatampur') {
+          mergedStoreId = 'default-Ghatampur Market';
+          mergedShopName = 'Ghatampur';
+          if (!mergedLocation || mergedLocation === 'Select Location' || mergedLocation.includes('Swaroop Nagar')) {
+            mergedLocation = 'Ghatampur Market, Kanpur';
+            mergedCoords = { lat: 26.1534185, lng: 80.1714024 };
+          }
+        }
+
         return {
           ...currentState,
           ...persistedState,
+          assignedStoreId: mergedStoreId,
+          shopName: mergedShopName,
+          selectedLocation: mergedLocation,
+          userCoords: mergedCoords,
           storeLat: typeof persistedState.storeLat === 'number' ? persistedState.storeLat : currentState.storeLat,
           storeLng: typeof persistedState.storeLng === 'number' ? persistedState.storeLng : currentState.storeLng,
           deliveryRadius: typeof persistedState.deliveryRadius === 'number' ? persistedState.deliveryRadius : currentState.deliveryRadius,
