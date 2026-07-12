@@ -1,8 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, router, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import AnimatedSplashScreen from '../components/shared/AnimatedSplashScreen';
-
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 import { useAuthStore } from '../stores/auth-store';
@@ -115,7 +113,6 @@ function CartSynchronizer() {
 }
 
 export default function RootLayout() {
-  const [showSplash, setShowSplash] = useState(true);
   const { isLoggedIn, user } = useAuthStore();
   const { width } = useWindowDimensions();
   const isWide = width > 768;
@@ -280,7 +277,6 @@ export default function RootLayout() {
                 </Stack>
                  <VariantSelectorDrawer />
                  <CartSynchronizer />
-                 {showSplash && <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />}
                </View>
             </ErrorBoundary>
           </RootThemeWrapper>
