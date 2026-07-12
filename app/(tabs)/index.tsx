@@ -1652,41 +1652,66 @@ export default function HomeScreen() {
             <Pressable 
               onPress={handleReorderLast}
               style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.98 : 1 }],
+                transform: [{ scale: pressed ? 0.97 : 1 }],
                 marginHorizontal: 16,
-                marginBottom: 16,
-                borderRadius: 16,
+                marginBottom: 18,
+                borderRadius: 18,
                 overflow: 'hidden',
+                shadowColor: isDarkMode ? '#e11d48' : '#fda4af',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: isDarkMode ? 0.15 : 0.25,
+                shadowRadius: 10,
+                elevation: 4,
               }]}
             >
               <LinearGradient
-                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : ['#fff5f5', '#ffffff']}
+                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : ['#fff7ed', '#fff1f2']}
                 start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 0 }}
+                end={{ x: 1, y: 1 }}
                 style={{
-                  paddingHorizontal: 16,
-                  paddingVertical: 14,
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? '#2e1065' : '#ffe4e6',
-                  borderRadius: 16,
+                  paddingHorizontal: 18,
+                  paddingVertical: 15,
+                  borderWidth: 1.2,
+                  borderColor: isDarkMode ? '#312e81' : '#fecdd3',
+                  borderRadius: 18,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
-                <View className="flex-row items-center gap-3 flex-1 pr-2">
-                  <View className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/30 items-center justify-center">
-                    <RefreshCw size={18} color="#e11d48" />
+                <View className="flex-row items-center gap-3.5 flex-1 pr-3">
+                  <View className="w-11 h-11 rounded-full bg-rose-500/10 dark:bg-rose-500/15 items-center justify-center border border-rose-500/20">
+                    <RefreshCw size={18} color="#e11d48" strokeWidth={2.5} />
                   </View>
                   <View className="flex-1">
-                    <Text className="text-slate-800 dark:text-zinc-100 font-bold text-xs uppercase tracking-wider">Reorder Previous Order</Text>
-                    <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-semibold mt-0.5" numberOfLines={1}>
+                    <View className="flex-row items-center gap-1.5">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs uppercase tracking-wider">Reorder Last Order</Text>
+                      <View className="bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                        <Text className="text-rose-600 dark:text-rose-400 text-[8px] font-black uppercase">Quick</Text>
+                      </View>
+                    </View>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-bold mt-1" numberOfLines={1}>
                       {lastCompletedOrder.items?.map((it: any) => it.name).join(', ')}
                     </Text>
                   </View>
                 </View>
-                <View className="bg-rose-600 px-3 py-1.5 rounded-xl">
-                  <Text className="text-white font-bold text-[10px] uppercase tracking-wider">Reorder</Text>
+                
+                <View style={{ overflow: 'hidden', borderRadius: 99 }}>
+                  <LinearGradient
+                    colors={['#ea580c', '#e11d48']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      paddingHorizontal: 14,
+                      paddingVertical: 7,
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      gap: 4
+                    }}
+                  >
+                    <Text className="text-white font-black text-[10px] uppercase tracking-wider">Reorder</Text>
+                    <ChevronRight size={12} color="#fff" strokeWidth={3.5} />
+                  </LinearGradient>
                 </View>
               </LinearGradient>
             </Pressable>
