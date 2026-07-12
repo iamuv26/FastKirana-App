@@ -243,7 +243,6 @@ export default function CategoriesScreen() {
       if (!res.ok) throw new Error('API failed');
       return res.json();
     },
-    initialData: [],
     staleTime: 1000 * 60 * 15, // 15 mins cache validity
   });
 
@@ -252,12 +251,12 @@ export default function CategoriesScreen() {
     queryKey: ['cafe-total-count-all'],
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=1`);
-      if (!response.ok) return { pagination: { total: 80 } };
+      if (!response.ok) return { pagination: { total: 79 } };
       return response.json();
     },
     staleTime: 1000 * 60 * 15, // 15 mins cache validity
   });
-  const cafeCount = cafeProductsData?.pagination?.total ?? 80;
+  const cafeCount = cafeProductsData?.pagination?.total ?? 79;
 
   // Build the list of display categories based on local configs merged with server updates to ensure they never disappear
   const displayCategories = useMemo(() => {
@@ -268,11 +267,11 @@ export default function CategoriesScreen() {
       const resolvedImg = (serverCat && serverCat.imageUrl) ? getAppImageSource(serverCat.imageUrl) : null;
       const serverImage = resolvedImg ? resolvedImg.uri : null;
 
-      let itemCount = slug === 'cafe' ? cafeCount : 20;
-      if (serverCat) {
-        itemCount = serverCat._count?.products ?? 20;
-      } else if (slug === 'fruits-vegetables') {
-        itemCount = 32;
+      let itemCount = 0;
+      if (slug === 'cafe') {
+        itemCount = cafeCount;
+      } else if (serverCat) {
+        itemCount = serverCat._count?.products ?? 0;
       }
 
       return {
