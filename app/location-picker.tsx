@@ -560,9 +560,25 @@ export default function LocationPickerScreen() {
               <MapPin size={16} color="#e20a22" />
               <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm">Target Address</Text>
             </View>
-            <Text className="text-slate-500 dark:text-zinc-400 font-semibold text-xs leading-5">
-              {addressText}
-            </Text>
+            <TextInput
+              value={addressText}
+              onChangeText={setAddressText}
+              multiline
+              numberOfLines={2}
+              style={{
+                fontSize: 12,
+                color: isDark ? '#e4e4e7' : '#475569',
+                fontWeight: '600',
+                lineHeight: 18,
+                padding: 10,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                backgroundColor: isDark ? '#18181b' : '#f8fafc',
+                marginTop: 4,
+                textAlignVertical: 'top',
+              }}
+            />
           </View>
 
           {/* Distance and Delivery validation badge */}

@@ -87,6 +87,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   const blob2Y = useSharedValue(0);
   const [notified, setNotified] = useState(false);
 
+  const storeOpenHour = useUIStore((s) => s.storeOpenHour);
+  const storeCloseHour = useUIStore((s) => s.storeCloseHour);
+
   useEffect(() => {
     // Clock pulse animation
     pulse.value = withRepeat(
@@ -166,10 +169,19 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     transform: [{ translateX: blob2X.value }, { translateY: blob2Y.value }],
   }));
 
+  const formatHour = (hour: number) => {
+    if (hour === 0) return '12:00 AM';
+    if (hour === 12) return '12:00 PM';
+    return hour > 12 ? `${hour - 12}:00 PM` : `${hour}:00 AM`;
+  };
+
+  const openTimeStr = formatHour(storeOpenHour ?? 6);
+  const closeTimeStr = formatHour(storeCloseHour ?? 24);
+
   const hours = [
     { 
       label: 'Grocery Mart', 
-      time: '6:00 AM – 12:00 AM', 
+      time: `${openTimeStr} – ${closeTimeStr}`, 
       lucideIcon: <ShoppingBag size={15} color="#e20a22" />,
       colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
     },
@@ -186,7 +198,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     setNotified(true);
     Alert.alert(
       '🔔 Notification Set!',
-      "We'll notify you as soon as FastKirana opens. See you bright and early!",
+      `We'll notify you as soon as FastKirana opens. See you at ${openTimeStr}!`,
       [{ text: 'Sounds Good', style: 'default' }]
     );
   };
@@ -337,7 +349,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 letterSpacing: -0.5,
               }}
             >
-              6:00 AM
+              {openTimeStr}
             </Text>
           </View>
           
@@ -455,43 +467,44 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
             onPress={handleNotify}
             disabled={notified}
             style={({ pressed }) => ({
-              borderRadius: 12,
-              overflow: 'hidden',
+              borderRadius: 24,
               opacity: pressed ? 0.88 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
+              elevation: 4,
+              shadowColor: notified ? '#15803d' : '#e20a22',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.25,
+              shadowRadius: 8,
             })}
           >
             <LinearGradient
               colors={notified
                 ? (isDarkMode ? ['#15803d', '#16a34a'] : ['#dcfce7', '#bbf7d0'])
-                : ['#e20a22', '#dc2626']
+                : ['#e20a22', '#f43f5e']
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
-                paddingVertical: 12,
+                paddingVertical: 14,
                 paddingHorizontal: 20,
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',
+                borderRadius: 24,
                 gap: 8,
-                shadowColor: '#e20a22',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: notified ? 0 : 0.15,
-                shadowRadius: 6,
               }}
             >
               {notified ? (
                 <>
                   <Check size={16} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d', letterSpacing: 0.5 }}>
                     You'll be Notified!
                   </Text>
                 </>
               ) : (
                 <>
                   <Bell size={16} color="#ffffff" strokeWidth={2.2} />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff', letterSpacing: 0.3 }}>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', letterSpacing: 1.0, textTransform: 'uppercase' }}>
                     Notify Me When Open
                   </Text>
                 </>
