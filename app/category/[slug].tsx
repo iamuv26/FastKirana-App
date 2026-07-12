@@ -443,6 +443,9 @@ function CategoryItem({
                 source={config.image}
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
+                transition={200}
+                cachePolicy="memory-disk"
+                placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
               />
             )
           ) : (

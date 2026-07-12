@@ -626,6 +626,9 @@ export default function SearchScreen() {
                           source={img}
                           style={{ width: '100%', height: '100%' }}
                           contentFit="cover"
+                          transition={200}
+                          cachePolicy="memory-disk"
+                          placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
                         />
                       ) : (
                         <Text style={{ fontSize: 24 }}>📦</Text>

@@ -95,6 +95,9 @@ function CategoryGridItem({ category, index, isDarkMode }: { category: any; inde
               source={category.source}
               contentFit="cover"
               style={{ width: '100%', height: '100%' }}
+              transition={200}
+              cachePolicy="memory-disk"
+              placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
             />
           </View>
           

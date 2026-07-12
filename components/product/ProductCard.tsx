@@ -322,7 +322,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   source={imageSource}
                   contentFit="cover"
                   style={{ width: '100%', height: '100%' }}
-                  transition={200}
+                  transition={250}
+                  cachePolicy="memory-disk"
+                  placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
                 />
               ) : (
                 <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
@@ -567,6 +569,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 source={imageSource}
                 contentFit="contain"
                 style={styles.productImage as any}
+                transition={250}
+                cachePolicy="memory-disk"
+                placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
               />
             ) : (
               <View className="w-full h-full items-center justify-center gap-1.5">

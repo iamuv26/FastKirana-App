@@ -407,6 +407,9 @@ export default function ProductDetailScreen() {
                     source={imageSource} 
                     contentFit="contain" 
                     style={{ width: '90%', height: '90%' }}
+                    transition={250}
+                    cachePolicy="memory-disk"
+                    placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
                   />
                 )
               ) : (
