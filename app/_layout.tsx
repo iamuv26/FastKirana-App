@@ -246,6 +246,7 @@ export default function RootLayout() {
                 <Stack screenOptions={{ headerShown: false, gestureEnabled: true, gestureDirection: 'horizontal', animation: 'default', headerBackVisible: false }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'fade', animationDuration: 150 }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
                   <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
                   <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: false }} />
