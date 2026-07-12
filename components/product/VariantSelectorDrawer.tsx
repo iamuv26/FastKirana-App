@@ -150,7 +150,7 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             <Pressable 
               onPress={handleDecrement} 
               style={({ pressed }) => ({
-                width: '32%',
+                flex: 1,
                 height: '100%',
                 alignItems: 'center',
                 justifyContent: 'center',
@@ -163,7 +163,7 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
             {/* Quantity Text Column */}
-            <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+            <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
             </View>
 
@@ -174,7 +174,7 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
               onPress={handleIncrement}
               disabled={quantity >= resolvedStock || isStoreClosed}
               style={({ pressed }) => ({
-                width: '32%',
+                flex: 1,
                 height: '100%',
                 alignItems: 'center',
                 justifyContent: 'center',

@@ -458,7 +458,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     <Pressable 
                       onPress={handleDecrement} 
                       style={({ pressed }) => ({
-                        width: '32%',
+                        flex: 1,
                         height: '100%',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -471,7 +471,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fdba74' }} />
 
                     {/* Quantity Text Column */}
-                    <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                       <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
                     </View>
 
@@ -482,7 +482,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                       onPress={handleIncrement}
                       disabled={quantity >= resolvedStock}
                       style={({ pressed }) => ({
-                        width: '32%',
+                        flex: 1,
                         height: '100%',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -776,7 +776,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   <Pressable 
                     onPress={handleDecrement} 
                     style={({ pressed }) => ({
-                      width: '32%',
+                      flex: 1,
                       height: '100%',
                       alignItems: 'center',
                       justifyContent: 'center',
@@ -789,7 +789,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#3f3f46' : '#fda4af' }} />
 
                   {/* Quantity Text Column */}
-                  <View style={{ width: '34%', height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                  <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
                     <Text style={{ color: isDark ? '#fafafa' : '#111827', fontSize: 14, fontWeight: '900' }}>{quantity}</Text>
                   </View>
 
@@ -800,7 +800,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     onPress={handleIncrement}
                     disabled={quantity >= resolvedStock}
                     style={({ pressed }) => ({
-                      width: '32%',
+                      flex: 1,
                       height: '100%',
                       alignItems: 'center',
                       justifyContent: 'center',
