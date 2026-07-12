@@ -131,21 +131,39 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             </Pressable>
           </View>
         ) : (
-          <View style={styles.variantStepperWrap}>
-            <Pressable onPress={handleDecrement} style={styles.variantStepperBtn}>
-              <Minus size={13} color="#ffffff" strokeWidth={3} />
+          <View style={{
+            flexDirection: 'row',
+            height: 32,
+            width: 80,
+            alignItems: 'center',
+            borderRadius: 9999,
+            backgroundColor: isDarkMode ? '#27272a' : '#f0fdf4',
+            overflow: 'hidden',
+          }}>
+            <Pressable 
+              onPress={handleDecrement} 
+              style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
+            >
+              <Minus size={12} color="#16a34a" strokeWidth={3.5} />
             </Pressable>
-            <View style={styles.variantStepperQty}>
-              <Text style={styles.variantStepperQtyText}>
-                {quantity}
-              </Text>
+            
+            <View style={{ width: 1, height: 14, backgroundColor: isDarkMode ? '#3f3f46' : '#bbf7d0' }} />
+
+            <View style={{ flex: 1.2, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+              <Text style={{ color: isDarkMode ? '#fafafa' : '#1f2937', fontSize: 12, fontWeight: '950' }}>{quantity}</Text>
             </View>
+
+            <View style={{ width: 1, height: 14, backgroundColor: isDarkMode ? '#3f3f46' : '#bbf7d0' }} />
+
             <Pressable
               onPress={handleIncrement}
               disabled={quantity >= resolvedStock || isStoreClosed}
-              style={[styles.variantStepperBtn, quantity >= resolvedStock && { opacity: 0.4 }]}
+              style={({ pressed }) => [
+                { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' },
+                (quantity >= resolvedStock || isStoreClosed) ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
+              ]}
             >
-              <Plus size={13} color="#ffffff" strokeWidth={3} />
+              <Plus size={12} color="#16a34a" strokeWidth={3.5} />
             </Pressable>
           </View>
         )}

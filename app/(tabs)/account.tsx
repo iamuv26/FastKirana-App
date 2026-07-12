@@ -924,29 +924,21 @@ export default function AccountScreen() {
                   flex: 1,
                   height: 44,
                   borderRadius: 14,
-                  overflow: 'hidden',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: pressed ? '#b91c1c' : '#ef4444',
                   transform: [{ scale: pressed ? 0.97 : 1 }]
                 })}
               >
-                <LinearGradient
-                  colors={['#ef4444', '#dc2626']}
-                  style={{
-                    width: '100%',
-                    height: '100%',
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                  }}
-                >
-                  <Text style={{
-                    color: '#ffffff',
-                    fontWeight: '900',
-                    fontSize: 12,
-                    textTransform: 'uppercase',
-                    letterSpacing: 0.5
-                  }}>
-                    Logout
-                  </Text>
-                </LinearGradient>
+                <Text style={{
+                  color: '#ffffff',
+                  fontWeight: '900',
+                  fontSize: 12,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5
+                }}>
+                  Logout
+                </Text>
               </Pressable>
             </View>
           </View>

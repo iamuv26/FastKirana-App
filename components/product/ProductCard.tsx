@@ -436,18 +436,16 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   </AnimatedPressable>
                 ) : (
                   <Animated.View
-                    entering={FadeInDown.springify().damping(11).stiffness(180)}
-                    exiting={FadeOut.duration(150)}
+                    entering={FadeIn.duration(120)}
+                    exiting={FadeOut.duration(120)}
                     style={{
                       position: 'absolute',
                       right: 0,
                       bottom: 0,
                       width: 72,
                       height: 28,
-                      borderRadius: 8,
-                      borderWidth: 1.5,
-                      borderColor: '#ea580c',
-                      backgroundColor: isDark ? '#18181b' : '#ffffff',
+                      borderRadius: 9999,
+                      backgroundColor: isDark ? '#27272a' : '#fff7ed',
                       flexDirection: 'row',
                       alignItems: 'center',
                       overflow: 'hidden',
@@ -456,19 +454,25 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   >
                     <Pressable 
                       onPress={handleDecrement} 
-                      style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1 }]}
+                      style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
                     >
                       <Minus size={11} color="#ea580c" strokeWidth={3.5} />
                     </Pressable>
-                    <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
-                      <Text style={{ color: isDark ? '#f4f4f5' : '#ea580c', fontSize: 11, fontWeight: '900' }}>{quantity}</Text>
+                    
+                    <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fed7aa' }} />
+
+                    <View style={{ flex: 1.2, alignItems: 'center', justifyContent: 'center' }}>
+                      <Text style={{ color: isDark ? '#fafafa' : '#1f2937', fontSize: 11, fontWeight: '950' }}>{quantity}</Text>
                     </View>
+
+                    <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fed7aa' }} />
+
                     <Pressable 
                       onPress={handleIncrement} 
                       disabled={quantity >= resolvedStock}
                       style={({ pressed }) => [
                         { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' },
-                        quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.5 } : { opacity: 1 })
+                        quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
                       ]}
                     >
                       <Plus size={11} color="#ea580c" strokeWidth={3.5} />
@@ -742,26 +746,37 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 <Animated.View 
                   entering={FadeIn.duration(120)}
                   exiting={FadeOut.duration(120)}
-                  style={[
-                    styles.stepperWrap,
-                    { borderColor: '#e11d48', backgroundColor: isDark ? '#18181b' : '#ffffff' }
-                  ]}
+                  style={{
+                    width: '100%',
+                    height: 28,
+                    borderRadius: 9999,
+                    backgroundColor: isDark ? '#27272a' : '#fff5f5',
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    overflow: 'hidden',
+                  }}
                 >
                   <Pressable 
                     onPress={handleDecrement} 
-                    style={({ pressed }) => [styles.stepperBtn, pressed && { opacity: 0.5 }]}
+                    style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
                   >
                     <Minus size={13} color="#e11d48" strokeWidth={3.5} />
                   </Pressable>
-                  <View style={styles.stepperQty}>
-                    <Text style={[styles.stepperQtyText, { color: '#e11d48' }]}>{quantity}</Text>
+                  
+                  <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fbcfe8' }} />
+
+                  <View style={{ flex: 1.2, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
+                    <Text style={{ color: isDark ? '#fafafa' : '#1f2937', fontSize: 13, fontWeight: '950' }}>{quantity}</Text>
                   </View>
+
+                  <View style={{ width: 1, height: 14, backgroundColor: isDark ? '#3f3f46' : '#fbcfe8' }} />
+
                   <Pressable
                     onPress={handleIncrement}
                     disabled={quantity >= resolvedStock}
                     style={({ pressed }) => [
-                      styles.stepperBtn,
-                      quantity >= resolvedStock ? { opacity: 0.4 } : (pressed && { opacity: 0.5 })
+                      { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' },
+                      quantity >= resolvedStock ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
                     ]}
                   >
                     <Plus size={13} color="#e11d48" strokeWidth={3.5} />
