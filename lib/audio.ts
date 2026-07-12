@@ -4,12 +4,14 @@ let popSound: any = null;
 let successSound: any = null;
 let notificationSound: any = null;
 
+// expo-av has been removed from dependencies to prevent native startup crashes
+// (specifically NoClassDefFoundError: Failed resolution of: Lexpo/modules/kotlin/types/LazyKType; in expo-av)
+// All audio functions are now safe no-ops.
 try {
-  const ExpoAV = require('expo-av');
-  Audio = ExpoAV.Audio;
-  isAudioAvailable = true;
+  Audio = null;
+  isAudioAvailable = false;
 } catch (error) {
-  // expo-av not available
+  // fallback
 }
 
 async function getPopSound(): Promise<any> {
