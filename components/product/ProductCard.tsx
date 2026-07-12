@@ -749,16 +749,15 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   entering={FadeIn.duration(120)}
                   exiting={FadeOut.duration(120)}
                   style={{
-                    width: 76,
-                    height: 28,
-                    borderRadius: 9999,
-                    borderWidth: 1,
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 10,
+                    borderWidth: 1.5,
                     borderColor: '#e11d48',
                     backgroundColor: isDark ? '#27272a' : '#fff5f5',
                     flexDirection: 'row',
                     alignItems: 'center',
                     overflow: 'hidden',
-                    alignSelf: 'center',
                   }}
                 >
                   <Pressable 
