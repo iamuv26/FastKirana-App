@@ -1,0 +1,39 @@
+# dependencies (EAS installs these on the server)
+node_modules/
+
+# Expo cache
+.expo/
+dist/
+web-build/
+
+# Native folders - let EAS run expo prebuild fresh
+/android
+/ios
+
+# Large APK files
+*.apk
+
+# Build artifacts & caches
+android/app/build/
+
+# Debug files
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+
+# macOS
+.DS_Store
+
+# Metro
+.metro-health-check*
+
+# Scratch/temp files
+scratch/
+test-imports.js
+cors-proxy.js
+
+# IDE
+.idea/
+
+# Git
+.git/
