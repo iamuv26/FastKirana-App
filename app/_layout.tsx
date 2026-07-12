@@ -42,6 +42,7 @@ const queryClient = new QueryClient({
 });
 
 import { registerForPushNotificationsAsync } from '../lib/push-notifications';
+import * as Notifications from 'expo-notifications';
 import VariantSelectorDrawer from '../components/product/VariantSelectorDrawer';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
@@ -199,8 +200,18 @@ export default function RootLayout() {
     syncStoreSettings();
     const settingsPoll = setInterval(syncStoreSettings, 60000);
 
-    // Notification tap handling removed — expo-notifications is not installed
-    // to prevent native Firebase startup crashes on standalone Android builds.
+    // Listen for notification responses (user tapping on a notification)
+    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+      console.log('[NotificationResponse] User tapped on notification:', response);
+      const data = response.notification.request.content.data;
+      if (data && typeof data.url === 'string') {
+        try {
+          router.push(data.url as any);
+        } catch (err) {
+          console.warn('Failed to route notification URL:', err);
+        }
+      }
+    });
 
     // Redirect staff members to their console
     let redirectTimer: any = null;
@@ -216,6 +227,7 @@ export default function RootLayout() {
     return () => {
       clearInterval(settingsPoll);
       if (redirectTimer) clearTimeout(redirectTimer);
+      responseSubscription.remove();
     };
   }, [isLoggedIn, user]);
 
