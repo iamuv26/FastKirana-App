@@ -76,15 +76,19 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
 
   const isSelected = quantity > 0;
 
+  const brandColor = isCafe ? '#ea580c' : '#e11d48';
+  const brandBg = isDarkMode ? '#27272a' : (isCafe ? '#fff7ed' : '#fff5f5');
+  const brandSep = isDarkMode ? '#3f3f46' : (isCafe ? '#fed7aa' : '#fbcfe8');
+
   return (
     <View style={[
       styles.variantRowContainer,
       {
         borderColor: isSelected
-          ? '#10b981'
+          ? brandColor
           : isDarkMode ? '#27272a' : '#f1f5f9',
         backgroundColor: isSelected
-          ? (isDarkMode ? 'rgba(16,185,129,0.08)' : 'rgba(16,185,129,0.05)')
+          ? (isDarkMode ? 'rgba(16,185,129,0.08)' : (isCafe ? 'rgba(254,215,170,0.1)' : 'rgba(254,228,226,0.15)'))
           : (isDarkMode ? 'rgba(39,39,42,0.4)' : '#ffffff')
       }
     ]}>
@@ -119,13 +123,13 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
       {/* Cart Actions */}
       <View style={{ width: 80, height: 32 }}>
         {quantity === 0 ? (
-          <View style={styles.variantAddBtn}>
+          <View style={[styles.variantAddBtn, { borderColor: brandColor }]}>
             <Pressable
               onPress={handleAdd}
               disabled={resolvedStock <= 0 || isStoreClosed}
               style={styles.variantAddBtnPressable}
             >
-              <Text style={styles.variantAddBtnText}>
+              <Text style={[styles.variantAddBtnText, { color: brandColor }]}>
                 {resolvedStock <= 0 ? 'Out' : isStoreClosed ? 'Closed' : '+ ADD'}
               </Text>
             </Pressable>
@@ -138,24 +142,24 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             alignItems: 'center',
             borderRadius: 9999,
             borderWidth: 1,
-            borderColor: '#16a34a',
-            backgroundColor: isDarkMode ? '#27272a' : '#f0fdf4',
+            borderColor: brandColor,
+            backgroundColor: brandBg,
             overflow: 'hidden',
           }}>
             <Pressable 
               onPress={handleDecrement} 
               style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
             >
-              <Minus size={12} color="#16a34a" strokeWidth={3.5} />
+              <Minus size={12} color={brandColor} strokeWidth={3.5} />
             </Pressable>
             
-            <View style={{ width: 1, height: 14, backgroundColor: isDarkMode ? '#3f3f46' : '#bbf7d0' }} />
+            <View style={{ width: 1, height: 14, backgroundColor: brandSep }} />
 
             <View style={{ flex: 1.2, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: isDarkMode ? '#fafafa' : '#1f2937', fontSize: 12, fontWeight: '950' }}>{quantity}</Text>
             </View>
 
-            <View style={{ width: 1, height: 14, backgroundColor: isDarkMode ? '#3f3f46' : '#bbf7d0' }} />
+            <View style={{ width: 1, height: 14, backgroundColor: brandSep }} />
 
             <Pressable
               onPress={handleIncrement}
@@ -165,7 +169,7 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
                 (quantity >= resolvedStock || isStoreClosed) ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
               ]}
             >
-              <Plus size={12} color="#16a34a" strokeWidth={3.5} />
+              <Plus size={12} color={brandColor} strokeWidth={3.5} />
             </Pressable>
           </View>
         )}
