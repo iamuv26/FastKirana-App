@@ -597,6 +597,7 @@ export default function HomeScreen() {
   const isDarkMode = theme === 'dark';
   const scrollViewRef = useRef<ScrollView>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
+  const lastScrollCheck = useRef(0);
 
   // Cafe UI conditional states
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -604,6 +605,14 @@ export default function HomeScreen() {
   const [showFloatingMenuBtn, setShowFloatingMenuBtn] = useState<boolean>(false);
   const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
   const [sectionOffsets, setSectionOffsets] = useState<Record<string, number>>({});
+  const [isReady, setIsReady] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setIsReady(true);
+    }, 200);
+    return () => clearTimeout(timer);
+  }, []);
 
   // Reanimated layout tracking for gliding tab indicator
   const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
@@ -847,20 +856,28 @@ export default function HomeScreen() {
       setIsCollapsed(false);
     }
 
-    setShowFloatingMenuBtn(scrollYVal > 200);
-
-    let currentActive = '';
-    const buffer = 130;
-
-    for (const cat of menuCategories) {
-      const top = sectionOffsets[cat.tag];
-      if (top !== undefined && scrollYVal >= top - buffer) {
-        currentActive = cat.tag;
-      }
+    const shouldShowBtn = scrollYVal > 200;
+    if (shouldShowBtn !== showFloatingMenuBtn) {
+      setShowFloatingMenuBtn(shouldShowBtn);
     }
 
-    if (currentActive && currentActive !== activeCategory) {
-      setActiveCategory(currentActive);
+    // Throttle category tracking loop to run once every 120ms (saving scroll frame rates)
+    const now = Date.now();
+    if (now - lastScrollCheck.current > 120) {
+      lastScrollCheck.current = now;
+      let currentActive = '';
+      const buffer = 130;
+
+      for (const cat of menuCategories) {
+        const top = sectionOffsets[cat.tag];
+        if (top !== undefined && scrollYVal >= top - buffer) {
+          currentActive = cat.tag;
+        }
+      }
+
+      if (currentActive && currentActive !== activeCategory) {
+        setActiveCategory(currentActive);
+      }
     }
   };
 
@@ -1720,13 +1737,17 @@ export default function HomeScreen() {
           )}
 
           {/* Curated For You (Deals Curation Hub) */}
-          <DealsCurationHub products={products} isLoading={isLoading} />
-
-          {/* Delivery & Value Propositions Banner */}
-          <DeliveryBanner />
-
-          {/* App Footer */}
-          <AppFooter />
+          {isReady ? (
+            <>
+              <DealsCurationHub products={products} isLoading={isLoading} />
+              <DeliveryBanner />
+              <AppFooter />
+            </>
+          ) : (
+            <View style={{ height: 300, alignItems: 'center', justifyContent: 'center' }}>
+              <ActivityIndicator size="small" color="#e11d48" />
+            </View>
+          )}
         </ScrollView>
       ) : (
         // Store Completely Closed View (both Grocery and Cafe closed)
