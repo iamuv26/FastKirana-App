@@ -49,6 +49,7 @@ export default function CheckoutScreen() {
   const storeLng = useUIStore((s) => s.storeLng);
   const deliveryRadius = useUIStore((s) => s.deliveryRadius);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
+  const taxRate = useUIStore((s) => s.taxRate);
   
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
   const [isDistanceValidating, setIsDistanceValidating] = useState(false);
@@ -162,7 +163,7 @@ export default function CheckoutScreen() {
 
 
   const subtotal = getSubtotal();
-  const tax = Math.round(subtotal * TAX_RATE);
+  const tax = Math.round(subtotal * (taxRate / 100));
 
   const groceryItems = useMemo(() => items.filter(item => !isCafeProduct(item.product)), [items]);
   const cafeItems = useMemo(() => items.filter(item => isCafeProduct(item.product)), [items]);

@@ -26,6 +26,7 @@ interface UIState {
   storeCloseHour: number;
   holidays: string[];
   surgeMultiplier: number;
+  taxRate: number;
   setSelectedLocation: (location: string) => void;
   setUserCoords: (coords: UserCoords | null) => void;
   setShopDetails: (name: string, phone: string) => void;
@@ -39,7 +40,8 @@ interface UIState {
     storeOpenHour?: number,
     storeCloseHour?: number,
     holidays?: string[],
-    surgeMultiplier?: number
+    surgeMultiplier?: number,
+    taxRate?: number
   ) => void;
   setActiveVariantProduct: (product: any | null) => void;
   setAssignedStore: (store: { id: string; name: string; surgeCharge: number; groceryOpen: boolean; cafeOpen: boolean } | null) => void;
@@ -65,6 +67,7 @@ export const useUIStore = create<UIState>()(
       storeCloseHour: 23,
       holidays: [],
       surgeMultiplier: 1.0,
+      taxRate: 5,
 
       setSelectedLocation: (location) => set({ selectedLocation: location }),
       setUserCoords: (coords) => set({ userCoords: coords }),
@@ -79,7 +82,8 @@ export const useUIStore = create<UIState>()(
         storeOpenHour,
         storeCloseHour,
         holidays,
-        surgeMultiplier
+        surgeMultiplier,
+        taxRate
       ) => 
         set((state) => {
           // Always keep store open in development mode for testing
@@ -97,6 +101,7 @@ export const useUIStore = create<UIState>()(
           if (storeCloseHour !== undefined) updates.storeCloseHour = storeCloseHour;
           if (holidays !== undefined) updates.holidays = holidays;
           if (surgeMultiplier !== undefined) updates.surgeMultiplier = surgeMultiplier;
+          if (taxRate !== undefined) updates.taxRate = taxRate;
           return updates;
         }),
       setActiveVariantProduct: (product) => set({ activeVariantProduct: product }),

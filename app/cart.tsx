@@ -36,6 +36,7 @@ export default function CartScreen() {
   const isDarkMode = theme === 'dark';
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
+  const taxRate = useUIStore((s) => s.taxRate);
 
   const [couponCode, setCouponCode] = useState('');
   const [showLoginModal, setShowLoginModal] = useState(false);
@@ -150,7 +151,7 @@ export default function CartScreen() {
     deliveryFee = subtotal >= COMBINED_FREE_DELIVERY_THRESHOLD ? 0 : DELIVERY_FEE;
   }
 
-  const taxes = Math.round((subtotal - promoDiscount) * TAX_RATE);
+  const taxes = Math.round((subtotal - promoDiscount) * (taxRate / 100));
   const totalPayable = (subtotal - promoDiscount) + deliveryFee + taxes;
 
   const hasInventoryIssues = useMemo(() => items.some(
@@ -732,7 +733,7 @@ export default function CartScreen() {
           </View>
 
           <View className="flex-row justify-between py-1.5">
-            <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">GST Tax (5%)</Text>
+            <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">GST Tax ({taxRate}%)</Text>
             <Text className="text-slate-800 dark:text-zinc-200 text-sm font-bold">{formatPrice(taxes)}</Text>
           </View>
 
