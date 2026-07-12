@@ -879,15 +879,17 @@ export default function AccountScreen() {
               lineHeight: 18,
               marginBottom: 24
             }}>
-              Are you sure you want to log out from FastKirana? You will need to sign in again to access your orders and settings.
+              Are you sure you want to log out from FastKirana? (v2) You will need to sign in again to access your orders and settings.
             </Text>
 
             {/* Action Buttons Row */}
             <View style={{ 
               flexDirection: 'row', 
-              alignSelf: 'stretch',
+              width: '100%',
               justifyContent: 'space-between',
-              marginTop: 16
+              alignItems: 'center',
+              marginTop: 8,
+              height: 46
             }}>
               {/* Cancel Button */}
               <Pressable
@@ -896,8 +898,8 @@ export default function AccountScreen() {
                   setIsLogoutModalVisible(false);
                 }}
                 style={({ pressed }) => ({
-                  flex: 0.47,
-                  height: 46,
+                  width: '48%',
+                  height: '100%',
                   borderWidth: 1.5,
                   borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
                   borderRadius: 16,
@@ -928,8 +930,8 @@ export default function AccountScreen() {
                   logout();
                 }}
                 style={({ pressed }) => ({
-                  flex: 0.47,
-                  height: 46,
+                  width: '48%',
+                  height: '100%',
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
