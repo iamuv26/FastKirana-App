@@ -888,8 +888,7 @@ export default function AccountScreen() {
               width: '100%',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: 8,
-              height: 46
+              marginTop: 16
             }}>
               {/* Cancel Button */}
               <Pressable
@@ -899,7 +898,7 @@ export default function AccountScreen() {
                 }}
                 style={({ pressed }) => ({
                   width: '48%',
-                  height: '100%',
+                  height: 46,
                   borderWidth: 1.5,
                   borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
                   borderRadius: 16,
@@ -931,7 +930,7 @@ export default function AccountScreen() {
                 }}
                 style={({ pressed }) => ({
                   width: '48%',
-                  height: '100%',
+                  height: 46,
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
