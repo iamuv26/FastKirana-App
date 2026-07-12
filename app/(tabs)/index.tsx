@@ -91,7 +91,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     // Clock pulse animation
     pulse.value = withRepeat(
       withSequence(
-        withTiming(1.1, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
+        withTiming(1.08, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
         withTiming(1, { duration: 1500, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
@@ -100,8 +100,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     // Glow ring animation
     glow.value = withRepeat(
       withSequence(
-        withTiming(0.6, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
-        withTiming(0.15, { duration: 2000, easing: Easing.inOut(Easing.ease) })
+        withTiming(0.5, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
+        withTiming(0.2, { duration: 2000, easing: Easing.inOut(Easing.ease) })
       ),
       -1,
       true
@@ -155,7 +155,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
   const glowStyle = useAnimatedStyle(() => ({
     opacity: glow.value,
-    transform: [{ scale: interpolate(glow.value, [0.15, 0.6], [0.95, 1.35]) }],
+    transform: [{ scale: interpolate(glow.value, [0.2, 0.5], [0.95, 1.25]) }],
   }));
 
   const blob1Style = useAnimatedStyle(() => ({
@@ -170,13 +170,13 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
     { 
       label: 'Grocery Mart', 
       time: '6:00 AM – 12:00 AM', 
-      lucideIcon: <ShoppingBag size={18} color="#e20a22" />,
+      lucideIcon: <ShoppingBag size={15} color="#e20a22" />,
       colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
     },
     { 
       label: 'FastKirana Cafe', 
       time: '7:00 AM – 11:00 PM', 
-      lucideIcon: <Coffee size={18} color="#d97706" />,
+      lucideIcon: <Coffee size={15} color="#d97706" />,
       colorBg: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : '#fef3c7'
     },
   ];
@@ -192,7 +192,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe', paddingTop }}>
+    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe' }}>
       {/* Gradient mesh background blobs */}
       <Animated.View
         style={[blob1Style, {
@@ -230,92 +230,81 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           end={{ x: 1, y: 1 }}
         />
       </Animated.View>
-      {/* Third subtle blob */}
-      <View
-        style={{
-          position: 'absolute',
-          top: '55%',
-          left: '30%',
-          width: 190,
-          height: 190,
-          borderRadius: 95,
-          opacity: isDarkMode ? 0.08 : 0.06,
+
+      {/* Scrollable Container */}
+      <ScrollView
+        style={{ flex: 1 }}
+        contentContainerStyle={{
+          paddingTop: paddingTop + 12,
+          paddingHorizontal: 24,
+          paddingBottom: 180, // Safe padding above bottom tabs and floating cart bar
+          alignItems: 'center',
         }}
+        showsVerticalScrollIndicator={false}
       >
-        <LinearGradient
-          colors={isDarkMode ? ['#f59e0b', '#fcd34d', '#f59e0b'] : ['#fef3c7', '#fde68a', '#fef3c7']}
-          style={{ width: 190, height: 190, borderRadius: 95 }}
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 1 }}
-        />
-      </View>
-
-      {/* Content */}
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 28, paddingBottom: 40 }}>
-
         {/* Animated Clock with glow ring */}
-        <Animated.View entering={ZoomIn.duration(650).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 28 }}>
+        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           {/* Glow ring */}
           <Animated.View
             style={[glowStyle, {
               position: 'absolute',
-              width: 140,
-              height: 140,
-              borderRadius: 70,
-              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.18)' : 'rgba(226,10,34,0.08)',
+              width: 110,
+              height: 110,
+              borderRadius: 55,
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.14)' : 'rgba(226,10,34,0.06)',
             }]}
           />
           {/* Clock container */}
           <Animated.View
             style={[clockStyle, {
-              width: 96,
-              height: 96,
-              borderRadius: 48,
+              width: 76,
+              height: 76,
+              borderRadius: 38,
               backgroundColor: isDarkMode ? '#1c1c1f' : '#ffffff',
               justifyContent: 'center',
               alignItems: 'center',
               borderWidth: 1.5,
-              borderColor: isDarkMode ? 'rgba(226,10,34,0.35)' : '#fda4af',
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.3)' : '#fda4af',
               shadowColor: '#e20a22',
-              shadowOffset: { width: 0, height: 8 },
-              shadowOpacity: isDarkMode ? 0.35 : 0.12,
-              shadowRadius: 20,
-              elevation: 8,
+              shadowOffset: { width: 0, height: 6 },
+              shadowOpacity: isDarkMode ? 0.3 : 0.08,
+              shadowRadius: 15,
+              elevation: 5,
             }]}
           >
-            <Clock size={40} color="#e20a22" strokeWidth={2.2} />
+            <Clock size={32} color="#e20a22" strokeWidth={2.2} />
           </Animated.View>
         </Animated.View>
 
         {/* Status badge */}
-        <Animated.View entering={FadeInDown.delay(200).duration(500).springify()}>
+        <Animated.View entering={FadeInDown.delay(100).duration(400).springify()}>
           <View
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              paddingHorizontal: 14,
-              paddingVertical: 6,
-              borderRadius: 20,
-              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.14)' : '#fee2e2',
+              paddingHorizontal: 12,
+              paddingVertical: 5,
+              borderRadius: 16,
+              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.12)' : '#fee2e2',
               borderWidth: 1,
-              borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : '#fca5a5',
-              marginBottom: 18,
+              borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : '#fca5a5',
+              marginBottom: 12,
             }}
           >
             <PulsingRedDot />
-            <Text style={{ fontSize: 11, fontWeight: '800', color: '#ef4444', letterSpacing: 1.2, textTransform: 'uppercase' }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#ef4444', letterSpacing: 1, textTransform: 'uppercase' }}>
               Currently Closed
             </Text>
           </View>
         </Animated.View>
 
         {/* Main heading */}
-        <Animated.View entering={FadeInDown.delay(350).duration(500).springify()} style={{ alignItems: 'center' }}>
+        <Animated.View entering={FadeInDown.delay(200).duration(400).springify()} style={{ alignItems: 'center' }}>
           <Text
             style={{
-              fontSize: 16,
+              fontSize: 14,
               fontWeight: '700',
-              color: isDarkMode ? '#a1a1aa' : '#64748b',
+              color: isDarkMode ? '#8e8e93' : '#64748b',
               textAlign: 'center',
               letterSpacing: 0.5,
               textTransform: 'uppercase',
@@ -326,22 +315,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           
           {/* Elegant Time Capsule */}
           <View style={{
-            backgroundColor: isDarkMode ? 'rgba(226, 10, 34, 0.08)' : 'rgba(226, 10, 34, 0.04)',
+            backgroundColor: isDarkMode ? 'rgba(226, 10, 34, 0.06)' : 'rgba(226, 10, 34, 0.03)',
             borderWidth: 1,
-            borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.25)' : 'rgba(226, 10, 34, 0.12)',
-            borderRadius: 24,
-            paddingHorizontal: 32,
-            paddingVertical: 10,
-            marginTop: 10,
+            borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.2)' : 'rgba(226, 10, 34, 0.08)',
+            borderRadius: 18,
+            paddingHorizontal: 24,
+            paddingVertical: 6,
+            marginTop: 6,
             shadowColor: '#e20a22',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: 0.08,
-            shadowRadius: 10,
-            elevation: 2,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.04,
+            shadowRadius: 6,
+            elevation: 1,
           }}>
             <Text
               style={{
-                fontSize: 36,
+                fontSize: 28,
                 fontWeight: '900',
                 color: '#e20a22',
                 textAlign: 'center',
@@ -354,12 +343,12 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           
           <Text
             style={{
-              fontSize: 14,
-              color: isDarkMode ? '#d4d4d8' : '#475569',
+              fontSize: 12,
+              color: isDarkMode ? '#c7c7cc' : '#475569',
               textAlign: 'center',
-              marginTop: 16,
-              lineHeight: 20,
-              maxWidth: 270,
+              marginTop: 12,
+              lineHeight: 16,
+              maxWidth: 260,
               fontWeight: '500',
             }}
           >
@@ -369,45 +358,45 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
         {/* Operating hours card */}
         <Animated.View
-          entering={FadeInUp.delay(500).duration(500).springify()}
+          entering={FadeInUp.delay(300).duration(400).springify()}
           style={{
-            marginTop: 28,
+            marginTop: 18,
             width: '100%',
-            maxWidth: 340,
-            borderRadius: 24,
+            maxWidth: 320,
+            borderRadius: 20,
             overflow: 'hidden',
             borderWidth: 1,
-            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 10 },
-            shadowOpacity: isDarkMode ? 0.35 : 0.05,
-            shadowRadius: 20,
-            elevation: 4,
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDarkMode ? 0.25 : 0.03,
+            shadowRadius: 15,
+            elevation: 2,
           }}
         >
           <LinearGradient
-            colors={isDarkMode ? ['rgba(24,24,27,0.92)', 'rgba(18,18,20,0.92)'] : ['rgba(255,255,255,0.95)', 'rgba(248,250,252,0.95)']}
-            style={{ padding: 20 }}
+            colors={isDarkMode ? ['rgba(24,24,27,0.95)', 'rgba(18,18,20,0.95)'] : ['rgba(255,255,255,0.98)', 'rgba(248,250,252,0.98)']}
+            style={{ paddingHorizontal: 16, paddingVertical: 14 }}
           >
-            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <Text
                 style={{
-                  fontSize: 11,
+                  fontSize: 10,
                   fontWeight: '800',
-                  color: isDarkMode ? '#a1a1aa' : '#64748b',
-                  letterSpacing: 1.2,
+                  color: isDarkMode ? '#8e8e93' : '#64748b',
+                  letterSpacing: 1,
                   textTransform: 'uppercase',
                 }}
               >
                 Store Hours
               </Text>
               <View style={{
-                paddingHorizontal: 8,
-                paddingVertical: 3,
-                borderRadius: 10,
+                paddingHorizontal: 6,
+                paddingVertical: 2,
+                borderRadius: 6,
                 backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
               }}>
-                <Text style={{ fontSize: 9, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569' }}>Daily</Text>
+                <Text style={{ fontSize: 8, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569' }}>Daily</Text>
               </View>
             </View>
 
@@ -417,46 +406,43 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 style={{ 
                   flexDirection: 'row', 
                   alignItems: 'center', 
-                  paddingVertical: 12,
+                  paddingVertical: 8,
                   borderBottomWidth: idx < hours.length - 1 ? 1 : 0,
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                 }}
               >
-                {/* Timeline dot & line */}
                 <View style={{
-                  width: 38,
-                  height: 38,
-                  borderRadius: 19,
+                  width: 30,
+                  height: 30,
+                  borderRadius: 15,
                   backgroundColor: item.colorBg,
                   justifyContent: 'center',
                   alignItems: 'center',
-                  marginRight: 14,
+                  marginRight: 10,
                 }}>
                   {item.lucideIcon}
                 </View>
                 
-                {/* Info */}
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 14, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: 12, color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2, fontWeight: '500' }}>
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#8e8e93' : '#64748b', marginTop: 1, fontWeight: '500' }}>
                     {item.time}
                   </Text>
                 </View>
 
-                {/* Status Pill */}
                 <View style={{
-                  width: 26,
-                  height: 26,
-                  borderRadius: 13,
+                  width: 20,
+                  height: 20,
+                  borderRadius: 10,
                   backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc',
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderWidth: 1,
                   borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
                 }}>
-                  <Clock size={12} color={isDarkMode ? '#71717a' : '#94a3b8'} />
+                  <Clock size={10} color={isDarkMode ? '#71717a' : '#94a3b8'} />
                 </View>
               </View>
             ))}
@@ -464,12 +450,12 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         </Animated.View>
 
         {/* Notify me button */}
-        <Animated.View entering={FadeInUp.delay(650).duration(500).springify()} style={{ marginTop: 28, width: '100%', maxWidth: 340 }}>
+        <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: 18, width: '100%', maxWidth: 320 }}>
           <Pressable
             onPress={handleNotify}
             disabled={notified}
             style={({ pressed }) => ({
-              borderRadius: 16,
+              borderRadius: 12,
               overflow: 'hidden',
               opacity: pressed ? 0.88 : 1,
               transform: [{ scale: pressed ? 0.98 : 1 }],
@@ -483,29 +469,29 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{
-                paddingVertical: 16,
-                paddingHorizontal: 24,
+                paddingVertical: 12,
+                paddingHorizontal: 20,
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',
-                gap: 10,
+                gap: 8,
                 shadowColor: '#e20a22',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: notified ? 0 : 0.25,
-                shadowRadius: 10,
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: notified ? 0 : 0.15,
+                shadowRadius: 6,
               }}
             >
               {notified ? (
                 <>
-                  <Check size={18} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d' }}>
+                  <Check size={16} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d' }}>
                     You'll be Notified!
                   </Text>
                 </>
               ) : (
                 <>
-                  <Bell size={18} color="#ffffff" strokeWidth={2.2} />
-                  <Text style={{ fontSize: 15, fontWeight: '800', color: '#ffffff', letterSpacing: 0.3 }}>
+                  <Bell size={16} color="#ffffff" strokeWidth={2.2} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff', letterSpacing: 0.3 }}>
                     Notify Me When Open
                   </Text>
                 </>
@@ -515,12 +501,12 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         </Animated.View>
 
         {/* Subtle bottom text */}
-        <Animated.View entering={FadeIn.delay(800).duration(600)}>
-          <Text style={{ marginTop: 20, fontSize: 11, color: isDarkMode ? '#3f3f46' : '#94a3b8', textAlign: 'center', fontWeight: '500' }}>
+        <Animated.View entering={FadeIn.delay(500).duration(500)}>
+          <Text style={{ marginTop: 14, fontSize: 10, color: isDarkMode ? '#3f3f46' : '#94a3b8', textAlign: 'center', fontWeight: '500' }}>
             FastKirana · Delivery in 10 minutes
           </Text>
         </Animated.View>
-      </View>
+      </ScrollView>
     </View>
   );
 }

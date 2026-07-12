@@ -383,7 +383,7 @@ export default function LocationPickerScreen() {
                   triggerHaptic('light');
                   setMarkerCoords(e.nativeEvent.coordinate);
                 }}
-                className="w-full h-full"
+                style={{ width: '100%', height: '100%' }}
               >
                 {/* Dark Store Pin */}
                 <Marker

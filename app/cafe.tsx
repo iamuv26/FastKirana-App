@@ -41,7 +41,7 @@ const CATEGORY_SIDEBAR_IMAGES: Record<string, string> = {
   'cold-coffee': 'https://www.fastkirana.in/cafe_coffee_category.png',
   'south-indian': 'https://www.fastkirana.in/cafe_south_indian_category.png',
   'chilled': 'https://www.fastkirana.in/cafe_cold_drinks_category.png',
-  'bakery': 'https://www.fastkirana.in/bakery_biscuits_category.png',
+  'cafe-bakery': 'https://www.fastkirana.in/bakery_biscuits_category.png',
   'pizza': 'https://www.fastkirana.in/cafe_pizza_category.png',
   'burgers': 'https://www.fastkirana.in/cafe_burgers_category.png',
   'garlic-bread': 'https://www.fastkirana.in/cafe_garlic_bread_category.png',
@@ -63,7 +63,7 @@ const getCategoryThemeColor = (tag: string) => {
     'cold-coffee': '#7c3aed', // Purple
     'rice-dishes': '#0d9488', // Teal
     'chilled': '#dc2626', // Red
-    'bakery': '#d97706', // Amber
+    'cafe-bakery': '#d97706', // Amber
   };
   return mapping[tag.toLowerCase()] || '#ea580c';
 };
@@ -370,7 +370,7 @@ export default function CafeScreen() {
       for (const cat of PREDEFINED_CATEGORIES) {
         const hasMatch = product.tags?.some((t: string) => 
           cat.matchTags.includes(t.toLowerCase())
-        ) || (cat.tag === 'bakery' && ['croissant-butter', 'muffin-chocolate'].includes(product.slug));
+        ) || (cat.tag === 'cafe-bakery' && ['croissant-butter', 'muffin-chocolate'].includes(product.slug));
 
         if (hasMatch) {
           const sec = sectionsMap.get(cat.tag);

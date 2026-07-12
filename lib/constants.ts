@@ -171,7 +171,7 @@ export const DEFAULT_CAFE_MENU_SECTIONS: CafeMenuSection[] = [
     description: 'Dosa, Idli, Vada, Uttapam & more',
   },
   {
-    tag: 'bakery',
+    tag: 'cafe-bakery',
     matchTags: ['bakery'],
     title: 'Bakery & Sweet Cravings',
     emoji: '🥐',

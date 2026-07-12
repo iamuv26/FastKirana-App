@@ -39,8 +39,7 @@ const queryClient = new QueryClient({
   },
 });
 
-import { registerForPushNotificationsAsync } from '../lib/push-notifications';
-import * as Notifications from 'expo-notifications';
+import { registerForPushNotificationsAsync, addNotificationResponseListener } from '../lib/push-notifications';
 import VariantSelectorDrawer from '../components/product/VariantSelectorDrawer';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
@@ -198,7 +197,7 @@ export default function RootLayout() {
     const settingsPoll = setInterval(syncStoreSettings, 60000);
 
     // Listen for notification responses (user tapping on a notification)
-    const responseSubscription = Notifications.addNotificationResponseReceivedListener(response => {
+    const responseSubscription = addNotificationResponseListener(response => {
       console.log('[NotificationResponse] User tapped on notification:', response);
       const data = response.notification.request.content.data;
       if (data && typeof data.url === 'string') {

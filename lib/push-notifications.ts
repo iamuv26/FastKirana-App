@@ -1,21 +1,35 @@
 import { toast } from './toast';
-import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 import { Platform } from 'react-native';
+import Constants from 'expo-constants';
 
-// Set up the default notification handler
-Notifications.setNotificationHandler({
-  handleNotification: async () => ({
-    shouldShowAlert: true,
-    shouldPlaySound: true,
-    shouldSetBadge: false,
-    shouldShowBanner: true,
-    shouldShowList: true,
-  }),
-});
+const isExpoGo = Constants.appOwnership === 'expo';
+
+let Notifications: any = null;
+
+if (Platform.OS !== 'web' && !isExpoGo) {
+  try {
+    Notifications = require('expo-notifications');
+    // Set up the default notification handler
+    Notifications.setNotificationHandler({
+      handleNotification: async () => ({
+        shouldShowAlert: true,
+        shouldPlaySound: true,
+        shouldSetBadge: false,
+        shouldShowBanner: true,
+        shouldShowList: true,
+      }),
+    });
+  } catch (error) {
+    console.warn('[PushNotifications] Failed to load expo-notifications:', error);
+  }
+}
 
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (Platform.OS === 'web') return null;
+  if (Platform.OS === 'web' || isExpoGo || !Notifications) {
+    console.log('[PushNotifications] Skipping registration (Web, Expo Go, or Notifications not available)');
+    return 'MOCK_EXPO_GO_TOKEN';
+  }
 
   try {
     if (!Device.isDevice) {
@@ -59,7 +73,7 @@ export async function registerForPushNotificationsAsync(): Promise<string | null
 
 export async function sendLocalNotification(title: string, body: string) {
   try {
-    if (Platform.OS !== 'web') {
+    if (Platform.OS !== 'web' && !isExpoGo && Notifications) {
       await Notifications.scheduleNotificationAsync({
         content: {
           title,
@@ -75,3 +89,16 @@ export async function sendLocalNotification(title: string, body: string) {
     toast.info(`🔔 ${title}: ${body}`);
   }
 }
+
+export function addNotificationResponseListener(handler: (response: any) => void): { remove: () => void } {
+  if (Platform.OS !== 'web' && !isExpoGo && Notifications) {
+    try {
+      return Notifications.addNotificationResponseReceivedListener(handler);
+    } catch (error) {
+      console.warn('[PushNotifications] Failed to add notification response listener:', error);
+    }
+  }
+  return { remove: () => {} };
+}
+
+
