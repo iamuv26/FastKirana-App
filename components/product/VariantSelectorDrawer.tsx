@@ -146,31 +146,38 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             backgroundColor: brandBg,
             overflow: 'hidden',
           }}>
-            <Pressable 
-              onPress={handleDecrement} 
-              style={({ pressed }) => [{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
-            >
-              <Minus size={12} color={brandColor} strokeWidth={3.5} />
-            </Pressable>
+            {/* Decrement Column */}
+            <View style={{ flex: 1, height: '100%' }}>
+              <Pressable 
+                onPress={handleDecrement} 
+                style={({ pressed }) => [{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.6 : 1 }]}
+              >
+                <Minus size={12} color={brandColor} strokeWidth={3.5} />
+              </Pressable>
+            </View>
             
             <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
+            {/* Quantity Text Column */}
             <View style={{ flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' }}>
               <Text style={{ color: isDarkMode ? '#fafafa' : '#111827', fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
             </View>
 
             <View style={{ width: 1, height: 16, backgroundColor: brandSep }} />
 
-            <Pressable
-              onPress={handleIncrement}
-              disabled={quantity >= resolvedStock || isStoreClosed}
-              style={({ pressed }) => [
-                { flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center' },
-                (quantity >= resolvedStock || isStoreClosed) ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
-              ]}
-            >
-              <Plus size={12} color={brandColor} strokeWidth={3.5} />
-            </Pressable>
+            {/* Increment Column */}
+            <View style={{ flex: 1, height: '100%' }}>
+              <Pressable
+                onPress={handleIncrement}
+                disabled={quantity >= resolvedStock || isStoreClosed}
+                style={({ pressed }) => [
+                  { width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center' },
+                  (quantity >= resolvedStock || isStoreClosed) ? { opacity: 0.4 } : (pressed ? { opacity: 0.6 } : { opacity: 1 })
+                ]}
+              >
+                <Plus size={12} color={brandColor} strokeWidth={3.5} />
+              </Pressable>
+            </View>
           </View>
         )}
       </View>
