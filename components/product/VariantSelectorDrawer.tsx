@@ -137,6 +137,8 @@ function VariantRow({ variant, product, cafeOpen, groceryMartOpen }: VariantRowP
             width: 80,
             alignItems: 'center',
             borderRadius: 9999,
+            borderWidth: 1,
+            borderColor: '#16a34a',
             backgroundColor: isDarkMode ? '#27272a' : '#f0fdf4',
             overflow: 'hidden',
           }}>
