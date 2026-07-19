@@ -10,14 +10,16 @@ import { ArrowLeft, SlidersHorizontal, ArrowUpDown, Sun, Moon, MapPin, ChevronDo
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
+import { FlashList } from '@shopify/flash-list';
 import { useCart } from '../../hooks/use-cart';
 import { triggerHaptic } from '../../lib/haptic';
 import { API_BASE_URL, CATEGORIES, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import { BlurView } from 'expo-blur';
-import { formatHeaderAddress } from '../../lib/utils';
+import { formatHeaderAddress, getAppImageSource } from '../../lib/utils';
 
 const { width: rawWidth } = Dimensions.get('window');
 const screenWidth = rawWidth > 768 ? 540 : rawWidth;
@@ -35,16 +37,16 @@ const GROCERY_CATEGORIES = [
 ];
 
 const CATEGORIES_MAPPING: Record<string, { name: string; image: any; color: string }> = {
-  'fruits-vegetables': { name: 'Fruits & Veg', image: require('../../assets/fruits_vegetables_category.png'), color: '#ecf7ed' },
-  'beverages': { name: 'Beverages', image: require('../../assets/beverages_category.png'), color: '#eef2f6' },
-  'ice-cream': { name: 'Ice Cream', image: require('../../assets/ice_cream_category.png'), color: '#e0f2f1' },
-  'cafe': { name: 'Cafe', image: require('../../assets/cafe_category.png'), color: '#fff8e1' },
-  'personal-care': { name: 'Personal Care', image: require('../../assets/personal_care_category.png'), color: '#fce4ec' },
-  'household': { name: 'Household', image: require('../../assets/household_category.png'), color: '#e0f7fa' },
-  'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.png'), color: '#efebe9' },
-  'grocery-essential': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.png'), color: '#fffde7' },
-  'snacks-biscuits': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.png'), color: '#fff8e1' },
-  'dairy-breakfast': { name: 'Dairy', image: require('../../assets/dairy_breakfast_category.png'), color: '#e8f4fd' },
+  'fruits-vegetables': { name: 'Fruits & Veg', image: require('../../assets/fruits_vegetables_category.webp'), color: '#ecf7ed' },
+  'beverages': { name: 'Beverages', image: require('../../assets/beverages_category.webp'), color: '#eef2f6' },
+  'ice-cream': { name: 'Ice Cream', image: require('../../assets/ice_cream_category.webp'), color: '#e0f2f1' },
+  'cafe': { name: 'Cafe', image: require('../../assets/cafe_category.webp'), color: '#fff8e1' },
+  'personal-care': { name: 'Personal Care', image: require('../../assets/personal_care_category.webp'), color: '#fce4ec' },
+  'household': { name: 'Household', image: require('../../assets/household_category.webp'), color: '#e0f7fa' },
+  'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.webp'), color: '#efebe9' },
+  'grocery-essential': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.webp'), color: '#fffde7' },
+  'snacks-biscuits': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.webp'), color: '#fff8e1' },
+  'dairy-breakfast': { name: 'Dairy', image: require('../../assets/dairy_breakfast_category.webp'), color: '#e8f4fd' },
 };
 
 const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; tags: string[] }>> = {
@@ -131,15 +133,20 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
   }));
 
   return (
-    <Pressable
+    <ScalePressable
       onPress={onPress}
-      className="items-center justify-center relative"
+      scaleValue={0.95}
+      haptic="light"
       style={{ 
-        width: 80, 
+        width: 90, 
         paddingVertical: 12, 
         backgroundColor: isActive 
           ? (isDarkMode ? '#18181b' : '#ffffff')
           : 'transparent',
+        flexDirection: 'column',
+        alignItems: 'center',
+        justifyContent: 'center',
+        position: 'relative',
       }}
     >
       {/* Vertical Brand-Red Accent Bar */}
@@ -177,20 +184,24 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
       <Text 
         style={{ 
           fontSize: 8.5, 
-          fontWeight: isActive ? '900' : '600', 
-          color: isActive ? '#e11d48' : (isDarkMode ? '#a1a1aa' : '#64748b'),
+          lineHeight: 11,
+          fontWeight: isActive ? '900' : '700', 
+          color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b'),
           textAlign: 'center',
-          marginTop: 6,
-          width: '90%',
+          marginTop: 5,
+          width: '92%',
           letterSpacing: -0.1
         }}
         numberOfLines={2}
+        allowFontScaling={false}
       >
         {sub.name}
       </Text>
-    </Pressable>
+    </ScalePressable>
   );
 });
+
+const TypedFlashList = FlashList as any;
 
 const CategoryProductPage = React.memo(function CategoryProductPage({
   categorySlug,
@@ -200,14 +211,29 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
 }: CategoryProductPageProps) {
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['category-products', categorySlug, assignedStoreId],
+    queryKey: ['category-products', categorySlug],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?category=${categorySlug}&limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
+      const response = await fetch(`${API_BASE_URL}/products?category=${categorySlug}&limit=500`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
+    staleTime: 5000, // 5s short cache
+    refetchInterval: 10000, // Auto-refetch every 10s for real-time stock sync
   });
+
+  // Prefetch category products images in the background to speed up image loading
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const urls = products
+        .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
+        .filter((url): url is string => !!url)
+        .slice(0, 30); // Prefetch first 30 product images in this category
+      if (urls.length > 0) {
+        ExpoImage.prefetch(urls);
+      }
+    }
+  }, [products]);
 
   const subcategoryList = useMemo(() => {
     return SUBCATEGORIES_DATA[categorySlug] || DEFAULT_SUBCATEGORIES;
@@ -234,14 +260,47 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   }, [activeSub, subcategoryList]);
 
   const filteredProducts = useMemo(() => {
+    const getProductPrice = (p: Product) => {
+      const hasVariants = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
+      if (!hasVariants) return p.price || 0;
+      const prices = (p.variants as any[]).map(v => v.price);
+      return prices.length > 0 ? Math.min(...prices) : (p.price || 0);
+    };
+
+    const isProductOutOfStock = (p: Product) => {
+      const hasVariants = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
+      if (!hasVariants) return (p.stock || 0) <= 0;
+      const totalStock = (p.variants as any[]).reduce((sum, v) => sum + (v.stock || 0), 0);
+      return totalStock <= 0;
+    };
+
     let list = products.filter(p => p.isAvailable !== false);
 
-    // Filter by sort order first
-    if (sortBy === 'PRICE_LOW') {
-      list.sort((a, b) => a.price - b.price);
-    } else if (sortBy === 'PRICE_HIGH') {
-      list.sort((a, b) => b.price - a.price);
-    }
+    // Apply primary sorting (pushing out-of-stock to bottom, then sorting by chosen criteria)
+    const listWithIndex = list.map((p, index) => ({ product: p, index }));
+
+    listWithIndex.sort((itemA, itemB) => {
+      const a = itemA.product;
+      const b = itemB.product;
+      const aOut = isProductOutOfStock(a);
+      const bOut = isProductOutOfStock(b);
+      
+      // Out-of-stock items are always pushed to the bottom
+      if (aOut && !bOut) return 1;
+      if (!aOut && bOut) return -1;
+
+      // Secondary sorting by price
+      if (sortBy === 'PRICE_LOW') {
+        return getProductPrice(a) - getProductPrice(b);
+      } else if (sortBy === 'PRICE_HIGH') {
+        return getProductPrice(b) - getProductPrice(a);
+      }
+      
+      // Relevance/Default: Preserve the exact order returned by the API server
+      return itemA.index - itemB.index;
+    });
+
+    list = listWithIndex.map(item => item.product);
 
     const activeSubItem = subcategoryList.find(s => s.name === activeSub);
     if (!activeSubItem || activeSubItem.name === 'All') {
@@ -277,7 +336,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       {/* Left Sidebar (Subcategories) */}
       <View 
         style={{ 
-          width: 80, 
+          width: 90, 
           borderRightWidth: 1, 
           borderColor: isDarkMode ? '#27272a' : '#f1f5f9', 
           backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' 
@@ -293,7 +352,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
             return (
               <Animated.View
                 key={sub.name}
-                entering={FadeInDown.duration(250).delay(index * 15)}
+                entering={undefined}
               >
                 <SubcategoryItem
                   sub={sub}
@@ -315,40 +374,44 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
         {isLoading ? (
           <View className="flex-1 flex-row flex-wrap justify-between pt-3">
             {[1, 2, 3, 4].map((i) => (
-              <ProductCardSkeleton key={i} />
+              <ProductCardSkeleton key={i} style={{ width: '48%' }} />
             ))}
           </View>
-        ) : (
-          <FlatList
-            data={filteredProducts}
-            keyExtractor={(item) => item.id}
-            numColumns={2}
-            columnWrapperStyle={{ justifyContent: 'space-between' }}
-            contentContainerStyle={{ paddingBottom: 180, paddingTop: 10 }}
-            style={{ flex: 1, width: '100%' }}
-            showsVerticalScrollIndicator={false}
-            initialNumToRender={6}
-            maxToRenderPerBatch={10}
-            windowSize={5}
-            removeClippedSubviews={Platform.OS === 'android'}
-            renderItem={({ item, index }) => (
-              <View style={{ width: '48%', marginBottom: 12 }}>
-                <ProductCard product={item} index={index} className="w-full" isCategoryGrid={true} />
-              </View>
-            )}
-            ListEmptyComponent={
-              <View className="flex-1 justify-center items-center py-20">
-                <Text className="text-slate-400 dark:text-zinc-500 font-bold text-sm">No products in this subcategory</Text>
-              </View>
-            }
-          />
-        )}
+        ) : (() => {
+          const numColumns = screenWidth >= 900 ? 4 : (screenWidth >= 600 ? 3 : 2);
+          return (
+            <TypedFlashList
+              key={`grid-${numColumns}`}
+              data={filteredProducts}
+              keyExtractor={(item: Product) => item.id}
+              numColumns={numColumns}
+              estimatedItemSize={270}
+              contentContainerStyle={{ paddingBottom: 180, paddingTop: 10 }}
+              style={{ flex: 1, width: '100%' }}
+              showsVerticalScrollIndicator={false}
+              renderItem={({ item, index }: { item: Product; index: number }) => (
+                <View style={{ 
+                  width: '100%', 
+                  paddingHorizontal: 4, 
+                  marginBottom: 12 
+                }}>
+                  <ProductCard product={item} index={index} className="w-full" isCategoryGrid={true} />
+                </View>
+              )}
+              ListEmptyComponent={
+                <View className="flex-1 justify-center items-center py-20">
+                  <Text className="text-slate-400 dark:text-zinc-500 font-bold text-sm">No products in this subcategory</Text>
+                </View>
+              }
+            />
+          );
+        })()}
       </View>
     </View>
   );
 });
 
-function CategoryItem({
+const CategoryItem = React.memo(function CategoryItem({
   cat,
   isActive,
   isDarkMode,
@@ -390,10 +453,11 @@ function CategoryItem({
 
   return (
     <Animated.View style={animatedStyle}>
-      <Pressable
+      <ScalePressable
         onPress={onPress}
-        className="items-center"
-        style={{ width: 72 }}
+        scaleValue={0.95}
+        haptic="light"
+        style={{ width: 72, flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}
       >
         {/* Circular image/emoji container */}
         <View
@@ -446,14 +510,17 @@ function CategoryItem({
 
         {/* Category label */}
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
+          allowFontScaling={false}
           style={{
-            fontSize: 9,
+            fontSize: 8.5,
+            lineHeight: 11,
             fontWeight: isActive ? '900' : '700',
             color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b'),
             marginTop: 6,
             textAlign: 'center',
             width: '100%',
+            height: 24, // Fix height to ensure vertical alignment is identical!
             letterSpacing: -0.1
           }}
         >
@@ -474,10 +541,10 @@ function CategoryItem({
             animatedDotStyle
           ]}
         />
-      </Pressable>
+      </ScalePressable>
     </Animated.View>
   );
-}
+});
 
 export default function CategoryDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
@@ -624,14 +691,12 @@ export default function CategoryDetailScreen() {
         )}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           {/* Left: Brand Logo & Text (Matched with Landing Page) */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.replace('/(tabs)');
             }} 
-            style={({ pressed }) => [
-              { opacity: pressed ? 0.85 : 1 }
-            ]}
+            scaleValue={0.97}
+            style={{}}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ 
@@ -657,20 +722,17 @@ export default function CategoryDetailScreen() {
                 </Text>
               </View>
             </View>
-          </Pressable>
+          </ScalePressable>
           
           {/* Right: Location Capsule Picker (Matched with Landing Page) */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.push('/location-picker');
             }} 
-            style={({ pressed }) => [
-              {
-                opacity: pressed ? 0.85 : 1,
-                maxWidth: '60%'
-              }
-            ]}
+            scaleValue={0.96}
+            style={{
+              maxWidth: '60%'
+            }}
           >
             <View style={{ 
               flexDirection: 'row', 
@@ -698,16 +760,16 @@ export default function CategoryDetailScreen() {
               </Text>
               <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
             </View>
-          </Pressable>
+          </ScalePressable>
         </View>
 
         {/* Row 2: Search input placeholder (Matched with Landing Page) */}
-        <Pressable 
+        <ScalePressable 
           onPress={() => {
-            triggerHaptic('light');
             router.push('/search');
           }}
-          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+          scaleValue={0.99}
+          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full"
           style={Platform.OS === 'ios' ? {
             marginTop: 10,
             shadowColor: '#000',
@@ -727,50 +789,50 @@ export default function CategoryDetailScreen() {
           {/* Vertical Divider */}
           <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
           
-          <Mic size={16} color="#16a34a" />
-        </Pressable>
+          <Mic size={16} color="#e20a22" />
+        </ScalePressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
         <View style={{
           flexDirection: 'row',
           alignItems: 'center',
           alignSelf: 'flex-start',
-          borderWidth: 1,
-          borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
           borderRadius: 99,
-          paddingHorizontal: 12,
-          paddingVertical: 5,
-          marginTop: 12,
+          paddingHorizontal: 10,
+          paddingVertical: 4.5,
+          marginTop: 10,
           marginBottom: 2,
-          backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff'
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
         }}>
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.replace('/(tabs)');
             }}
-            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            scaleValue={0.96}
+            style={{}}
           >
-            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
-          </Pressable>
-          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6 }} />
-          <Pressable 
+            <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
+          </ScalePressable>
+          <ChevronRight size={8} color="#94a3b8" style={{ marginHorizontal: 6 }} />
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               if (isCafe) {
                 router.push('/cafe');
               } else {
                 router.replace('/(tabs)');
               }
             }}
-            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            scaleValue={0.96}
+            style={{}}
           >
-            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>
+            <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>
               {isCafe ? 'FASTKIRANA CAFE 🍩' : 'FASTKIRANA MART 🛒'}
             </Text>
-          </Pressable>
-          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6 }} />
-          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#71717a' : '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
+          </ScalePressable>
+          <ChevronRight size={8} color="#94a3b8" style={{ marginHorizontal: 6 }} />
+          <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#64748b', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
             {categoryName}
           </Text>
         </View>
@@ -826,12 +888,13 @@ export default function CategoryDetailScreen() {
             { id: 'PRICE_LOW', label: 'Price: Low' },
             { id: 'PRICE_HIGH', label: 'Price: High' }
           ].map((option) => (
-            <Pressable
+            <ScalePressable
               key={option.id}
               onPress={() => {
                 setSortBy(option.id as any);
-                triggerHaptic('light');
               }}
+              scaleValue={0.94}
+              haptic="light"
               className={`px-3 py-1.5 rounded-full border ${
                 sortBy === option.id 
                   ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-250 dark:border-rose-900/50' 
@@ -843,14 +906,28 @@ export default function CategoryDetailScreen() {
               }`}>
                 {option.label}
               </Text>
-            </Pressable>
+            </ScalePressable>
           ))}
         </View>
 
-        <Pressable className="flex-row items-center gap-1.5 px-3 py-1.5 rounded-full border border-slate-100/80 dark:border-zinc-800/80 bg-slate-50/50 dark:bg-zinc-800/30 active:scale-95">
+        <ScalePressable 
+          scaleValue={0.95}
+          haptic="light"
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 99,
+            borderWidth: 1,
+            borderColor: isDarkMode ? 'rgba(39, 39, 42, 0.8)' : 'rgba(241, 245, 249, 0.8)',
+            backgroundColor: isDarkMode ? 'rgba(39, 39, 42, 0.3)' : 'rgba(248, 250, 252, 0.5)',
+          }}
+        >
           <SlidersHorizontal size={12} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
           <Text className="text-slate-500 dark:text-zinc-400 font-extrabold text-[9px] uppercase tracking-wider">Filters</Text>
-        </Pressable>
+        </ScalePressable>
       </View>
 
       <FlatList

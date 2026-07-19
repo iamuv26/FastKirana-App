@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { ArrowLeft, CheckCircle, Package, Play, Barcode } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Package, Play, Barcode, RefreshCw } from 'lucide-react-native';
 import { formatPrice } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
@@ -569,11 +569,14 @@ export default function PickerScreen() {
   };
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-950">
-      <StatusBar style="light" />
+    <SafeAreaView 
+      className="flex-1"
+      style={{ backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}
+    >
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
-      <View className="bg-slate-900 px-3 py-2 flex-row items-center justify-between border-b border-slate-800">
-        <View className="flex-row items-center gap-2">
+      <View className="px-4 py-3 flex-row items-center justify-between border-b bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800 shadow-sm">
+        <View className="flex-row items-center gap-3">
           <Pressable 
             onPress={() => {
               if (isMultiPickingMode) {
@@ -591,20 +594,20 @@ export default function PickerScreen() {
                 }
               }
             }}
-            className="w-8 h-8 rounded-full bg-slate-800 items-center justify-center border border-slate-700 active:bg-slate-700"
+            className="w-8 h-8 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-100 dark:border-zinc-700 active:opacity-80"
           >
-            <ArrowLeft size={15} color="#fff" />
+            <ArrowLeft size={15} color={isDarkMode ? "#fff" : "#1e293b"} />
           </Pressable>
           <View>
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-white font-black text-sm">Picker Console 📦</Text>
-              <View className="px-1.5 py-0.5 rounded bg-indigo-900 border border-indigo-750">
-                <Text className="text-white font-extrabold text-[7.5px] tracking-wider uppercase">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-slate-800 dark:text-white font-black text-sm">Picker Console</Text>
+              <View className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900">
+                <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[7.5px] tracking-wider uppercase">
                   {user?.role || 'PICKER'}
                 </Text>
               </View>
             </View>
-            <Text className="text-slate-400 text-[9px] font-bold tracking-wide">
+            <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-bold tracking-wide">
               {isMultiPickingMode ? 'Consolidated Multi-Picking' : 'FastKirana Darkstore'}
             </Text>
           </View>
@@ -625,14 +628,14 @@ export default function PickerScreen() {
               ]);
             }
           }}
-          className="px-2.5 py-1 rounded-md bg-red-600/15 border border-red-500/25 active:bg-red-600/30"
+          className="px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 active:opacity-85"
         >
-          <Text className="text-red-500 font-bold text-[10px]">Log Out</Text>
+          <Text className="text-red-650 dark:text-red-400 font-black text-[10px] uppercase tracking-wider">Log Out</Text>
         </Pressable>
       </View>
 
       {/* Main Content */}
-      <ScrollView className="flex-1 p-2.5" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {isMultiPickingMode ? (
           // Multi Picking Console View
           <View className="bg-slate-900 rounded-xl border border-slate-800 p-3 shadow-sm mb-6">
@@ -738,21 +741,21 @@ export default function PickerScreen() {
           </View>
         ) : activePickingOrder ? (
           // Single Picking Console View
-          <View className="bg-slate-900 rounded-xl border border-slate-800 p-3 shadow-sm mb-6">
-            <View className="flex-row justify-between items-center border-b border-slate-800 pb-2 mb-3">
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-sm mb-4">
+            <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3">
               <View>
-                <Text className="text-white font-black text-xs uppercase">Picking Order #{activePickingOrder.id.slice(-6).toUpperCase()}</Text>
-                <Text className="text-slate-400 text-[8px] font-semibold">Customer: {activePickingOrder.user.name}</Text>
+                <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Picking Order #{activePickingOrder.id.slice(-6).toUpperCase()}</Text>
+                <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-semibold">Customer: {activePickingOrder.user.name}</Text>
               </View>
               <Pressable 
                 onPress={() => setActivePickingOrder(null)}
-                className="px-2.5 py-1 rounded bg-slate-950 border border-slate-800 active:bg-slate-800"
+                className="px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 active:opacity-80"
               >
-                <Text className="text-slate-300 font-extrabold text-[8px] uppercase tracking-wider">Cancel</Text>
+                <Text className="text-slate-600 dark:text-zinc-300 font-extrabold text-[8px] uppercase tracking-wider">Cancel</Text>
               </Pressable>
             </View>
 
-            <View className="flex-row gap-1 bg-slate-950 p-1 rounded-lg border border-slate-800 items-center mb-3">
+            <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-2 rounded-xl border border-slate-100 dark:border-zinc-850 items-center mb-3">
               <Barcode size={12} color="#6366f1" />
               <TextInput
                 placeholder="Scan product barcode..."
@@ -760,18 +763,18 @@ export default function PickerScreen() {
                 value={barcodeQuery}
                 onChangeText={setBarcodeQuery}
                 onSubmitEditing={scanBarcodeProduct}
-                className="flex-1 text-white text-[10px] font-semibold p-0"
+                className="flex-1 text-slate-800 dark:text-white text-[10px] font-semibold p-0"
               />
               <Pressable 
                 onPress={() => setIsCameraActive(true)}
-                className="bg-indigo-655 px-2 py-1 rounded active:bg-indigo-750 mr-0.5"
+                className="bg-indigo-600 px-2 py-1 rounded active:bg-indigo-750 mr-0.5"
               >
                 <Text className="text-white font-extrabold text-[7px] uppercase">📷 Scan</Text>
               </Pressable>
             </View>
 
-            <Text className="text-slate-400 font-black text-[9px] uppercase tracking-wider mb-1.5">Checklist by Location</Text>
-            <View className="divide-y divide-slate-800">
+            <Text className="text-slate-400 dark:text-zinc-500 font-black text-[9px] uppercase tracking-wider mb-2">Checklist by Location</Text>
+            <View className="divide-y divide-slate-100 dark:divide-zinc-800">
               {activePickingOrder.items.map((item) => {
                 const picked = pickedQuantities[item.id] || 0;
                 const max = item.quantity;
@@ -779,35 +782,35 @@ export default function PickerScreen() {
                 const isDone = picked === max;
 
                 return (
-                  <View key={item.id} className="py-2 flex-row justify-between items-center gap-2">
+                  <View key={item.id} className="py-2.5 flex-row justify-between items-center gap-2">
                     <View className="flex-1 pr-1">
-                      <Text className={`text-[11px] font-bold leading-tight ${isDone ? 'text-slate-600 line-through' : 'text-slate-200'}`}>
+                      <Text className={`text-[11px] font-bold leading-tight ${isDone ? 'text-slate-400 dark:text-zinc-650 line-through' : 'text-slate-800 dark:text-zinc-200'}`}>
                         {item.name}
                       </Text>
-                      <Text className="text-indigo-400 text-[8px] font-black mt-0.5 uppercase tracking-wider">{aisle}</Text>
+                      <Text className="text-indigo-650 dark:text-indigo-400 text-[8px] font-black mt-0.5 uppercase tracking-wider">{aisle}</Text>
                     </View>
                     
                     <View className="flex-row items-center gap-1.5">
                       {isDone ? (
-                        <View className="bg-emerald-950/20 border border-emerald-900/30 px-1.5 py-0.5 rounded flex-row items-center gap-0.5">
+                        <View className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-1.5 py-0.5 rounded flex-row items-center gap-0.5">
                           <CheckCircle size={8} color="#059669" />
-                          <Text className="text-emerald-400 font-black text-[8px] uppercase">{max}/{max}</Text>
+                          <Text className="text-emerald-600 dark:text-emerald-400 font-black text-[8px] uppercase">{max}/{max}</Text>
                         </View>
                       ) : (
-                        <View className="flex-row items-center bg-slate-950 rounded p-0.5 border border-slate-800">
-                          <Pressable onPress={() => resetItemPicker(item.id)} className="px-1.5">
-                            <Text className="text-slate-400 font-black text-[10px]">↺</Text>
+                        <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 rounded-lg p-0.5 border border-slate-100 dark:border-zinc-800">
+                          <Pressable onPress={() => resetItemPicker(item.id)} className="px-2 py-1">
+                            <Text className="text-slate-400 dark:text-zinc-500 font-black text-[10px]">↺</Text>
                           </Pressable>
-                          <Text className="px-0.5 text-slate-200 font-black text-[10px]">{picked}/{max}</Text>
+                          <Text className="px-1 text-slate-700 dark:text-zinc-200 font-black text-[10px]">{picked}/{max}</Text>
                           <Pressable 
                             onPress={() => manualPickOne(item.id, max)}
-                            className="bg-slate-900 px-1.5 py-1 rounded border border-slate-800 active:bg-slate-800 ml-1"
+                            className="bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-slate-150 dark:border-zinc-800 active:opacity-80 ml-1.5"
                           >
-                            <Text className="text-slate-200 font-black text-[9px] uppercase">+1</Text>
+                            <Text className="text-slate-655 dark:text-zinc-300 font-black text-[9px] uppercase">+1</Text>
                           </Pressable>
                           <Pressable 
                             onPress={() => manualPickAll(item.id, max)}
-                            className="bg-indigo-600 px-1.5 py-1 rounded active:bg-indigo-750 ml-0.5"
+                            className="bg-indigo-600 px-2.5 py-1 rounded-md active:bg-indigo-700 ml-1"
                           >
                             <Text className="text-white font-extrabold text-[9px] uppercase">All</Text>
                           </Pressable>
@@ -821,9 +824,9 @@ export default function PickerScreen() {
 
             <Pressable
               onPress={() => packActiveOrder(activePickingOrder.id)}
-              className="bg-indigo-600 py-2.5 rounded-lg items-center mt-4 active:bg-indigo-700"
+              className="bg-indigo-650 py-2.5 rounded-xl items-center mt-4 active:bg-indigo-750"
             >
-              <Text className="text-white font-extrabold text-[11px] uppercase tracking-wider">Pack & Complete Order</Text>
+              <Text className="text-white font-black text-xs uppercase tracking-wider">Pack & Complete Order</Text>
             </Pressable>
           </View>
         ) : (

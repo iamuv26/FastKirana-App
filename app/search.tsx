@@ -1,6 +1,6 @@
 import { View, Text, TextInput,  FlatList, Pressable, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ArrowLeft, X, ShoppingBag, Mic } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -12,6 +12,17 @@ import { toast } from '../lib/toast';
 import { API_BASE_URL } from '../lib/constants';
 import { useTheme } from './context/ThemeContext';
 import { triggerHaptic } from '../lib/haptic';
+import { THEME } from '../lib/theme';
+
+let ExpoSpeechRecognitionModule: any = null;
+let ExpoWebSpeechRecognition: any = null;
+try {
+  const speechModule = require('expo-speech-recognition');
+  ExpoSpeechRecognitionModule = speechModule.ExpoSpeechRecognitionModule;
+  ExpoWebSpeechRecognition = speechModule.ExpoWebSpeechRecognition;
+} catch (e) {
+  console.warn('Native speech recognition module not found. Falling back to simulation.', e);
+}
 import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withSequence, withTiming, cancelAnimation } from 'react-native-reanimated';
 
 const SUGGESTION_PLACEHOLDERS = [
@@ -74,31 +85,157 @@ export default function SearchScreen() {
   const [voiceStatus, setVoiceStatus] = useState('Listening...');
   const pulseScale = useSharedValue(1);
 
-  const handleStartVoiceSearch = () => {
-    triggerHaptic('medium');
-    setVoiceStatus('Listening...');
-    setIsVoiceModalVisible(true);
-    pulseScale.value = withRepeat(
-      withSequence(
-        withTiming(1.2, { duration: 500 }),
-        withTiming(1, { duration: 500 })
-      ),
-      -1,
-      true
-    );
+  const recognitionRef = useRef<any | null>(null);
 
-    // Simulate speech recognition after 2 seconds
-    setTimeout(() => {
-      const speechSuggestions = ['milk', 'fresh tomatoes', 'cold coffee', 'lays chips'];
-      const randomQuery = speechSuggestions[Math.floor(Math.random() * speechSuggestions.length)];
-      setSearchQuery(randomQuery);
-      setVoiceStatus(`Searching for "${randomQuery}"...`);
-      triggerHaptic('success');
+  useEffect(() => {
+    // Instantiate speech recognition safely to prevent crashes in Expo Go
+    let recognition: any = null;
+    try {
+      recognition = new ExpoWebSpeechRecognition();
+      recognition.lang = 'en-IN';
+      
+      recognition.onstart = () => {
+        setVoiceStatus('Listening...');
+        setIsVoiceModalVisible(true);
+        pulseScale.value = withRepeat(
+          withSequence(
+            withTiming(1.2, { duration: 500 }),
+            withTiming(1, { duration: 500 })
+          ),
+          -1,
+          true
+        );
+      };
+      
+      recognition.onend = () => {
+        cancelAnimation(pulseScale);
+        pulseScale.value = 1;
+      };
+      
+      recognition.onresult = (event: any) => {
+        if (event.results && event.results[0]) {
+          const transcriptText = event.results[0].transcript || event.results[0][0]?.transcript || '';
+          setVoiceStatus(`Searching for "${transcriptText}"...`);
+          setSearchQuery(transcriptText);
+          triggerHaptic('success');
+          setTimeout(() => {
+            setIsVoiceModalVisible(false);
+          }, 1000);
+        }
+      };
+      
+      recognition.onerror = (error: any) => {
+        console.warn('Speech recognition error:', error);
+        setVoiceStatus('Recognition failed. Try again.');
+        cancelAnimation(pulseScale);
+        pulseScale.value = 1;
+        toast.error('Voice search failed. Try again.');
+        setTimeout(() => {
+          setIsVoiceModalVisible(false);
+        }, 1500);
+      };
+
+      recognitionRef.current = recognition;
+    } catch (e) {
+      console.warn('Speech recognition native module not available (e.g. running in Expo Go). Falling back to mock simulation.');
+    }
+
+    return () => {
+      if (recognition) {
+        try {
+          recognition.abort();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  const handleStartVoiceSearch = async () => {
+    triggerHaptic('medium');
+    setVoiceStatus('Initializing mic...');
+    setIsVoiceModalVisible(true);
+    
+    // If the native module is not available in the client, run the mock search simulation directly
+    const isNativeModuleAvailable = typeof ExpoSpeechRecognitionModule !== 'undefined' && ExpoSpeechRecognitionModule !== null;
+    if (!isNativeModuleAvailable || !recognitionRef.current) {
+      console.log('Using simulated voice search fallback (Expo Go / Web)');
+      // Simulation fallback if native code is missing (e.g. in Expo Go / Web)
+      setVoiceStatus('Listening...');
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 500 }),
+          withTiming(1, { duration: 500 })
+        ),
+        -1,
+        true
+      );
       
       setTimeout(() => {
-        setIsVoiceModalVisible(false);
-      }, 1000);
-    }, 2500);
+        const speechSuggestions = ['milk', 'fresh tomatoes', 'cold coffee', 'lays chips'];
+        const randomQuery = speechSuggestions[Math.floor(Math.random() * speechSuggestions.length)];
+        setSearchQuery(randomQuery);
+        setVoiceStatus(`Searching for "${randomQuery}"...`);
+        triggerHaptic('success');
+        
+        setTimeout(() => {
+          setIsVoiceModalVisible(false);
+          cancelAnimation(pulseScale);
+          pulseScale.value = 1;
+        }, 1000);
+      }, 2500);
+      return;
+    }
+
+    try {
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!permission || !permission.granted) {
+        setVoiceStatus('Microphone permission denied.');
+        toast.error('Microphone permission is required.');
+        setTimeout(() => {
+          setIsVoiceModalVisible(false);
+        }, 1500);
+        return;
+      }
+      
+      recognitionRef.current?.start();
+    } catch (e) {
+      console.warn('Failed starting voice recognition:', e);
+      // Simulation fallback if permission or start fails
+      setVoiceStatus('Listening...');
+      pulseScale.value = withRepeat(
+        withSequence(
+          withTiming(1.2, { duration: 500 }),
+          withTiming(1, { duration: 500 })
+        ),
+        -1,
+        true
+      );
+      
+      setTimeout(() => {
+        const speechSuggestions = ['milk', 'fresh tomatoes', 'cold coffee', 'lays chips'];
+        const randomQuery = speechSuggestions[Math.floor(Math.random() * speechSuggestions.length)];
+        setSearchQuery(randomQuery);
+        setVoiceStatus(`Searching for "${randomQuery}"...`);
+        triggerHaptic('success');
+        
+        setTimeout(() => {
+          setIsVoiceModalVisible(false);
+          cancelAnimation(pulseScale);
+          pulseScale.value = 1;
+        }, 1000);
+      }, 2500);
+    }
+  };
+
+  const handleCancelVoiceSearch = () => {
+    triggerHaptic('light');
+    try {
+      recognitionRef.current?.stop();
+    } catch (e) {
+      console.warn(e);
+    }
+    cancelAnimation(pulseScale);
+    pulseScale.value = 1;
+    setIsVoiceModalVisible(false);
   };
 
   const animatedPulseStyle = useAnimatedStyle(() => ({
@@ -159,26 +296,24 @@ export default function SearchScreen() {
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
     queryKey: ['search-products', debouncedQuery],
     queryFn: async () => {
-      if (!debouncedQuery.trim()) return [];
+      if (!debouncedQuery || !debouncedQuery.trim()) return [];
       const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    enabled: debouncedQuery.trim().length > 0,
+    enabled: !!debouncedQuery && debouncedQuery.trim().length > 0,
   });
 
   // Local fallback searching logic
   const getSearchResults = () => {
-    if (!searchQueryVal.trim()) return [];
-    const activeServer = serverResults.filter(p => p.isAvailable !== false);
-    if (activeServer.length > 0) return activeServer;
+    if (!searchQueryVal || !searchQueryVal.trim()) return [];
+    if (serverResults.length > 0) return serverResults;
     const lowerQuery = searchQueryVal.toLowerCase();
     const sourceProducts = allProducts.length > 0 ? allProducts : ALL_SEARCHABLE_PRODUCTS;
     return sourceProducts.filter((p) => 
-      p.isAvailable !== false &&
-      (p.name.toLowerCase().includes(lowerQuery) || 
-       p.slug.toLowerCase().includes(lowerQuery))
+      p.name.toLowerCase().includes(lowerQuery) || 
+      p.slug.toLowerCase().includes(lowerQuery)
     );
   };
 
@@ -189,11 +324,11 @@ export default function SearchScreen() {
   const trendingTags = ['Mangoes', 'Amul', 'Chai', 'Milk', 'Maggi', 'Chocolate'];
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? THEME.COLORS.dark.background : THEME.COLORS.light.background }}>
       {/* Search Header */}
-      <View className="px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3 bg-white dark:bg-zinc-900">
+      <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: isDarkMode ? THEME.COLORS.dark.background : '#ffffff' }}>
 
-        <View className="flex-1 bg-slate-100 dark:bg-zinc-800 flex-row items-center px-3 py-2.5 rounded-xl border border-slate-200 dark:border-zinc-700">
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#1e1e24' : '#f1f5f9', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: THEME.RADIUS.pill, borderWidth: 1, borderColor: isDarkMode ? '#2d2d34' : '#e2e8f0' }} className="px-3 py-2.5">
           <Search size={18} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
           <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
             <TextInput
@@ -225,7 +360,7 @@ export default function SearchScreen() {
           ) : (
             <View className="flex-row items-center gap-2">
               <Pressable onPress={handleStartVoiceSearch} className="p-1 active:scale-90 transition-transform">
-                <Mic size={18} color="#e20a22" />
+                <Mic size={18} color={THEME.COLORS.brand.primary} />
               </Pressable>
               <Pressable onPress={() => setIsListParserVisible(true)} className="p-1 active:scale-90 transition-transform">
                 <Text className="text-base">📋</Text>
@@ -409,10 +544,7 @@ export default function SearchScreen() {
             </Text>
 
             <Pressable
-              onPress={() => {
-                triggerHaptic('light');
-                setIsVoiceModalVisible(false);
-              }}
+              onPress={handleCancelVoiceSearch}
               className="mt-8 px-6 py-2.5 bg-slate-100 dark:bg-zinc-800 rounded-xl active:bg-slate-200"
             >
               <Text className="text-slate-650 dark:text-zinc-350 font-bold text-xs uppercase">Cancel</Text>

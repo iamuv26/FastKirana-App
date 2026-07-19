@@ -99,7 +99,7 @@ export default function InventoryTab() {
   
   // Filters state
   const [searchQuery, setSearchQuery] = useState<string>('');
-  const [typeFilter, setTypeFilter] = useState<'all' | 'grocery' | 'cafe'>('all');
+  const [typeFilter, setTypeFilter] = useState<'all' | 'grocery' | 'cafe' | 'restaurant'>('all');
   const [categoryFilter, setCategoryFilter] = useState<string>('');
   const [page, setPage] = useState<number>(1);
 
@@ -109,7 +109,7 @@ export default function InventoryTab() {
 
   // Add Product states
   const [isAddModalVisible, setIsAddModalVisible] = useState<boolean>(false);
-  const [addType, setAddType] = useState<'grocery' | 'cafe'>('grocery');
+  const [addType, setAddType] = useState<'grocery' | 'cafe' | 'restaurant'>('grocery');
   const [addName, setAddName] = useState('');
   const [addPrice, setAddPrice] = useState('');
   const [addMrp, setAddMrp] = useState('');
@@ -138,7 +138,7 @@ export default function InventoryTab() {
 
   // Edit Product states
   const [editingProduct, setEditingProduct] = useState<any | null>(null);
-  const [editType, setEditType] = useState<'grocery' | 'cafe'>('grocery');
+  const [editType, setEditType] = useState<'grocery' | 'cafe' | 'restaurant'>('grocery');
   const [editName, setEditName] = useState('');
   const [editPrice, setEditPrice] = useState('');
   const [editMrp, setEditMrp] = useState('');
@@ -412,7 +412,11 @@ export default function InventoryTab() {
       (Array.isArray(product.tags) 
         ? product.tags.some((t: any) => typeof t === 'string' && t.toLowerCase() === 'cafe')
         : (typeof product.tags === 'string' && product.tags.toLowerCase().includes('cafe')));
-    setEditType(isCafe ? 'cafe' : 'grocery');
+    const isRestaurant = product.category?.slug === 'restaurant' || 
+      (Array.isArray(product.tags) 
+        ? product.tags.some((t: any) => typeof t === 'string' && t.toLowerCase() === 'restaurant')
+        : (typeof product.tags === 'string' && product.tags.toLowerCase().includes('restaurant')));
+    setEditType(isRestaurant ? 'restaurant' : isCafe ? 'cafe' : 'grocery');
     setEditName(product.name || '');
     setEditPrice(String(product.price || ''));
     setEditMrp(String(product.mrp || ''));
@@ -455,12 +459,18 @@ export default function InventoryTab() {
     if (addType === 'cafe') {
       const cafeCat = categoriesList.find((c: any) => c.slug === 'cafe');
       if (cafeCat) catId = cafeCat.id;
+    } else if (addType === 'restaurant') {
+      const restCat = categoriesList.find((c: any) => c.slug === 'restaurant');
+      if (restCat) catId = restCat.id;
     }
     if (!catId && categoriesList.length > 0) catId = categoriesList[0].id;
 
     let finalTags = addTags.split(',').map(t => t.trim()).filter(Boolean);
     if (addType === 'cafe' && !finalTags.includes('cafe')) finalTags.push('cafe');
+    if (addType === 'restaurant' && !finalTags.includes('restaurant')) finalTags.push('restaurant');
     if (addCafeSection && !finalTags.includes(addCafeSection)) finalTags.push(addCafeSection);
+
+    const isInfiniteAdd = addType === 'cafe' || addType === 'restaurant';
 
     const payload: any = {
       name: addName.trim(),
@@ -469,8 +479,8 @@ export default function InventoryTab() {
       mrp: parseFloat(addMrp) || 0,
       price: parseFloat(addPrice) || 0,
       costPrice: parseFloat(addCostPrice) || 0,
-      stock: parseInt(addStock) || 0,
-      minStock: parseInt(addMinStock) || 10,
+      stock: isInfiniteAdd ? 99999 : (parseInt(addStock) || 0),
+      minStock: isInfiniteAdd ? 0 : (parseInt(addMinStock) || 10),
       description: addDescription.trim(),
       imageUrl: addImageUrl.trim() || '📦',
       location: addLocation.trim(),
@@ -495,6 +505,9 @@ export default function InventoryTab() {
 
     let finalTags = editTags.split(',').map(t => t.trim()).filter(Boolean);
     if (editType === 'cafe' && !finalTags.includes('cafe')) finalTags.push('cafe');
+    if (editType === 'restaurant' && !finalTags.includes('restaurant')) finalTags.push('restaurant');
+
+    const isInfiniteEdit = editType === 'cafe' || editType === 'restaurant';
 
     const payload: any = {
       name: editName.trim(),
@@ -503,8 +516,8 @@ export default function InventoryTab() {
       mrp: parseFloat(editMrp) || editingProduct.mrp,
       price: parseFloat(editPrice) || editingProduct.price,
       costPrice: parseFloat(editCostPrice) || 0,
-      stock: parseInt(editStock) || 0,
-      minStock: parseInt(editMinStock) || 10,
+      stock: isInfiniteEdit ? 99999 : (parseInt(editStock) || 0),
+      minStock: isInfiniteEdit ? 0 : (parseInt(editMinStock) || 10),
       description: editDescription.trim(),
       imageUrl: editImageUrl.trim() || '📦',
       location: editLocation.trim(),
@@ -552,6 +565,7 @@ export default function InventoryTab() {
               { id: 'all', label: 'All Items' },
               { id: 'grocery', label: 'Grocery 📦' },
               { id: 'cafe', label: 'Cafe ☕' },
+              { id: 'restaurant', label: 'Restaurant 🍳' },
             ].map(t => (
               <Pressable
                 key={t.id}
@@ -760,22 +774,30 @@ export default function InventoryTab() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} className="mb-4">
-                {/* Grocery vs Cafe Selector */}
+                {/* Grocery vs Cafe vs Restaurant Selector */}
                 <View className="flex-row bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-850 mb-4">
                   <Pressable
                     onPress={() => setAddType('grocery')}
                     className={`flex-1 items-center py-2 rounded-lg ${addType === 'grocery' ? 'bg-indigo-600' : 'bg-transparent'}`}
                   >
-                    <Text className={`text-[10px] font-black uppercase ${addType === 'grocery' ? 'text-white' : 'text-slate-500'}`}>
-                      🛒 Grocery Item
+                    <Text className={`text-[9px] font-black uppercase ${addType === 'grocery' ? 'text-white' : 'text-slate-500'}`}>
+                      🛒 Grocery
                     </Text>
                   </Pressable>
                   <Pressable
                     onPress={() => setAddType('cafe')}
                     className={`flex-1 items-center py-2 rounded-lg ${addType === 'cafe' ? 'bg-rose-600' : 'bg-transparent'}`}
                   >
-                    <Text className={`text-[10px] font-black uppercase ${addType === 'cafe' ? 'text-white' : 'text-slate-500'}`}>
-                      ☕ Café Special
+                    <Text className={`text-[9px] font-black uppercase ${addType === 'cafe' ? 'text-white' : 'text-slate-500'}`}>
+                      ☕ Cafe
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setAddType('restaurant')}
+                    className={`flex-1 items-center py-2 rounded-lg ${addType === 'restaurant' ? 'bg-red-600' : 'bg-transparent'}`}
+                  >
+                    <Text className={`text-[9px] font-black uppercase ${addType === 'restaurant' ? 'text-white' : 'text-slate-500'}`}>
+                      🍳 Rest.
                     </Text>
                   </Pressable>
                 </View>
@@ -874,17 +896,19 @@ export default function InventoryTab() {
 
                   {/* Stock & Cost Price */}
                   <View className="flex-row gap-3">
-                    <View className="flex-1">
-                      <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Stock Count</Text>
-                      <TextInput
-                        value={addStock}
-                        onChangeText={setAddStock}
-                        keyboardType="numeric"
-                        placeholder="50"
-                        placeholderTextColor="#64748b"
-                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
-                      />
-                    </View>
+                    {addType === 'grocery' && (
+                      <View className="flex-1">
+                        <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Stock Count</Text>
+                        <TextInput
+                          value={addStock}
+                          onChangeText={setAddStock}
+                          keyboardType="numeric"
+                          placeholder="50"
+                          placeholderTextColor="#64748b"
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
+                        />
+                      </View>
+                    )}
                     <View className="flex-1">
                       <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Cost Price (CP)</Text>
                       <TextInput
@@ -1005,6 +1029,34 @@ export default function InventoryTab() {
               </View>
 
               <ScrollView showsVerticalScrollIndicator={false} className="mb-4">
+                {/* Grocery vs Cafe vs Restaurant Selector */}
+                <View className="flex-row bg-slate-100 dark:bg-slate-950 p-1 rounded-xl border border-slate-200 dark:border-zinc-850 mb-4">
+                  <Pressable
+                    onPress={() => setEditType('grocery')}
+                    className={`flex-1 items-center py-2 rounded-lg ${editType === 'grocery' ? 'bg-indigo-600' : 'bg-transparent'}`}
+                  >
+                    <Text className={`text-[9px] font-black uppercase ${editType === 'grocery' ? 'text-white' : 'text-slate-500'}`}>
+                      🛒 Grocery
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setEditType('cafe')}
+                    className={`flex-1 items-center py-2 rounded-lg ${editType === 'cafe' ? 'bg-rose-600' : 'bg-transparent'}`}
+                  >
+                    <Text className={`text-[9px] font-black uppercase ${editType === 'cafe' ? 'text-white' : 'text-slate-500'}`}>
+                      ☕ Cafe
+                    </Text>
+                  </Pressable>
+                  <Pressable
+                    onPress={() => setEditType('restaurant')}
+                    className={`flex-1 items-center py-2 rounded-lg ${editType === 'restaurant' ? 'bg-red-600' : 'bg-transparent'}`}
+                  >
+                    <Text className={`text-[9px] font-black uppercase ${editType === 'restaurant' ? 'text-white' : 'text-slate-500'}`}>
+                      🍳 Rest.
+                    </Text>
+                  </Pressable>
+                </View>
+
                 <View className="gap-3">
                   <View>
                     <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Product Name *</Text>
@@ -1023,10 +1075,12 @@ export default function InventoryTab() {
                   </View>
 
                   <View className="flex-row gap-3">
-                    <View className="flex-1">
-                      <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Stock Count</Text>
-                      <TextInput value={editStock} onChangeText={setEditStock} keyboardType="numeric" className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs" />
-                    </View>
+                    {editType === 'grocery' && (
+                      <View className="flex-1">
+                        <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Stock Count</Text>
+                        <TextInput value={editStock} onChangeText={setEditStock} keyboardType="numeric" className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs" />
+                      </View>
+                    )}
                     <View className="flex-1">
                       <Text className="text-slate-500 font-bold text-[9px] uppercase mb-1">Cost Price (CP)</Text>
                       <TextInput value={editCostPrice} onChangeText={setEditCostPrice} keyboardType="numeric" className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs" />

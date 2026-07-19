@@ -12,16 +12,17 @@ export function formatPrice(price: number): string {
 
 export function isCafeProduct(p: any): boolean {
   if (!p) return false;
-  if (p.category?.slug === 'cafe') return true;
-  if (p.tags?.includes('cafe')) return true;
+  const categorySlug = p.category?.slug || p.categorySlug;
+  if (categorySlug === 'cafe' || categorySlug === 'restaurant') return true;
+  if (p.tags?.includes('cafe') || p.tags?.includes('restaurant')) return true;
   return false;
 }
 
 export function getOptimizedImageUrl(url: string | null | undefined, width = 300): string | null {
   if (!url) return null;
   if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
-    // Remove f_auto to prevent Cloudinary from serving AVIF or advanced formats that fail to render on some mobile platforms
-    return url.replace('/image/upload/', `/image/upload/q_auto,w_${width},c_limit/`);
+    // Force WebP format to dramatically reduce image sizes and load times on mobile
+    return url.replace('/image/upload/', `/image/upload/f_webp,q_auto,w_${width},c_limit/`);
   }
   return url;
 }

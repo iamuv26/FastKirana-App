@@ -3,7 +3,9 @@ import { useState, useEffect, useRef } from 'react';
 import { ShoppingBag } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeIn, useAnimatedStyle, withSpring } from 'react-native-reanimated';
+import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
+import { THEME } from '../../lib/theme';
 
 const { width } = Dimensions.get('window');
 const bannerWidth = width;
@@ -19,18 +21,18 @@ const BANNERS = [
   },
   {
     id: 2,
-    tag: '☕ CAFE SPECIAL',
+    tag: '🍔 FOOD SPECIAL',
     title: 'Warm Brews &\nHot Samosas!',
-    desc: 'Delicious snacks from FastKirana Cafe, prepared fresh.',
-    colors: ['#d97706', '#92400e'] as [string, string],
-    code: 'CAFE20',
+    desc: 'Delicious snacks from FastKirana Food, prepared fresh.',
+    colors: ['#ea580c', '#9a3412'] as [string, string],
+    code: 'FOOD20',
   },
   {
     id: 3,
     tag: '🥬 FRESH HARVEST',
     title: 'Farm Fresh Fruits\n& Vegetables!',
     desc: 'Directly sourced from fields for healthy everyday meals.',
-    colors: ['#059669', '#065f46'] as [string, string],
+    colors: ['#10b981', '#065f46'] as [string, string],
     code: 'FRESH25',
   }
 ];
@@ -39,7 +41,7 @@ function PaginationDot({ isActive }: { isActive: boolean }) {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       width: withSpring(isActive ? 20 : 6, { damping: 12 }),
-      backgroundColor: isActive ? '#e20a22' : '#cbd5e1',
+      backgroundColor: isActive ? THEME.COLORS.brand.primary : THEME.COLORS.light.border,
     };
   }, [isActive]);
 
@@ -76,28 +78,28 @@ export default function HeroBanner() {
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(300)} className="mb-5 overflow-hidden">
+    <Animated.View entering={FadeIn.duration(300)} style={{ marginBottom: THEME.SPACING.lg }} className="overflow-hidden">
       <ScrollView
         ref={scrollViewRef}
         horizontal
         pagingEnabled
         showsHorizontalScrollIndicator={false}
         onMomentumScrollEnd={handleMomentumScrollEnd}
-        style={{ width: width, height: 160 }}
+        style={{ width: width, height: 170 }}
       >
         {BANNERS.map((banner) => (
           <View
             key={banner.id}
-            style={{ width: width, paddingHorizontal: 16, height: 160 }}
+            style={{ width: width, paddingHorizontal: 16, height: 170 }}
           >
-            <Pressable
-              onPress={() => triggerHaptic('light')}
-              style={({ pressed }) => [{
+            <ScalePressable
+              onPress={() => {}}
+              scaleValue={0.98}
+              style={{
                 width: '100%',
-                height: 160,
-                transform: [{ scale: pressed ? 0.98 : 1 }]
-              }]}
-              className="rounded-2xl overflow-hidden shadow-sm shadow-slate-200/50"
+                height: 170,
+              }}
+              className="rounded-2xl overflow-hidden shadow-sm"
             >
               <LinearGradient
                 colors={banner.colors}
@@ -107,38 +109,38 @@ export default function HeroBanner() {
               />
               <View className="p-6 relative flex-col justify-between h-full w-full">
                 {/* Glossy decorative background accents */}
-                <View className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full border border-white/5 bg-white/[0.03] z-0" />
-                <View className="absolute right-[-20px] bottom-[-20px] w-36 h-36 rounded-full border border-white/10 bg-white/[0.05] z-0" />
+                <View style={{ position: 'absolute', right: -40, top: -40, width: 192, height: 192, borderRadius: 96, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.03)', zIndex: 0 }} />
+                <View style={{ position: 'absolute', right: -20, bottom: -20, width: 144, height: 144, borderRadius: 72, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.05)', zIndex: 0 }} />
 
                 {/* Overlay Graphic */}
                 <View className="absolute right-[-10px] bottom-[-10px] opacity-15 z-0">
-                  <ShoppingBag size={110} color="#fff" />
+                  <ShoppingBag size={130} color="#fff" />
                 </View>
 
-                <View className="z-10 flex-1">
-                  <Text className="text-white text-[9px] font-black uppercase tracking-widest bg-white/25 px-2.5 py-1 rounded-full self-start">
-                    {banner.tag}
-                  </Text>
-                  <Text className="text-white text-xl font-black mt-2.5 leading-6">
-                    {banner.title}
-                  </Text>
-                  <Text className="text-rose-100/90 text-xs mt-1" numberOfLines={1}>
-                    {banner.desc}
-                  </Text>
-                </View>
-
-                <View className="flex-row justify-between items-center z-10 mt-2">
-                  <View className="bg-white/20 border border-white/10 px-2.5 py-1 rounded-lg">
-                    <Text className="text-white font-extrabold text-[10px]">CODE: {banner.code}</Text>
+                {/* Tag & Offer */}
+                <View className="flex-row items-center justify-between z-10">
+                  <View className="bg-white/20 px-2.5 py-1 rounded-md">
+                    <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">{banner.tag}</Text>
                   </View>
-                  <View className="bg-white px-4 py-2 rounded-xl shadow-md shadow-black/10">
-                    <Text style={{ color: banner.colors[0] }} className="font-black text-[10px] uppercase tracking-wider">
+                  <View className="bg-white/10 px-2 py-0.5 rounded-full flex-row items-center gap-1">
+                    <Text className="text-white text-[8px] font-bold">10 Mins</Text>
+                  </View>
+                </View>
+
+                {/* Heading & Button */}
+                <View className="flex-row justify-between items-end z-10">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-white font-black text-lg leading-tight uppercase" style={{ letterSpacing: -0.5 }}>{banner.title}</Text>
+                    <Text className="text-white/85 text-[10px] font-bold mt-1">{banner.desc}</Text>
+                  </View>
+                  <View className="bg-white px-4 py-2 rounded-xl shadow-md">
+                    <Text style={{ color: banner.colors[0], fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase tracking-wider">
                       Order Now
                     </Text>
                   </View>
                 </View>
               </View>
-            </Pressable>
+            </ScalePressable>
           </View>
         ))}
       </ScrollView>

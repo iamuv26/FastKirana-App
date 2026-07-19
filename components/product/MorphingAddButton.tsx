@@ -8,6 +8,8 @@ import Animated, {
   Extrapolate,
 } from 'react-native-reanimated';
 import { Plus, Minus } from 'lucide-react-native';
+import { ScalePressable } from '../shared/ScalePressable';
+import { THEME } from '../../lib/theme';
 
 interface MorphingAddButtonProps {
   quantity: number;
@@ -48,19 +50,19 @@ export default function MorphingAddButton({
       width = interpolate(
         animState.value,
         [0, 1],
-        [78, 96],
+        [80, 98],
         Extrapolate.CLAMP
       );
     }
 
     // Background color animation
     const bg = quantity > 0
-      ? (isDark ? '#14532d' : '#2d5a27') // Stepper bg
-      : (isDark ? '#1e1b1b' : '#ffffff'); // Add button bg
+      ? (isDark ? THEME.COLORS.brand.primaryDark : THEME.COLORS.brand.primary) // Stepper bg
+      : (isDark ? THEME.COLORS.dark.surface : '#ffffff'); // Add button bg
 
     const borderColor = quantity > 0
-      ? (isDark ? '#166534' : '#20461c')
-      : (isDark ? '#22c55e' : '#0c831f');
+      ? (isDark ? THEME.COLORS.brand.primaryDark : THEME.COLORS.brand.primary)
+      : THEME.COLORS.brand.primary;
 
     return {
       width: width as any,
@@ -127,14 +129,16 @@ export default function MorphingAddButton({
     >
       {/* ADD Label */}
       <Animated.View style={[styles.centerWrapper, addTextStyle]}>
-        <Text style={[styles.addText, { color: isDark ? '#22c55e' : '#0c831f' }]}>ADD</Text>
-        <Text style={[styles.plusText, { color: isDark ? '#22c55e' : '#0c831f' }]}>+</Text>
+        <Text style={[styles.addText, { color: THEME.COLORS.brand.primary }]}>ADD</Text>
+        <Text style={[styles.plusText, { color: THEME.COLORS.brand.primary }]}>+</Text>
       </Animated.View>
 
       {/* Stepper Controls */}
       <Animated.View style={controlsStyle}>
-        <Pressable
+        <ScalePressable
           onPress={onDecrement}
+          scaleValue={0.88}
+          haptic="light"
           style={({ pressed }) => [
             styles.controlBtn,
             pressed && { opacity: 0.7 }
@@ -142,7 +146,7 @@ export default function MorphingAddButton({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Minus size={12} color="#ffffff" strokeWidth={3.5} />
-        </Pressable>
+        </ScalePressable>
 
         <View style={styles.qtyTextWrapper}>
           <Text style={styles.qtyText}>
@@ -150,9 +154,11 @@ export default function MorphingAddButton({
           </Text>
         </View>
 
-        <Pressable
+        <ScalePressable
           onPress={onIncrement}
           disabled={quantity >= maxQuantity}
+          scaleValue={0.88}
+          haptic="light"
           style={({ pressed }) => [
             styles.controlBtn,
             pressed && { opacity: 0.7 },
@@ -161,7 +167,7 @@ export default function MorphingAddButton({
           hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
         >
           <Plus size={12} color="#ffffff" strokeWidth={3.5} />
-        </Pressable>
+        </ScalePressable>
       </Animated.View>
     </AnimatedPressable>
   );
@@ -169,8 +175,8 @@ export default function MorphingAddButton({
 
 const styles = StyleSheet.create({
   btnContainer: {
-    height: 32,
-    borderRadius: 10,
+    height: 34,
+    borderRadius: THEME.RADIUS.xs,
     borderWidth: 1.5,
     alignItems: 'center',
     justifyContent: 'center',
@@ -181,19 +187,19 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    gap: 2,
+    gap: 3,
     width: '100%',
     height: '100%',
   },
   addText: {
-    fontSize: 11.5,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
     letterSpacing: 0.4,
   },
   plusText: {
-    fontSize: 14.5,
+    fontSize: 14,
     fontWeight: '600',
-    marginTop: -2.5,
+    marginTop: -2,
   },
   controlBtn: {
     paddingHorizontal: 12,
@@ -209,7 +215,7 @@ const styles = StyleSheet.create({
   },
   qtyText: {
     color: '#ffffff',
-    fontSize: 12.5,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
   },
 });

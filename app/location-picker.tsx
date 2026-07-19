@@ -7,6 +7,7 @@ import { ArrowLeft, MapPin, Navigation, Compass, Search, Sparkles, CheckCircle2,
 import * as Location from 'expo-location';
 import { useUIStore } from '../stores/ui-store';
 import { useTheme } from './context/ThemeContext';
+import { ScalePressable } from '../components/shared/ScalePressable';
 import { triggerHaptic } from '../lib/haptic';
 import { API_BASE_URL } from '../lib/constants';
 import { api } from '../lib/api-client';
@@ -253,12 +254,9 @@ export default function LocationPickerScreen() {
       if (!response.ok) throw new Error('Store coverage check failed');
       const store = await response.json();
       
-      // Save details to stores
-      // Save details to stores
-      const rawStoreId = store ? store.id : 'default-Ghatampur Market';
-      const resolvedStoreId = (!rawStoreId || rawStoreId === 'default-swaroop-nagar' || rawStoreId === 'ghatampur') ? 'default-Ghatampur Market' : rawStoreId;
-      const rawStoreName = store ? store.name : 'Ghatampur';
-      const resolvedStoreName = (!rawStoreName || rawStoreName === 'Swaroop Nagar Hub' || rawStoreName === 'Ghatampur Hub') ? 'Ghatampur' : rawStoreName;
+      // Force all stores (including Swaroop Nagar) to map to Ghatampur
+      const resolvedStoreId = 'default-Ghatampur Market';
+      const resolvedStoreName = 'Ghatampur';
 
       useUIStore.setState({
         selectedLocation: addressText,
@@ -303,11 +301,11 @@ export default function LocationPickerScreen() {
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3">
-        <Pressable 
+        <ScalePressable 
           onPress={() => {
-            triggerHaptic('light');
             router.back();
           }}
+          scaleValue={0.9}
           style={{
             width: 32,
             height: 32,
@@ -318,7 +316,7 @@ export default function LocationPickerScreen() {
           }}
         >
           <ArrowLeft size={18} color={isDark ? '#ffffff' : '#0f172a'} />
-        </Pressable>
+        </ScalePressable>
         <View className="flex-1">
           <Text className="text-slate-850 dark:text-zinc-100 font-black text-base">Select Delivery Location</Text>
           <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold mt-0.5">Dark Store Delivery Validation</Text>
@@ -339,24 +337,41 @@ export default function LocationPickerScreen() {
               className="flex-1 py-2.5 ml-2 text-slate-800 dark:text-zinc-100 font-bold text-xs"
             />
           </View>
-          <Pressable 
+          <ScalePressable 
             onPress={handleAddressSearch}
             disabled={isSearching}
-            className="bg-rose-600 active:bg-rose-700 px-4 rounded-xl items-center justify-center"
+            scaleValue={0.95}
+            style={{
+              backgroundColor: '#e20a22',
+              paddingHorizontal: 16,
+              borderRadius: 12,
+              alignItems: 'center',
+              justifyContent: 'center',
+            }}
           >
             {isSearching ? (
               <ActivityIndicator size="small" color="#fff" />
             ) : (
               <Text className="text-white font-extrabold text-xs">Search</Text>
             )}
-          </Pressable>
+          </ScalePressable>
         </View>
 
         {/* Current Location Quick Option */}
-        <Pressable 
+        <ScalePressable 
           onPress={handleUseCurrentLocation}
           disabled={gpsLoading}
-          className="bg-indigo-50/50 dark:bg-indigo-950/20 px-4 py-3.5 flex-row items-center justify-between border-b border-slate-100 dark:border-zinc-800"
+          scaleValue={0.98}
+          style={{
+            backgroundColor: isDark ? 'rgba(79, 70, 229, 0.08)' : 'rgba(238, 242, 255, 0.4)',
+            paddingHorizontal: 16,
+            paddingVertical: 14,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'space-between',
+            borderBottomWidth: 1,
+            borderBottomColor: isDark ? '#27272a' : '#f1f5f9',
+          }}
         >
           <View className="flex-row items-center gap-3">
             <Navigation size={18} color="#4f46e5" />
@@ -366,7 +381,7 @@ export default function LocationPickerScreen() {
             </View>
           </View>
           {gpsLoading && <ActivityIndicator size="small" color="#4f46e5" />}
-        </Pressable>
+        </ScalePressable>
 
         {/* Map View */}
         <View className="flex-1 min-h-[300px] relative bg-slate-100 dark:bg-zinc-900 border-y border-slate-200 dark:border-zinc-800 overflow-hidden">
@@ -442,8 +457,8 @@ export default function LocationPickerScreen() {
                       var userMarker = L.marker([${markerCoords.latitude}, ${markerCoords.longitude}], { icon: userIcon, draggable: true }).addTo(map);
 
                       L.circle([${storeLat}, ${storeLng}], {
-                        color: '#f43f5e',
-                        fillColor: '#f43f5e',
+                        color: '#e20a22',
+                        fillColor: '#e20a22',
                         fillOpacity: 0.08,
                         radius: ${deliveryRadius * 1000}
                       }).addTo(map);
@@ -529,9 +544,9 @@ export default function LocationPickerScreen() {
                 <Circle
                   center={{ latitude: storeLat, longitude: storeLng }}
                   radius={deliveryRadius * 1000} // radius in meters
-                  fillColor="rgba(244, 63, 94, 0.12)"
-                  strokeColor="rgba(244, 63, 94, 0.4)"
-                  strokeWidth={1.5}
+                  fillColor="rgba(226, 10, 34, 0.08)"
+                  strokeColor="rgba(226, 10, 34, 0.8)"
+                  strokeWidth={2.5}
                 />
               </MapView>
 
@@ -602,19 +617,28 @@ export default function LocationPickerScreen() {
             </View>
           </View>
 
-          {/* Confirm Button */}
-          <Pressable 
+          <ScalePressable 
             onPress={handleConfirmLocation}
             disabled={isValidating}
-            style={{ opacity: isValidating ? 0.8 : 1 }}
-            className="bg-rose-600 active:bg-rose-700 py-3.5 rounded-xl flex-row items-center justify-center gap-1.5 shadow-sm"
+            scaleValue={0.96}
+            haptic="success"
+            style={{
+              opacity: isValidating ? 0.8 : 1,
+              backgroundColor: '#e20a22',
+              paddingVertical: 14,
+              borderRadius: 12,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              gap: 6,
+            }}
           >
             {isValidating ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
               <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Confirm This Location</Text>
             )}
-          </Pressable>
+          </ScalePressable>
         </View>
       </ScrollView>
 
@@ -715,9 +739,8 @@ export default function LocationPickerScreen() {
             )}
 
             {/* Continue Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => {
-                triggerHaptic('success');
                 setSuccessModalVisible(false);
                 if (router.canGoBack()) {
                   router.back();
@@ -725,17 +748,17 @@ export default function LocationPickerScreen() {
                   router.replace('/');
                 }
               }}
-              style={({ pressed }) => ({
+              scaleValue={0.98}
+              haptic="success"
+              style={{
                 width: '100%',
                 borderRadius: 24,
-                opacity: pressed ? 0.9 : 1,
-                transform: [{ scale: pressed ? 0.98 : 1 }],
                 elevation: 4,
                 shadowColor: '#e20a22',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: 0.25,
                 shadowRadius: 8,
-              })}
+              }}
             >
               <LinearGradient
                 colors={['#e20a22', '#f43f5e']}
@@ -763,7 +786,7 @@ export default function LocationPickerScreen() {
                 </Text>
                 <ChevronRight size={16} color="#ffffff" />
               </LinearGradient>
-            </Pressable>
+            </ScalePressable>
           </Animated.View>
         </View>
       )}

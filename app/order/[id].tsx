@@ -3,7 +3,7 @@ import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Phone, ShieldCheck, MapPin, Truck, UserCheck, RefreshCw, ShoppingCart, Package, Copy, Star, Sparkles } from 'lucide-react-native';
+import { ArrowLeft, Check, Phone, ShieldCheck, MapPin, Truck, UserCheck, RefreshCw, ShoppingCart, Package, Copy, Star, Sparkles, X } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { toast } from '../../lib/toast';
 import { useAuthStore } from '../../stores/auth-store';
@@ -13,6 +13,7 @@ import { formatPrice } from '../../lib/utils';
 import { triggerHaptic } from '../../lib/haptic';
 import Confetti from '../../components/shared/Confetti';
 import { useTheme } from '../context/ThemeContext';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useCart } from '../../hooks/use-cart';
 import { Image } from 'expo-image';
 import { playSuccessChime } from '../../lib/audio';
@@ -111,6 +112,7 @@ interface Order {
   discount: number;
   deliveryFee: number;
   taxes: number;
+  miscFee?: number;
   total: number;
   paymentMethod: string;
   deliveryMethod: string;
@@ -176,7 +178,7 @@ const MAP_DARK_STYLE = [
   { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0c4a6e" }] }
 ];
 
-function TimelineDot({ completed, isActive, stepIndex }: { completed: boolean; isActive: boolean; stepIndex: number }) {
+function TimelineDot({ completed, isActive, stepIndex, isCancelled }: { completed: boolean; isActive: boolean; stepIndex: number; isCancelled?: boolean }) {
   const pulse = useSharedValue(0);
 
   useEffect(() => {
@@ -205,6 +207,9 @@ function TimelineDot({ completed, isActive, stepIndex }: { completed: boolean; i
 
   const renderIcon = () => {
     const iconSize = 12;
+    if (isCancelled) {
+      return <X size={iconSize} color="#ef4444" strokeWidth={2.8} />;
+    }
     const iconColor = completed 
       ? (isDarkMode ? '#34d399' : '#059669') 
       : (isDarkMode ? '#71717a' : '#94a3b8');
@@ -235,7 +240,7 @@ function TimelineDot({ completed, isActive, stepIndex }: { completed: boolean; i
               width: 28,
               height: 28,
               borderRadius: 14,
-              backgroundColor: '#10b981',
+              backgroundColor: isCancelled ? '#ef4444' : '#10b981',
             },
             pulseStyle,
           ]}
@@ -243,7 +248,9 @@ function TimelineDot({ completed, isActive, stepIndex }: { completed: boolean; i
       )}
       <View 
         className={`w-7 h-7 rounded-full items-center justify-center z-10 border ${
-          completed 
+          isCancelled
+            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/35'
+            : completed 
             ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 dark:border-emerald-900/35' 
             : 'bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'
         }`}
@@ -619,7 +626,8 @@ export default function OrderTrackingScreen() {
   const currentStatus = order.status;
 
   const getActiveStepIndex = () => {
-    if (currentStatus === 'DELIVERED' || currentStatus === 'CANCELLED') return -1;
+    if (currentStatus === 'CANCELLED') return 1;
+    if (currentStatus === 'DELIVERED') return -1;
     switch (currentStatus) {
       case 'PENDING': return 0;
       case 'CONFIRMED': return 1;
@@ -630,7 +638,19 @@ export default function OrderTrackingScreen() {
   };
   const activeStepIndex = getActiveStepIndex();
 
-  const statusSteps = [
+  const statusSteps = currentStatus === 'CANCELLED' ? [
+    { 
+      label: 'Order Placed', 
+      desc: 'We received your order', 
+      completed: true 
+    },
+    { 
+      label: 'Order Cancelled', 
+      desc: 'This order has been cancelled', 
+      completed: false,
+      isCancelled: true 
+    }
+  ] : [
     { 
       label: 'Order Placed', 
       desc: 'We have received your order', 
@@ -705,7 +725,9 @@ export default function OrderTrackingScreen() {
         {/* Estimated delivery banner */}
         <LinearGradient
            colors={
-             order.status === 'DELIVERED'
+             order.status === 'CANCELLED'
+               ? ['#ef4444', '#b91c1c']
+               : order.status === 'DELIVERED'
                ? ['#10b981', '#059669']
                : order.status === 'SHIPPED'
                ? ['#f97316', '#e11d48']
@@ -719,10 +741,10 @@ export default function OrderTrackingScreen() {
            
            <View className="flex-row items-center justify-between">
              <Text className="text-white text-[9px] font-black tracking-widest uppercase bg-black/20 px-2.5 py-1 rounded-full">
-               {order.status === 'DELIVERED' ? 'Completed' : 'Delivery in Progress'}
+               {order.status === 'DELIVERED' ? 'Completed' : order.status === 'CANCELLED' ? 'Cancelled' : 'Delivery in Progress'}
              </Text>
              
-             {order.status !== 'DELIVERED' && (
+             {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
                <View className="flex-row items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full">
                  <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ backgroundColor: '#10b981' }} />
                  <Text className="text-white text-[8px] font-black">LIVE</Text>
@@ -731,7 +753,9 @@ export default function OrderTrackingScreen() {
            </View>
            
            <Text className="text-white font-black text-lg mt-2 tracking-tight">
-             {order.status === 'DELIVERED' 
+             {order.status === 'CANCELLED'
+               ? 'Order Cancelled'
+               : order.status === 'DELIVERED' 
                ? 'Order Delivered!' 
                : order.status === 'SHIPPED' 
                ? `Arriving in ${timeLeft}` 
@@ -739,50 +763,83 @@ export default function OrderTrackingScreen() {
            </Text>
            
            <Text className="text-white/80 text-[10px] font-semibold mt-0.5 leading-4">
-             {order.status === 'DELIVERED' 
+             {order.status === 'CANCELLED'
+               ? 'This order has been cancelled and will not be processed further.'
+               : order.status === 'DELIVERED' 
                ? 'Your package has been safely received. Thank you for shopping with us!' 
                : order.status === 'SHIPPED'
                ? 'Our delivery partner is moving fast to reach your delivery location.'
                : 'Our team is picking and packing your fresh items at the dark store.'}
            </Text>
-         </LinearGradient>
-
-        {/* Live Tracking Map */}
-        {order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng && MapView && Marker && (
+          </LinearGradient>
+                {/* Live Tracking / Pickup Location Map */}
+        {((order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng) || order.deliveryMethod === 'PICKUP') && MapView && Marker && (
           <View style={{ width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-            {Platform.OS === 'web' ? (
-              <iframe
-                title="Rider Delivery Tracking"
-                src={`https://maps.google.com/maps?q=${order.deliveryLat},${order.deliveryLng}&z=15&output=embed`}
-                style={{ width: '100%', height: '100%', border: 'none' }}
-              />
-            ) : (
-              <MapView
-                style={{ width: '105%', height: '105%' }}
-                customMapStyle={isDarkMode ? MAP_DARK_STYLE : MAP_LIGHT_STYLE}
-                initialRegion={{
-                  latitude: (order.deliveryLat + (order.address?.lat || 26.1542)) / 2,
-                  longitude: (order.deliveryLng + (order.address?.lng || 80.1724)) / 2,
-                  latitudeDelta: Math.abs(order.deliveryLat - (order.address?.lat || 26.1542)) * 1.5 || 0.015,
-                  longitudeDelta: Math.abs(order.deliveryLng - (order.address?.lng || 80.1724)) * 1.5 || 0.015,
-                }}
-              >
-                {/* Rider Marker with Pulse Ring */}
-                <RiderPulseMarker latitude={order.deliveryLat} longitude={order.deliveryLng} />
+            {(() => {
+              const isRestaurant = order.shopName === 'FastKirana Restaurant Kitchen';
+              const pickupCoords = order.deliveryMethod === 'PICKUP'
+                ? (isRestaurant ? { latitude: 26.160167, longitude: 80.1691234 } : { latitude: 26.1534185, longitude: 80.1714024 })
+                : { latitude: order.address?.lat || 26.1542, longitude: order.address?.lng || 80.1724 };
 
-                {/* Destination Marker */}
-                {order.address?.lat && order.address?.lng && (
-                  <Marker
-                    coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
-                    title="Your Home"
-                    description="Delivery destination"
-                    tracksViewChanges={false}
-                  >
-                    <Text style={{ fontSize: 24 }}>🏠</Text>
-                  </Marker>
-                )}
-              </MapView>
-            )}
+              const deliveryLat = order.deliveryLat || 26.1534185;
+              const deliveryLng = order.deliveryLng || 80.1714024;
+
+              const mapLat = order.deliveryMethod === 'PICKUP' ? pickupCoords.latitude : (deliveryLat + pickupCoords.latitude) / 2;
+              const mapLng = order.deliveryMethod === 'PICKUP' ? pickupCoords.longitude : (deliveryLng + pickupCoords.longitude) / 2;
+              
+              const latDelta = order.deliveryMethod === 'PICKUP' ? 0.008 : Math.abs(deliveryLat - pickupCoords.latitude) * 1.5 || 0.015;
+              const lngDelta = order.deliveryMethod === 'PICKUP' ? 0.008 : Math.abs(deliveryLng - pickupCoords.longitude) * 1.5 || 0.015;
+
+              const mapQueryLat = order.deliveryMethod === 'PICKUP' ? pickupCoords.latitude : deliveryLat;
+              const mapQueryLng = order.deliveryMethod === 'PICKUP' ? pickupCoords.longitude : deliveryLng;
+
+              return Platform.OS === 'web' ? (
+                <iframe
+                  title="Pickup Location Map"
+                  src={`https://maps.google.com/maps?q=${mapQueryLat},${mapQueryLng}&z=15&output=embed`}
+                  style={{ width: '100%', height: '100%', border: 'none' }}
+                />
+              ) : (
+                <MapView
+                  style={{ width: '105%', height: '105%' }}
+                  customMapStyle={isDarkMode ? MAP_DARK_STYLE : MAP_LIGHT_STYLE}
+                  initialRegion={{
+                    latitude: mapLat,
+                    longitude: mapLng,
+                    latitudeDelta: latDelta,
+                    longitudeDelta: lngDelta,
+                  }}
+                >
+                  {order.deliveryMethod === 'PICKUP' ? (
+                    <Marker
+                      coordinate={{ latitude: pickupCoords.latitude, longitude: pickupCoords.longitude }}
+                      title={isRestaurant ? "A.S Restaurant" : "Vikas Medical Store"}
+                      description={isRestaurant ? "Pickup Restaurant Kitchen" : "Pickup FastKirana Store"}
+                      tracksViewChanges={false}
+                    >
+                      <Text style={{ fontSize: 24 }}>📍</Text>
+                    </Marker>
+                  ) : (
+                    <>
+                      {/* Rider Marker with Pulse Ring */}
+                      <RiderPulseMarker latitude={deliveryLat} longitude={deliveryLng} />
+
+                      {/* Destination Marker */}
+                      {order.address?.lat && order.address?.lng && (
+                        <Marker
+                          coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
+                          title="Your Home"
+                          description="Delivery destination"
+                          tracksViewChanges={false}
+                        >
+                          <Text style={{ fontSize: 24 }}>🏠</Text>
+                        </Marker>
+                      )}
+                    </>
+                  )}
+                </MapView>
+              );
+            })()}
           </View>
         )}
 
@@ -804,22 +861,23 @@ export default function OrderTrackingScreen() {
                </Text>
              </View>
              
-             <TouchableOpacity 
-               onPress={handleCopyOrderId}
-               activeOpacity={0.8}
-               style={{
-                 backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                 paddingHorizontal: 12,
-                 paddingVertical: 6,
-                 borderRadius: 8,
-                 flexDirection: 'row',
-                 alignItems: 'center',
-                 gap: 6
-               }}
-             >
-               <Copy size={11} color={isDarkMode ? '#a1a1aa' : '#475569'} />
-               <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#475569' }}>Copy ID</Text>
-             </TouchableOpacity>
+             <ScalePressable 
+                onPress={handleCopyOrderId}
+                scaleValue={0.95}
+                haptic="light"
+                style={{
+                  backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                  paddingHorizontal: 12,
+                  paddingVertical: 6,
+                  borderRadius: 8,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 6
+                }}
+              >
+                <Copy size={11} color={isDarkMode ? '#a1a1aa' : '#475569'} />
+                <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#475569' }}>Copy ID</Text>
+              </ScalePressable>
            </View>
            
            <View style={{ height: 1, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginVertical: 8 }} />
@@ -842,13 +900,15 @@ export default function OrderTrackingScreen() {
                      className="absolute left-3.5 top-7 w-[2px]"
                      style={{
                        height: 34,
-                       backgroundColor: status.completed && statusSteps[index+1].completed ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                       backgroundColor: status.completed && statusSteps[index+1].isCancelled 
+                          ? '#ef4444' 
+                          : (status.completed && statusSteps[index+1].completed ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0')),
                      }}
                    />
                  )}
                  
                  {/* Status Dot */}
-                 <TimelineDot completed={status.completed} isActive={index === activeStepIndex} stepIndex={index} />
+                 <TimelineDot completed={status.completed} isActive={index === activeStepIndex} stepIndex={index} isCancelled={status.isCancelled} />
  
                  {/* Status details */}
                  <View className="ml-4 flex-1">
@@ -888,12 +948,23 @@ export default function OrderTrackingScreen() {
               </View>
             </View>
             
-            <Pressable 
+            <ScalePressable 
               onPress={() => Linking.openURL(`tel:${order.deliveryUser?.phone || '+919876543210'}`)}
-              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700 active:bg-slate-200 dark:active:bg-zinc-700"
+              scaleValue={0.9}
+              haptic="light"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+              }}
             >
               <Phone size={16} color={isDarkMode ? '#e4e4e7' : '#475569'} />
-            </Pressable>
+            </ScalePressable>
           </View>
         )}
 
@@ -910,12 +981,23 @@ export default function OrderTrackingScreen() {
               </View>
             </View>
             
-            <Pressable 
+            <ScalePressable 
               onPress={() => Linking.openURL(`tel:${order.shopPhone}`)}
-              className="w-10 h-10 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700 active:bg-slate-200 dark:active:bg-zinc-700"
+              scaleValue={0.9}
+              haptic="light"
+              style={{
+                width: 40,
+                height: 40,
+                borderRadius: 20,
+                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                alignItems: 'center',
+                justifyContent: 'center',
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+              }}
             >
               <Phone size={18} color="#475569" />
-            </Pressable>
+            </ScalePressable>
           </View>
         )}
 
@@ -1053,12 +1135,14 @@ export default function OrderTrackingScreen() {
           </View>
         )}
 
-        {/* Destination Address */}
+        {/* Destination Address / Pickup Address */}
          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100/60 dark:border-zinc-800/40 p-4 mb-4 shadow-xs gap-3">
            <View className="flex-row items-center justify-between border-b border-slate-100 dark:border-zinc-800 pb-2">
              <View className="flex-row items-center gap-2">
                <MapPin size={15} color="#e20a22" />
-               <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs uppercase tracking-wider">Delivery Destination</Text>
+               <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs uppercase tracking-wider">
+                 {order.deliveryMethod === 'PICKUP' ? 'Pickup Location' : 'Delivery Destination'}
+               </Text>
              </View>
              {order.address?.label && (
                <View className="bg-rose-50 dark:bg-rose-950/30 px-2 py-0.5 rounded-md border border-rose-100 dark:border-rose-900/30">
@@ -1068,12 +1152,37 @@ export default function OrderTrackingScreen() {
            </View>
            
            <View>
-             <Text className="text-slate-650 dark:text-zinc-300 text-xs font-semibold leading-relaxed">
-               {order.address?.houseNo ? `House No ${order.address.houseNo}, ` : ''}
-               {order.address?.street ? `${order.address.street}, ` : ''}
-               {order.address?.area ? `${order.address.area}, ` : ''}
-               {order.address?.city || 'Kanpur'} {order.address?.pincode ? `- ${order.address.pincode}` : ''}
-             </Text>
+             {order.deliveryMethod === 'PICKUP' ? (
+               <View className="gap-2">
+                 <Text className="text-slate-650 dark:text-zinc-300 text-xs font-semibold leading-relaxed">
+                   {order.shopName === 'FastKirana Restaurant Kitchen' 
+                     ? 'A.S Restaurant, Ghatampur, Kanpur Nagar, Kanpur, 209206'
+                     : order.shopName === 'FastKirana Cafe Kitchen'
+                     ? 'Vikas Medical Store/Cafe, NH34, Ghatampur, Kanpur Nagar, Kanpur, 209206'
+                     : 'Vikas Medical Store, NH34, Ghatampur, Kanpur Nagar, Kanpur, 209206'}
+                 </Text>
+                 
+                 <Pressable
+                   onPress={() => {
+                     const isRestaurant = order.shopName === 'FastKirana Restaurant Kitchen';
+                     const lat = isRestaurant ? 26.160167 : 26.1534185;
+                     const lng = isRestaurant ? 80.1691234 : 80.1714024;
+                     Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`);
+                   }}
+                   className="flex-row items-center gap-1.5 bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 px-3 py-2 rounded-xl active:bg-rose-100 self-start mt-1"
+                 >
+                   <Text style={{ fontSize: 11 }}>🧭</Text>
+                   <Text className="text-primary font-black text-[10px] uppercase tracking-wider">Get Directions</Text>
+                 </Pressable>
+               </View>
+             ) : (
+               <Text className="text-slate-650 dark:text-zinc-300 text-xs font-semibold leading-relaxed">
+                 {order.address?.houseNo ? `House No ${order.address.houseNo}, ` : ''}
+                 {order.address?.street ? `${order.address.street}, ` : ''}
+                 {order.address?.area ? `${order.address.area}, ` : ''}
+                 {order.address?.city || 'Kanpur'} {order.address?.pincode ? `- ${order.address.pincode}` : ''}
+               </Text>
+             )}
            </View>
 
            <View className="h-px bg-slate-100 dark:bg-zinc-800 my-1" />
@@ -1123,12 +1232,13 @@ export default function OrderTrackingScreen() {
          </View>
  
          {/* Reorder Button */}
-         <TouchableOpacity
-           onPress={handleReorder}
-           activeOpacity={0.9}
-           style={{ marginBottom: 40 }}
-         >
-           <LinearGradient
+          <ScalePressable
+            onPress={handleReorder}
+            scaleValue={0.96}
+            haptic="success"
+            style={{ marginBottom: 40 }}
+          >
+            <LinearGradient
              colors={['#10b981', '#059669']}
              start={{ x: 0, y: 0 }}
              end={{ x: 1, y: 0 }}
@@ -1137,7 +1247,7 @@ export default function OrderTrackingScreen() {
              <RefreshCw size={16} color="#ffffff" strokeWidth={2.5} />
              <Text className="text-white font-black text-xs uppercase tracking-wider">Reorder These Items</Text>
            </LinearGradient>
-         </TouchableOpacity>
+          </ScalePressable>
       </ScrollView>
     </SafeAreaView>
   );

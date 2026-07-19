@@ -8,6 +8,7 @@ import { API_BASE_URL } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { toast } from '../../lib/toast';
 import { useTheme } from '../context/ThemeContext';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 
 export default function SignupScreen() {
   const { setAuth } = useAuthStore();
@@ -162,16 +163,23 @@ export default function SignupScreen() {
               </View>
  
               {/* Submit Button */}
-              <Pressable
+              <ScalePressable
                 onPress={handleSignup}
                 disabled={isLoading || !name || phoneNumber.length !== 10 || !email || !password}
-                className={`py-4 rounded-xl items-center justify-center shadow-xs mt-3 ${
-                  isLoading 
-                    ? 'bg-slate-350 dark:bg-zinc-800'
+                scaleValue={0.96}
+                haptic="success"
+                style={{
+                  paddingVertical: 16,
+                  borderRadius: 12,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  marginTop: 12,
+                  backgroundColor: isLoading 
+                    ? (isDarkMode ? '#27272a' : '#cbd5e1')
                     : (name && phoneNumber.length === 10 && email && password)
-                      ? 'bg-rose-600 active:bg-rose-700'
-                      : 'bg-slate-200 dark:bg-zinc-800/80'
-                }`}
+                      ? '#e11d48'
+                      : (isDarkMode ? 'rgba(39, 39, 42, 0.8)' : '#e2e8f0')
+                }}
               >
                 {isLoading ? (
                   <ActivityIndicator size="small" color="#fff" />
@@ -182,15 +190,19 @@ export default function SignupScreen() {
                     Create Account
                   </Text>
                 )}
-              </Pressable>
+              </ScalePressable>
             </View>
  
             {/* Link back to login */}
             <View className="flex-row items-center justify-center gap-1 mt-6">
               <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">Already have an account?</Text>
-              <Pressable onPress={() => router.push('/(auth)/login')}>
+              <ScalePressable 
+                onPress={() => router.push('/(auth)/login')}
+                scaleValue={0.95}
+                haptic="light"
+              >
                 <Text className="text-rose-600 dark:text-rose-500 font-bold text-xs underline">Log In</Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           </View>
         </ScrollView>

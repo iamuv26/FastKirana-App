@@ -1,7 +1,7 @@
 import { View, Text, TextInput, Pressable, ScrollView, ActivityIndicator, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, X, ShoppingBag, Clock, Mic, Sparkles, ChevronRight, ChevronDown, Sun, Moon, MapPin } from 'lucide-react-native';
 import { router } from 'expo-router';
@@ -16,8 +16,21 @@ import { formatPrice, formatHeaderAddress } from '../../lib/utils';
 import { useCart } from '../../hooks/use-cart';
 import { API_BASE_URL } from '../../lib/constants';
 import { useTheme } from '../context/ThemeContext';
+import { ScalePressable } from '../../components/shared/ScalePressable';
+import { THEME } from '../../lib/theme';
+
 import { triggerHaptic } from '../../lib/haptic';
 import { LinearGradient } from 'expo-linear-gradient';
+let ExpoSpeechRecognitionModule: any = null;
+let ExpoWebSpeechRecognition: any = null;
+try {
+  const speechModule = require('expo-speech-recognition');
+  ExpoSpeechRecognitionModule = speechModule.ExpoSpeechRecognitionModule;
+  ExpoWebSpeechRecognition = speechModule.ExpoWebSpeechRecognition;
+} catch (e) {
+  console.log('expo-speech-recognition module not loaded (running in Expo Go / Web)');
+}
+import { toast } from '../../lib/toast';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
@@ -30,12 +43,12 @@ import Animated, {
 const TypedFlashList = FlashList as any;
 
 const CATEGORY_IMAGES: Record<string, any> = {
-  'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
-  'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
-  'beverages': require('../../assets/beverages_category.png'),
-  'personal-care': require('../../assets/personal_care_category.png'),
-  'cafe': require('../../assets/cafe_category.png'),
+  'fruits-vegetables': require('../../assets/fruits_vegetables_category.webp'),
+  'dairy-breakfast': require('../../assets/dairy_breakfast_category.webp'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.webp'),
+  'beverages': require('../../assets/beverages_category.webp'),
+  'personal-care': require('../../assets/personal_care_category.webp'),
+  'cafe': require('../../assets/cafe_category.webp'),
 };
 
 
@@ -119,6 +132,17 @@ export default function SearchScreen() {
   const [recentSearches, setRecentSearches] = useState<string[]>([]);
   const { getTotalItems, getSubtotal } = useCart();
 
+  // Fetch live categories from database
+  const { data: dbCategories = [] } = useQuery<any[]>({
+    queryKey: ['categories-list-all'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/categories`);
+      if (!res.ok) throw new Error('API failed');
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 15, // 15 mins cache validity
+  });
+
   // Voice Search States
   const [isListening, setIsListening] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('Listening...');
@@ -143,9 +167,9 @@ export default function SearchScreen() {
 
   // Fetch all products from API for matching
   const { data: allProducts = [] } = useQuery<Product[]>({
-    queryKey: ['all-search-products-list-tab', assignedStoreId],
+    queryKey: ['all-search-products-list-tab'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
+      const response = await fetch(`${API_BASE_URL}/products?limit=500`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -154,20 +178,20 @@ export default function SearchScreen() {
 
   // Query search endpoint with 5s Live Stock Poll Interval
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['search-products-tab', debouncedQuery, assignedStoreId],
+    queryKey: ['search-products-tab', debouncedQuery],
     queryFn: async () => {
-      if (!debouncedQuery.trim()) return [];
-      const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
+      if (!debouncedQuery || !debouncedQuery.trim()) return [];
+      const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    enabled: debouncedQuery.trim().length > 0,
+    enabled: !!debouncedQuery && debouncedQuery.trim().length > 0,
     refetchInterval: 5000, // Real-time stock counts polling
   });
 
   const saveToHistory = (query: string) => {
-    const trimmed = query.trim();
+    const trimmed = (query || '').trim();
     if (!trimmed) return;
     try {
       const raw = storage.getString(HISTORY_KEY);
@@ -191,34 +215,116 @@ export default function SearchScreen() {
     }
   };
 
-  const handleStartVoiceSearch = () => {
+  const recognitionRef = useRef<any | null>(null);
+
+  useEffect(() => {
+    let recognition: any = null;
+    try {
+      if (ExpoWebSpeechRecognition) {
+        // Instantiate speech recognition
+        recognition = new ExpoWebSpeechRecognition();
+        recognition.lang = 'en-IN';
+        
+        recognition.onstart = () => {
+          setIsListening(true);
+          setVoiceStatus('Listening...');
+        };
+        
+        recognition.onend = () => {
+          setIsListening(false);
+        };
+        
+        recognition.onresult = (event: any) => {
+          if (event.results && event.results[0]) {
+            const transcriptText = event.results[0].transcript || event.results[0][0]?.transcript || '';
+            setVoiceStatus(`Recognized: "${transcriptText}"`);
+            setSearchQuery(transcriptText);
+            saveToHistory(transcriptText);
+            setTimeout(() => {
+              setIsListening(false);
+            }, 1000);
+          }
+        };
+        
+        recognition.onerror = (error: any) => {
+          console.warn('Speech recognition error:', error);
+          setVoiceStatus('Recognition failed. Try again.');
+          setIsListening(false);
+        };
+
+        recognitionRef.current = recognition;
+      }
+    } catch (e) {
+      console.warn('Failed to initialize speech recognition:', e);
+    }
+
+    return () => {
+      if (recognition) {
+        try {
+          recognition.abort();
+        } catch (e) {}
+      }
+    };
+  }, []);
+
+  const handleStartVoiceSearch = async () => {
+    triggerHaptic('medium');
     setIsListening(true);
-    setVoiceStatus('Listening...');
-    triggerHaptic('light');
-
-    // Speech translation simulation
-    setTimeout(() => {
-      setVoiceStatus('Processing speech...');
-      triggerHaptic('medium');
-    }, 1500);
-
-    setTimeout(() => {
-      const sampleSearches = ['milk', 'fresh paneer', 'crispy momos', 'lays', 'coca-cola', 'alphonso mangoes'];
-      const matchedText = sampleSearches[Math.floor(Math.random() * sampleSearches.length)];
-      setVoiceStatus(`Recognized: "${matchedText}"`);
-      triggerHaptic('success');
-      
+    setVoiceStatus('Initializing mic...');
+    
+    const isNativeModuleAvailable = typeof ExpoSpeechRecognitionModule !== 'undefined' && ExpoSpeechRecognitionModule !== null;
+    if (!isNativeModuleAvailable || !recognitionRef.current) {
+      console.log('Using simulated voice search fallback (Expo Go / Web)');
+      setVoiceStatus('Listening (Simulation)...');
       setTimeout(() => {
+        const sampleSearches = ['milk', 'fresh paneer', 'crispy momos', 'lays', 'coca-cola', 'alphonso mangoes'];
+        const matchedText = sampleSearches[Math.floor(Math.random() * sampleSearches.length)];
+        setVoiceStatus(`Recognized: "${matchedText}"`);
         setSearchQuery(matchedText);
         saveToHistory(matchedText);
         setIsListening(false);
-      }, 800);
-    }, 2600);
+      }, 2500);
+      return;
+    }
+
+    try {
+      const permission = await ExpoSpeechRecognitionModule.requestPermissionsAsync();
+      if (!permission || !permission.granted) {
+        setVoiceStatus('Microphone permission denied.');
+        setIsListening(false);
+        toast.error('Microphone permission is required.');
+        return;
+      }
+      
+      recognitionRef.current.start();
+    } catch (e) {
+      console.warn('Failed starting voice recognition:', e);
+      // Simulation fallback if native code is missing (e.g. in Expo Go / Web)
+      setVoiceStatus('Listening (Simulation)...');
+      setTimeout(() => {
+        const sampleSearches = ['milk', 'fresh paneer', 'crispy momos', 'lays', 'coca-cola', 'alphonso mangoes'];
+        const matchedText = sampleSearches[Math.floor(Math.random() * sampleSearches.length)];
+        setVoiceStatus(`Recognized: "${matchedText}"`);
+        setSearchQuery(matchedText);
+        saveToHistory(matchedText);
+        setIsListening(false);
+      }, 2500);
+    }
+  };
+
+  const handleCancelVoiceSearch = () => {
+    triggerHaptic('light');
+    try {
+      recognitionRef.current?.stop();
+    } catch (e) {
+      console.warn(e);
+    }
+    setIsListening(false);
   };
 
   // Only query results from server database
   const getSearchResults = () => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery || !searchQuery.trim()) return [];
     
     const lowerQuery = searchQuery.toLowerCase();
     // Try local matching first so we get instant results
@@ -245,7 +351,7 @@ export default function SearchScreen() {
   const cartSubtotal = getSubtotal();
 
   const matchingCategories = useMemo(() => {
-    if (!searchQuery.trim()) return [];
+    if (!searchQuery || !searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
     
     const allCats = [
@@ -267,32 +373,35 @@ export default function SearchScreen() {
   const trendingTags = ['Mangoes', 'Amul', 'Chai', 'Milk', 'Maggi', 'Chocolate'];
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? THEME.COLORS.dark.background : THEME.COLORS.light.background }}>
       <StatusBar style={isDark ? "light" : "dark"} />
       {/* Premium Header */}
       <View 
         style={{
           width: '100%',
-          backgroundColor: isDark ? '#09090b' : '#ffffff',
+          backgroundColor: isDark ? THEME.COLORS.dark.background : '#ffffff',
           zIndex: 50,
           borderBottomWidth: 1,
           borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
         }}
       >
-        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
+        <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: 12, paddingBottom: 12 }}>
           {/* Top Row: Location & Theme */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
             {/* Left: Brand Logo & Text */}
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ 
                 backgroundColor: isDark ? '#18181b' : '#f1f5f9', 
-                padding: 4, 
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                alignItems: 'center',
                 borderRadius: 8, 
                 borderWidth: 1, 
                 borderColor: isDark ? '#27272a' : '#e2e8f0',
                 flexShrink: 0
               }}>
-                <Logo size={24} />
+                <Logo size={22} />
               </View>
               <View style={{ marginLeft: 6 }}>
                 <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
@@ -306,15 +415,14 @@ export default function SearchScreen() {
             </View>
 
             {/* Right: Location Capsule Picker */}
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
+              scaleValue={0.96}
+              style={{
                 maxWidth: '60%'
-              })}
+              }}
             >
               <View style={{ 
                 flexDirection: 'row', 
@@ -322,17 +430,17 @@ export default function SearchScreen() {
                 backgroundColor: isDark ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
                 borderWidth: 1, 
                 borderColor: isDark ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-                borderRadius: 20, 
+                borderRadius: THEME.RADIUS.pill, 
                 paddingHorizontal: 8, 
                 paddingVertical: 5,
                 justifyContent: 'center',
               }}>
-                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
+                <MapPin size={11} color={THEME.COLORS.brand.primary} style={{ flexShrink: 0, marginRight: 3 }} />
                 <Text 
                   numberOfLines={1} 
                   style={{ 
                     fontSize: 10, 
-                    fontWeight: 'bold', 
+                    fontWeight: '700', 
                     color: isDark ? '#fafafa' : '#0f172a',
                     flexShrink: 1,
                     marginRight: 3
@@ -342,22 +450,28 @@ export default function SearchScreen() {
                 </Text>
                 <ChevronDown size={8} color={isDark ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
               </View>
-            </Pressable>
+            </ScalePressable>
           </View>
 
           {/* Bottom Row: Search Box Input */}
           <View 
-            className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full"
-            style={Platform.OS === 'ios' ? {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.02,
-              shadowRadius: 4,
-            } : Platform.OS === 'android' ? {
-              elevation: 1,
-            } : undefined}
+            className="flex-row items-center bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-4 h-11 w-full"
+            style={{
+              borderRadius: THEME.RADIUS.pill,
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.02,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 1,
+                }
+              })
+            }}
           >
-            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+            <Search size={16} color={THEME.COLORS.brand.primary} style={{ marginRight: 10 }} />
             <TextInput
               placeholder="Search for vegetables, dairy, snacks..."
               placeholderTextColor={isDark ? '#52525b' : '#94a3b8'}
@@ -374,15 +488,15 @@ export default function SearchScreen() {
               }}
             />
             {searchQuery.length > 0 ? (
-              <Pressable onPress={() => setSearchQuery('')} className="p-1">
+              <ScalePressable onPress={() => setSearchQuery('')} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
                 <X size={16} color={isDark ? '#a1a1aa' : '#64748b'} />
-              </Pressable>
+              </ScalePressable>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
-                <Pressable onPress={handleStartVoiceSearch} className="p-1 active:scale-90">
-                  <Mic size={16} color="#16a34a" />
-                </Pressable>
+                <ScalePressable onPress={handleStartVoiceSearch} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
+                  <Mic size={16} color="#e20a22" />
+                </ScalePressable>
               </View>
             )}
           </View>
@@ -402,27 +516,30 @@ export default function SearchScreen() {
               { label: '🥔 Chips', query: 'Chips' },
               { label: '🧀 Paneer', query: 'Paneer' },
               { label: '🥤 Cold Drink', query: 'Cold Drink' },
-              { label: '🍦 Ice Cream', query: 'Ice Cream' }
             ].map((chip) => (
-              <Pressable
+              <ScalePressable
                 key={chip.label}
                 onPress={() => {
                   setSearchQuery(chip.query);
                   saveToHistory(chip.query);
-                  triggerHaptic('light');
                 }}
-                style={({ pressed }) => ({
-                  transform: [{ scale: pressed ? 0.96 : 1 }],
+                scaleValue={0.96}
+                style={{
+                  backgroundColor: isDark ? '#27272a' : '#f8fafc',
+                  borderWidth: 1,
+                  borderColor: isDark ? '#3f3f46' : '#e2e8f0',
+                  borderRadius: 9999,
+                  paddingHorizontal: 16,
+                  paddingVertical: 8,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 1 },
                   shadowOpacity: isDark ? 0.2 : 0.03,
                   shadowRadius: 3,
                   elevation: 1,
-                })}
-                className="bg-slate-50/80 dark:bg-zinc-850 border border-slate-200/80 dark:border-zinc-800/80 rounded-full px-4 py-2"
+                }}
               >
                 <Text className="text-slate-800 dark:text-zinc-200 text-[11px] font-black">{chip.label}</Text>
-              </Pressable>
+              </ScalePressable>
             ))}
           </ScrollView>
         </View>
@@ -436,26 +553,32 @@ export default function SearchScreen() {
             <Sparkles size={11} color="#e20a22" />
             <Text className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider mr-1">Categories:</Text>
             {matchingCategories.map(cat => (
-              <Pressable
+              <ScalePressable
                 key={cat.slug}
                 onPress={() => {
-                  triggerHaptic('light');
                   if (cat.isCafe) {
                     router.push(`/cafe?section=${cat.slug}`);
                   } else {
                     router.push(`/category/${cat.slug}`);
                   }
                 }}
-                style={({ pressed }) => [{
-                  transform: [{ scale: pressed ? 0.95 : 1 }],
+                scaleValue={0.95}
+                style={{
                   backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-                }]}
-                className="px-2.5 py-1 rounded-full border border-slate-200 dark:border-zinc-700 flex-row items-center gap-1 shadow-2xs"
+                  paddingHorizontal: 10,
+                  paddingVertical: 6,
+                  borderRadius: 9999,
+                  borderWidth: 1,
+                  borderColor: isDark ? '#4c0519' : '#ffe4e6',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 4,
+                }}
               >
                 <Text style={{ fontSize: 11 }}>{cat.emoji}</Text>
                 <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black">{cat.name}</Text>
                 <ChevronRight size={9} color={isDark ? '#a1a1aa' : '#64748b'} />
-              </Pressable>
+              </ScalePressable>
             ))}
           </View>
         )}
@@ -463,7 +586,7 @@ export default function SearchScreen() {
           <ScrollView contentContainerStyle={{ padding: 8 }}>
             <View className="flex-row flex-wrap justify-between">
               {[1, 2, 3, 4].map((i) => (
-                <ProductCardSkeleton key={i} />
+                <ProductCardSkeleton key={i} style={{ width: '48%' }} />
               ))}
             </View>
           </ScrollView>
@@ -478,27 +601,34 @@ export default function SearchScreen() {
               <View className="mb-6">
                 <View className="flex-row justify-between items-center mb-3">
                   <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider">Recent Searches</Text>
-                  <Pressable onPress={clearHistory} className="active:opacity-60">
+                  <ScalePressable onPress={clearHistory} scaleValue={0.97} haptic="medium">
                     <Text className="text-rose-600 dark:text-rose-400 font-black text-xs">Clear All</Text>
-                  </Pressable>
+                  </ScalePressable>
                 </View>
                 <View className="flex-row flex-wrap gap-2">
                   {recentSearches.map((tag) => (
-                    <Pressable
+                    <ScalePressable
                       key={tag}
                       onPress={() => {
                         setSearchQuery(tag);
                         saveToHistory(tag);
-                        triggerHaptic('light');
                       }}
-                      style={({ pressed }) => ({
-                        transform: [{ scale: pressed ? 0.95 : 1 }],
-                      })}
-                      className="bg-slate-50/50 dark:bg-zinc-800/40 border border-slate-200/60 dark:border-zinc-800/80 px-3.5 py-2 rounded-2xl flex-row items-center gap-1.5"
+                      scaleValue={0.95}
+                      style={{
+                        backgroundColor: isDark ? 'rgba(39, 39, 42, 0.4)' : '#f8fafc',
+                        borderWidth: 1,
+                        borderColor: isDark ? '#27272a' : '#e2e8f0',
+                        paddingHorizontal: 14,
+                        paddingVertical: 8,
+                        borderRadius: 16,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
                     >
                       <Clock size={12} color={isDark ? '#a1a1aa' : '#64748b'} />
                       <Text className="text-slate-600 dark:text-zinc-350 text-xs font-bold">{tag}</Text>
-                    </Pressable>
+                    </ScalePressable>
                   ))}
                 </View>
               </View>
@@ -531,19 +661,17 @@ export default function SearchScreen() {
                 }
 
                 return (
-                  <Pressable
+                  <ScalePressable
                     key={tag}
                     onPress={() => {
                       setSearchQuery(tag);
                       saveToHistory(tag);
-                      triggerHaptic('light');
                     }}
-                    style={({ pressed }) => [{
-                      transform: [{ scale: pressed ? 0.95 : 1 }],
-                      opacity: pressed ? 0.85 : 1,
+                    scaleValue={0.95}
+                    style={{
                       overflow: 'hidden',
                       borderRadius: 16,
-                    }]}
+                    }}
                   >
                     <View
                       style={{
@@ -571,7 +699,7 @@ export default function SearchScreen() {
                       <Text className="text-slate-850 dark:text-zinc-200 text-xs font-black">{tag}</Text>
                       {idx === 0 && <Text style={{ fontSize: 10 }}>👑</Text>}
                     </View>
-                  </Pressable>
+                  </ScalePressable>
                 );
               })}
             </View>
@@ -579,67 +707,124 @@ export default function SearchScreen() {
             {/* Upgraded Premium Category Access with Double-Border & Soft Shadow Depth */}
             <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider mb-4">Browse Categories</Text>
             <View className="flex-row flex-wrap justify-between gap-y-5 mb-10">
-              {[
-                { label: 'Fruits & Veggies', slug: 'fruits-vegetables' },
-                { label: 'Dairy', slug: 'dairy-breakfast' },
-                { label: 'Snacks', slug: 'snacks-biscuits' },
-                { label: 'Beverages', slug: 'beverages' },
-                { label: 'Cafe', slug: 'cafe', isCafe: true },
-                { label: 'Personal Care', slug: 'personal-care' },
-              ].map((cat) => {
-                const img = CATEGORY_IMAGES[cat.slug];
-                return (
-                  <Pressable
-                    key={cat.label}
-                    onPress={() => {
-                      triggerHaptic('light');
-                      if (cat.isCafe) {
-                        router.push('/cafe');
-                      } else {
-                        router.push(`/category/${cat.slug}`);
-                      }
-                    }}
-                    style={({ pressed }) => [
-                      { transform: [{ scale: pressed ? 0.92 : 1 }] },
-                      { width: '31%', alignItems: 'center' }
-                    ]}
-                  >
-                    <View style={{
-                      width: 84,
-                      height: 84,
-                      borderRadius: 42,
-                      overflow: 'hidden',
-                      borderWidth: 2.5,
-                      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
-                      alignItems: 'center',
-                      justifyContent: 'center',
-                      backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: isDark ? 0.3 : 0.06,
-                      shadowRadius: 10,
-                      elevation: 3,
-                      marginBottom: 8,
-                    }}>
-                      {img ? (
-                        <ExpoImage
-                          source={img}
-                          style={{ width: '100%', height: '100%' }}
-                          contentFit="cover"
-                          transition={200}
-                          cachePolicy="memory-disk"
-                          placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
-                        />
-                      ) : (
-                        <Text style={{ fontSize: 24 }}>📦</Text>
-                      )}
-                    </View>
-                    <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
-                      {cat.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
+              {dbCategories && dbCategories.length > 0 ? (
+                dbCategories.slice(0, 6).map((cat) => {
+                  const img = CATEGORY_IMAGES[cat.slug];
+                  const isCafe = cat.slug === 'cafe';
+                  return (
+                    <ScalePressable
+                      key={cat.slug}
+                      onPress={() => {
+                        if (isCafe) {
+                          router.push('/cafe');
+                        } else {
+                          router.push(`/category/${cat.slug}`);
+                        }
+                      }}
+                      scaleValue={0.92}
+                      style={{ width: '31%' }}
+                    >
+                      <View style={{ alignItems: 'center', width: '100%' }}>
+                        <View style={{
+                          width: 84,
+                          height: 84,
+                          borderRadius: 42,
+                          overflow: 'hidden',
+                          borderWidth: 2.5,
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: isDark ? 0.3 : 0.06,
+                          shadowRadius: 10,
+                          elevation: 3,
+                          marginBottom: 8,
+                        }}>
+                          {img ? (
+                            <ExpoImage
+                              source={img}
+                              style={{ width: '100%', height: '100%' }}
+                              contentFit="cover"
+                              transition={200}
+                              cachePolicy="memory-disk"
+                              placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
+                            />
+                          ) : (
+                            <Text style={{ fontSize: 24 }}>📦</Text>
+                          )}
+                        </View>
+                        <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
+                          {cat.name}
+                        </Text>
+                      </View>
+                    </ScalePressable>
+                  );
+                })
+              ) : (
+                [
+                  { name: 'Fruits & Veggies', slug: 'fruits-vegetables' },
+                  { name: 'Dairy', slug: 'dairy-breakfast' },
+                  { name: 'Snacks', slug: 'snacks-biscuits' },
+                  { name: 'Beverages', slug: 'beverages' },
+                  { name: 'Cafe', slug: 'cafe' },
+                  { name: 'Personal Care', slug: 'personal-care' },
+                ].map((cat) => {
+                  const img = CATEGORY_IMAGES[cat.slug];
+                  const isCafe = cat.slug === 'cafe';
+                  return (
+                    <ScalePressable
+                      key={cat.slug}
+                      onPress={() => {
+                        if (isCafe) {
+                          router.push('/cafe');
+                        } else {
+                          router.push(`/category/${cat.slug}`);
+                        }
+                      }}
+                      scaleValue={0.92}
+                      style={{ width: '31%' }}
+                    >
+                      <View style={{ alignItems: 'center', width: '100%' }}>
+                        <View style={{
+                          width: 84,
+                          height: 84,
+                          borderRadius: 42,
+                          overflow: 'hidden',
+                          borderWidth: 2.5,
+                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 4 },
+                          shadowOpacity: isDark ? 0.3 : 0.06,
+                          shadowRadius: 10,
+                          elevation: 3,
+                          marginBottom: 8,
+                        }}>
+                          {img ? (
+                            <ExpoImage
+                              source={img}
+                              style={{ width: '100%', height: '100%' }}
+                              contentFit="cover"
+                              transition={200}
+                              cachePolicy="memory-disk"
+                              placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
+                            />
+                          ) : (
+                            <Text style={{ fontSize: 24 }}>📦</Text>
+                          )}
+                        </View>
+                        <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
+                          {cat.name}
+                        </Text>
+                      </View>
+                    </ScalePressable>
+                  );
+                })
+              )}
             </View>
           </ScrollView>
         ) : (
@@ -648,11 +833,16 @@ export default function SearchScreen() {
             data={resultsList}
             keyExtractor={(item: Product) => item.id}
             numColumns={2}
-            estimatedItemSize={210}
+            estimatedItemSize={270}
             contentContainerStyle={{ padding: 8, paddingBottom: 160 }}
             showsVerticalScrollIndicator={false}
             renderItem={({ item, index }: { item: Product; index: number }) => (
-              <View style={{ flex: 1, paddingHorizontal: 6 }}>
+              <View style={{ 
+                width: '100%', 
+                paddingLeft: index % 2 === 0 ? 0 : 5, 
+                paddingRight: index % 2 === 0 ? 5 : 0, 
+                marginBottom: 12 
+              }}>
                 <ProductCard product={item} className="w-full" index={index} />
               </View>
             )}
@@ -671,22 +861,21 @@ export default function SearchScreen() {
                 <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-1.5 text-center leading-5 max-w-[260px]">
                   We couldn't find what you're looking for. Try a different search or browse our categories.
                 </Text>
-                <Pressable 
+                <ScalePressable 
                   onPress={() => {
                     setSearchQuery('');
-                    triggerHaptic('light');
                   }}
-                  style={({ pressed }) => [{
-                    transform: [{ scale: pressed ? 0.95 : 1 }],
+                  scaleValue={0.95}
+                  style={{
                     marginTop: 16,
                     backgroundColor: '#e20a22',
                     paddingHorizontal: 20,
                     paddingVertical: 10,
                     borderRadius: 12,
-                  }]}
+                  }}
                 >
                   <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>Browse Categories</Text>
-                </Pressable>
+                </ScalePressable>
               </View>
             }
           />
@@ -709,12 +898,20 @@ export default function SearchScreen() {
               {voiceStatus}
             </Text>
 
-            <Pressable
-              onPress={() => setIsListening(false)}
-              className="bg-zinc-800 border border-zinc-700 px-6 py-2.5 rounded-xl active:bg-zinc-700"
+            <ScalePressable
+              onPress={handleCancelVoiceSearch}
+              scaleValue={0.96}
+              style={{
+                backgroundColor: '#27272a',
+                borderWidth: 1,
+                borderColor: '#3f3f46',
+                paddingHorizontal: 24,
+                paddingVertical: 10,
+                borderRadius: 12,
+              }}
             >
               <Text className="text-zinc-300 font-black text-xs uppercase">Cancel</Text>
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
       )}

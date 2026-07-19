@@ -25,7 +25,15 @@ export const useAuthStore = create<AuthState>()(
       user: null,
       isLoggedIn: false,
       setAuth: (token, user) => set({ token, user, isLoggedIn: true }),
-      logout: () => set({ token: null, user: null, isLoggedIn: false }),
+      logout: () => {
+        try {
+          const { useCartStore } = require('./cart-store');
+          useCartStore.getState().clearCart();
+        } catch (e) {
+          console.warn('Failed to clear cart on logout:', e);
+        }
+        set({ token: null, user: null, isLoggedIn: false });
+      },
     }),
     {
       name: 'fastkirana-auth-storage',

@@ -2,16 +2,22 @@
   "expo": {
     "name": "FastKirana",
     "slug": "yuvi",
+    "owner": "akyadav26",
     "scheme": "fastkirana",
-    "version": "1.0.0",
+    "version": "1.2.0",
     "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "light",
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSSpeechRecognitionUsageDescription": "Allow $(PRODUCT_NAME) to use speech recognition.",
+        "NSMicrophoneUsageDescription": "Allow FastKirana to access the microphone for voice search."
+      }
     },
     "android": {
-      "package": "com.fastkirana.app.preview",
+      "package": "com.fastkirana.app",
+      "versionCode": 4,
       "adaptiveIcon": {
         "backgroundColor": "#ffffff",
         "foregroundImage": "./assets/android-icon-foreground.png"
@@ -29,7 +35,6 @@
         }
       }
     },
-
     "web": {
       "favicon": "./assets/favicon.png"
     },
@@ -54,16 +59,24 @@
       [
         "expo-splash-screen",
         {
-          "image": "./assets/splash-icon.png",
+          "image": "./assets/icon.png",
+          "imageWidth": 200,
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
-      ]
+      ],
+      [
+        "expo-speech-recognition",
+        {
+          "microphonePermission": "Allow FastKirana to access the microphone for voice search."
+        }
+      ],
+      "expo-web-browser"
     ],
     "extra": {
       "router": {},
       "eas": {
-        "projectId": "6648d770-3e29-4432-b716-860070646aec"
+        "projectId": "9bb9cff1-7241-40a0-9915-053b5a7f9080"
       }
     }
   }

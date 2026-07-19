@@ -1,223 +1,235 @@
 import React, { useEffect } from 'react';
 import { Tabs } from 'expo-router';
 import { Home, Search, LayoutGrid, User } from 'lucide-react-native';
-import { View, Text, Platform, StyleSheet } from 'react-native';
+import { View, Text, Platform, StyleSheet, TouchableOpacity, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useTheme } from '../context/ThemeContext';
-import Logo from '../../components/shared/Logo';
 import { BlurView } from 'expo-blur';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import Animated, {
   useSharedValue,
   useAnimatedStyle,
   withSpring,
-  withRepeat,
   withTiming,
   withSequence,
-  Easing,
-  cancelAnimation,
 } from 'react-native-reanimated';
 
-interface TabIconProps {
-  IconComponent?: any;
-  color: any;
-  focused: boolean;
-  isLogo?: boolean;
-  logoSize?: number;
+// Helper to map route name to corresponding Lucide icon
+const getIconComponent = (routeName: string) => {
+  switch (routeName) {
+    case 'index':
+      return Home;
+    case 'search':
+      return Search;
+    case 'categories':
+      return LayoutGrid;
+    case 'account':
+      return User;
+    default:
+      return Home;
+  }
+};
+
+interface TabButtonProps {
+  route: any;
+  isFocused: boolean;
+  onPress: () => void;
+  onLongPress: () => void;
+  isDarkMode: boolean;
 }
 
-function TabIcon({ IconComponent, color, focused, isLogo = false, logoSize = 22 }: TabIconProps) {
+function TabButton({ route, isFocused, onPress, onLongPress, isDarkMode }: TabButtonProps) {
   const scale = useSharedValue(1);
   const translateY = useSharedValue(0);
-  const dotWidth = useSharedValue(0);
-  const dotOpacity = useSharedValue(0);
-  const glowOpacity = useSharedValue(0);
 
   useEffect(() => {
-    if (focused) {
-      // Bounce animation: quick scale up then settle
+    if (isFocused) {
+      // Premium spring bounce feedback
       scale.value = withSequence(
-        withSpring(1.18, { damping: 6, stiffness: 350 }),
+        withSpring(1.15, { damping: 6, stiffness: 350 }),
         withSpring(1, { damping: 10, stiffness: 200 })
       );
-      // Subtle upward lift
-      translateY.value = withSpring(-2, { damping: 12, stiffness: 180 });
-      // Dot indicator animates in
-      dotWidth.value = withSpring(6, { damping: 14, stiffness: 300 });
-      dotOpacity.value = withTiming(1, { duration: 200 });
-      // Glow pulse
-      glowOpacity.value = withRepeat(
-        withSequence(
-          withTiming(0.7, { duration: 1200, easing: Easing.inOut(Easing.ease) }),
-          withTiming(0.3, { duration: 1200, easing: Easing.inOut(Easing.ease) })
-        ),
-        -1,
-        true
-      );
+      translateY.value = withSpring(-1, { damping: 12, stiffness: 180 });
     } else {
       scale.value = withSpring(1, { damping: 12, stiffness: 200 });
       translateY.value = withSpring(0, { damping: 12, stiffness: 180 });
-      dotWidth.value = withSpring(0, { damping: 14, stiffness: 300 });
-      dotOpacity.value = withTiming(0, { duration: 150 });
-      glowOpacity.value = withTiming(0, { duration: 150 });
     }
-    return () => {
-      cancelAnimation(glowOpacity);
-    };
-  }, [focused]);
+  }, [isFocused]);
 
-  const iconAnimatedStyle = useAnimatedStyle(() => ({
+  const animatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }, { translateY: translateY.value }],
   }));
 
-  const dotAnimatedStyle = useAnimatedStyle(() => ({
-    width: dotWidth.value,
-    height: dotWidth.value,
-    borderRadius: dotWidth.value / 2,
-    opacity: dotOpacity.value,
-  }));
+  const IconComponent = getIconComponent(route.name);
+  const inactiveColor = isDarkMode ? '#94a3b8' : '#64748b';
 
-  const glowAnimatedStyle = useAnimatedStyle(() => ({
-    opacity: glowOpacity.value,
-  }));
+  // Capitalized display label
+  const label = route.name === 'index' 
+    ? 'Home' 
+    : route.name.charAt(0).toUpperCase() + route.name.slice(1);
 
   return (
-    <View style={styles.tabIconContainer}>
-      {/* Icon with bounce */}
-      <Animated.View style={iconAnimatedStyle}>
-        {isLogo ? (
-          <Logo size={logoSize} />
-        ) : (
-          <IconComponent size={21} color={color} strokeWidth={focused ? 2.5 : 1.8} />
-        )}
-      </Animated.View>
+    <ScalePressable
+      onPress={onPress}
+      onLongPress={onLongPress}
+      scaleValue={0.94}
+      haptic="light"
+      style={styles.tabButton}
+      accessibilityRole="button"
+      accessibilityState={{ selected: isFocused }}
+    >
+      <View style={styles.tabItemContainer}>
+        {/* Animated Icon capsule */}
+        <Animated.View
+          style={[
+            styles.iconContainer,
+            isFocused && { backgroundColor: '#e20a22' },
+            animatedStyle,
+          ]}
+        >
+          <IconComponent
+            size={20}
+            color={isFocused ? '#ffffff' : inactiveColor}
+            strokeWidth={isFocused ? 2.5 : 1.8}
+            fill="none"
+          />
+        </Animated.View>
 
-    </View>
+        {/* Text Label */}
+        <Text
+          style={[
+            styles.tabLabel,
+            { color: isFocused ? '#e20a22' : inactiveColor },
+            isFocused && styles.tabLabelActive,
+          ]}
+        >
+          {label}
+        </Text>
+      </View>
+    </ScalePressable>
   );
 }
 
-/** Frosted glass tab bar background */
-function TabBarBackground() {
+function CustomTabBar({ state, descriptors, navigation }: any) {
+  const insets = useSafeAreaInsets();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { width: screenWidth } = useWindowDimensions();
+
+  // Floating margin calculations: sit neatly above home indicator on iOS
+  const bottomMargin = insets.bottom > 0 ? insets.bottom + 6 : 16;
+
+  // Reanimated active line tracking for smooth horizontal slide transitions
+  const activeIndexShared = useSharedValue(state.index);
+
+  useEffect(() => {
+    activeIndexShared.value = withSpring(state.index, { damping: 20, stiffness: 180 });
+  }, [state.index]);
+
+  const indicatorStyle = useAnimatedStyle(() => {
+    // Width minus the margins (16 * 2 = 32)
+    const totalBarWidth = screenWidth - 32;
+    const tabWidth = totalBarWidth / state.routes.length;
+    const lineWidth = 18;
+    const targetX = activeIndexShared.value * tabWidth + (tabWidth - lineWidth) / 2;
+    return {
+      transform: [{ translateX: targetX }],
+    };
+  });
 
   return (
-    <View style={StyleSheet.absoluteFill}>
-      {/* Top glow / shadow line */}
-      <View
-        style={[
-          styles.topGlow,
-          {
-            backgroundColor: isDarkMode
-              ? 'rgba(226, 10, 34, 0.06)'
-              : 'rgba(226, 10, 34, 0.04)',
-            shadowColor: isDarkMode ? '#e20a22' : '#000',
-            shadowOpacity: isDarkMode ? 0.15 : 0.06,
-            shadowRadius: 8,
-            shadowOffset: { width: 0, height: -3 },
-            elevation: 8,
-          },
-        ]}
-      />
+    <View
+      style={[
+        styles.tabBarContainer,
+        {
+          bottom: bottomMargin,
+          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.92)' : 'rgba(255, 255, 255, 0.92)',
+          borderColor: isDarkMode ? 'rgba(63, 63, 70, 0.3)' : 'rgba(228, 228, 231, 0.6)',
+          shadowColor: isDarkMode ? '#e20a22' : '#000000',
+          shadowOpacity: isDarkMode ? 0.15 : 0.08,
+        },
+      ]}
+    >
+      {/* Frosted Glass Background */}
       <BlurView
-        intensity={isDarkMode ? 50 : 70}
+        intensity={isDarkMode ? 40 : 60}
         tint={isDarkMode ? 'dark' : 'light'}
         style={StyleSheet.absoluteFill}
       />
-      {/* Solid background to prevent content showing through and overlapping */}
-      <View
-        style={[
-          StyleSheet.absoluteFill,
-          {
-            backgroundColor: isDarkMode
-              ? 'rgba(17, 24, 39, 0.75)'
-              : 'rgba(255, 255, 255, 0.8)',
-          },
-        ]}
-      />
+
+      {/* Tab Buttons */}
+      <View style={styles.buttonsContainer}>
+        {state.routes.map((route: any, index: number) => {
+          const isFocused = state.index === index;
+
+          const onPress = () => {
+            const event = navigation.emit({
+              type: 'tabPress',
+              target: route.key,
+              canPreventDefault: true,
+            });
+
+            if (!isFocused && !event.defaultPrevented) {
+              navigation.navigate({ name: route.name, merge: true });
+            }
+          };
+
+          const onLongPress = () => {
+            navigation.emit({
+              type: 'tabLongPress',
+              target: route.key,
+            });
+          };
+
+          return (
+            <TabButton
+              key={route.key}
+              route={route}
+              isFocused={isFocused}
+              onPress={onPress}
+              onLongPress={onLongPress}
+              isDarkMode={isDarkMode}
+            />
+          );
+        })}
+      </View>
+
+      {/* Sliding Active Indicator Line */}
+      <Animated.View style={[styles.activeLine, indicatorStyle]} />
     </View>
   );
 }
 
 export default function TabsLayout() {
-  const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
-  const activeColor = '#e20a22'; // Brand red (FastKirana theme)
-  const inactiveColor = isDarkMode ? '#94a3b8' : '#64748b'; // Dynamic slate color
-  const insets = useSafeAreaInsets();
-
-  const barHeight = 56 + (insets.bottom > 0 ? insets.bottom : 8);
-  const bottomPadding = insets.bottom > 0 ? insets.bottom - 4 : 8;
-
   return (
     <Tabs
+      tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
-        tabBarActiveTintColor: activeColor,
-        tabBarInactiveTintColor: inactiveColor,
-        tabBarBackground: () => <TabBarBackground />,
-        tabBarStyle: {
-          position: 'absolute',
-          backgroundColor: 'transparent',
-          borderTopWidth: 0,
-          height: barHeight,
-          paddingBottom: bottomPadding,
-          paddingTop: 6,
-          // Top border glow via shadow (Android + iOS)
-          ...Platform.select({
-            ios: {
-              shadowColor: isDarkMode ? '#e20a22' : '#000000',
-              shadowOpacity: isDarkMode ? 0.12 : 0.05,
-              shadowRadius: 12,
-              shadowOffset: { width: 0, height: -4 },
-            },
-            android: {
-              elevation: 12,
-            },
-          }),
-        },
-        tabBarLabelStyle: {
-          fontSize: 10,
-          fontWeight: '700',
-          fontFamily: 'PlusJakartaSans_700Bold',
-          letterSpacing: 0.2,
-          marginTop: -2,
-        },
       }}
     >
       <Tabs.Screen
         name="index"
         options={{
           title: 'Home',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon color={color} focused={focused} isLogo={true} logoSize={24} />
-          ),
         }}
       />
       <Tabs.Screen
         name="search"
         options={{
           title: 'Search',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon IconComponent={Search} color={color} focused={focused} />
-          ),
         }}
       />
       <Tabs.Screen
         name="categories"
         options={{
           title: 'Categories',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon IconComponent={LayoutGrid} color={color} focused={focused} />
-          ),
         }}
       />
       <Tabs.Screen
         name="account"
         options={{
           title: 'Account',
-          tabBarIcon: ({ color, focused }) => (
-            <TabIcon IconComponent={User} color={color} focused={focused} />
-          ),
         }}
       />
     </Tabs>
@@ -225,35 +237,68 @@ export default function TabsLayout() {
 }
 
 const styles = StyleSheet.create({
-  tabIconContainer: {
+  tabBarContainer: {
+    position: 'absolute',
+    left: 16,
+    right: 16,
+    height: 70,
+    borderRadius: 35,
+    borderWidth: 1,
+    overflow: 'hidden',
+    ...Platform.select({
+      ios: {
+        shadowOffset: { width: 0, height: 10 },
+        shadowRadius: 20,
+      },
+      android: {
+        elevation: 8,
+      },
+    }),
+  },
+  buttonsContainer: {
+    flex: 1,
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    width: '100%',
+    justifyContent: 'space-around',
     height: '100%',
-    gap: 3,
+    zIndex: 2,
   },
-  dotWrapper: {
+  tabButton: {
+    flex: 1,
+    height: '100%',
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  tabItemContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    height: 8,
-    width: 16,
+    paddingTop: 5,
+    paddingBottom: 2,
   },
-  dot: {
-    backgroundColor: '#e20a22',
+  iconContainer: {
+    width: 52,
+    height: 28,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+    backgroundColor: 'transparent',
+    marginBottom: 4,
   },
-  dotGlow: {
+  tabLabel: {
+    fontSize: 9.5,
+    fontWeight: '600',
+    fontFamily: 'PlusJakartaSans_700Bold',
+    letterSpacing: 0.1,
+  },
+  tabLabelActive: {
+    fontWeight: '800',
+  },
+  activeLine: {
     position: 'absolute',
-    width: 14,
-    height: 14,
-    borderRadius: 7,
+    bottom: 6,
+    height: 2.5,
+    borderRadius: 1.25,
     backgroundColor: '#e20a22',
-  },
-  topGlow: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 1,
-    zIndex: 10,
+    zIndex: 3,
   },
 });

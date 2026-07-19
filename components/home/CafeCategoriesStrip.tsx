@@ -3,12 +3,15 @@ import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { ChevronRight } from 'lucide-react-native';
 import { triggerHaptic } from '../../lib/haptic';
+import { THEME } from '../../lib/theme';
+import { useTheme } from '../../app/context/ThemeContext';
+
 
 const CAFE_CATEGORIES = [
   {
     name: 'All Menu',
     tag: '',
-    source: { uri: 'https://www.fastkirana.in/cafe_category.png' },
+    source: { uri: 'https://www.fastkirana.in/cafe_category.webp' },
   },
   {
     name: 'Snacks',
@@ -42,14 +45,38 @@ const CAFE_CATEGORIES = [
   }
 ];
 
-function CafeCategoryItem({ category, onPress }: { category: typeof CAFE_CATEGORIES[0]; onPress: () => void }) {
+function CafeCategoryItem({ category, onPress, isDarkMode }: { category: typeof CAFE_CATEGORIES[0]; onPress: () => void; isDarkMode: boolean }) {
   return (
     <Pressable
       onPress={onPress}
-      className="w-[70px] items-center active:scale-95 transition-transform"
+      style={{ width: 78, alignItems: 'center' }}
+      className="active:scale-95 transition-transform"
     >
       {/* Circular Image Container */}
-      <View className="w-[66px] h-[66px] rounded-full overflow-hidden border border-slate-100/50 dark:border-zinc-800 shadow-sm flex items-center justify-center relative bg-white dark:bg-zinc-900">
+      <View 
+        style={{
+          width: 68,
+          height: 68,
+          borderRadius: 34,
+          overflow: 'hidden',
+          borderColor: isDarkMode ? THEME.COLORS.dark.borderLight : 'rgba(0,0,0,0.05)',
+          borderWidth: 1,
+          alignItems: 'center',
+          justifyContent: 'center',
+          backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode ? 0.2 : 0.04,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 1,
+            }
+          })
+        }}
+      >
         <ExpoImage 
           source={category.source}
           contentFit="cover"
@@ -61,7 +88,16 @@ function CafeCategoryItem({ category, onPress }: { category: typeof CAFE_CATEGOR
       {/* Label */}
       <Text 
         numberOfLines={1} 
-        className="text-zinc-700 dark:text-zinc-300 text-[10px] font-black text-center mt-2 tracking-tight leading-tight w-full"
+        style={{
+          color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
+          fontSize: 11,
+          fontWeight: '600',
+          marginTop: 8,
+          letterSpacing: -0.2,
+          lineHeight: 14,
+          textAlign: 'center',
+          width: '100%',
+        }}
       >
         {category.name}
       </Text>
@@ -70,6 +106,12 @@ function CafeCategoryItem({ category, onPress }: { category: typeof CAFE_CATEGOR
 }
 
 export default function CafeCategoriesStrip() {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
+  return <CafeCategoriesStripContent isDarkMode={isDarkMode} />;
+}
+
+function CafeCategoriesStripContent({ isDarkMode }: { isDarkMode: boolean }) {
   const handlePress = (tag: string) => {
     triggerHaptic('light');
     if (tag) {
@@ -83,16 +125,16 @@ export default function CafeCategoriesStrip() {
   };
 
   return (
-    <View className="mb-6">
+    <View style={{ marginBottom: THEME.SPACING.lg }}>
       {/* Title Header */}
-      <View className="px-4 flex-row justify-between items-center mb-3">
-        <Text className="text-zinc-800 dark:text-zinc-100 font-black text-xs tracking-wider uppercase">Cafe Categories</Text>
+      <View style={{ paddingHorizontal: THEME.SPACING.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
+        <Text style={{ fontSize: 15, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }} className="tracking-tight">Food Categories</Text>
         <Pressable 
           onPress={() => handlePress('')}
           className="flex-row items-center active:opacity-70"
         >
-          <Text className="text-rose-600 dark:text-rose-400 font-bold text-xs">See Menu</Text>
-          <ChevronRight size={14} color="#e11d48" />
+          <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700' }}>See Menu</Text>
+          <ChevronRight size={13} color={THEME.COLORS.brand.primary} />
         </Pressable>
       </View>
 
@@ -100,7 +142,7 @@ export default function CafeCategoriesStrip() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ paddingHorizontal: 16, gap: 14 }}
+        contentContainerStyle={{ paddingHorizontal: THEME.SPACING.lg, gap: THEME.SPACING.md }}
         decelerationRate="fast"
       >
         {CAFE_CATEGORIES.map((category) => (
@@ -108,6 +150,7 @@ export default function CafeCategoriesStrip() {
             key={category.name}
             category={category}
             onPress={() => handlePress(category.tag)}
+            isDarkMode={isDarkMode}
           />
         ))}
       </ScrollView>

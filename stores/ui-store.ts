@@ -20,6 +20,7 @@ interface UIState {
   activeVariantProduct: any | null;
   assignedStoreId: string | null;
   surgeCharge: number;
+  pendingConflictProduct: any | null;
   // Dynamic Settings Toggles
   minOrderValue: number;
   storeOpenHour: number;
@@ -28,6 +29,11 @@ interface UIState {
   surgeMultiplier: number;
   taxRate: number;
   onlyCod: boolean;
+  miscFee: number;
+  miscFeeLabel: string;
+  deliveryFeeBase: number;
+  groceryFreeDeliveryThreshold: number;
+  cafeFreeDeliveryThreshold: number;
   setSelectedLocation: (location: string) => void;
   setUserCoords: (coords: UserCoords | null) => void;
   setShopDetails: (name: string, phone: string) => void;
@@ -43,9 +49,15 @@ interface UIState {
     holidays?: string[],
     surgeMultiplier?: number,
     taxRate?: number,
-    onlyCod?: boolean
+    onlyCod?: boolean,
+    miscFee?: number,
+    miscFeeLabel?: string,
+    deliveryFeeBase?: number,
+    groceryFreeDeliveryThreshold?: number,
+    cafeFreeDeliveryThreshold?: number
   ) => void;
   setActiveVariantProduct: (product: any | null) => void;
+  setPendingConflictProduct: (product: any | null) => void;
   setAssignedStore: (store: { id: string; name: string; surgeCharge: number; groceryOpen: boolean; cafeOpen: boolean } | null) => void;
 }
 
@@ -62,6 +74,7 @@ export const useUIStore = create<UIState>()(
       storeLat: 26.1534185,
       storeLng: 80.1714024,
       activeVariantProduct: null,
+      pendingConflictProduct: null,
       assignedStoreId: 'default-Ghatampur Market',
       surgeCharge: 0.0,
       minOrderValue: 0,
@@ -71,6 +84,11 @@ export const useUIStore = create<UIState>()(
       surgeMultiplier: 1.0,
       taxRate: 5,
       onlyCod: false,
+      miscFee: 0,
+      miscFeeLabel: '',
+      deliveryFeeBase: 25,
+      groceryFreeDeliveryThreshold: 199,
+      cafeFreeDeliveryThreshold: 199,
 
       setSelectedLocation: (location) => set({ selectedLocation: location }),
       setUserCoords: (coords) => set({ userCoords: coords }),
@@ -87,7 +105,12 @@ export const useUIStore = create<UIState>()(
         holidays,
         surgeMultiplier,
         taxRate,
-        onlyCod
+        onlyCod,
+        miscFee,
+        miscFeeLabel,
+        deliveryFeeBase,
+        groceryFreeDeliveryThreshold,
+        cafeFreeDeliveryThreshold
       ) => 
         set((state) => {
           const finalGroceryOpen = groceryOpen;
@@ -106,9 +129,15 @@ export const useUIStore = create<UIState>()(
           if (surgeMultiplier !== undefined) updates.surgeMultiplier = surgeMultiplier;
           if (taxRate !== undefined) updates.taxRate = taxRate;
           if (onlyCod !== undefined) updates.onlyCod = onlyCod;
+          if (miscFee !== undefined) updates.miscFee = miscFee;
+          if (miscFeeLabel !== undefined) updates.miscFeeLabel = miscFeeLabel;
+          if (deliveryFeeBase !== undefined) updates.deliveryFeeBase = deliveryFeeBase;
+          if (groceryFreeDeliveryThreshold !== undefined) updates.groceryFreeDeliveryThreshold = groceryFreeDeliveryThreshold;
+          if (cafeFreeDeliveryThreshold !== undefined) updates.cafeFreeDeliveryThreshold = cafeFreeDeliveryThreshold;
           return updates;
         }),
       setActiveVariantProduct: (product) => set({ activeVariantProduct: product }),
+      setPendingConflictProduct: (product) => set({ pendingConflictProduct: product }),
       setAssignedStore: (store) => set({
         assignedStoreId: store ? store.id : null,
         shopName: store ? store.name : 'FastKirana',
@@ -152,6 +181,11 @@ export const useUIStore = create<UIState>()(
           surgeMultiplier: typeof persistedState.surgeMultiplier === 'number' ? persistedState.surgeMultiplier : currentState.surgeMultiplier,
           storeOpenHour: typeof persistedState.storeOpenHour === 'number' ? persistedState.storeOpenHour : currentState.storeOpenHour,
           storeCloseHour: typeof persistedState.storeCloseHour === 'number' ? persistedState.storeCloseHour : currentState.storeCloseHour,
+          miscFee: typeof persistedState.miscFee === 'number' ? persistedState.miscFee : currentState.miscFee,
+          miscFeeLabel: typeof persistedState.miscFeeLabel === 'string' ? persistedState.miscFeeLabel : currentState.miscFeeLabel,
+          deliveryFeeBase: typeof persistedState.deliveryFeeBase === 'number' ? persistedState.deliveryFeeBase : currentState.deliveryFeeBase,
+          groceryFreeDeliveryThreshold: typeof persistedState.groceryFreeDeliveryThreshold === 'number' ? persistedState.groceryFreeDeliveryThreshold : currentState.groceryFreeDeliveryThreshold,
+          cafeFreeDeliveryThreshold: typeof persistedState.cafeFreeDeliveryThreshold === 'number' ? persistedState.cafeFreeDeliveryThreshold : currentState.cafeFreeDeliveryThreshold,
         };
       }
     }

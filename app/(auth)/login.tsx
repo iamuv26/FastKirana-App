@@ -5,6 +5,7 @@ import { ArrowLeft, Phone, ShieldCheck, Mail, Lock, User as UserIcon, Fingerprin
 import { router } from 'expo-router';
 import { useAuthStore } from '../../stores/auth-store';
 import * as Linking from 'expo-linking';
+import * as WebBrowser from 'expo-web-browser';
 import { API_BASE_URL } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { toast } from '../../lib/toast';
@@ -12,6 +13,7 @@ import { useTheme } from '../context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import { formatHeaderAddress } from '../../lib/utils';
 import AppFooter from '../../components/home/AppFooter';
 import Animated, {
@@ -29,6 +31,7 @@ const localAccounts: Record<string, { id: string, role: 'ADMIN' | 'PICKER' | 'CH
   'admin': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'Yuvraj@26' },
   'picker': { id: 'cmqgzqf2k0002vkid1f3wpwg4', role: 'PICKER', name: 'Warehouse Picker', phone: '+919888811111', pass: 'Yuvraj@26' },
   'chef': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Kitchen Chef', phone: '+919888822222', pass: 'Yuvraj@26' },
+  'restaurant': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Restaurant Kitchen', phone: '+919888822222', pass: 'Yuvraj@26' },
   'rider': { id: 'cmqgzqf630003vkiderv1r9ur', role: 'DELIVERY', name: 'Delivery Rider', phone: '+919888833333', pass: 'Yuvraj@26' },
 };
 
@@ -110,7 +113,7 @@ export default function LoginScreen() {
           
           // Redirect to appropriate console or homepage based on role
           if (userObj.role === 'PICKER') router.replace('/picker');
-          else if (userObj.role === 'CHEF') router.replace('/chef');
+          else if (userObj.role === 'CHEF') router.replace(userObj.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
           else if (userObj.role === 'DELIVERY') router.replace('/rider');
           else if (userObj.role === 'ADMIN') router.replace('/operations');
           else router.replace('/(tabs)');
@@ -136,7 +139,7 @@ export default function LoginScreen() {
     };
   }, []);
 
-  const handleGoogleSignIn = () => {
+  const handleGoogleSignIn = async () => {
     triggerHaptic('light');
     
     // Generate redirect URL for mobile callback dynamically using Linking.createURL
@@ -152,7 +155,39 @@ export default function LoginScreen() {
     const entryUrl = `${domain}/auth/mobile-login?redirect=${encodeURIComponent(mobileRedirectUrl)}`;
     
     console.log('Initiating Google sign-in with entry URL:', entryUrl);
-    Linking.openURL(entryUrl);
+    
+    // Use WebBrowser auth session for proper redirect handling
+    const result = await WebBrowser.openAuthSessionAsync(entryUrl, mobileRedirectUrl);
+    
+    if (result.type === 'success' && result.url) {
+      // Handle the redirect URL manually since auth session captured it
+      try {
+        const parsed = Linking.parse(result.url);
+        const path = parsed.path ? parsed.path.replace(/^\/|\/$/g, '') : '';
+        
+        if (path === 'login-callback' && parsed.queryParams?.user) {
+          let userStr = parsed.queryParams.user as string;
+          if (userStr.includes('%')) {
+            userStr = decodeURIComponent(userStr);
+          }
+          const userObj = JSON.parse(userStr);
+          const token = (parsed.queryParams?.token as string) || userObj.token || 'google-oauth-session-token';
+          
+          triggerHaptic('success');
+          setAuth(token, userObj);
+          toast.success('Successfully logged in with Google!');
+          
+          if (userObj.role === 'PICKER') router.replace('/picker');
+          else if (userObj.role === 'CHEF') router.replace(userObj.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+          else if (userObj.role === 'DELIVERY') router.replace('/rider');
+          else if (userObj.role === 'ADMIN') router.replace('/operations');
+          else router.replace('/(tabs)');
+        }
+      } catch (err) {
+        console.error('Failed to parse Google OAuth callback:', err);
+        toast.error('Google login failed. Please try again.');
+      }
+    }
   };
 
   const animatedBlob1 = useAnimatedStyle(() => ({
@@ -240,7 +275,7 @@ export default function LoginScreen() {
         if (lastUser.role === 'PICKER') {
           router.replace('/picker');
         } else if (lastUser.role === 'CHEF') {
-          router.replace('/chef');
+          router.replace(lastUser.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
         } else if (lastUser.role === 'DELIVERY') {
           router.replace('/rider');
         } else if (lastUser.role === 'ADMIN') {
@@ -390,7 +425,7 @@ export default function LoginScreen() {
       setIsLoading(false);
 
       if (mockUser.role === 'PICKER') router.replace('/picker');
-      else if (mockUser.role === 'CHEF') router.replace('/chef');
+      else if (mockUser.role === 'CHEF') router.replace(mockUser.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
       else if (mockUser.role === 'DELIVERY') router.replace('/rider');
       else if (mockUser.role === 'ADMIN') router.replace('/operations');
       else router.replace('/(tabs)');
@@ -421,7 +456,7 @@ export default function LoginScreen() {
         
         // Route according to role
         if (loginData.user.role === 'PICKER') router.replace('/picker');
-        else if (loginData.user.role === 'CHEF') router.replace('/chef');
+        else if (loginData.user.role === 'CHEF') router.replace(loginData.user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
         else if (loginData.user.role === 'DELIVERY') router.replace('/rider');
         else if (loginData.user.role === 'ADMIN') router.replace('/operations');
         else router.replace('/(tabs)');
@@ -436,8 +471,9 @@ export default function LoginScreen() {
   };
 
   // Step 2b: Customer OTP verification
-  const handleVerifyOtp = async () => {
-    if (otp.length !== 6) return;
+  const handleVerifyOtp = async (otpValue?: string) => {
+    const finalOtp = otpValue || otp;
+    if (finalOtp.length !== 6) return;
     
     // If it's a new registration and we haven't completed name entry yet, transition to profile setup
     if (needsProfileSetup && step !== 'PROFILE') {
@@ -453,7 +489,7 @@ export default function LoginScreen() {
     try {
       const loginPayload: any = {
         email: backendEmail || email,
-        otp,
+        otp: finalOtp,
       };
 
       if (needsProfileSetup && name.trim()) {
@@ -483,7 +519,7 @@ export default function LoginScreen() {
         toast.success('Logged in successfully!');
         
         if (verifyData.user.role === 'PICKER') router.replace('/picker');
-        else if (verifyData.user.role === 'CHEF') router.replace('/chef');
+        else if (verifyData.user.role === 'CHEF') router.replace(verifyData.user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
         else if (verifyData.user.role === 'DELIVERY') router.replace('/rider');
         else if (verifyData.user.role === 'ADMIN') router.replace('/operations');
         else router.replace('/(tabs)');
@@ -492,6 +528,81 @@ export default function LoginScreen() {
       }
     } catch (err: any) {
       Alert.alert('Verification Failed', err.message || 'OTP verification failed.');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleQuickLogin = async (identifier: string, bypassPassword?: string) => {
+    setIsLoading(true);
+    triggerHaptic('medium');
+    try {
+      if (bypassPassword) {
+        // Staff/Admin bypass login
+        const lowerEmail = identifier.toLowerCase().trim();
+        if (localAccounts[lowerEmail]) {
+          const mockUser = {
+            id: localAccounts[lowerEmail].id,
+            email: lowerEmail.includes('@') ? lowerEmail : `${lowerEmail}@fastkirana.com`,
+            name: localAccounts[lowerEmail].name,
+            phone: localAccounts[lowerEmail].phone,
+            role: localAccounts[lowerEmail].role,
+          };
+          try {
+            const { mmkvStorage } = require('../../lib/storage');
+            mmkvStorage.setItem('last_logged_in_user', JSON.stringify(mockUser));
+          } catch (e) {}
+          setAuth('session-token-placeholder', mockUser);
+          toast.success(`Logged in as ${mockUser.name}!`);
+          if (mockUser.role === 'ADMIN') router.replace('/operations');
+          else router.replace('/(tabs)');
+          return;
+        }
+      } else {
+        // Customer Quick OTP login
+        setLoginType('WHATSAPP');
+        setEmail(identifier);
+        
+        const checkRes = await fetch(`${API_BASE_URL}/auth/email/check`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: normalizePhoneNumber(identifier) }),
+        });
+        const checkData = await checkRes.json();
+        if (!checkRes.ok) {
+          throw new Error(checkData.error || 'Failed to check account');
+        }
+
+        const finalEmail = checkData.email || normalizePhoneNumber(identifier);
+        setEmail(finalEmail);
+        setBackendEmail(finalEmail);
+        setIsWorker(checkData.isWorker ?? false);
+        setHasPassword(checkData.hasPassword ?? false);
+        setNeedsProfileSetup(checkData.needsProfileSetup ?? false);
+        setUserRole(checkData.role ?? '');
+
+        const otpRes = await fetch(`${API_BASE_URL}/auth/otp/send`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: finalEmail.toLowerCase().trim() }),
+        });
+        const otpData = await otpRes.json();
+        if (!otpRes.ok) {
+          throw new Error(otpData.error || 'Failed to send OTP');
+        }
+
+        if (otpData.otp) {
+          setOtp(otpData.otp);
+          toast.success('Verification code auto-filled! ⚡');
+          // Directly complete login!
+          await handleVerifyOtp(otpData.otp);
+        } else {
+          setStep('OTP');
+          toast.info('Verification code sent. Please enter the OTP to complete login.');
+        }
+      }
+    } catch (err: any) {
+      Alert.alert('Quick Login Failed', err.message || 'Verification failed.');
     } finally {
       setIsLoading(false);
     }
@@ -561,17 +672,15 @@ export default function LoginScreen() {
                 </Text>
               </View>
             </View>
-
             {/* Right: Location Capsule Picker */}
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
+              scaleValue={0.96}
+              style={{
                 maxWidth: '60%'
-              })}
+              }}
             >
               <View style={{ 
                 flexDirection: 'row', 
@@ -599,30 +708,33 @@ export default function LoginScreen() {
                 </Text>
                 <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
               </View>
-            </Pressable>
+            </ScalePressable>
           </View>
-
+ 
           {/* Bottom Row: Search Box Shortcut */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.push('/search');
             }}
-            className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+            scaleValue={0.99}
             style={Platform.OS === 'ios' ? {
               shadowColor: '#000',
               shadowOffset: { width: 0, height: 2 },
               shadowOpacity: 0.02,
               shadowRadius: 4,
+              width: '100%',
             } : Platform.OS === 'android' ? {
               elevation: 1,
-            } : undefined}
+              width: '100%',
+            } : { width: '100%' }}
           >
-            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
-            <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
-              Search for products...
-            </Text>
-          </Pressable>
+            <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full">
+              <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+              <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
+                Search for products...
+              </Text>
+            </View>
+          </ScalePressable>
         </View>
       </View>
 
@@ -746,9 +858,10 @@ export default function LoginScreen() {
 
               {/* Biometric Quick Login Card */}
               {hasBiometrics && lastUser && step === 'EMAIL' && (
-                <TouchableOpacity
+                <ScalePressable
                   onPress={handleBiometricLogin}
-                  activeOpacity={0.85}
+                  scaleValue={0.97}
+                  haptic="medium"
                   style={{
                     marginBottom: 20,
                     borderRadius: 16,
@@ -788,7 +901,7 @@ export default function LoginScreen() {
                     </View>
                     <ScanFace size={18} color={isDarkMode ? '#fda4af' : '#e20a22'} />
                   </LinearGradient>
-                </TouchableOpacity>
+                </ScalePressable>
               )}
 
               {/* STEP 1: TAB-LESS FLOW (WhatsApp default, Bottom Link switcher) */}
@@ -857,11 +970,13 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Action Button */}
-                  <TouchableOpacity
+                  <ScalePressable
                     onPress={handleEmailSubmit}
                     disabled={isLoading || !email}
-                    activeOpacity={0.9}
+                    scaleValue={0.96}
+                    haptic="medium"
                     style={{
+                      width: '100%',
                       borderRadius: 99,
                       overflow: 'hidden',
                       marginTop: 8,
@@ -877,6 +992,7 @@ export default function LoginScreen() {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
+                        width: '100%',
                         paddingVertical: 14,
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -892,7 +1008,7 @@ export default function LoginScreen() {
                         </Text>
                       )}
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </ScalePressable>
 
                   {/* OR CONTINUE WITH Divider */}
                   <View style={{ flexDirection: 'row', alignItems: 'center', marginVertical: 16 }}>
@@ -910,9 +1026,10 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Google Sign In Button */}
-                  <TouchableOpacity
+                  <ScalePressable
                     onPress={handleGoogleSignIn}
-                    activeOpacity={0.8}
+                    scaleValue={0.96}
+                    haptic="medium"
                     style={{
                       width: '100%',
                       paddingVertical: 12,
@@ -946,7 +1063,7 @@ export default function LoginScreen() {
                     <Text style={{ color: isDarkMode ? '#cbd5e1' : '#334155', fontWeight: '800', fontSize: 12.5, letterSpacing: -0.2 }}>
                       Google Sign In
                     </Text>
-                  </TouchableOpacity>
+                  </ScalePressable>
 
                   {/* Bottom Tabless Switcher Link */}
                   <Pressable
@@ -969,6 +1086,31 @@ export default function LoginScreen() {
                         : 'Are you a Customer? Login with Mobile Number'}
                     </Text>
                   </Pressable>
+
+                  {/* Skip and Browse as Guest Link */}
+                  <Pressable
+                    onPress={() => {
+                      triggerHaptic('light');
+                      router.replace('/(tabs)');
+                    }}
+                    style={({ pressed }) => ({
+                      marginTop: 8,
+                      alignSelf: 'center',
+                      padding: 6,
+                      opacity: pressed ? 0.65 : 1
+                    })}
+                  >
+                    <Text style={{
+                      color: '#e20a22',
+                      fontSize: 12.5,
+                      fontWeight: '900',
+                      letterSpacing: -0.1,
+                      textAlign: 'center'
+                    }}>
+                      Skip & Browse as Guest ➜
+                    </Text>
+                  </Pressable>
+
                 </View>
               )}
 
@@ -1022,11 +1164,13 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Submit Button */}
-                  <TouchableOpacity
+                  <ScalePressable
                     onPress={handlePasswordSubmit}
                     disabled={isLoading || !password}
-                    activeOpacity={0.9}
+                    scaleValue={0.96}
+                    haptic="medium"
                     style={{
+                      width: '100%',
                       borderRadius: 99,
                       overflow: 'hidden',
                       marginTop: 8,
@@ -1042,6 +1186,7 @@ export default function LoginScreen() {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
+                        width: '100%',
                         paddingVertical: 14,
                         alignItems: 'center',
                         justifyContent: 'center'
@@ -1055,7 +1200,7 @@ export default function LoginScreen() {
                         </Text>
                       )}
                     </LinearGradient>
-                  </TouchableOpacity>
+                  </ScalePressable>
 
                   {/* Dev selectors removed */}
                 </View>
@@ -1092,7 +1237,13 @@ export default function LoginScreen() {
                         keyboardType="numeric"
                         maxLength={6}
                         value={otp}
-                        onChangeText={(val) => setOtp(val.replace(/\D/g, ''))}
+                        onChangeText={(val) => {
+                          const cleaned = val.replace(/\D/g, '');
+                          setOtp(cleaned);
+                          if (cleaned.length === 6) {
+                            handleVerifyOtp(cleaned);
+                          }
+                        }}
                         onFocus={() => setFocusedField('otp')}
                         onBlur={() => setFocusedField(null)}
                         textContentType="oneTimeCode"
@@ -1111,10 +1262,11 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Actions Row */}
-                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                    <TouchableOpacity
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, alignItems: 'center' }}>
+                    <ScalePressable
                       onPress={goBackToEmail}
-                      activeOpacity={0.85}
+                      scaleValue={0.96}
+                      haptic="light"
                       style={{
                         flex: 1,
                         borderWidth: 1,
@@ -1128,12 +1280,13 @@ export default function LoginScreen() {
                       <Text style={{ color: isDarkMode ? '#cbd5e1' : '#475569', fontWeight: '800', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'PlusJakartaSans_700Bold' }}>
                         Back
                       </Text>
-                    </TouchableOpacity>
+                    </ScalePressable>
 
-                    <TouchableOpacity
-                      onPress={handleVerifyOtp}
+                    <ScalePressable
+                      onPress={() => handleVerifyOtp()}
                       disabled={isLoading || otp.length !== 6}
-                      activeOpacity={0.85}
+                      scaleValue={0.96}
+                      haptic="success"
                       style={{
                         flex: 2,
                         borderRadius: 99,
@@ -1149,7 +1302,7 @@ export default function LoginScreen() {
                         colors={['#10b981', '#059669']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 1 }}
-                        style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}
+                        style={{ width: '100%', paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}
                       >
                         {isLoading ? (
                           <ActivityIndicator size="small" color="#ffffff" />
@@ -1159,10 +1312,15 @@ export default function LoginScreen() {
                           </Text>
                         )}
                       </LinearGradient>
-                    </TouchableOpacity>
+                    </ScalePressable>
                   </View>
 
-                  <Pressable onPress={() => sendOtp(backendEmail || email)} style={{ marginTop: 8 }}>
+                  <ScalePressable 
+                    onPress={() => sendOtp(backendEmail || email)} 
+                    scaleValue={0.95}
+                    haptic="light"
+                    style={{ marginTop: 8 }}
+                  >
                     <Text style={{
                       width: '100%',
                       textAlign: 'center',
@@ -1173,7 +1331,7 @@ export default function LoginScreen() {
                     }}>
                       Resend OTP code
                     </Text>
-                  </Pressable>
+                  </ScalePressable>
                 </View>
               )}
 
@@ -1270,10 +1428,11 @@ export default function LoginScreen() {
                   </View>
 
                   {/* Actions Row */}
-                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8 }}>
-                    <TouchableOpacity
+                  <View style={{ flexDirection: 'row', gap: 12, marginTop: 8, alignItems: 'center' }}>
+                    <ScalePressable
                       onPress={() => setStep('OTP')}
-                      activeOpacity={0.85}
+                      scaleValue={0.96}
+                      haptic="light"
                       style={{
                         flex: 1,
                         borderWidth: 1,
@@ -1287,12 +1446,13 @@ export default function LoginScreen() {
                       <Text style={{ color: isDarkMode ? '#cbd5e1' : '#475569', fontWeight: '800', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5, fontFamily: 'PlusJakartaSans_700Bold' }}>
                         Back
                       </Text>
-                    </TouchableOpacity>
+                    </ScalePressable>
 
-                    <TouchableOpacity
-                      onPress={handleVerifyOtp}
+                    <ScalePressable
+                      onPress={() => handleVerifyOtp()}
                       disabled={isLoading || !name.trim() || !phone.trim()}
-                      activeOpacity={0.85}
+                      scaleValue={0.96}
+                      haptic="success"
                       style={{
                         flex: 2,
                         borderRadius: 99,
@@ -1318,7 +1478,7 @@ export default function LoginScreen() {
                           </Text>
                         )}
                       </LinearGradient>
-                    </TouchableOpacity>
+                    </ScalePressable>
                   </View>
                 </View>
               )}

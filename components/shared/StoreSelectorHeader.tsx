@@ -1,6 +1,7 @@
 import React from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { ScalePressable } from './ScalePressable';
 import { ShoppingBag, Coffee } from 'lucide-react-native';
 import { triggerHaptic } from '../../lib/haptic';
 import { useTheme } from '../../app/context/ThemeContext';
@@ -48,27 +49,28 @@ export default function StoreSelectorHeader({ activeStore }: StoreSelectorHeader
       marginVertical: 10,
     }}>
       {/* Grocery Store Pill */}
-      <Pressable
+      <ScalePressable
         onPress={() => handleSwitchStore('grocery')}
-        style={({ pressed }) => ({
+        scaleValue={0.96}
+        haptic={null} // Switch action already triggers haptic internally
+        style={{
           flex: 1,
-          flexDirection: 'row' as const,
-          alignItems: 'center' as const,
-          justifyContent: 'center' as const,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
           height: 38,
           borderRadius: 19,
           paddingHorizontal: 12,
           borderWidth: 1,
           backgroundColor: groceryBg,
           borderColor: groceryBorder,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
           ...(Platform.OS === 'android' ? { elevation: 1 } : {
             shadowColor: isGrocery ? '#e20a22' : '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 3,
           }),
-        })}
+        }}
       >
         <ShoppingBag 
           size={14} 
@@ -84,30 +86,31 @@ export default function StoreSelectorHeader({ activeStore }: StoreSelectorHeader
         }}>
           Grocery
         </Text>
-      </Pressable>
+      </ScalePressable>
 
       {/* Café Store Pill */}
-      <Pressable
+      <ScalePressable
         onPress={() => handleSwitchStore('cafe')}
-        style={({ pressed }) => ({
+        scaleValue={0.96}
+        haptic={null} // Switch action already triggers haptic internally
+        style={{
           flex: 1,
-          flexDirection: 'row' as const,
-          alignItems: 'center' as const,
-          justifyContent: 'center' as const,
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'center',
           height: 38,
           borderRadius: 19,
           paddingHorizontal: 12,
           borderWidth: 1,
           backgroundColor: cafeBg,
           borderColor: cafeBorder,
-          transform: [{ scale: pressed ? 0.96 : 1 }],
           ...(Platform.OS === 'android' ? { elevation: 1 } : {
             shadowColor: isCafe ? '#ea580c' : '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.05,
             shadowRadius: 3,
           }),
-        })}
+        }}
       >
         <Coffee 
           size={14} 
@@ -123,7 +126,7 @@ export default function StoreSelectorHeader({ activeStore }: StoreSelectorHeader
         }}>
           Café
         </Text>
-      </Pressable>
+      </ScalePressable>
     </View>
   );
 }

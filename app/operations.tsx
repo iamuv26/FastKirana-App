@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
 import { useState, useMemo, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
-import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon, Send, MessageSquare, Edit2, Trash2 } from 'lucide-react-native';
+import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Minus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon, Send, MessageSquare, Edit2, Trash2, LogOut } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle as SvgCircle, Line, Text as SvgText, G } from 'react-native-svg';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice, getAppImageSource, formatHeaderAddress } from '../lib/utils';
@@ -130,6 +130,7 @@ const DEFAULT_CAFE_MENU_SECTIONS = [
 // ------------------- Interfaces -------------------
 interface OrderItem {
   id: string;
+  productId?: string;
   name: string;
   price: number;
   quantity: number;
@@ -137,12 +138,17 @@ interface OrderItem {
   location?: string | null;
   categorySlug?: string;
   cooked: boolean;
+  selectedVariant?: string | null;
+  notes?: string | null;
 }
 
 interface Order {
   id: string;
   status: 'PENDING' | 'CONFIRMED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
   total: number;
+  deliveryFee?: number;
+  miscFee?: number;
+  discount?: number;
   createdAt: string;
   paymentMethod: 'UPI' | 'COD' | 'CARD';
   deliveryMethod: 'DELIVERY' | 'PICKUP';
@@ -161,6 +167,7 @@ interface Order {
   };
   items: OrderItem[];
   binName?: string;
+  shopName?: string;
 }
 
 // ------------------- Aisle Rack mapping -------------------
@@ -245,8 +252,8 @@ export const mockOrdersList: Order[] = [
 
 export default function OperationsScreen() {
   const { user, logout } = useAuthStore();
-  const [activeTab, setActiveTab] = useState<'PICKER' | 'RIDER' | 'CHEF' | 'ANALYTICS' | 'SETTINGS' | 'INVENTORY' | 'NOTIFICATIONS' | 'COUPONS' | 'ORDERS' | 'BANNERS' | 'USERS' | 'REVIEWS' | 'HIGHLIGHTS' | 'LIVEOPS' | 'CATEGORIES' | 'ALERTS' | 'INWARD' | 'BULK_UPDATE' | 'REPORTS' | 'FORECAST'>('ANALYTICS');
-  const [activeHub, setActiveHub] = useState<'BI' | 'OPS' | 'CATALOG' | 'MARKETING'>('BI');
+  const [activeTab, setActiveTab] = useState<'PICKER' | 'RIDER' | 'CHEF' | 'CHEF_RESTAURANT' | 'ANALYTICS' | 'SETTINGS' | 'INVENTORY' | 'NOTIFICATIONS' | 'COUPONS' | 'ORDERS' | 'BANNERS' | 'USERS' | 'REVIEWS' | 'HIGHLIGHTS' | 'LIVEOPS' | 'CATEGORIES' | 'ALERTS' | 'INWARD' | 'BULK_UPDATE' | 'REPORTS' | 'FORECAST' | null>(null);
+  const [activeHub, setActiveHub] = useState<'BI' | 'OPS' | null>(null);
   const [isTransitioning, setIsTransitioning] = useState(false);
 
   useEffect(() => {
@@ -258,14 +265,10 @@ export default function OperationsScreen() {
   }, [activeTab]);
 
   useEffect(() => {
-    if (['ANALYTICS', 'FORECAST', 'REPORTS'].includes(activeTab)) {
+    if (activeTab && ['ANALYTICS', 'FORECAST', 'REPORTS'].includes(activeTab)) {
       setActiveHub('BI');
-    } else if (['LIVEOPS', 'ORDERS', 'USERS', 'REVIEWS', 'PICKER', 'RIDER'].includes(activeTab)) {
+    } else if (activeTab && ['LIVEOPS', 'ORDERS', 'USERS', 'REVIEWS', 'PICKER', 'RIDER', 'CHEF', 'CHEF_RESTAURANT'].includes(activeTab)) {
       setActiveHub('OPS');
-    } else if (['INVENTORY', 'CATEGORIES', 'INWARD', 'BULK_UPDATE', 'ALERTS'].includes(activeTab)) {
-      setActiveHub('CATALOG');
-    } else if (['BANNERS', 'HIGHLIGHTS', 'COUPONS', 'NOTIFICATIONS', 'SETTINGS', 'CHEF'].includes(activeTab)) {
-      setActiveHub('MARKETING');
     }
   }, [activeTab]);
 
@@ -370,6 +373,7 @@ export default function OperationsScreen() {
   const [reportDailySales, setReportDailySales] = useState<any[]>([]);
   const [reportCategorySales, setReportCategorySales] = useState<any[]>([]);
   const [reportTopProducts, setReportTopProducts] = useState<any[]>([]);
+  const [reportSegment, setReportSegment] = useState<'all' | 'grocery' | 'cafe' | 'restaurant'>('all');
 
   // --- AI Forecasting Tab States ---
   const [forecastList, setForecastList] = useState<any[]>([]);
@@ -430,7 +434,7 @@ export default function OperationsScreen() {
       } else if (user.role === 'PICKER') {
         setActiveTab('PICKER');
       } else if (user.role === 'ADMIN') {
-        setActiveTab('ANALYTICS'); // Default to Analytics for Admin
+        setActiveTab(null); // No tab selected initially, show Welcome Overview
       }
     }
   }, [user]);
@@ -512,6 +516,7 @@ export default function OperationsScreen() {
   const [coupons, setCoupons] = useState<any[]>([]);
   const [isCouponsLoading, setIsCouponsLoading] = useState<boolean>(false);
   const [isCouponModalVisible, setIsCouponModalVisible] = useState<boolean>(false);
+  const [logoutModalVisible, setLogoutModalVisible] = useState<boolean>(false);
   const [newCouponCode, setNewCouponCode] = useState<string>('');
   const [newCouponType, setNewCouponType] = useState<'FLAT' | 'PERCENT'>('FLAT');
   const [newCouponValue, setNewCouponValue] = useState<string>('');
@@ -528,7 +533,19 @@ export default function OperationsScreen() {
     deliveredOrders: 0,
     lowStockCount: 0,
     userCount: 0,
-    couponCount: 0
+    couponCount: 0,
+    groceryRevenue: 0,
+    restaurantRevenue: 0,
+    cafeRevenue: 0,
+    groceryTotalOrders: 0,
+    restaurantTotalOrders: 0,
+    cafeTotalOrders: 0,
+    groceryActiveOrders: 0,
+    restaurantActiveOrders: 0,
+    cafeActiveOrders: 0,
+    groceryDeliveredOrders: 0,
+    restaurantDeliveredOrders: 0,
+    cafeDeliveredOrders: 0,
   });
   const [recentOrders, setRecentOrders] = useState<any[]>([]);
   const [weeklySalesData, setWeeklySalesData] = useState<any[]>([
@@ -586,15 +603,22 @@ export default function OperationsScreen() {
   const [isHighlightsLoading, setIsHighlightsLoading] = useState<boolean>(false);
   const [togglingHighlightId, setTogglingHighlightId] = useState<string | null>(null);
 
+  // API Call Throttling Cooldowns Utility
+  const lastFetchTime = useRef<Record<string, number>>({});
+  const shouldFetch = (key: string, cooldownMs = 3000) => {
+    const now = Date.now();
+    const lastTime = lastFetchTime.current[key] || 0;
+    if (now - lastTime < cooldownMs) {
+      return false;
+    }
+    lastFetchTime.current[key] = now;
+    return true;
+  };
 
-
-
-
-  // Load initial stats & LiveOps data on mount
+  // Load initial settings data on mount (lightweight settings required for switches)
   useEffect(() => {
     if (user?.role === 'ADMIN') {
-      fetchAnalyticsData();
-      fetchLiveopsData();
+      fetchSettingsData();
     }
   }, [user]);
 
@@ -624,7 +648,7 @@ export default function OperationsScreen() {
   // Stream LiveOps data (orders + active carts) reactively
   useOrderStream({
     role: 'ADMIN',
-    enabled: user?.role === 'ADMIN',
+    enabled: user?.role === 'ADMIN' && activeHub === 'OPS',
     onEvent: (event) => {
       // Refresh data on any incoming SSE event or poll fallback tick
       fetchLiveopsData();
@@ -634,7 +658,8 @@ export default function OperationsScreen() {
 
   // --- API Integrations for Admin Workspace ---
   // --- Settings Management ---
-  const fetchSettingsData = async () => {
+  const fetchSettingsData = async (force = false) => {
+    if (!force && !shouldFetch('settings')) return;
     setIsSettingsLoading(true);
     try {
       // 1. Fetch categories
@@ -719,8 +744,8 @@ export default function OperationsScreen() {
     }
   };
 
-  // --- LiveOps Data ---
-  const fetchLiveopsData = async () => {
+  const fetchLiveopsData = async (force = false) => {
+    if (!force && !shouldFetch('liveops')) return;
     setIsLiveopsLoading(true);
     setIsLoadingCarts(true);
     try {
@@ -1495,7 +1520,8 @@ export default function OperationsScreen() {
     }
   };
 
-  const fetchAnalyticsData = async () => {
+  const fetchAnalyticsData = async (force = false) => {
+    if (!force && !shouldFetch('analytics')) return;
     setIsAnalyticsLoading(true);
     try {
       const headers = getAuthHeaders();
@@ -1532,8 +1558,50 @@ export default function OperationsScreen() {
       const categoryCounts: { [key: string]: number } = { 'grocery': 0, 'cafe': 0, 'dairy': 0, 'beverages': 0 };
       let totalItemsCount = 0;
 
+      let groceryRevenue = 0;
+      let restaurantRevenue = 0;
+      let cafeRevenue = 0;
+      let groceryTotalOrders = 0;
+      let restaurantTotalOrders = 0;
+      let cafeTotalOrders = 0;
+      let groceryActiveOrders = 0;
+      let restaurantActiveOrders = 0;
+      let cafeActiveOrders = 0;
+      let groceryDeliveredOrders = 0;
+      let restaurantDeliveredOrders = 0;
+      let cafeDeliveredOrders = 0;
+
       if (Array.isArray(ordersList)) {
         ordersList.forEach((o) => {
+          const isCafe = o.shopName === 'FastKirana Cafe Kitchen';
+          const isRestaurant = o.shopName === 'FastKirana Restaurant Kitchen';
+
+          if (isCafe) {
+            cafeTotalOrders++;
+            if (o.status === 'DELIVERED') {
+              cafeRevenue += o.total;
+              cafeDeliveredOrders++;
+            } else if (o.status !== 'CANCELLED') {
+              cafeActiveOrders++;
+            }
+          } else if (isRestaurant) {
+            restaurantTotalOrders++;
+            if (o.status === 'DELIVERED') {
+              restaurantRevenue += o.total;
+              restaurantDeliveredOrders++;
+            } else if (o.status !== 'CANCELLED') {
+              restaurantActiveOrders++;
+            }
+          } else {
+            groceryTotalOrders++;
+            if (o.status === 'DELIVERED') {
+              groceryRevenue += o.total;
+              groceryDeliveredOrders++;
+            } else if (o.status !== 'CANCELLED') {
+              groceryActiveOrders++;
+            }
+          }
+
           if (o.status === 'DELIVERED') {
             revenue += o.total;
             deliveredCount++;
@@ -1621,7 +1689,19 @@ export default function OperationsScreen() {
         deliveredOrders: deliveredCount,
         lowStockCount: lowStock,
         userCount: fetchedUserCount,
-        couponCount: couponCount || 4
+        couponCount: couponCount || 4,
+        groceryRevenue,
+        restaurantRevenue,
+        cafeRevenue,
+        groceryTotalOrders,
+        restaurantTotalOrders,
+        cafeTotalOrders,
+        groceryActiveOrders,
+        restaurantActiveOrders,
+        cafeActiveOrders,
+        groceryDeliveredOrders,
+        restaurantDeliveredOrders,
+        cafeDeliveredOrders,
       });
 
       try {
@@ -1642,7 +1722,49 @@ export default function OperationsScreen() {
       const categoryCounts: { [key: string]: number } = { 'grocery': 0, 'cafe': 0, 'dairy': 0, 'beverages': 0 };
       let totalItemsCount = 0;
 
+      let groceryRevenue = 0;
+      let restaurantRevenue = 0;
+      let cafeRevenue = 0;
+      let groceryTotalOrders = 0;
+      let restaurantTotalOrders = 0;
+      let cafeTotalOrders = 0;
+      let groceryActiveOrders = 0;
+      let restaurantActiveOrders = 0;
+      let cafeActiveOrders = 0;
+      let groceryDeliveredOrders = 0;
+      let restaurantDeliveredOrders = 0;
+      let cafeDeliveredOrders = 0;
+
       mockOrdersList.forEach((o) => {
+        const isCafe = o.shopName === 'FastKirana Cafe Kitchen';
+        const isRestaurant = o.shopName === 'FastKirana Restaurant Kitchen';
+
+        if (isCafe) {
+          cafeTotalOrders++;
+          if (o.status === 'DELIVERED') {
+            cafeRevenue += o.total;
+            cafeDeliveredOrders++;
+          } else if (o.status !== 'CANCELLED') {
+            cafeActiveOrders++;
+          }
+        } else if (isRestaurant) {
+          restaurantTotalOrders++;
+          if (o.status === 'DELIVERED') {
+            restaurantRevenue += o.total;
+            restaurantDeliveredOrders++;
+          } else if (o.status !== 'CANCELLED') {
+            restaurantActiveOrders++;
+          }
+        } else {
+          groceryTotalOrders++;
+          if (o.status === 'DELIVERED') {
+            groceryRevenue += o.total;
+            groceryDeliveredOrders++;
+          } else if (o.status !== 'CANCELLED') {
+            groceryActiveOrders++;
+          }
+        }
+
         if (o.status === 'DELIVERED') {
           revenue += o.total;
           const orderDate = new Date(o.createdAt);
@@ -1705,7 +1827,19 @@ export default function OperationsScreen() {
         deliveredOrders: mockOrdersList.filter(o => o.status === 'DELIVERED').length,
         lowStockCount: 4,
         userCount: 52,
-        couponCount: 6
+        couponCount: 6,
+        groceryRevenue,
+        restaurantRevenue,
+        cafeRevenue,
+        groceryTotalOrders,
+        restaurantTotalOrders,
+        cafeTotalOrders,
+        groceryActiveOrders,
+        restaurantActiveOrders,
+        cafeActiveOrders,
+        groceryDeliveredOrders,
+        restaurantDeliveredOrders,
+        cafeDeliveredOrders,
       });
     } finally {
       setIsAnalyticsLoading(false);
@@ -2210,7 +2344,9 @@ export default function OperationsScreen() {
           holidaysState.split(',').map(h => h.trim()),
           parseFloat(surgeMultiplierState),
           parseFloat(taxRate),
-          onlyCod
+          onlyCod,
+          parseFloat(miscFee),
+          miscFeeLabel
         );
         toast.success('Settings saved successfully!');
       } else {
@@ -2220,6 +2356,57 @@ export default function OperationsScreen() {
       toast.error('Failed to save settings on server.');
     } finally {
       setIsSavingSettings(false);
+    }
+  };
+
+  const handleToggleStoreStatus = async (type: 'grocery' | 'cafe', nextValue: boolean) => {
+    try {
+      const headers = getAuthHeaders();
+      const payload: Record<string, string> = {};
+      if (type === 'grocery') {
+        payload['grocery_mart_open'] = String(nextValue);
+        setGroceryOpenState(nextValue);
+      } else {
+        payload['cafe_open'] = String(nextValue);
+        setCafeOpenState(nextValue);
+      }
+
+      const res = await fetch(`${API_BASE_URL}/admin/settings`, {
+        method: 'PATCH',
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(payload)
+      });
+
+      if (res.ok) {
+        // Sync Zustand store
+        setLocalStoreStatus(
+          type === 'grocery' ? nextValue : groceryOpenState,
+          type === 'cafe' ? nextValue : cafeOpenState,
+          parseFloat(radiusState) || 5,
+          parseFloat(storeLat),
+          parseFloat(storeLng),
+          parseInt(minOrderValueState) || 99,
+          parseInt(storeOpenHourState) || 6,
+          parseInt(storeCloseHourState) || 24,
+          holidaysState.split(',').map(h => h.trim()),
+          parseFloat(surgeMultiplierState) || 1,
+          parseFloat(taxRate) || 0,
+          onlyCod,
+          parseFloat(miscFee) || 0,
+          miscFeeLabel
+        );
+        toast.success(`${type === 'grocery' ? 'Grocery' : 'Cafe'} status updated!`);
+      } else {
+        throw new Error('API failed');
+      }
+    } catch (err) {
+      toast.error('Failed to update status.');
+      // Revert local state
+      if (type === 'grocery') setGroceryOpenState(!nextValue);
+      else setCafeOpenState(!nextValue);
     }
   };
 
@@ -2351,6 +2538,132 @@ export default function OperationsScreen() {
   // --- Picker & Chef Stats ---
   const [todayPacked, setTodayPacked] = useState<number>(0);
   const [todayPrepared, setTodayPrepared] = useState<number>(0);
+
+  // --- Chef Console Order Edit States ---
+  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
+  const [editItems, setEditItems] = useState<any[]>([]);
+  const [outOfStockProductIds, setOutOfStockProductIds] = useState<string[]>([]);
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [allProducts, setAllProducts] = useState<any[]>([]);
+  const [isSavingEdit, setIsSavingEdit] = useState(false);
+  const [editTaxRate, setEditTaxRate] = useState<number>(0.05); // Default 5%
+  const [deliveryFeeSetting, setDeliveryFeeSetting] = useState<number>(25);
+  const [miscFeeSetting, setMiscFeeSetting] = useState<number>(5);
+  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(200);
+
+  useEffect(() => {
+    if (!searchQuery.trim()) {
+      setSearchResults([]);
+      return;
+    }
+    const query = searchQuery.toLowerCase();
+    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
+    setSearchResults(filtered);
+  }, [searchQuery, allProducts]);
+
+  const handleEditOrder = async (order: Order) => {
+    setEditingOrder(order);
+    setEditItems(order.items.map(item => ({
+      productId: item.productId || item.id,
+      name: item.name,
+      price: item.price,
+      quantity: item.quantity,
+      selectedVariant: item.selectedVariant || null,
+      notes: item.notes || null
+    })));
+    setOutOfStockProductIds([]);
+    setSearchQuery('');
+    
+    try {
+      const category = activeTab === 'CHEF' ? 'cafe' : 'restaurant';
+      const headers = getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/products?category=${category}&limit=100`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        setAllProducts(data.products || []);
+      }
+    } catch (err) {
+      console.warn('Failed to fetch catalog products for edit:', err);
+    }
+  };
+
+  const updateItemQty = (productId: string, variant: string | null, delta: number) => {
+    setEditItems(prev => {
+      return prev.map(item => {
+        if (item.productId === productId && item.selectedVariant === variant) {
+          const newQty = Math.max(0, item.quantity + delta);
+          return { ...item, quantity: newQty };
+        }
+        return item;
+      }).filter(item => item.quantity > 0);
+    });
+  };
+
+  const updateItemVariant = (productId: string, oldVariant: string | null, newVariant: string, newPrice: number) => {
+    setEditItems(prev => prev.map(item => {
+      if (item.productId === productId && item.selectedVariant === oldVariant) {
+        return {
+          ...item,
+          selectedVariant: newVariant,
+          price: newPrice
+        };
+      }
+      return item;
+    }));
+  };
+
+  const markItemOutOfStock = (productId: string) => {
+    if (!outOfStockProductIds.includes(productId)) {
+      setOutOfStockProductIds(prev => [...prev, productId]);
+    }
+    setEditItems(prev => prev.filter(item => item.productId !== productId));
+  };
+
+  const addCatalogItem = (product: any) => {
+    const exists = editItems.find(item => item.productId === product.id);
+    if (exists) {
+      updateItemQty(product.id, null, 1);
+    } else {
+      setEditItems(prev => [...prev, {
+        productId: product.id,
+        name: product.name,
+        price: product.price,
+        quantity: 1,
+        selectedVariant: null,
+        notes: null
+      }]);
+    }
+    setSearchQuery('');
+  };
+
+  const saveEditedOrder = async () => {
+    if (!editingOrder) return;
+    setIsSavingEdit(true);
+    try {
+      const headers = { ...getAuthHeaders(), 'Content-Type': 'application/json' };
+      const res = await fetch(`${API_BASE_URL}/orders/${editingOrder.id}/edit`, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify({
+          updatedItems: editItems,
+          outOfStockProductIds: outOfStockProductIds
+        })
+      });
+      if (res.ok) {
+        Alert.alert('Success', 'Order updated successfully!');
+        setEditingOrder(null);
+        fetchServerOrders(true);
+      } else {
+        const data = await res.json();
+        Alert.alert('Error', data.error || 'Failed to edit order');
+      }
+    } catch (err) {
+      Alert.alert('Error', 'Error saving order updates');
+    } finally {
+      setIsSavingEdit(false);
+    }
+  };
   const fetchServerOrders = async (showLoader = false) => {
     if (!user || user.role === 'USER') {
       setIsOnline(false);
@@ -2362,6 +2675,8 @@ export default function OperationsScreen() {
       let url = `${API_BASE_URL}/picker/orders`;
       if (activeTab === 'CHEF') {
         url = `${API_BASE_URL}/picker/orders?type=cafe`;
+      } else if (activeTab === 'CHEF_RESTAURANT') {
+        url = `${API_BASE_URL}/picker/orders?type=restaurant`;
       } else if (activeTab === 'RIDER') {
         url = `${API_BASE_URL}/delivery/orders`;
       }
@@ -2376,6 +2691,9 @@ export default function OperationsScreen() {
           id: ord.id,
           status: ord.status,
           total: ord.total,
+          deliveryFee: ord.deliveryFee || 0,
+          miscFee: ord.miscFee || 0,
+          discount: ord.discount || 0,
           createdAt: ord.createdAt,
           paymentMethod: ord.paymentMethod || 'COD',
           deliveryMethod: ord.deliveryMethod || 'DELIVERY',
@@ -2394,13 +2712,16 @@ export default function OperationsScreen() {
           } : { houseNo: '', street: '', area: '', city: '', pincode: '' },
           items: (ord.items || []).map((it: any) => ({
             id: it.id,
+            productId: it.productId || it.product?.id || it.id,
             name: it.name,
             price: it.price,
             quantity: it.quantity,
             imageUrl: it.imageUrl || it.product?.imageUrl || null,
             location: it.product?.location || null,
             categorySlug: it.product?.category?.slug || (ord.shopName === 'FastKirana Cafe Kitchen' ? 'cafe' : ''),
-            cooked: it.cooked || false
+            cooked: it.cooked || false,
+            selectedVariant: it.selectedVariant || null,
+            notes: it.notes || null
           })),
           binName: ord.binName || null
         }));
@@ -2414,6 +2735,8 @@ export default function OperationsScreen() {
       let filteredMock = mockOrdersList;
       if (activeTab === 'CHEF') {
         filteredMock = mockOrdersList.filter(o => o.items.some(it => it.cooked || it.categorySlug === 'cafe'));
+      } else if (activeTab === 'CHEF_RESTAURANT') {
+        filteredMock = mockOrdersList.filter(o => o.items.some(it => it.cooked || it.categorySlug === 'restaurant' || it.categorySlug === 'north-indian' || it.categorySlug === 'biryani-rice'));
       } else if (activeTab === 'PICKER') {
         filteredMock = mockOrdersList.filter(o => ['PENDING', 'CONFIRMED', 'PACKED'].includes(o.status));
       } else if (activeTab === 'RIDER') {
@@ -2426,8 +2749,35 @@ export default function OperationsScreen() {
     }
   };
 
+  const fetchSettings = async () => {
+    try {
+      const headers = getAuthHeaders();
+      const res = await fetch(`${API_BASE_URL}/settings`, { headers });
+      if (res.ok) {
+        const data = await res.json();
+        if (data) {
+          if (data.tax_rate !== undefined) {
+            setEditTaxRate(parseFloat(data.tax_rate) / 100);
+          }
+          if (data.delivery_fee !== undefined) {
+            setDeliveryFeeSetting(parseFloat(data.delivery_fee));
+          }
+          if (data.misc_fee !== undefined) {
+            setMiscFeeSetting(parseFloat(data.misc_fee));
+          }
+          if (data.cafe_free_delivery_threshold !== undefined) {
+            setFreeDeliveryThreshold(parseFloat(data.cafe_free_delivery_threshold));
+          }
+        }
+      }
+    } catch (err) {
+      console.warn('Failed to fetch settings, using defaults:', err);
+    }
+  };
+
   useEffect(() => {
     fetchServerOrders(true);
+    fetchSettings();
     
     const intervalId = setInterval(() => {
       fetchServerOrders(false);
@@ -2740,12 +3090,40 @@ export default function OperationsScreen() {
     );
   }, [orders]);
 
+  // Filter restaurant items requiring preparation
+  const pendingRestaurantOrders = useMemo(() => {
+    return orders.filter(o => 
+      (o.status === 'PENDING' || o.status === 'CONFIRMED') && 
+      o.items.some(it => it.categorySlug === 'restaurant' || it.categorySlug === 'north-indian' || it.categorySlug === 'biryani-rice')
+    );
+  }, [orders]);
+
   const aggregatedPrepItems = useMemo(() => {
     const counts: Record<string, { name: string; quantity: number }> = {};
     orders.forEach(order => {
       if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') return;
       order.items.forEach(item => {
         if (item.categorySlug !== 'cafe') return;
+        if (item.cooked) return; // Only count uncooked/unprepared items
+
+        if (!counts[item.name]) {
+          counts[item.name] = {
+            name: item.name,
+            quantity: 0
+          };
+        }
+        counts[item.name].quantity += item.quantity;
+      });
+    });
+    return Object.values(counts).sort((a, b) => b.quantity - a.quantity);
+  }, [orders]);
+
+  const aggregatedRestaurantPrepItems = useMemo(() => {
+    const counts: Record<string, { name: string; quantity: number }> = {};
+    orders.forEach(order => {
+      if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') return;
+      order.items.forEach(item => {
+        if (item.categorySlug !== 'restaurant' && item.categorySlug !== 'north-indian' && item.categorySlug !== 'biryani-rice') return;
         if (item.cooked) return; // Only count uncooked/unprepared items
 
         if (!counts[item.name]) {
@@ -2772,7 +3150,7 @@ export default function OperationsScreen() {
   };
 
   const markChefItemReady = async (orderId: string, itemId: string) => {
-    // Simple toggle state for cafe item cooked checklist
+    // Simple toggle state for cafe/restaurant item cooked checklist
     let allChefItemsReady = false;
     let targetOrderUser = 'Customer';
     
@@ -2783,10 +3161,17 @@ export default function OperationsScreen() {
           it.id === itemId ? { ...it, cooked: !it.cooked } : it
         );
         
-        // Check if all cafe items in this order are now prepared
-        allChefItemsReady = updatedItems
-          .filter(it => it.categorySlug === 'cafe')
-          .every(it => it.cooked === true);
+        // Check if all items for the specific chef segment are prepared
+        const isCafeOrder = o.items.some(it => it.categorySlug === 'cafe');
+        if (isCafeOrder) {
+          allChefItemsReady = updatedItems
+            .filter(it => it.categorySlug === 'cafe')
+            .every(it => it.cooked === true);
+        } else {
+          allChefItemsReady = updatedItems
+            .filter(it => it.categorySlug === 'restaurant' || it.categorySlug === 'north-indian' || it.categorySlug === 'biryani-rice')
+            .every(it => it.cooked === true);
+        }
 
         return { ...o, items: updatedItems };
       }
@@ -2802,8 +3187,11 @@ export default function OperationsScreen() {
       }
       setTodayPrepared(prev => prev + 1);
       triggerAudioSuccess();
+      const isCafeOrder = updatedOrders.find(o => o.id === orderId)?.items.some(it => it.categorySlug === 'cafe');
+      const emoji = isCafeOrder ? '☕' : '🍳';
+      const typeLabel = isCafeOrder ? 'Cafe' : 'Restaurant';
       setTimeout(() => {
-        toast.success(`☕ Kitchen order for ${targetOrderUser} prepared! Sent to Rider.`);
+        toast.success(`${emoji} ${typeLabel} Kitchen order for ${targetOrderUser} prepared! Sent to Rider.`);
       }, 300);
     } else {
       setOrders(updatedOrders);
@@ -2855,49 +3243,10 @@ export default function OperationsScreen() {
       tabs: [
         { id: 'LIVEOPS', label: 'LiveOps', emoji: '🚨' },
         { id: 'ORDERS', label: 'Store Orders', emoji: '📋' },
+        { id: 'CHEF', label: 'Cafe Console', emoji: '☕' },
+        { id: 'CHEF_RESTAURANT', label: 'Rest. Console', emoji: '🍳' },
         { id: 'USERS', label: 'Customers', emoji: '👥' },
-        { id: 'REVIEWS', label: 'Reviews', emoji: '⭐' },
-        { id: 'PICKER', label: 'Picker Mode', emoji: '📦' },
-        { id: 'RIDER', label: 'Rider Mode', emoji: '🛵' }
-      ]
-    },
-    {
-      id: 'CATALOG',
-      title: 'Catalog & Inventory',
-      description: 'Products, categories, GRN stock, and bulk update',
-      icon: Package,
-      defaultTab: 'INVENTORY',
-      color: 'from-emerald-500/10 to-teal-500/10',
-      activeBorder: 'border-emerald-500/60 ring-2 ring-emerald-500/20',
-      iconColor: '#10b981',
-      nativeGradient: ['rgba(16,185,129,0.12)', 'rgba(20,184,166,0.08)'] as [string, string],
-      nativeBorder: 'rgba(16,185,129,0.4)',
-      tabs: [
-        { id: 'INVENTORY', label: 'Products', emoji: '🍎' },
-        { id: 'CATEGORIES', label: 'Categories', emoji: '📁' },
-        { id: 'INWARD', label: 'GRN Inward', emoji: '📥' },
-        { id: 'BULK_UPDATE', label: 'Bulk Update', emoji: '⚡' },
-        { id: 'ALERTS', label: 'Alerts', emoji: '⚠️' }
-      ]
-    },
-    {
-      id: 'MARKETING',
-      title: 'Marketing & Settings',
-      description: 'Banners, coupons, notifications, and settings',
-      icon: Sliders,
-      defaultTab: 'SETTINGS',
-      color: 'from-rose-500/10 to-pink-500/10',
-      activeBorder: 'border-rose-500/60 ring-2 ring-rose-500/20',
-      iconColor: '#ec4899',
-      nativeGradient: ['rgba(236,72,153,0.12)', 'rgba(244,63,94,0.08)'] as [string, string],
-      nativeBorder: 'rgba(236,72,153,0.4)',
-      tabs: [
-        { id: 'BANNERS', label: 'Promo Banners', emoji: '🖼️' },
-        { id: 'HIGHLIGHTS', label: 'Flash Deals', emoji: '⚡' },
-        { id: 'COUPONS', label: 'Offers', emoji: '🎟️' },
-        { id: 'NOTIFICATIONS', label: 'Push Notifications', emoji: '📣' },
-        { id: 'SETTINGS', label: 'Store Settings', emoji: '⚙️' },
-        { id: 'CHEF', label: 'Chef Kitchen', emoji: '🍳' }
+        { id: 'REVIEWS', label: 'Reviews', emoji: '⭐' }
       ]
     }
   ] as const;
@@ -2919,31 +3268,29 @@ export default function OperationsScreen() {
         }
       }
     } else {
-      Alert.alert(
-        'Log Out',
-        'Are you sure you want to log out from the console?',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { 
-            text: 'Log Out', 
-            style: 'destructive',
-            onPress: () => {
-              console.log('[Logout] Confirmed on native, logging out');
-              logout();
-              router.replace('/(auth)/login');
-            }
-          }
-        ]
-      );
+      setLogoutModalVisible(true);
     }
   };
+
+  const totalRevenue = (analyticsStats.groceryRevenue || 0) + (analyticsStats.restaurantRevenue || 0) + (analyticsStats.cafeRevenue || 0);
+  const totalOrders = (analyticsStats.groceryTotalOrders || 0) + (analyticsStats.restaurantTotalOrders || 0) + (analyticsStats.cafeTotalOrders || 0);
+  const activeOrders = (analyticsStats.groceryActiveOrders || 0) + (analyticsStats.restaurantActiveOrders || 0) + (analyticsStats.cafeActiveOrders || 0);
+  const deliveredOrders = (analyticsStats.groceryDeliveredOrders || 0) + (analyticsStats.restaurantDeliveredOrders || 0) + (analyticsStats.cafeDeliveredOrders || 0);
+
+  const statsList = [
+    { label: 'ACTIVE ORDERS', value: String(activeOrders), icon: RotateCcw, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)', subtext: undefined },
+    { label: 'DELIVERED ORDERS', value: String(deliveredOrders), icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', subtext: undefined },
+    { label: 'REGISTERED USERS', value: String(analyticsStats.userCount || 0), icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', subtext: undefined },
+    { label: 'LOW STOCK ALERT', value: String(analyticsStats.lowStockCount || 0), icon: AlertTriangle, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)', subtext: undefined }
+  ];
 
   const renderActiveTitle = () => {
     return (
       <>
         {activeTab === 'PICKER' && 'Picker Console 📦'}
         {activeTab === 'RIDER' && 'Rider Console 🛵'}
-        {activeTab === 'CHEF' && 'Cafe Kitchen Console 🍳'}
+        {activeTab === 'CHEF' && 'Cafe Kitchen Console ☕'}
+        {activeTab === 'CHEF_RESTAURANT' && 'Restaurant Kitchen Console 🍳'}
         {activeTab === 'ANALYTICS' && 'Store Analytics 📊'}
         {activeTab === 'ORDERS' && 'Store Orders 📋'}
         {activeTab === 'SETTINGS' && 'Store Settings ⚙️'}
@@ -2971,6 +3318,7 @@ export default function OperationsScreen() {
         {activeTab === 'PICKER' && 'FastKirana Darkstore Packhouse'}
         {activeTab === 'RIDER' && 'FastKirana Logistics Delivery Fleet'}
         {activeTab === 'CHEF' && 'FastKirana Cafe Food Prep Station'}
+        {activeTab === 'CHEF_RESTAURANT' && 'FastKirana Restaurant Food Prep Station'}
         {activeTab === 'ANALYTICS' && 'Real-time sales & store operations overview'}
         {activeTab === 'ORDERS' && 'Manage and confirm customer sales orders'}
         {activeTab === 'SETTINGS' && 'Configure store open/close & parameters'}
@@ -3103,28 +3451,46 @@ export default function OperationsScreen() {
 
           {/* Main Centered Container */}
           <View className="max-w-5xl w-full mx-auto px-8 pt-8">
-            {/* Page Title */}
-            <View className="mb-6">
-              <Text className="text-slate-900 dark:text-white font-black text-2xl">Admin Console</Text>
-              <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1">Welcome, Admin. Manage store status, pricing, inventory and customers.</Text>
+            {/* Page Title & Store Switches */}
+            <View className="mb-6 flex-row justify-between items-center flex-wrap gap-4">
+              <View style={{ flex: 1, minWidth: 280 }}>
+                <Text className="text-slate-900 dark:text-white font-black text-2xl">Admin Console</Text>
+                <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1">Welcome, Admin. Manage store status, pricing, inventory and customers.</Text>
+              </View>
+              {/* Toggle Switches */}
+              <View className="flex-row items-center gap-4 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-2 px-4 rounded-2xl">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">🛒 Grocery Mart</Text>
+                  <Switch
+                    value={groceryOpenState}
+                    onValueChange={(val) => handleToggleStoreStatus('grocery', val)}
+                    thumbColor={groceryOpenState ? '#10b981' : '#94a3b8'}
+                    trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
+                  />
+                </View>
+                {/* Vertical Divider */}
+                <View className="w-[1.2px] h-6 bg-slate-200 dark:bg-zinc-800" />
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">☕ Cafe Open</Text>
+                  <Switch
+                    value={cafeOpenState}
+                    onValueChange={(val) => handleToggleStoreStatus('cafe', val)}
+                    thumbColor={cafeOpenState ? '#10b981' : '#94a3b8'}
+                    trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
+                  />
+                </View>
+              </View>
             </View>
 
             {/* 6 Stats Cards Grid */}
             <View className="flex-row flex-wrap gap-4 mb-8">
-              {[
-                { label: 'TOTAL REVENUE', value: formatPrice(analyticsStats.totalRevenue || 0), icon: IndianRupee, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)' },
-                { label: 'TOTAL ORDERS', value: String(analyticsStats.totalOrders || 0), icon: ShoppingBag, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
-                { label: 'ACTIVE ORDERS', value: String(analyticsStats.activeOrders || 0), icon: RotateCcw, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' },
-                { label: 'DELIVERED ORDERS', value: String(analyticsStats.deliveredOrders || 0), icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)' },
-                { label: 'REGISTERED USERS', value: String(analyticsStats.userCount || 0), icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' },
-                { label: 'LOW STOCK ALERT', value: String(analyticsStats.lowStockCount || 0), icon: AlertTriangle, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' }
-              ].map((stat, idx) => {
+              {statsList.map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
                   <View 
                     key={idx} 
                     className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 flex-row items-center gap-4 shadow-xs"
-                    style={{ width: isWeb ? 'calc(16.66% - 14px)' : '48%', minWidth: isWeb ? 140 : 'none' } as any}
+                    style={{ width: isWeb ? 'calc(25% - 12px)' : '48%', minWidth: isWeb ? 140 : 'none' } as any}
                   >
                     <View 
                       className="w-12 h-12 rounded-2xl items-center justify-center"
@@ -3132,9 +3498,12 @@ export default function OperationsScreen() {
                     >
                       <Icon size={18} color={stat.color} />
                     </View>
-                    <View>
+                    <View style={{ flex: 1, minWidth: 0 }}>
                       <Text className="text-slate-500 dark:text-slate-400 dark:text-zinc-500 font-black text-[9px] uppercase tracking-wider">{stat.label}</Text>
                       <Text className="text-slate-800 dark:text-white font-black text-xl mt-1">{stat.value}</Text>
+                      {stat.subtext && (
+                        <Text className="text-slate-450 dark:text-zinc-500 font-bold text-[8.2px] mt-1" numberOfLines={1}>{stat.subtext}</Text>
+                      )}
                     </View>
                   </View>
                 );
@@ -3159,7 +3528,7 @@ export default function OperationsScreen() {
                         ? `bg-gradient-to-br ${hub.color} ${hub.activeBorder} shadow-md` 
                         : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800 hover:border-slate-300'
                     }`}
-                    style={{ width: isWeb ? 'calc(25% - 12px)' : '48%', cursor: 'pointer' } as any}
+                    style={{ width: isWeb ? 'calc(50% - 8px)' : '48%', cursor: 'pointer' } as any}
                   >
                     <View 
                       className={`w-12 h-12 rounded-2xl items-center justify-center ${
@@ -3180,33 +3549,35 @@ export default function OperationsScreen() {
             </View>
 
             {/* Sub-Tabs Row */}
-            <View className="bg-slate-150 dark:bg-zinc-900/60 p-1 rounded-full mb-6 flex-row self-start gap-1 flex-wrap border border-slate-200/30 dark:border-zinc-800/40">
-              {activeHubDetails.tabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <Pressable
-                    key={tab.id}
-                    onPress={() => {
-                      setActiveTab(tab.id as any);
-                      triggerHaptic('light');
-                    }}
-                    className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 transition-all ${
-                      isActive 
-                        ? 'bg-indigo-600 dark:bg-indigo-550 shadow-sm' 
-                        : 'bg-transparent'
-                    }`}
-                    style={{ cursor: 'pointer' } as any}
-                  >
-                    {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
-                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
-                      isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
-                    }`}>
-                      {tab.label}
-                    </Text>
-                  </Pressable>
-                );
-              })}
-            </View>
+            {activeHub !== null && (
+              <View className="bg-slate-150 dark:bg-zinc-900/60 p-1 rounded-full mb-6 flex-row self-start gap-1 flex-wrap border border-slate-200/30 dark:border-zinc-800/40">
+                {activeHubDetails.tabs.map((tab) => {
+                  const isActive = activeTab === tab.id;
+                  return (
+                    <Pressable
+                      key={tab.id}
+                      onPress={() => {
+                        setActiveTab(tab.id as any);
+                        triggerHaptic('light');
+                      }}
+                      className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 transition-all ${
+                        isActive 
+                          ? 'bg-indigo-600 dark:bg-indigo-550 shadow-sm' 
+                          : 'bg-transparent'
+                      }`}
+                      style={{ cursor: 'pointer' } as any}
+                    >
+                      {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
+                      <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                        isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                      }`}>
+                        {tab.label}
+                      </Text>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            )}
 
             {/* Workspace Area Box */}
             <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
@@ -3319,18 +3690,35 @@ export default function OperationsScreen() {
               <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1">Welcome, {user?.name || 'Admin'}. Manage store, inventory & customers.</Text>
             </View>
 
+            {/* Store Switches Bar (Mobile) */}
+            <View className="mx-4 mb-4 flex-row items-center justify-between bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 p-2.5 px-4 rounded-2xl shadow-xs">
+              <View className="flex-row items-center gap-2 flex-1 justify-center">
+                <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">🛒 Grocery Mart</Text>
+                <Switch
+                  value={groceryOpenState}
+                  onValueChange={(val) => handleToggleStoreStatus('grocery', val)}
+                  thumbColor={groceryOpenState ? '#10b981' : '#94a3b8'}
+                  trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
+                />
+              </View>
+              {/* Vertical Divider */}
+              <View className="w-[1.2px] h-6 bg-slate-200 dark:bg-zinc-805 mx-2" />
+              <View className="flex-row items-center gap-2 flex-1 justify-center">
+                <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">☕ Cafe Open</Text>
+                <Switch
+                  value={cafeOpenState}
+                  onValueChange={(val) => handleToggleStoreStatus('cafe', val)}
+                  thumbColor={cafeOpenState ? '#10b981' : '#94a3b8'}
+                  trackColor={{ false: '#cbd5e1', true: '#a7f3d0' }}
+                />
+              </View>
+            </View>
+
             {/* 6 Stats Cards Grid (2-column on mobile) */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, marginBottom: 24 }}>
-              {[
-                { label: 'TOTAL REVENUE', value: formatPrice(analyticsStats.totalRevenue || 0), icon: IndianRupee, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)' },
-                { label: 'TOTAL ORDERS', value: String(analyticsStats.totalOrders || 0), icon: ShoppingBag, color: '#ef4444', bg: 'rgba(239, 68, 68, 0.08)' },
-                { label: 'ACTIVE ORDERS', value: String(analyticsStats.activeOrders || 0), icon: RotateCcw, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' },
-                { label: 'DELIVERED ORDERS', value: String(analyticsStats.deliveredOrders || 0), icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)' },
-                { label: 'REGISTERED USERS', value: String(analyticsStats.userCount || 0), icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)' },
-                { label: 'LOW STOCK ALERT', value: String(analyticsStats.lowStockCount || 0), icon: AlertTriangle, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)' }
-              ].map((stat, idx) => {
+              {statsList.map((stat, idx) => {
                 const Icon = stat.icon;
-                const cardWidth = (width - 42) / 2;
+                const cardWidth = (windowWidth - 42) / 2;
                 return (
                   <Animated.View 
                     key={idx}
@@ -3356,6 +3744,9 @@ export default function OperationsScreen() {
                       <View className="flex-1">
                         <Text className="text-slate-400 dark:text-zinc-500 font-black text-[8px] uppercase tracking-wider" numberOfLines={1}>{stat.label}</Text>
                         <Text className="text-slate-800 dark:text-white font-black text-base mt-0.5" numberOfLines={1}>{stat.value}</Text>
+                        {stat.subtext && (
+                          <Text className="text-slate-450 dark:text-zinc-650 font-bold text-[7.5px] mt-0.5" numberOfLines={1}>{stat.subtext}</Text>
+                        )}
                       </View>
                     </View>
                   </Animated.View>
@@ -3423,41 +3814,43 @@ export default function OperationsScreen() {
             </View>
 
             {/* Sub-Tabs Pill Row (Scrollable on mobile) */}
-            <View className="mx-4 mb-5">
-              <ScrollView 
-                horizontal 
-                showsHorizontalScrollIndicator={false} 
-                contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
-              >
-                {activeHubDetails.tabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <Pressable
-                      key={tab.id}
-                      onPress={() => {
-                        setActiveTab(tab.id as any);
-                        triggerHaptic('light');
-                      }}
-                      className={`px-4 py-2 rounded-full flex-row items-center gap-1.5 border active:scale-95 transition-all ${
-                        isActive 
-                          ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
-                          : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
-                      }`}
-                      style={({ pressed }) => ({
-                        transform: [{ scale: pressed ? 0.96 : 1 }]
-                      })}
-                    >
-                      {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
-                      <Text className={`text-[10px] font-black uppercase tracking-wider ${
-                        isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
-                      }`}>
-                        {tab.label}
-                      </Text>
-                    </Pressable>
-                  );
-                })}
-              </ScrollView>
-            </View>
+            {activeHub !== null && (
+              <View className="mx-4 mb-5">
+                <ScrollView 
+                  horizontal 
+                  showsHorizontalScrollIndicator={false} 
+                  contentContainerStyle={{ gap: 6, paddingVertical: 2 }}
+                >
+                  {activeHubDetails.tabs.map((tab) => {
+                    const isActive = activeTab === tab.id;
+                    return (
+                      <Pressable
+                        key={tab.id}
+                        onPress={() => {
+                          setActiveTab(tab.id as any);
+                          triggerHaptic('light');
+                        }}
+                        className={`px-4 py-2 rounded-full flex-row items-center gap-1.5 border active:scale-95 transition-all ${
+                          isActive 
+                            ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                            : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                        }`}
+                        style={({ pressed }) => ({
+                          transform: [{ scale: pressed ? 0.96 : 1 }]
+                        })}
+                      >
+                        {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
+                        <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                          isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                        }`}>
+                          {tab.label}
+                        </Text>
+                      </Pressable>
+                    );
+                  })}
+                </ScrollView>
+              </View>
+            )}
 
             {/* Workspace Area Box */}
             <View 
@@ -3527,6 +3920,22 @@ export default function OperationsScreen() {
       );
     }
 
+    if (!activeHub) {
+      return (
+        <View className="flex-1 justify-center items-center py-16 px-4 gap-4" style={{ minHeight: 350 }}>
+          <View className="w-16 h-16 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700">
+            <Sliders size={28} color="#6366f1" />
+          </View>
+          <View className="items-center">
+            <Text className="text-slate-800 dark:text-white font-black text-lg text-center">Welcome to Admin Console</Text>
+            <Text className="text-slate-450 dark:text-zinc-500 font-semibold text-xs mt-1.5 text-center leading-normal max-w-sm">
+              Please select one of the hub categories above to load real-time analytics, manage live orders, and monitor staff consoles.
+            </Text>
+          </View>
+        </View>
+      );
+    }
+
     return (
       <>
         {activeTab === 'ANALYTICS' && (
@@ -3545,7 +3954,7 @@ export default function OperationsScreen() {
                 )}
               </View>
               <Pressable 
-                onPress={fetchAnalyticsData}
+                onPress={() => fetchAnalyticsData()}
                 disabled={isAnalyticsLoading}
                 className="p-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 active:bg-indigo-600/20 flex-row items-center gap-1.5"
               >
@@ -3656,8 +4065,8 @@ export default function OperationsScreen() {
             {/* Stats Grid */}
             <View className="flex-row flex-wrap justify-between gap-3">
               {[
-                { label: 'Total Revenue', value: formatPrice(analyticsStats.totalRevenue), color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: IndianRupee },
-                { label: 'Total Orders', value: String(analyticsStats.totalOrders), color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20', icon: Package },
+                { label: 'Grocery Revenue', value: formatPrice(analyticsStats.groceryRevenue), subtext: `Rest: ${formatPrice(analyticsStats.restaurantRevenue)} | Cafe: ${formatPrice(analyticsStats.cafeRevenue)}`, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: IndianRupee },
+                { label: 'Grocery Orders', value: String(analyticsStats.groceryTotalOrders), subtext: `Rest: ${analyticsStats.restaurantTotalOrders} | Cafe: ${analyticsStats.cafeTotalOrders}`, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20', icon: Package },
                 { label: 'Registered Users', value: String(analyticsStats.userCount), color: 'text-blue-400 bg-blue-500/10 border-blue-500/20', icon: Users },
                 { label: 'Low Stock Items', value: String(analyticsStats.lowStockCount), color: 'text-amber-400 bg-amber-500/10 border-amber-500/20', icon: Barcode },
                 { label: 'Active Coupons', value: String(analyticsStats.couponCount), color: 'text-purple-400 bg-purple-500/10 border-purple-500/20', icon: Ticket }
@@ -3670,6 +4079,9 @@ export default function OperationsScreen() {
                       <Icon size={12} className="opacity-80" />
                     </View>
                     <Text className="text-slate-900 dark:text-white font-black text-sm min-[375px]:text-base">{stat.value}</Text>
+                    {stat.subtext && (
+                      <Text className="text-slate-450 dark:text-slate-400 font-bold text-[7.5px] mt-1" numberOfLines={1}>{stat.subtext}</Text>
+                    )}
                   </View>
                 );
               })}
@@ -4920,7 +5332,7 @@ export default function OperationsScreen() {
         {activeTab === 'PICKER' && (
           <View>
             {/* Today Picker Stats */}
-            <View className="flex-row justify-between gap-3 mb-6 bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
               <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
                 <Text className="text-slate-900 dark:text-white font-black text-lg">{pickerPendingOrders.length}</Text>
                 <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Pending Jobs</Text>
@@ -5228,7 +5640,7 @@ export default function OperationsScreen() {
                  {activeTab === 'CHEF' && (
           <View>
             {/* Today Chef Stats */}
-            <View className="flex-row justify-between gap-3 mb-6 bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
               <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
                 <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingCafeOrders.filter(o => o.status === 'PENDING').length}</Text>
                 <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Queue Jobs</Text>
@@ -5320,13 +5732,22 @@ export default function OperationsScreen() {
                               </View>
                             ))}
                           </View>
-                          <Pressable
-                            onPress={() => startPreparingChef(ord)}
-                            className="bg-rose-600 py-3 rounded-2xl flex-row items-center justify-center gap-2 active:bg-rose-700 shadow-sm"
-                          >
-                            <ChefHat size={14} color="#fff" />
-                            <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Accept & Start Cooking</Text>
-                          </Pressable>
+                          <View className="flex-row gap-3">
+                            <Pressable
+                              onPress={() => handleEditOrder(ord)}
+                              className="flex-1 bg-slate-850 dark:bg-zinc-800 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:opacity-85 shadow-sm border border-slate-700 dark:border-zinc-700"
+                            >
+                              <Edit2 size={12} color="#fff" />
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Edit Order</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => startPreparingChef(ord)}
+                              className="flex-[1.5] bg-rose-600 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:bg-rose-700 shadow-sm"
+                            >
+                              <ChefHat size={13} color="#fff" />
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Start Cooking</Text>
+                            </Pressable>
+                          </View>
                         </View>
                       ) : (
                         <View>
@@ -5334,6 +5755,162 @@ export default function OperationsScreen() {
                           <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items to Cook</Text>
                           <View className="gap-2">
                             {cafeItems.map((item) => (
+                              <Pressable
+                                key={item.id}
+                                onPress={() => markChefItemReady(ord.id, item.id)}
+                                className={`flex-row justify-between items-center p-3 rounded-xl border ${
+                                  item.cooked 
+                                    ? 'bg-emerald-500/10 border-emerald-500/25' 
+                                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-zinc-800'
+                                }`}
+                              >
+                                <View className="flex-1 pr-2">
+                                  <Text className={`text-xs font-bold ${item.cooked ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
+                                    {item.name}
+                                  </Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
+                                </View>
+
+                                <View className={`w-6 h-6 rounded-full items-center justify-center ${
+                                  item.cooked ? 'bg-emerald-600' : 'bg-slate-800'
+                                }`}>
+                                  {item.cooked ? (
+                                    <Check size={12} color="#fff" strokeWidth={3} />
+                                  ) : (
+                                    <Text className="text-[10px] font-black text-slate-500 dark:text-slate-400">+</Text>
+                                  )}
+                                </View>
+                              </Pressable>
+                            ))}
+                          </View>
+                        </View>
+                      )}
+                    </View>
+                  );
+                })}
+              </View>
+            )}
+          </View>
+        )}
+
+        {activeTab === 'CHEF_RESTAURANT' && (
+          <View>
+            {/* Today Restaurant Chef Stats */}
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingRestaurantOrders.filter(o => o.status === 'PENDING').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Queue Jobs</Text>
+              </View>
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingRestaurantOrders.filter(o => o.status === 'CONFIRMED').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Cooking</Text>
+              </View>
+              <View className="flex-1 items-center">
+                <Text className="text-rose-400 font-black text-lg">{todayPrepared}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Prepared Today</Text>
+              </View>
+            </View>
+            <Text className="text-slate-450 font-black text-xs uppercase tracking-wider mb-3">Restaurant Kitchen Cooking Queue</Text>
+            
+            {/* Bulk Prepare Aggregated List (Dark-Slate) */}
+            {aggregatedRestaurantPrepItems.length > 0 && (
+              <View className="mb-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3.5 shadow-sm">
+                <Text className="text-orange-400 font-black text-[9px] uppercase tracking-wider mb-2.5">🧑‍🍳 Restaurant Prep Summary (Bulk Prepare)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2 py-0.5">
+                  {aggregatedRestaurantPrepItems.map((item, idx) => (
+                    <View key={idx} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 flex-row items-center gap-2 shadow-xs">
+                      <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-[10px]">{item.name}</Text>
+                      <View className="bg-orange-500/20 px-2 py-0.5 rounded-lg">
+                        <Text className="text-orange-400 font-black text-[9px]">x{item.quantity}</Text>
+                      </View>
+                    </View>
+                  ))}
+                </ScrollView>
+              </View>
+            )}
+
+            {pendingRestaurantOrders.length === 0 ? (
+              <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-8 items-center">
+                <Text className="text-4xl">🍳</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm mt-3">No restaurant items pending cooking</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1 text-center max-w-[240px]">Restaurant orders placed on the customer app sync instantly to the chef console.</Text>
+              </View>
+            ) : (
+              <View className="gap-3.5 mb-10">
+                {pendingRestaurantOrders.map((ord) => {
+                  const restaurantItems = ord.items.filter(it => it.categorySlug === 'restaurant' || it.categorySlug === 'north-indian' || it.categorySlug === 'biryani-rice');
+                  const isPending = ord.status === 'PENDING';
+                  
+                  // Compute dynamic SLA countdown timer values
+                  const orderAgeMs = Date.now() - new Date(ord.createdAt).getTime();
+                  const orderAgeMins = Math.max(0, Math.floor(orderAgeMs / 60000));
+                  
+                  // SLA Color styles
+                  const slaBgStyle = orderAgeMins < 4 
+                    ? "bg-emerald-500/10 border border-emerald-500/25" 
+                    : orderAgeMins < 7 
+                      ? "bg-orange-500/10 border border-orange-500/25" 
+                      : "bg-rose-500/15 border border-rose-500/30";
+                  
+                  const slaTextStyle = orderAgeMins < 4 
+                    ? "text-emerald-400" 
+                    : orderAgeMins < 7 
+                      ? "text-orange-400" 
+                      : "text-rose-400";
+
+                  return (
+                    // Kitchen Job card with paper ticket simulation design details
+                    <View key={ord.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-3xl gap-3">
+                      <View className="flex-row justify-between items-center border-b border-dashed border-slate-100 dark:border-zinc-800 pb-3 mb-1">
+                        <View>
+                          <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+                        </View>
+                        
+                        {/* SLA Cooking Timer indicator */}
+                        <View className={`${slaBgStyle} px-2.5 py-1 rounded-lg flex-row items-center gap-1`}>
+                          <Text className={`${slaTextStyle} font-black text-[9px] uppercase tracking-wider`}>
+                            {isPending ? 'Queue' : 'Cooking'} • {orderAgeMins}m
+                          </Text>
+                        </View>
+                      </View>
+
+                      {isPending ? (
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items Preview</Text>
+                          <View className="gap-2 opacity-75 mb-4">
+                            {restaurantItems.map((item) => (
+                              <View key={item.id} className="flex-row justify-between items-center p-3 rounded-xl border border-slate-200 dark:border-zinc-850 bg-slate-50 dark:bg-slate-950/40">
+                                <View className="flex-1 pr-2">
+                                  <Text className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
+                                </View>
+                              </View>
+                            ))}
+                          </View>
+                          <View className="flex-row gap-3">
+                            <Pressable
+                              onPress={() => handleEditOrder(ord)}
+                              className="flex-1 bg-slate-850 dark:bg-zinc-800 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:opacity-85 shadow-sm border border-slate-700 dark:border-zinc-700"
+                            >
+                              <Edit2 size={12} color="#fff" />
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Edit Order</Text>
+                            </Pressable>
+                            <Pressable
+                              onPress={() => startPreparingChef(ord)}
+                              className="flex-[1.5] bg-rose-600 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:bg-rose-700 shadow-sm"
+                            >
+                              <ChefHat size={13} color="#fff" />
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Start Cooking</Text>
+                            </Pressable>
+                          </View>
+                        </View>
+                      ) : (
+                        <View>
+                          {/* Cooking Items checklist */}
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items to Cook</Text>
+                          <View className="gap-2">
+                            {restaurantItems.map((item) => (
                               <Pressable
                                 key={item.id}
                                 onPress={() => markChefItemReady(ord.id, item.id)}
@@ -5750,7 +6327,7 @@ export default function OperationsScreen() {
               <View className="flex-row justify-between items-center mb-1">
                 <Text className="text-slate-900 dark:text-white font-black text-base">Real-time Operations</Text>
                 <Pressable 
-                  onPress={fetchLiveopsData} 
+                  onPress={() => fetchLiveopsData()} 
                   disabled={isLiveopsLoading}
                   className="p-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 active:bg-indigo-600/20"
                 >
@@ -6200,15 +6777,18 @@ export default function OperationsScreen() {
                             ? secMatchTags.split(',').map(t => t.trim().toLowerCase()).filter(Boolean)
                             : [cleanTag];
                           
+                          let updatedList = [...cafeMenuSections];
+                          const isExistingDisabled = editingCafeSecIndex !== null ? !!updatedList[editingCafeSecIndex].disabled : false;
+
                           const newSec = {
                             tag: cleanTag,
                             title: secTitle.trim(),
                             emoji: secEmoji.trim(),
                             description: secDescription.trim(),
                             matchTags: cleanMatchTags,
+                            disabled: isExistingDisabled
                           };
 
-                          let updatedList = [...cafeMenuSections];
                           if (isAddingNewCafeSec) {
                             if (updatedList.some(s => s.tag === cleanTag)) {
                               toast.error('A section with this tag slug already exists');
@@ -6237,7 +6817,7 @@ export default function OperationsScreen() {
                 ) : (
                   <View className="gap-2.5">
                     {cafeMenuSections.map((sec, idx) => (
-                      <View key={sec.tag} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
+                      <View key={sec.tag} style={{ opacity: sec.disabled ? 0.6 : 1 }} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
                         <View className="flex-row items-center gap-3.5 flex-1 min-w-0">
                           {/* Soft rounded icon container */}
                           <View className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200/60 dark:border-zinc-700 overflow-hidden">
@@ -6249,6 +6829,11 @@ export default function OperationsScreen() {
                               <View className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-md">
                                 <Text className="text-indigo-600 dark:text-indigo-400 text-[8px] font-extrabold uppercase tracking-wider">#{sec.tag}</Text>
                               </View>
+                              {sec.disabled && (
+                                <View className="bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 px-1.5 py-0.5 rounded-md">
+                                  <Text className="text-rose-600 dark:text-rose-450 text-[8px] font-extrabold uppercase tracking-wider">OFF</Text>
+                                </View>
+                              )}
                             </View>
                             {sec.description ? (
                               <Text className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-1 truncate">{sec.description}</Text>
@@ -6284,6 +6869,32 @@ export default function OperationsScreen() {
                               <ArrowDown size={11} color="#94a3b8" />
                             </Pressable>
                           </View>
+
+                          {/* ON/OFF Switch */}
+                          <Pressable
+                            onPress={() => {
+                              let copy = [...cafeMenuSections];
+                              copy[idx] = {
+                                ...copy[idx],
+                                disabled: !copy[idx].disabled
+                              };
+                              handleSaveCafeSections(copy);
+                              triggerHaptic('success');
+                              Alert.alert(
+                                'Section Status Updated',
+                                `"${sec.title}" is now turned ${copy[idx].disabled ? 'OFF' : 'ON'}.`
+                              );
+                            }}
+                            className={`px-2.5 py-1.5 border rounded-lg active:scale-95 ${
+                              sec.disabled 
+                                ? 'border-rose-500/25 bg-rose-500/10' 
+                                : 'border-emerald-500/25 bg-emerald-500/10'
+                            }`}
+                          >
+                            <Text style={{ fontSize: 8.5, fontWeight: '800', color: sec.disabled ? '#ef4444' : '#10b981' }}>
+                              {sec.disabled ? 'OFF' : 'ON'}
+                            </Text>
+                          </Pressable>
 
                           <Pressable
                             onPress={() => {
@@ -6903,20 +7514,82 @@ export default function OperationsScreen() {
         {/* ------------------- REPORTS TAB WORKSPACE ------------------- */}
         {activeTab === 'REPORTS' && (() => {
           // Calculate chart dimensions
-          const chartWidth = Dimensions.get('window').width - 64;
+          const chartWidth = windowWidth - 64;
           const chartHeight = 160;
+
+          // Segment filters helper logic
+          const isCafeCategory = (catName: string) => {
+            const name = catName.toLowerCase();
+            return name.includes('cafe') || name.includes('sandwich') || name.includes('pasta') || name.includes('roll') || name.includes('bite') || name.includes('sip') || name.includes('shake') || name.includes('mocktail') || name.includes('soda') || name.includes('beverage') || name.includes('ice cream') || name.includes('dessert') || name.includes('chilled');
+          };
+          
+          const isRestaurantCategory = (catName: string) => {
+            const name = catName.toLowerCase();
+            return name.includes('restaurant') || name.includes('indian') || name.includes('biryani') || name.includes('rice') || name.includes('meal') || name.includes('combo') || name.includes('thali') || name.includes('roti') || name.includes('paneer') || name.includes('curry');
+          };
+
+          const isGroceryCategory = (catName: string) => {
+            return !isCafeCategory(catName) && !isRestaurantCategory(catName);
+          };
+
+          const filteredCategorySales = (() => {
+            if (reportSegment === 'all') return reportCategorySales;
+            if (reportSegment === 'grocery') return reportCategorySales.filter(c => isGroceryCategory(c.categoryName));
+            if (reportSegment === 'cafe') return reportCategorySales.filter(c => isCafeCategory(c.categoryName));
+            return reportCategorySales.filter(c => isRestaurantCategory(c.categoryName));
+          })();
+
+          const filteredTopProducts = (() => {
+            if (reportSegment === 'all') return reportTopProducts;
+            if (reportSegment === 'grocery') return reportTopProducts.filter(p => isGroceryCategory(p.categoryName || ''));
+            if (reportSegment === 'cafe') return reportTopProducts.filter(p => isCafeCategory(p.categoryName || ''));
+            return reportTopProducts.filter(p => isRestaurantCategory(p.categoryName || ''));
+          })();
+
+          const filteredSummary = (() => {
+            if (reportSegment === 'all') return reportSummary;
+            const sales = filteredTopProducts.reduce((sum, p) => sum + (p.sales || 0), 0);
+            const profit = filteredTopProducts.reduce((sum, p) => sum + (p.profit || 0), 0);
+            const cost = sales - profit;
+            const totalOrders = reportSegment === 'grocery' 
+              ? reportSummary.totalOrders 
+              : Math.round(sales / (reportSummary.averageOrderValue || 50));
+            const averageOrderValue = totalOrders > 0 ? sales / totalOrders : 0;
+            const profitMargin = sales > 0 ? (profit / sales) * 100 : 0;
+            return {
+              totalSales: Math.round(sales * 100) / 100,
+              totalProfit: Math.round(profit * 100) / 100,
+              totalCost: Math.round(cost * 100) / 100,
+              totalOrders: totalOrders || 0,
+              averageOrderValue: Math.round(averageOrderValue * 100) / 100,
+              profitMargin: Math.round(profitMargin * 10) / 10
+            };
+          })();
+
+          const filteredDailySales = (() => {
+            if (reportSegment === 'all') return reportDailySales;
+            // Approximate daily sales contribution from category sales ratio
+            const allSales = reportCategorySales.reduce((sum, c) => sum + (c.sales || 0), 0) || 1;
+            const filteredSales = filteredCategorySales.reduce((sum, c) => sum + (c.sales || 0), 0);
+            const ratio = filteredSales / allSales;
+            return reportDailySales.map(d => ({
+              ...d,
+              sales: Math.round(d.sales * ratio * 100) / 100,
+              profit: Math.round(d.profit * ratio * 100) / 100
+            }));
+          })();
 
           // Chart scaling coordinates
           const chartPoints = (() => {
-            if (reportDailySales.length < 2) return [];
+            if (filteredDailySales.length < 2) return [];
             const paddingX = 10;
             const paddingY = 15;
             const drawW = chartWidth - paddingX * 2;
             const drawH = chartHeight - paddingY * 2;
-            const maxVal = Math.max(...reportDailySales.map(d => Math.max(d.sales, d.profit)), 100) * 1.1;
+            const maxVal = Math.max(...filteredDailySales.map(d => Math.max(d.sales, d.profit)), 100) * 1.1;
 
-            return reportDailySales.map((d, index) => {
-              const x = paddingX + (index / (reportDailySales.length - 1)) * drawW;
+            return filteredDailySales.map((d, index) => {
+              const x = paddingX + (index / (filteredDailySales.length - 1)) * drawW;
               const ySales = paddingY + drawH - (d.sales / maxVal) * drawH;
               const yProfit = paddingY + drawH - (d.profit / maxVal) * drawH;
               return { x, ySales, yProfit };
@@ -6941,6 +7614,33 @@ export default function OperationsScreen() {
                   <Download size={12} color="#fff" />
                   <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">CSV</Text>
                 </Pressable>
+              </View>
+
+              {/* Segment filter pills (separated Cafe vs Restaurant vs Grocery) */}
+              <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-1 rounded-2xl border border-slate-100 dark:border-zinc-800">
+                {[
+                  { key: 'all', label: 'All Sales' },
+                  { key: 'grocery', label: 'Grocery 📦' },
+                  { key: 'cafe', label: 'Cafe ☕' },
+                  { key: 'restaurant', label: 'Restaurant 🍳' }
+                ].map((seg) => (
+                  <Pressable
+                    key={seg.key}
+                    onPress={() => {
+                      setReportSegment(seg.key as any);
+                      triggerHaptic('light');
+                    }}
+                    className={`flex-1 items-center py-2 rounded-xl ${
+                      reportSegment === seg.key ? 'bg-indigo-600' : 'bg-transparent'
+                    }`}
+                  >
+                    <Text className={`text-[9px] font-black uppercase ${
+                      reportSegment === seg.key ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}>
+                      {seg.label}
+                    </Text>
+                  </Pressable>
+                ))}
               </View>
 
               {/* Date Presets Selector */}
@@ -7009,10 +7709,10 @@ export default function OperationsScreen() {
                   {/* KPI Metrics summaries */}
                   <View className="flex-row gap-2 flex-wrap">
                     {[
-                      { label: 'Total Sales', val: `₹${reportSummary.totalSales}`, color: 'text-indigo-500 dark:text-indigo-400' },
-                      { label: 'Total profit', val: `₹${reportSummary.totalProfit}`, color: 'text-emerald-500 dark:text-emerald-400' },
-                      { label: 'Margin %', val: `${reportSummary.profitMargin}%`, color: 'text-amber-500 dark:text-amber-400' },
-                      { label: 'AOV Revenue', val: `₹${Math.round(reportSummary.averageOrderValue || 0)}`, color: 'text-blue-500 dark:text-blue-400' }
+                      { label: 'Total Sales', val: `₹${filteredSummary.totalSales}`, color: 'text-indigo-500 dark:text-indigo-400' },
+                      { label: 'Total profit', val: `₹${filteredSummary.totalProfit}`, color: 'text-emerald-500 dark:text-emerald-400' },
+                      { label: 'Margin %', val: `${filteredSummary.profitMargin}%`, color: 'text-amber-500 dark:text-amber-400' },
+                      { label: 'AOV Revenue', val: `₹${Math.round(filteredSummary.averageOrderValue || 0)}`, color: 'text-blue-500 dark:text-blue-400' }
                     ].map((kpi, i) => (
                       <View key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-1 min-w-[45%]">
                         <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.label}</Text>
@@ -7022,7 +7722,7 @@ export default function OperationsScreen() {
                   </View>
 
                   {/* SVG Sales Trend Chart */}
-                  {reportDailySales.length > 1 && (
+                  {filteredDailySales.length > 1 && (
                     <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
                       <Text className="text-slate-900 dark:text-white font-black text-xs">Revenue & profit Trend</Text>
                       <View className="items-center bg-slate-50 dark:bg-zinc-950 rounded-xl p-1 border border-slate-100 dark:border-zinc-800 overflow-hidden">
@@ -7050,11 +7750,11 @@ export default function OperationsScreen() {
                       <View className="flex-row justify-center gap-4 mt-1">
                         <View className="flex-row items-center gap-1.5">
                           <View className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
-                          <Text className="text-slate-600 dark:text-slate-300 font-bold text-[8px] uppercase">Revenue</Text>
+                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Revenue</Text>
                         </View>
                         <View className="flex-row items-center gap-1.5">
                           <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
-                          <Text className="text-slate-600 dark:text-slate-300 font-bold text-[8px] uppercase">Net Profit</Text>
+                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Net Profit</Text>
                         </View>
                       </View>
                     </View>
@@ -7064,7 +7764,7 @@ export default function OperationsScreen() {
                   <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
                     <Text className="text-slate-900 dark:text-white font-black text-xs">Top Selling Products</Text>
                     <View className="gap-2.5">
-                      {reportTopProducts.map((p, i) => (
+                      {filteredTopProducts.map((p, i) => (
                         <View key={p.productId || i} className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-2.5 rounded-xl">
                           <View className="flex-1 mr-2">
                             <Text className="text-slate-800 dark:text-white font-extrabold text-[11px]" numberOfLines={1}>{p.name}</Text>
@@ -7525,7 +8225,7 @@ export default function OperationsScreen() {
                   <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-2">Banner Type</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                     <View className="flex-row gap-2">
-                      {['festival', 'fresh', 'express-delivery', 'first-order', 'seasonal', 'custom'].map(t => (
+                      {['grocery', 'cafe', 'festival', 'fresh', 'express-delivery', 'first-order', 'seasonal', 'custom'].map(t => (
                         <Pressable
                           key={t}
                           onPress={() => { setBannerType(t); triggerHaptic('light'); }}
@@ -7713,17 +8413,8 @@ export default function OperationsScreen() {
                     { id: 'REVIEWS', label: 'Reviews Moderation', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '⭐', keywords: 'ratings, comments, comments delete, moderate' },
                     { id: 'PICKER', label: 'Picker Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '📦', keywords: 'packhouse, worker, confirm, pick list' },
                     { id: 'RIDER', label: 'Rider Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '🛵', keywords: 'logistics, fleet, delivery, route, map' },
-                    { id: 'INVENTORY', label: 'Products Catalogue', hub: 'CATALOG', hubTitle: 'Catalog & Inventory', emoji: '📦', keywords: 'stock, price, catalog, edit, template, variants' },
-                    { id: 'CATEGORIES', label: 'Categories Manager', hub: 'CATALOG', hubTitle: 'Catalog & Inventory', emoji: '📁', keywords: 'grocery, cafe sections, sorting, weights' },
-                    { id: 'INWARD', label: 'GRN Inwarding', hub: 'CATALOG', hubTitle: 'Catalog & Inventory', emoji: '📥', keywords: 'goods receipt, barcode, stock inward, batch' },
-                    { id: 'BULK_UPDATE', label: 'Bulk Update', hub: 'CATALOG', hubTitle: 'Catalog & Inventory', emoji: '⚡', keywords: 'bulk price, stock levels, csv upload' },
-                    { id: 'ALERTS', label: 'Inventory Alerts', hub: 'CATALOG', hubTitle: 'Catalog & Inventory', emoji: '⚠️', keywords: 'out of stock, low stock, expiry date' },
-                    { id: 'BANNERS', label: 'Promo Banners', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '🖼️', keywords: 'promotions, festival, templates, carousel' },
-                    { id: 'HIGHLIGHTS', label: 'Flash Deals', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '⚡', keywords: 'top picks, best sellers, storefront highlights' },
-                    { id: 'COUPONS', label: 'Offers & Coupons', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '🎟️', keywords: 'discount codes, promo, offers, voucher' },
-                    { id: 'NOTIFICATIONS', label: 'Push Notifications', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '📣', keywords: 'alert customer, composing, alerts history' },
-                    { id: 'SETTINGS', label: 'Store Settings', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '⚙️', keywords: 'opening times, minimum order, delivery charge' },
-                    { id: 'CHEF', label: 'Chef Kitchen', hub: 'MARKETING', hubTitle: 'Marketing & Settings', emoji: '🍳', keywords: 'cafe prep, cooked, food items checklist' },
+                    { id: 'CHEF', label: 'Cafe Kitchen Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '☕', keywords: 'chef, cook, food, tea, burger' },
+                    { id: 'CHEF_RESTAURANT', label: 'Restaurant Kitchen Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '🍳', keywords: 'chef, cook, food, dinner, curry, north indian' },
                   ];
 
                   const q = launcherSearchQuery.toLowerCase().trim();
@@ -7878,6 +8569,334 @@ export default function OperationsScreen() {
           </View>
         </Modal>
       )}
+      {/* --- Interactive Edit Order Modal --- */}
+      <Modal
+        visible={!!editingOrder}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setEditingOrder(null)}
+      >
+        <Pressable
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
+          onPress={() => setEditingOrder(null)}
+        >
+          <Pressable
+            style={{ width: '100%', maxWidth: 440, backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderRadius: 24, padding: 20, maxHeight: '85%' }}
+            onPress={(e) => e.stopPropagation()}
+          >
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#e2e8f0', paddingBottom: 12, marginBottom: 12 }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: isDarkMode ? '#f8fafc' : '#0f172a', textTransform: 'uppercase' }}>
+                  Edit Order #{editingOrder?.id.slice(-6).toUpperCase()}
+                </Text>
+                <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: '700', marginTop: 2 }}>
+                  Modify quantities, swap variants, or add products
+                </Text>
+              </View>
+              <TouchableOpacity onPress={() => setEditingOrder(null)} style={{ padding: 4 }}>
+                <X size={18} color={isDarkMode ? '#94a3b8' : '#64748b'} strokeWidth={2.5} />
+              </TouchableOpacity>
+            </View>
+
+            {/* Catalog Search Input */}
+            <View style={{ position: 'relative', marginBottom: 12, zIndex: 50 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', borderRadius: 14, paddingHorizontal: 12, height: 40 }}>
+                <Search size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} style={{ marginRight: 8 }} />
+                <TextInput
+                  placeholder="Search catalog to add items..."
+                  placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+                  value={searchQuery}
+                  onChangeText={setSearchQuery}
+                  style={{ flex: 1, fontSize: 12, fontWeight: '700', color: isDarkMode ? '#ffffff' : '#0f172a' }}
+                />
+              </View>
+
+              {/* Search Suggestions Dropdown */}
+              {searchResults.length > 0 && (
+                <View style={{ position: 'absolute', top: 44, left: 0, right: 0, maxHeight: 180, backgroundColor: isDarkMode ? '#27272a' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 14, zIndex: 100, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                  <ScrollView nestedScrollEnabled={true}>
+                    {searchResults.map((prod) => (
+                      <TouchableOpacity
+                        key={prod.id}
+                        onPress={() => addCatalogItem(prod)}
+                        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: isDarkMode ? '#3f3f46' : '#f1f5f9' }}
+                      >
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#e2e8f0' : '#1e293b', flex: 1, marginRight: 8 }}>{prod.name}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#e20a22' }}>₹{prod.price}</Text>
+                      </TouchableOpacity>
+                    ))}
+                  </ScrollView>
+                </View>
+              )}
+            </View>
+
+            {/* Scrollable list of current items */}
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1, marginBottom: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+              {editItems.length === 0 ? (
+                <Text style={{ textAlign: 'center', marginVertical: 32, fontSize: 12, fontWeight: '700', color: isDarkMode ? '#71717a' : '#94a3b8' }}>
+                  No items in order. Search above to add items.
+                </Text>
+              ) : (
+                editItems.map((item, idx) => {
+                  const prodDetails = allProducts.find(p => p.id === item.productId);
+                  const variants = prodDetails?.variants as any[] | undefined;
+                  const hasItemVariants = variants && Array.isArray(variants) && variants.length > 0;
+
+                  return (
+                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 8 }}>
+                      <View style={{ flex: 1, paddingRight: 8 }}>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }} numberOfLines={1}>{item.name}</Text>
+                        <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2 }}>₹{item.price}</Text>
+                        
+                        {/* Variant Swap Selector */}
+                        {hasItemVariants && (
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
+                            <Text style={{ fontSize: 8.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', textTransform: 'uppercase' }}>Variant:</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 4 }}>
+                              {variants.map((v) => {
+                                const isSelected = item.selectedVariant === v.name;
+                                return (
+                                  <TouchableOpacity
+                                    key={v.name}
+                                    onPress={() => updateItemVariant(item.productId, item.selectedVariant, v.name, v.price)}
+                                    style={{
+                                      paddingHorizontal: 8,
+                                      paddingVertical: 3,
+                                      borderRadius: 8,
+                                      borderWidth: 1,
+                                      borderColor: isSelected ? '#e20a22' : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                                      backgroundColor: isSelected ? 'rgba(226,10,34,0.1)' : 'transparent',
+                                      marginRight: 4
+                                    }}
+                                  >
+                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? '#e20a22' : (isDarkMode ? '#e2e8f0' : '#475569') }}>
+                                      {v.name} (₹{v.price})
+                                    </Text>
+                                  </TouchableOpacity>
+                                );
+                              })}
+                            </ScrollView>
+                          </View>
+                        )}
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                          <TouchableOpacity
+                            onPress={() => updateItemQty(item.productId, item.selectedVariant, -1)}
+                            style={{ padding: 6 }}
+                          >
+                            <Minus size={10} color={isDarkMode ? '#e2e8f0' : '#475569'} strokeWidth={3} />
+                          </TouchableOpacity>
+                          <Text style={{ paddingHorizontal: 8, fontSize: 11, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', minWidth: 18, textAlign: 'center' }}>
+                            {item.quantity}
+                          </Text>
+                          <TouchableOpacity
+                            onPress={() => updateItemQty(item.productId, item.selectedVariant, 1)}
+                            style={{ padding: 6 }}
+                          >
+                            <Plus size={10} color={isDarkMode ? '#e2e8f0' : '#475569'} strokeWidth={3} />
+                          </TouchableOpacity>
+                        </View>
+
+                        <TouchableOpacity
+                          onPress={() => markItemOutOfStock(item.productId)}
+                          style={{ padding: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10 }}
+                        >
+                          <AlertTriangle size={12} color="#ef4444" />
+                        </TouchableOpacity>
+                      </View>
+                    </View>
+                  );
+                })
+              )}
+            </ScrollView>
+
+            {/* Recalculated Live Bill Preview */}
+            {(() => {
+              const computedSubtotal = editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
+              const computedDeliveryFee = editingOrder?.deliveryMethod === 'PICKUP'
+                ? 0
+                : (computedSubtotal < freeDeliveryThreshold ? deliveryFeeSetting : 0);
+              const computedMiscFee = editingOrder?.deliveryMethod === 'PICKUP'
+                ? 0
+                : (editingOrder?.miscFee === 0 ? 0 : miscFeeSetting);
+              const computedTaxes = parseFloat((computedSubtotal * editTaxRate).toFixed(2));
+              const computedTotal = computedSubtotal + computedDeliveryFee + computedTaxes + computedMiscFee - (editingOrder?.discount || 0);
+
+              return (
+                <View style={{ backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 12, gap: 4 }}>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Subtotal</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedSubtotal}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Taxes ({Math.round(editTaxRate * 100)}%)</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedTaxes}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Delivery Fee</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedDeliveryFee}</Text>
+                  </View>
+                  {computedMiscFee > 0 && (
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Handling / Packaging Fee</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedMiscFee}</Text>
+                    </View>
+                  )}
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Discount</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>-₹{editingOrder?.discount || 0}</Text>
+                  </View>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: isDarkMode ? '#3f3f46' : '#e2e8f0', paddingTop: 6, marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Estimated Total</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#e20a22' }}>₹{computedTotal}</Text>
+                  </View>
+                </View>
+              );
+            })()}
+
+            {/* Action buttons */}
+            <View style={{ flexDirection: 'row', gap: 10 }}>
+              <TouchableOpacity
+                onPress={() => setEditingOrder(null)}
+                style={{ flex: 1, height: 40, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#475569' }}>Cancel</Text>
+              </TouchableOpacity>
+              <TouchableOpacity
+                disabled={isSavingEdit}
+                onPress={saveEditedOrder}
+                style={{ flex: 1, height: 40, backgroundColor: '#e20a22', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
+              >
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#ffffff' }}>
+                  {isSavingEdit ? 'Saving...' : 'Save Changes'}
+                </Text>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
+
+      {/* Premium Custom Logout Modal */}
+      <Modal
+        visible={logoutModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setLogoutModalVisible(false)}
+      >
+        <Pressable 
+          style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' }}
+          onPress={() => setLogoutModalVisible(false)}
+        >
+          <Pressable 
+            style={{
+              width: '85%',
+              maxWidth: 340,
+              backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 15,
+              elevation: 10,
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+            }}
+          >
+            {/* Logout icon with glowing circle */}
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: isDarkMode ? 'rgba(244, 63, 94, 0.12)' : '#ffe4e6',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}>
+              <LogOut size={24} color="#f43f5e" strokeWidth={2} />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '900',
+              color: isDarkMode ? '#ffffff' : '#0f172a',
+              textAlign: 'center',
+              marginBottom: 8,
+            }}>
+              Log Out
+            </Text>
+
+            {/* Modal Description */}
+            <Text style={{
+              fontSize: 13,
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
+              textAlign: 'center',
+              lineHeight: 18,
+              marginBottom: 24,
+              fontWeight: '600',
+            }}>
+              Are you sure you want to log out from the console?
+            </Text>
+
+            {/* Buttons Row */}
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  setLogoutModalVisible(false);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#d4d4d8' : '#71717a' }}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <TouchableOpacity
+                activeOpacity={0.85}
+                onPress={() => {
+                  triggerHaptic('medium');
+                  setLogoutModalVisible(false);
+                  logout();
+                  router.replace('/(auth)/login');
+                }}
+                style={{
+                  flex: 1,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                }}
+              >
+                <LinearGradient
+                  colors={['#f43f5e', '#e11d48']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>
+                    Log Out
+                  </Text>
+                </LinearGradient>
+              </TouchableOpacity>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
       </>
     );
   }

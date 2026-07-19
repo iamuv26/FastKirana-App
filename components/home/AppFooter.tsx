@@ -1,11 +1,14 @@
 import React from 'react';
 import { View, Text, Pressable, Linking, Alert, Platform } from 'react-native';
 import { router } from 'expo-router';
+import { ScalePressable } from '../shared/ScalePressable';
 import { Phone, Mail, Clock, MapPin } from 'lucide-react-native';
 import Svg, { Path } from 'react-native-svg';
 import Logo from '../shared/Logo';
 import { triggerHaptic } from '../../lib/haptic';
 import { useUIStore } from '../../stores/ui-store';
+import { THEME } from '../../lib/theme';
+
 
 // ── Social Media SVG Icons (matching web exactly) ──
 function InstagramIcon({ size = 16, color = '#9ca3af' }: { size?: number; color?: string }) {
@@ -72,55 +75,61 @@ export default function AppFooter() {
   };
 
   return (
-    <View className="bg-[#0a0a0f] border-t border-zinc-800/50">
+    <View style={{ backgroundColor: '#0a0a0f', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
       {/* ── Social Proof Strip (matches web: bg-accent/10 border-b) ── */}
-      <View className="bg-[#00b140]/10 border-b border-[#00b140]/20 py-3 px-4">
-        <Text className="text-[#00b140] text-[13px] font-bold text-center">
+      <View style={{ backgroundColor: 'rgba(16,185,129,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(16,185,129,0.2)', paddingVertical: 12, paddingHorizontal: 16 }}>
+        <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
           {trustedText}
         </Text>
       </View>
 
       {/* ── Main Footer Content ── */}
-      <View className="px-5 pt-8 pb-4">
+      <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: 32, paddingBottom: 16 }}>
 
         {/* ── 4-column grid on web / 2x2 on mobile ── */}
         <View className="flex-row flex-wrap">
           {/* Column 1: Brand (full width on mobile) */}
-          <View className="w-full mb-7">
+          <View style={{ width: '100%', marginBottom: 28 }}>
             <View className="flex-row items-center gap-2.5 mb-3">
               <Logo size={36} />
               <View className="flex-column">
-                <Text className="text-white text-lg font-black tracking-tight leading-5">
-                  Fast<Text className="text-rose-600">Kirana</Text>
+                <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: '800' }} className="tracking-tight leading-5">
+                  Fast<Text style={{ color: THEME.COLORS.brand.primary }}>Kirana</Text>
                 </Text>
-                <Text className="text-[#00b140] text-[9px] font-black uppercase tracking-wider mt-0.5">
+                <Text style={{ color: '#10b981', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase tracking-wider mt-0.5">
                   Delivery App
                 </Text>
               </View>
             </View>
-            <Text className="text-gray-400 text-[13px] leading-[20px] font-normal">
+            <Text style={{ color: '#94a3b8', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '400', lineHeight: 18 }}>
               Groceries and daily essentials delivered instantly from our local dark stores. Fresh fruits, vegetables, dairy, and snacks at your doorstep in 10 minutes.
             </Text>
             {/* Social Media Icons (matching web: Instagram, X, Facebook) */}
             <View className="flex-row items-center gap-3 mt-4">
-              <Pressable
-                onPress={() => triggerHaptic('light')}
-                className="w-9 h-9 rounded-full bg-white/10 items-center justify-center active:opacity-70"
+              <ScalePressable
+                onPress={() => {}}
+                scaleValue={0.9}
+                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                className="items-center justify-center"
               >
                 <InstagramIcon size={16} color="#9ca3af" />
-              </Pressable>
-              <Pressable
-                onPress={() => triggerHaptic('light')}
-                className="w-9 h-9 rounded-full bg-white/10 items-center justify-center active:opacity-70"
+              </ScalePressable>
+              <ScalePressable
+                onPress={() => {}}
+                scaleValue={0.9}
+                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                className="items-center justify-center"
               >
                 <XTwitterIcon size={16} color="#9ca3af" />
-              </Pressable>
-              <Pressable
-                onPress={() => triggerHaptic('light')}
-                className="w-9 h-9 rounded-full bg-white/10 items-center justify-center active:opacity-70"
+              </ScalePressable>
+              <ScalePressable
+                onPress={() => {}}
+                scaleValue={0.9}
+                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                className="items-center justify-center"
               >
                 <FacebookIcon size={16} color="#9ca3af" />
-              </Pressable>
+              </ScalePressable>
             </View>
           </View>
 
@@ -128,67 +137,67 @@ export default function AppFooter() {
           <View className="flex-row w-full gap-2">
             {/* Column 2: Shop */}
             <View className="flex-1">
-              <Text className="text-gray-300 text-[13px] font-semibold uppercase tracking-wider mb-4">
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
                 Shop
               </Text>
               <View className="gap-2.5">
-                <Pressable onPress={() => handleLinkPress('/category/fruits-vegetables')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Fruits & Vegetables</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/category/dairy-breakfast')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Dairy & Breakfast</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/category/snacks-biscuits')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Snacks</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/category/beverages')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Beverages</Text>
-                </Pressable>
+                <ScalePressable onPress={() => handleLinkPress('/category/fruits-vegetables')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Fruits & Vegetables</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/category/dairy-breakfast')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Dairy & Breakfast</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/category/snacks-biscuits')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Snacks</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/category/beverages')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Beverages</Text>
+                </ScalePressable>
               </View>
             </View>
 
             {/* Column 3: Account */}
             <View className="flex-1">
-              <Text className="text-gray-300 text-[13px] font-semibold uppercase tracking-wider mb-4">
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
                 Account
               </Text>
               <View className="gap-2.5">
-                <Pressable onPress={() => handleLinkPress('/(tabs)/account')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">My Profile</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/orders')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">My Orders</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/addresses')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Saved Addresses</Text>
-                </Pressable>
-                <Pressable onPress={() => handleLinkPress('/cart')} className="active:opacity-70">
-                  <Text className="text-gray-400 text-[13px]">Cart</Text>
-                </Pressable>
+                <ScalePressable onPress={() => handleLinkPress('/(tabs)/account')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>My Profile</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/orders')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>My Orders</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/addresses')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Saved Addresses</Text>
+                </ScalePressable>
+                <ScalePressable onPress={() => handleLinkPress('/cart')} scaleValue={0.98}>
+                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Cart</Text>
+                </ScalePressable>
               </View>
             </View>
 
             {/* Column 4: Contact */}
             <View className="flex-1">
-              <Text className="text-gray-300 text-[13px] font-semibold uppercase tracking-wider mb-4">
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
                 Contact
               </Text>
               <View className="gap-2.5">
-                <Pressable onPress={handlePhonePress} className="flex-row items-center gap-2 active:opacity-70">
+                <ScalePressable onPress={handlePhonePress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Phone size={13} color="#9ca3af" />
-                  <Text className="text-gray-400 text-[12px] flex-1" numberOfLines={1}>{formatPhone(contactPhone)}</Text>
-                </Pressable>
-                <Pressable onPress={handleEmailPress} className="flex-row items-center gap-2 active:opacity-70">
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{formatPhone(contactPhone)}</Text>
+                </ScalePressable>
+                <ScalePressable onPress={handleEmailPress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
                   <Mail size={13} color="#9ca3af" />
-                  <Text className="text-gray-400 text-[12px] flex-1" numberOfLines={1}>{contactEmail}</Text>
-                </Pressable>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{contactEmail}</Text>
+                </ScalePressable>
                 <View className="flex-row items-center gap-2">
                   <Clock size={13} color="#9ca3af" />
-                  <Text className="text-gray-400 text-[12px] flex-1" numberOfLines={1}>{contactTimings}</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{contactTimings}</Text>
                 </View>
                 <View className="flex-row items-start gap-2">
                   <MapPin size={13} color="#9ca3af" style={{ marginTop: 2 }} />
-                  <Text className="text-gray-400 text-[12px] flex-1 leading-[18px]">{contactAddress}</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11, lineHeight: 15 }} className="flex-1">{contactAddress}</Text>
                 </View>
               </View>
             </View>
@@ -196,28 +205,28 @@ export default function AppFooter() {
         </View>
 
         {/* ── Bottom Bar (matches web: copyright | payments | legal) ── */}
-        <View className="border-t border-gray-700 mt-10 pt-5 pb-16">
+        <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', marginTop: 40, paddingTop: 20, paddingBottom: 64 }}>
           {/* Row: Copyright + Payments + Legal Links */}
           <View className="flex-row flex-wrap items-center justify-between gap-3">
-            <Text className="text-gray-500 text-[11px]">
+            <Text style={{ color: '#64748b', fontSize: 11 }}>
               © {new Date().getFullYear()} FastKirana. All rights reserved.
             </Text>
-            <Text className="text-gray-500 text-[11px]">
+            <Text style={{ color: '#64748b', fontSize: 11 }}>
               We accept: UPI • Cards • COD • Wallets
             </Text>
           </View>
 
           {/* Legal Links */}
           <View className="flex-row items-center gap-4 mt-3">
-            <Pressable onPress={() => handleLinkPress('privacy')} className="active:opacity-70">
-              <Text className="text-gray-500 text-[11px]">Privacy Policy</Text>
-            </Pressable>
-            <Pressable onPress={() => handleLinkPress('terms')} className="active:opacity-70">
-              <Text className="text-gray-500 text-[11px]">Terms of Service</Text>
-            </Pressable>
-            <Pressable onPress={() => handleLinkPress('refund')} className="active:opacity-70">
-              <Text className="text-gray-500 text-[11px]">Refund Policy</Text>
-            </Pressable>
+            <ScalePressable onPress={() => handleLinkPress('privacy')} scaleValue={0.98}>
+              <Text style={{ color: '#64748b', fontSize: 11 }}>Privacy Policy</Text>
+            </ScalePressable>
+            <ScalePressable onPress={() => handleLinkPress('terms')} scaleValue={0.98}>
+              <Text style={{ color: '#64748b', fontSize: 11 }}>Terms of Service</Text>
+            </ScalePressable>
+            <ScalePressable onPress={() => handleLinkPress('refund')} scaleValue={0.98}>
+              <Text style={{ color: '#64748b', fontSize: 11 }}>Refund Policy</Text>
+            </ScalePressable>
           </View>
         </View>
       </View>

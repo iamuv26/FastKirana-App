@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Modal } from 'react-native';
 import { RefreshCw, Search, ChevronLeft, ChevronRight, X } from 'lucide-react-native';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { useAuthStore } from '../../stores/auth-store';
@@ -17,6 +17,8 @@ export default function OrdersTab() {
   const [filter, setFilter] = useState<string>('ALL');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [page, setPage] = useState<number>(1);
+
+  const [selectedOrderForStatus, setSelectedOrderForStatus] = useState<any | null>(null);
 
   const getAuthHeaders = (): Record<string, string> => {
     if (!user) return {};
@@ -230,6 +232,15 @@ export default function OrdersTab() {
                 </View>
 
                 <View className="flex-row gap-2">
+                  <Pressable
+                    onPress={() => {
+                      triggerHaptic('light');
+                      setSelectedOrderForStatus(ord);
+                    }}
+                    className="border border-slate-200 dark:border-zinc-700 active:bg-slate-100 dark:active:bg-zinc-800 px-4 py-2 rounded-full"
+                  >
+                    <Text className="text-slate-600 dark:text-zinc-400 font-extrabold text-[9.5px] uppercase tracking-wider">Change Status</Text>
+                  </Pressable>
                   {ord.status === 'PENDING' && (
                     <Pressable
                       onPress={() => handleUpdateStatus(ord.id, 'CONFIRMED')}
@@ -280,6 +291,75 @@ export default function OrdersTab() {
             </View>
           ))}
         </View>
+      )}
+
+      {/* Admin Order Status Selector Modal */}
+      {selectedOrderForStatus && (
+        <Modal
+          transparent
+          visible={!!selectedOrderForStatus}
+          animationType="fade"
+          onRequestClose={() => setSelectedOrderForStatus(null)}
+        >
+          <Pressable 
+            style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'center', alignItems: 'center' }}
+            onPress={() => setSelectedOrderForStatus(null)}
+          >
+            <View 
+              style={{ 
+                width: 280, 
+                backgroundColor: isDark ? '#1c1c1e' : '#ffffff', 
+                borderRadius: 24, 
+                padding: 20,
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.25,
+                shadowRadius: 15,
+                elevation: 10
+              }}
+            >
+              <Text style={{ fontSize: 16, fontWeight: '900', color: isDark ? '#ffffff' : '#1e293b', marginBottom: 15, textAlign: 'center' }}>
+                Select Order Status
+              </Text>
+              
+              {['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED', 'CANCELLED'].map((status) => (
+                <Pressable
+                  key={status}
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    handleUpdateStatus(selectedOrderForStatus.id, status);
+                    setSelectedOrderForStatus(null);
+                  }}
+                  style={{
+                    paddingVertical: 12,
+                    borderBottomWidth: 1,
+                    borderBottomColor: isDark ? '#27272a' : '#f1f5f9',
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text 
+                    style={{ 
+                      fontSize: 14, 
+                      fontWeight: selectedOrderForStatus.status === status ? '900' : '600',
+                      color: selectedOrderForStatus.status === status 
+                        ? '#e20a22' 
+                        : (isDark ? '#e4e4e7' : '#475569')
+                    }}
+                  >
+                    {status}
+                  </Text>
+                </Pressable>
+              ))}
+              
+              <Pressable
+                onPress={() => setSelectedOrderForStatus(null)}
+                style={{ marginTop: 15, paddingVertical: 10, alignItems: 'center', backgroundColor: '#e20a22', borderRadius: 12 }}
+              >
+                <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12 }}>Close</Text>
+              </Pressable>
+            </View>
+          </Pressable>
+        </Modal>
       )}
 
       {/* Pagination Controls */}

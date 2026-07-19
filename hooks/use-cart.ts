@@ -1,10 +1,11 @@
 import { useCartStore, CartProduct } from '../stores/cart-store';
 import { useUIStore } from '../stores/ui-store';
+import { Alert } from 'react-native';
 import { toast } from '../lib/toast';
 import { isCafeProduct } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { playCartPop } from '../lib/audio';
-import { GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, COMBINED_FREE_DELIVERY_THRESHOLD } from '../lib/constants';
+import { GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD } from '../lib/constants';
 
 export function useCart() {
   const store = useCartStore();
@@ -29,14 +30,7 @@ export function useCart() {
     const hasGrocery = newItems.some(i => !isCafeProduct(i.product));
     const hasCafe = newItems.some(i => isCafeProduct(i.product));
 
-    if (hasGrocery && hasCafe) {
-      if (prevTotal < COMBINED_FREE_DELIVERY_THRESHOLD && newTotal >= COMBINED_FREE_DELIVERY_THRESHOLD) {
-        setTimeout(() => {
-          triggerHaptic('success');
-          toast.success('🎉 FREE Combined delivery unlocked!');
-        }, 300);
-      }
-    } else if (hasGrocery) {
+    if (hasGrocery) {
       if (prevGrocerySub < GROCERY_FREE_DELIVERY_THRESHOLD && newGrocerySub >= GROCERY_FREE_DELIVERY_THRESHOLD) {
         setTimeout(() => {
           triggerHaptic('success');
@@ -70,6 +64,35 @@ export function useCart() {
     if (product.stock <= 0) {
       triggerHaptic('warning');
       toast.error(`Sorry, ${product.name} is out of stock!`);
+      return;
+    }
+
+    // Resolve product compatibility types
+    const getProductType = (p: any): 'RESTAURANT' | 'CAFE' | 'BYPASS' | 'GROCERY' => {
+      const slug = p.category?.slug || p.categorySlug || '';
+      const tags = p.tags || [];
+      if (slug === 'restaurant' || tags.includes('restaurant')) return 'RESTAURANT';
+      if (slug === 'ice-cream' || slug === 'beverages' || tags.includes('ice-cream') || tags.includes('beverages')) return 'BYPASS';
+      if (slug === 'cafe' || tags.includes('cafe')) return 'CAFE';
+      return 'GROCERY';
+    };
+
+    const areTypesCompatible = (t1: string, t2: string): boolean => {
+      if (t1 === t2) return true;
+      if (t1 === 'BYPASS' && (t2 === 'CAFE' || t2 === 'GROCERY')) return true;
+      if (t2 === 'BYPASS' && (t1 === 'CAFE' || t1 === 'GROCERY')) return true;
+      return false;
+    };
+
+    const newType = getProductType(product);
+    const incompatibleItem = store.items.find((item) => {
+      const existType = getProductType(item.product);
+      return !areTypesCompatible(newType, existType);
+    });
+
+    if (incompatibleItem) {
+      triggerHaptic('warning');
+      useUIStore.setState({ pendingConflictProduct: product });
       return;
     }
 
@@ -174,14 +197,7 @@ export function useCartActions() {
     const hasGrocery = newItems.some(i => !isCafeProduct(i.product));
     const hasCafe = newItems.some(i => isCafeProduct(i.product));
 
-    if (hasGrocery && hasCafe) {
-      if (prevTotal < COMBINED_FREE_DELIVERY_THRESHOLD && newTotal >= COMBINED_FREE_DELIVERY_THRESHOLD) {
-        setTimeout(() => {
-          triggerHaptic('success');
-          toast.success('🎉 FREE Combined delivery unlocked!');
-        }, 300);
-      }
-    } else if (hasGrocery) {
+    if (hasGrocery) {
       if (prevGrocerySub < GROCERY_FREE_DELIVERY_THRESHOLD && newGrocerySub >= GROCERY_FREE_DELIVERY_THRESHOLD) {
         setTimeout(() => {
           triggerHaptic('success');
@@ -215,6 +231,35 @@ export function useCartActions() {
     if (product.stock <= 0) {
       triggerHaptic('warning');
       toast.error(`Sorry, ${product.name} is out of stock!`);
+      return;
+    }
+
+    // Resolve product compatibility types
+    const getProductType = (p: any): 'RESTAURANT' | 'CAFE' | 'BYPASS' | 'GROCERY' => {
+      const slug = p.category?.slug || p.categorySlug || '';
+      const tags = p.tags || [];
+      if (slug === 'restaurant' || tags.includes('restaurant')) return 'RESTAURANT';
+      if (slug === 'ice-cream' || slug === 'beverages' || tags.includes('ice-cream') || tags.includes('beverages')) return 'BYPASS';
+      if (slug === 'cafe' || tags.includes('cafe')) return 'CAFE';
+      return 'GROCERY';
+    };
+
+    const areTypesCompatible = (t1: string, t2: string): boolean => {
+      if (t1 === t2) return true;
+      if (t1 === 'BYPASS' && (t2 === 'CAFE' || t2 === 'GROCERY')) return true;
+      if (t2 === 'BYPASS' && (t1 === 'CAFE' || t1 === 'GROCERY')) return true;
+      return false;
+    };
+
+    const newType = getProductType(product);
+    const incompatibleItem = useCartStore.getState().items.find((item) => {
+      const existType = getProductType(item.product);
+      return !areTypesCompatible(newType, existType);
+    });
+
+    if (incompatibleItem) {
+      triggerHaptic('warning');
+      useUIStore.setState({ pendingConflictProduct: product });
       return;
     }
 

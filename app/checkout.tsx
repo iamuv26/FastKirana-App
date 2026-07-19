@@ -1,16 +1,16 @@
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { router, usePathname, Stack, useFocusEffect } from 'expo-router';
-import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase, ArrowLeft } from 'lucide-react-native';
+import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase, ArrowLeft, Coins, QrCode } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice, isCafeProduct } from '../lib/utils';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
-import { API_BASE_URL, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, COMBINED_FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, TAX_RATE } from '../lib/constants';
+import { API_BASE_URL, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, TAX_RATE } from '../lib/constants';
 import { api } from '../lib/api-client';
 import { getDeliveryRules } from '../lib/distance';
 import { toast } from '../lib/toast';
@@ -18,6 +18,9 @@ import { triggerHaptic } from '../lib/haptic';
 import { playSuccessChime } from '../lib/audio';
 import { useTheme } from './context/ThemeContext';
 import Confetti from '../components/shared/Confetti';
+import { ScalePressable } from '../components/shared/ScalePressable';
+import { THEME } from '../lib/theme';
+
 
 interface Address {
   id: string;
@@ -39,7 +42,7 @@ export default function CheckoutScreen() {
   const { isLoggedIn, user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'CARD'>('COD');
   const [deliveryMethod, setDeliveryMethod] = useState<'DELIVERY' | 'PICKUP'>('DELIVERY');
-  
+
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
@@ -51,7 +54,12 @@ export default function CheckoutScreen() {
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const taxRate = useUIStore((s) => s.taxRate);
   const onlyCod = useUIStore((s) => s.onlyCod);
-  
+  const miscFee = useUIStore((s) => s.miscFee || 0);
+  const miscFeeLabel = useUIStore((s) => s.miscFeeLabel || 'Handling Charge');
+  const deliveryFeeBase = useUIStore((s) => s.deliveryFeeBase || 25);
+  const groceryFreeDeliveryThreshold = useUIStore((s) => s.groceryFreeDeliveryThreshold || 199);
+  const cafeFreeDeliveryThreshold = useUIStore((s) => s.cafeFreeDeliveryThreshold || 199);
+
   const [deliveryDistance, setDeliveryDistance] = useState<number | null>(null);
   const [isDistanceValidating, setIsDistanceValidating] = useState(false);
 
@@ -177,7 +185,7 @@ export default function CheckoutScreen() {
 
   const grocerySubtotal = useMemo(() => 
     groceryItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [groceryItems]);
-  
+
   const cafeSubtotal = useMemo(() => 
     cafeItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [cafeItems]);
 
@@ -191,13 +199,14 @@ export default function CheckoutScreen() {
 
   let deliveryFee = 0;
   if (deliveryMethod === 'DELIVERY') {
-    const baseFee = deliveryRules?.isServiceable ? deliveryRules.deliveryFee : DELIVERY_FEE;
+    const baseFee = deliveryRules?.isServiceable ? deliveryRules.deliveryFee : deliveryFeeBase;
     const feeToCharge = Math.round(baseFee * surgeMultiplier);
-    const targetThreshold = deliveryRules?.isServiceable ? deliveryRules.freeDeliveryThreshold : 200;
+    const fallbackThreshold = cafeItems.length > 0 ? cafeFreeDeliveryThreshold : groceryFreeDeliveryThreshold;
+    const targetThreshold = deliveryRules?.isServiceable ? deliveryRules.freeDeliveryThreshold : fallbackThreshold;
     deliveryFee = subtotal >= targetThreshold ? 0 : feeToCharge;
   }
 
-  const total = subtotal + tax + deliveryFee;
+  const total = subtotal + tax + deliveryFee + miscFee;
   const isLessThanMinOrder = subtotal < minOrderValue;
   const isCheckoutBlocked = (deliveryMethod === 'DELIVERY' && (!selectedAddressId || isOutsideDeliveryZone || isDistanceValidating)) || isLessThanMinOrder;
 
@@ -221,7 +230,7 @@ export default function CheckoutScreen() {
     let localList: Address[] = [];
     try {
       const { mmkvStorage } = require('../lib/storage');
-      const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
+      const localData = await mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
       if (localData) {
         const parsed = JSON.parse(localData);
         if (Array.isArray(parsed)) {
@@ -245,20 +254,20 @@ export default function CheckoutScreen() {
     try {
       const backendList = await api.get('/addresses');
       const mergedMap = new Map<string, Address>();
-      
+
       // Load local ones first, then overwrite/append backend ones
       if (Array.isArray(localList)) {
         localList.forEach(addr => {
           if (addr && addr.id) mergedMap.set(addr.id, addr);
         });
       }
-      
+
       if (Array.isArray(backendList)) {
         backendList.forEach((addr: Address) => {
           if (addr && addr.id) mergedMap.set(addr.id, addr);
         });
       }
-      
+
       const mergedList = Array.from(mergedMap.values());
       setAddresses(mergedList);
       if (mergedList.length > 0) {
@@ -373,6 +382,7 @@ export default function CheckoutScreen() {
           subtotal,
           deliveryFee,
           taxes: tax,
+          miscFee,
           total,
           paymentMethod,
           deliveryMethod,
@@ -407,8 +417,9 @@ export default function CheckoutScreen() {
           discount: 0,
           deliveryFee,
           taxes: tax,
+          miscFee,
           total,
-          storeId: assignedStoreId,
+          storeId: (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null,
           deliveryInstructions: deliveryInstructions.trim() || undefined,
           deliverySlot: deliverySlot
         });
@@ -418,7 +429,7 @@ export default function CheckoutScreen() {
       triggerHaptic('success');
       playSuccessChime();
       clearCart();
-      
+
       if (paymentMethod === 'UPI') {
         const upiUrl = `upi://pay?pa=iamuv26@ptyes&pn=FastKirana&am=${total}&cu=INR&tn=Order_${orderData.id.slice(-6).toUpperCase()}`;
         const canOpen = await Linking.canOpenURL(upiUrl);
@@ -435,7 +446,7 @@ export default function CheckoutScreen() {
           return;
         }
       }
-      
+
       // Trigger success overlay screen
       setShowSuccessOverlay(true);
       setTimeout(() => {
@@ -453,7 +464,7 @@ export default function CheckoutScreen() {
     <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <Stack.Screen options={{ headerShown: false }} />
-      
+
       {/* Sticky Custom Premium Header with Back Button */}
       <View 
         style={{
@@ -498,7 +509,7 @@ export default function CheckoutScreen() {
                 Home Delivery
               </Text>
             </Pressable>
- 
+
             <Pressable 
               onPress={() => setDeliveryMethod('PICKUP')}
               className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
@@ -514,7 +525,7 @@ export default function CheckoutScreen() {
             </Pressable>
           </View>
         </View>
- 
+
         {/* Shipping Address list selection */}
         {deliveryMethod === 'DELIVERY' && (
           <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
@@ -544,11 +555,11 @@ export default function CheckoutScreen() {
                 {addresses.filter(addr => addr && addr.id).map((addr) => {
                   const isSelected = selectedAddressId === addr.id;
                   const labelLower = (addr.label || '').toLowerCase();
-                  
+
                   let AddressIcon = MapPin;
                   let iconBg = isDarkMode ? 'rgba(113, 113, 122, 0.15)' : 'rgba(113, 113, 122, 0.08)';
                   let iconColor = isDarkMode ? '#a1a1aa' : '#71717a';
-                  
+
                   if (labelLower.includes('home')) {
                     AddressIcon = Home;
                     iconBg = isDarkMode ? 'rgba(226, 10, 34, 0.15)' : 'rgba(226, 10, 34, 0.08)';
@@ -601,7 +612,7 @@ export default function CheckoutScreen() {
             )}
 
             {/* Distance Validation Warning Banner */}
-            {deliveryMethod === 'DELIVERY' && selectedAddressId && (
+            {deliveryMethod === 'DELIVERY' && !!selectedAddressId && (
               <View className="mt-3">
                 {isDistanceValidating ? (
                   <View className="flex-row items-center gap-2 py-1">
@@ -645,6 +656,61 @@ export default function CheckoutScreen() {
             )}
           </View>
         )}
+        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
+          <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-3">Payment Methods</Text>
+
+          <View className="gap-3">
+            {[
+              { id: 'COD', label: 'Cash on Delivery (COD)', desc: 'Pay with cash upon package receipt', icon: 'COINS' },
+              { id: 'UPI', label: 'UPI (GPay / PhonePe / Paytm)', desc: 'Scan and pay online instantly', icon: 'UPI' },
+              { id: 'CARD', label: 'Credit or Debit Card', desc: 'Secure payment with online cards', icon: 'CARD' }
+            ].filter(method => !onlyCod || method.id === 'COD').map((method) => {
+              const IconComponent = method.icon === 'UPI' ? QrCode : (method.icon === 'COINS' ? Coins : CreditCard);
+              return (
+                <Pressable
+                  key={method.id}
+                  onPress={() => {
+                    setPaymentMethod(method.id as any);
+                    triggerHaptic('light');
+                  }}
+                  className={`p-3.5 rounded-xl border flex-row justify-between items-center ${
+                    paymentMethod === method.id 
+                      ? 'bg-primary-light/50 dark:bg-rose-950/20 border-primary/20 dark:border-rose-900/30 shadow-xs' 
+                      : 'bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800'
+                  }`}
+                >
+                  <View className="flex-row items-center gap-3">
+                    <IconComponent size={20} color={paymentMethod === method.id ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b')} />
+                    <View>
+                      <Text className={`font-extrabold text-xs ${paymentMethod === method.id ? 'text-primary' : 'text-slate-700 dark:text-zinc-300'}`}>
+                        {method.label}
+                      </Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[9px] mt-0.5">{method.desc}</Text>
+                    </View>
+                  </View>
+                  <View className={`w-5 h-5 rounded-full border items-center justify-center ${
+                    paymentMethod === method.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                  }`}>
+                    {paymentMethod === method.id && (
+                      <Check size={11} color="#fff" strokeWidth={3} />
+                    )}
+                  </View>
+                </Pressable>
+              );
+            })}
+          {isLessThanMinOrder && (
+            <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/30 p-3.5 rounded-2xl flex-row items-start gap-2.5 mt-4">
+              <Text style={{ fontSize: 16 }}>⚠️</Text>
+              <View className="flex-1">
+                <Text className="text-amber-800 dark:text-amber-400 font-extrabold text-xs">Minimum Order Amount Required</Text>
+                <Text className="text-amber-600 dark:text-amber-450/80 text-[10px] font-semibold mt-0.5 leading-relaxed">
+                  Minimum order value is {formatPrice(minOrderValue)}. Add items worth {formatPrice(minOrderValue - subtotal)} more to place order.
+                </Text>
+              </View>
+            </View>
+          )}
+          </View>
+        </View>
 
         {/* Delivery Time Slots & Instructions Options */}
         {deliveryMethod === 'DELIVERY' && (
@@ -696,7 +762,7 @@ export default function CheckoutScreen() {
             {/* Delivery Instructions */}
             <View>
               <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-2">Delivery Instructions</Text>
-              
+
               <TextInput
                 value={deliveryInstructions}
                 onChangeText={setDeliveryInstructions}
@@ -707,7 +773,7 @@ export default function CheckoutScreen() {
                 style={{ textAlignVertical: 'top' }}
                 multiline
               />
-              
+
               {/* Quick Select instruction chips */}
               <View className="flex-row flex-wrap gap-2 mt-2.5">
                 {[
@@ -735,100 +801,34 @@ export default function CheckoutScreen() {
             </View>
           </View>
         )}
- 
-        {/* Payment Methods */}
-        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
-          <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-3">Payment Methods</Text>
-          
-          <View className="gap-3">
-            {[
-              { id: 'COD', label: 'Cash on Delivery (COD)', desc: 'Pay with cash upon package receipt' },
-              { id: 'UPI', label: 'UPI (GPay / PhonePe / Paytm)', desc: 'Scan and pay online instantly' },
-              { id: 'CARD', label: 'Credit or Debit Card', desc: 'Secure payment with online cards' }
-            ].filter(method => !onlyCod || method.id === 'COD').map((method) => (
-              <Pressable
-                key={method.id}
-                onPress={() => {
-                  setPaymentMethod(method.id as any);
-                  triggerHaptic('light');
-                }}
-                className={`p-3.5 rounded-xl border flex-row justify-between items-center ${
-                  paymentMethod === method.id 
-                    ? 'bg-primary-light/50 dark:bg-rose-950/20 border-primary/20 dark:border-rose-900/30 shadow-xs' 
-                    : 'bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800'
-                }`}
-              >
-                <View className="flex-row items-center gap-3">
-                  <CreditCard size={20} color={paymentMethod === method.id ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b')} />
-                  <View>
-                    <Text className={`font-extrabold text-xs ${paymentMethod === method.id ? 'text-primary' : 'text-slate-700 dark:text-zinc-300'}`}>
-                      {method.label}
-                    </Text>
-                    <Text className="text-slate-400 dark:text-zinc-500 text-[9px] mt-0.5">{method.desc}</Text>
-                  </View>
-                </View>
-                <View className={`w-5 h-5 rounded-full border items-center justify-center ${
-                  paymentMethod === method.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800'
-                }`}>
-                  {paymentMethod === method.id && (
-                    <Check size={11} color="#fff" strokeWidth={3} />
-                  )}
-                </View>
-              </Pressable>
-            ))}
-          {isLessThanMinOrder && (
-            <View className="bg-amber-50 dark:bg-amber-950/20 border border-amber-200 dark:border-amber-900/30 p-3.5 rounded-2xl flex-row items-start gap-2.5 mt-4">
-              <Text style={{ fontSize: 16 }}>⚠️</Text>
-              <View className="flex-1">
-                <Text className="text-amber-800 dark:text-amber-400 font-extrabold text-xs">Minimum Order Amount Required</Text>
-                <Text className="text-amber-600 dark:text-amber-500/80 text-[10px] font-semibold mt-0.5 leading-relaxed">
-                  Minimum order value is {formatPrice(minOrderValue)}. Add items worth {formatPrice(minOrderValue - subtotal)} more to place order.
-                </Text>
-              </View>
-            </View>
-          )}
-        </View>
-      </View>
-    </ScrollView>
- 
+      </ScrollView>
+
       {/* Place Order Sticky bottom */}
-      <View className="bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 px-4 py-3.5 flex-row justify-between items-center shadow-lg">
+      <View 
+        style={{ 
+          backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff', 
+          borderTopWidth: 1, 
+          borderTopColor: isDarkMode ? THEME.COLORS.dark.border : '#e2e8f0', 
+          paddingHorizontal: 16, 
+          paddingVertical: 14 
+        }} 
+        className="flex-row justify-between items-center shadow-lg"
+      >
         <View style={{ flex: 1, marginRight: 16 }}>
-          <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Total To Pay</Text>
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-lg">{formatPrice(total)}</Text>
+          <Text style={{ fontSize: 9, color: isDarkMode ? '#a1a1aa' : '#64748b', fontWeight: '800' }} className="uppercase tracking-wider">Total To Pay</Text>
+          <Text style={{ color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 20, fontWeight: '900', marginTop: 1 }}>{formatPrice(total)}</Text>
         </View>
-        
-        <TouchableOpacity
-          onPress={handlePlaceOrder}
-          disabled={isPlacingOrder || isCheckoutBlocked}
-          activeOpacity={0.85}
-          style={{
-            flex: 2,
-            borderRadius: 99,
-            overflow: 'hidden',
-            shadowColor: '#e20a22',
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: isCheckoutBlocked ? 0 : 0.2,
-            shadowRadius: 8,
-            elevation: 3,
-            opacity: isCheckoutBlocked ? 0.6 : 1
-          }}
-        >
-          <LinearGradient
-            colors={isCheckoutBlocked ? ['#94a3b8', '#cbd5e1'] : ['#e20a22', '#ff4d62']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 1, y: 1 }}
-            style={{ paddingVertical: 14, alignItems: 'center', justifyContent: 'center' }}
-          >
-            {isPlacingOrder ? (
-              <ActivityIndicator size="small" color="#ffffff" />
-            ) : (
-              <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.8, fontFamily: 'PlusJakartaSans_800ExtraBold' }}>
-                Place Order
-              </Text>
-            )}
-          </LinearGradient>
-        </TouchableOpacity>
+
+        <View style={{ flex: 2, height: 52 }}>
+          <SlideToPlaceOrderButton
+            onSwipeSuccess={handlePlaceOrder}
+            isPlacing={isPlacingOrder}
+            disabled={isCheckoutBlocked}
+            totalPrice={total}
+            isCafe={cafeItems.length > 0}
+            isDarkMode={isDarkMode}
+          />
+        </View>
       </View>
 
       {/* Success Overlay Sheet */}
@@ -854,7 +854,7 @@ export default function CheckoutScreen() {
               }}>
                 <Check size={48} color="#10b981" strokeWidth={4} />
               </View>
-              
+
               {/* Confetti Particle Burst overlay */}
               <View className="absolute inset-0 items-center justify-center pointer-events-none" style={{ overflow: 'visible' }}>
                 {particles.map((p) => {
@@ -874,7 +874,7 @@ export default function CheckoutScreen() {
                     inputRange: [0, 0.7, 1],
                     outputRange: [1, 1, 0],
                   });
- 
+
                   return (
                     <Animated.View
                       key={p.id}
@@ -913,7 +913,7 @@ export default function CheckoutScreen() {
             }}>
               Your delicious items are being prepared with care. Sit tight — they're on their way!
             </Text>
-            
+
 
 
             {/* Pulsing delivery path line */}
@@ -936,5 +936,85 @@ export default function CheckoutScreen() {
         </View>
       )}
     </SafeAreaView>
+  );
+}
+
+function SlideToPlaceOrderButton({
+  onSwipeSuccess,
+  isPlacing,
+  disabled,
+  totalPrice,
+  isCafe,
+  isDarkMode
+}: {
+  onSwipeSuccess: () => void;
+  isPlacing: boolean;
+  disabled: boolean;
+  totalPrice: number;
+  isCafe: boolean;
+  isDarkMode: boolean;
+}) {
+  const activeColors = isCafe ? (['#ea580c', '#f97316'] as const) : (['#e20a22', '#ff4d64'] as const);
+
+  return (
+    <ScalePressable
+      onPress={() => {
+        if (!disabled && !isPlacing) {
+          triggerHaptic('success');
+          onSwipeSuccess();
+        }
+      }}
+      disabled={disabled || isPlacing}
+      scaleValue={0.96}
+      style={{
+        width: '100%',
+        height: 52,
+        borderRadius: 26,
+        overflow: 'hidden',
+        position: 'relative',
+        opacity: disabled ? 0.6 : 1,
+      }}
+    >
+      <LinearGradient
+        colors={disabled ? (isDarkMode ? ['#27272a', '#1e293b'] : ['#e2e8f0', '#cbd5e1']) : activeColors}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 0.5 }}
+        style={{
+          width: '100%',
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          gap: 6,
+          ...Platform.select({
+            ios: {
+              shadowColor: isCafe ? '#ea580c' : '#e20a22',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: disabled ? 0 : 0.22,
+              shadowRadius: 8,
+            },
+            android: {
+              elevation: disabled ? 0 : 4,
+            },
+          }),
+        }}
+      >
+        {isPlacing ? (
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+            <ActivityIndicator size="small" color="#ffffff" />
+            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              Placing Order...
+            </Text>
+          </View>
+        ) : (
+          <>
+            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: disabled ? '#64748b' : '#ffffff', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              {disabled ? 'Order Blocked' : 'Place Order'}
+            </Text>
+            {!disabled && <ArrowRight size={16} color="#ffffff" strokeWidth={3.5} />}
+          </>
+        )}
+      </LinearGradient>
+    </ScalePressable>
   );
 }

@@ -5,7 +5,9 @@ import { useCartActions } from '../../hooks/use-cart';
 import { formatPrice } from '../../lib/utils';
 import { toast } from '../../lib/toast';
 import { useTheme } from '../../app/context/ThemeContext';
-import * as Haptics from 'expo-haptics';
+import { ScalePressable } from '../shared/ScalePressable';
+import { THEME } from '../../lib/theme';
+
 
 interface BuyAgainItem {
   id: string;
@@ -94,7 +96,6 @@ export default function BuyAgainSection() {
   const { addItem } = useCartActions();
 
   const handleAddToCart = (item: BuyAgainItem) => {
-    Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
     addItem({
       id: item.id,
       name: item.name,
@@ -111,15 +112,15 @@ export default function BuyAgainSection() {
   };
 
   return (
-    <View className="my-4 rounded-2xl border p-4 bg-rose-50/10 dark:bg-zinc-900/40 border-rose-100/10 dark:border-zinc-800">
+    <View style={{ marginHorizontal: THEME.SPACING.lg, marginVertical: THEME.SPACING.md, borderRadius: THEME.RADIUS.lg, padding: THEME.SPACING.lg }} className="border bg-rose-50/10 dark:bg-zinc-900/40 border-rose-100/10 dark:border-zinc-800">
       {/* Section Header */}
       <View className="flex-row items-center gap-3 mb-4">
-        <View className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/20 items-center justify-center border border-rose-100/10">
-          <History size={16} color="#e11d48" />
+        <View style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm }} className="bg-rose-50 dark:bg-rose-950/20 items-center justify-center border border-rose-100/10">
+          <History size={16} color={THEME.COLORS.brand.primary} />
         </View>
         <View>
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm tracking-tight">Buy It Again</Text>
-          <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold">Your favorites, one tap away</Text>
+          <Text style={{ fontSize: 15, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b' }} className="tracking-tight">Buy It Again</Text>
+          <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', color: isDarkMode ? '#cbd5e1' : '#475569', marginTop: 1 }}>Your favorites, one tap away</Text>
         </View>
       </View>
 
@@ -127,52 +128,73 @@ export default function BuyAgainSection() {
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+        contentContainerStyle={{ gap: THEME.SPACING.md, paddingBottom: 4 }}
         decelerationRate="fast"
       >
         {MOCK_BUY_AGAIN_ITEMS.map((item) => (
           <View
             key={item.id}
-            className="w-[120px] bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 p-3 items-center rounded-xl"
+            style={{
+              width: 124,
+              backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff',
+              borderColor: isDarkMode ? THEME.COLORS.dark.border : '#f1f5f9',
+              borderRadius: THEME.RADIUS.sm,
+              padding: 12,
+              alignItems: 'center',
+            }}
+            className="border"
           >
             {/* Emoji Circle */}
-            <View className="w-12 h-12 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center mb-2">
+            <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#f8fafc' }} className="items-center justify-center mb-2.5">
               <Text className="text-2xl">{item.emoji}</Text>
             </View>
 
             {/* Product name */}
             <Text
-              className="text-slate-800 dark:text-zinc-200 font-extrabold text-[11px] text-center mb-1 h-8"
+              style={{
+                color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
+                fontSize: 12,
+                fontWeight: '600',
+                height: 32,
+                textAlign: 'center',
+                marginBottom: 2,
+              }}
               numberOfLines={2}
             >
               {item.name}
             </Text>
 
             {/* Last ordered days */}
-            <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-bold mb-2">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', color: isDarkMode ? '#71717a' : '#94a3b8', marginBottom: 8 }}>
               {item.lastOrderedDays === 1 ? 'Yesterday' : `${item.lastOrderedDays} days ago`}
             </Text>
 
             {/* Price stack */}
             <View className="flex-row items-baseline gap-1 mb-2">
-              <Text className="text-xs font-black text-slate-800 dark:text-zinc-100">
+              <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }}>
                 {formatPrice(item.price)}
               </Text>
               {item.mrp > item.price && (
-                <Text className="text-[9px] text-slate-455 line-through">
+                <Text style={{ fontSize: 10, fontWeight: '400', color: isDarkMode ? '#71717a' : '#94a3b8' }} className="line-through">
                   {formatPrice(item.mrp)}
                 </Text>
               )}
             </View>
 
             {/* Quick Add Button */}
-            <Pressable
+            <ScalePressable
               onPress={() => handleAddToCart(item)}
-              className="w-full bg-rose-50/10 dark:bg-rose-950/20 border border-rose-600 dark:border-rose-500/50 py-1.5 px-2 rounded-lg flex-row items-center justify-center gap-0.5 active:scale-95"
+              scaleValue={0.9}
+              style={{
+                borderRadius: THEME.RADIUS.xs,
+                borderColor: THEME.COLORS.brand.primary,
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : 'rgba(226,10,34,0.02)',
+              }}
+              className="w-full border py-1.5 px-2 flex-row items-center justify-center gap-0.5"
             >
-              <Text className="text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase">Add</Text>
-              <Plus size={10} color={isDarkMode ? '#ff4d62' : '#e11d48'} strokeWidth={3} />
-            </Pressable>
+              <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase">Add</Text>
+              <Plus size={10} color={THEME.COLORS.brand.primary} strokeWidth={3} />
+            </ScalePressable>
           </View>
         ))}
       </ScrollView>

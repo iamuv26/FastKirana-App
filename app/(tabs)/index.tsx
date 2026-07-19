@@ -1,10 +1,10 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Dimensions, Alert, StyleSheet, Platform, Image as RNImage } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Dimensions, Alert, StyleSheet, Platform, Image as RNImage, useWindowDimensions } from 'react-native';
 const { height: screenHeight } = Dimensions.get('window');
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useState, useEffect, useMemo, useRef, memo } from 'react';
 const { width: rawWidth } = Dimensions.get('window');
 const width = rawWidth > 768 ? 540 : rawWidth;
-import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Bell, Sparkles } from 'lucide-react-native';
+import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Utensils, Bell, Sparkles } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
@@ -19,6 +19,7 @@ import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
 import { useTheme } from '../context/ThemeContext';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useCartActions } from '../../hooks/use-cart';
 import DealsCurationHub from '../../components/home/DealsCurationHub';
 import DeliveryBanner from '../../components/home/DeliveryBanner';
@@ -31,7 +32,7 @@ import { useUIStore } from '../../stores/ui-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { sendLocalNotification } from '../../lib/push-notifications';
 import { triggerHaptic } from '../../lib/haptic';
-import { formatPrice, formatHeaderAddress } from '../../lib/utils';
+import { formatPrice, formatHeaderAddress, getAppImageSource } from '../../lib/utils';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
@@ -186,9 +187,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
       colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
     },
     { 
-      label: 'FastKirana Cafe', 
+      label: 'FastKirana Food', 
       time: '7:00 AM – 11:00 PM', 
-      lucideIcon: <Coffee size={15} color="#d97706" />,
+      lucideIcon: <Utensils size={15} color="#d97706" />,
       colorBg: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : '#fef3c7'
     },
   ];
@@ -468,13 +469,14 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
         {/* Notify me button */}
         <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: 18, width: '100%', maxWidth: 320 }}>
-          <Pressable
+          <ScalePressable
             onPress={handleNotify}
             disabled={notified}
+            scaleValue={0.98}
+            haptic="success"
             style={({ pressed }) => ({
               borderRadius: 24,
               opacity: pressed ? 0.88 : 1,
-              transform: [{ scale: pressed ? 0.98 : 1 }],
               elevation: 4,
               shadowColor: notified ? '#15803d' : '#e20a22',
               shadowOffset: { width: 0, height: 4 },
@@ -515,7 +517,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 </>
               )}
             </LinearGradient>
-          </Pressable>
+          </ScalePressable>
         </Animated.View>
 
         {/* Subtle bottom text */}
@@ -571,7 +573,8 @@ function PulsingStatusDot() {
 
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
-  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 152 : 156;
+  const { width: windowWidth } = useWindowDimensions();
+  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 140 : 144;
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -599,9 +602,24 @@ export default function HomeScreen() {
   // Home states and refs
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const scrollViewRef = useRef<ScrollView>(null);
+  const scrollViewRef = useRef<any>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
   const lastScrollCheck = useRef(0);
+
+  // Tab segmented control animated values
+  const [localActiveSegment, setLocalActiveSegment] = useState<'grocery' | 'food'>('grocery');
+  const tabIndicatorTranslateX = useSharedValue(0);
+
+  const slidingIndicatorStyle = useAnimatedStyle(() => {
+    const translationX = interpolate(
+      tabIndicatorTranslateX.value,
+      [0, 1],
+      [0, (width - 36) / 2]
+    );
+    return {
+      transform: [{ translateX: translationX }],
+    };
+  });
 
   // Cafe UI conditional states
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -1028,8 +1046,22 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 1000 * 60 * 5, // 5 min cache for ultra-fast loading
+    staleTime: 10000, // 10s short cache
+    refetchInterval: 10000, // Auto-refetch every 10s for real-time stock sync
   });
+
+  // Prefetch top products and categories images in the background to speed up image loading
+  useEffect(() => {
+    if (products && products.length > 0) {
+      const urls = products
+        .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
+        .filter((url): url is string => !!url)
+        .slice(0, 40); // Prefetch first 40 product images in the background
+      if (urls.length > 0) {
+        ExpoImage.prefetch(urls);
+      }
+    }
+  }, [products]);
 
   // Helper to identify if a product is a Cafe product
   const isCafeProduct = (product: Product) => {
@@ -1110,7 +1142,7 @@ export default function HomeScreen() {
   }, [products]);
 
   return (
-    <View className="flex-1 bg-white dark:bg-zinc-950 relative">
+    <View style={{ flex: 1 }} className="flex-1 bg-white dark:bg-zinc-950 relative">
       {/* Status Bar Solid Blocker */}
       <View 
         style={{ 
@@ -1163,7 +1195,7 @@ export default function HomeScreen() {
             }),
           }}
         >
-          {/* Top Row: Left-Aligned Delivery Info & Right-Aligned Theme Toggle */}
+          {/* Top Row: Left-Aligned Brand Logo/Text & Right-Aligned Address Capsule */}
           <Animated.View 
             pointerEvents={isCollapsed ? 'none' : 'auto'}
             style={[
@@ -1171,152 +1203,157 @@ export default function HomeScreen() {
               { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%' }
             ]}
           >
-            <Pressable 
-              onPress={() => {
-                triggerHaptic('light');
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-              }}
-              style={({ pressed }) => ({
-                transform: [{ scale: pressed ? 0.97 : 1 }]
-              })}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ 
-                  backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                  width: 32,
-                  height: 32,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 8, 
-                  borderWidth: 1, 
-                  borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                  flexShrink: 0
-                }}>
-                  <Logo size={22} />
-                </View>
-                <View style={{ marginLeft: 6 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                    <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                    <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                  </Text>
-                  <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                    DELIVERY APP
-                  </Text>
-                </View>
+            {/* Left: Brand Logo & Text */}
+            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              <View style={{ 
+                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderRadius: 8, 
+                borderWidth: 1, 
+                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                flexShrink: 0
+              }}>
+                <Logo size={22} />
               </View>
-            </Pressable>
+              <View style={{ marginLeft: 6 }}>
+                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
+                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
+                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
+                </Text>
+                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
+                  DELIVERY APP
+                </Text>
+              </View>
+            </View>
 
-            {/* Right: Location Capsule Picker */}
-            <Pressable 
+            {/* Right: Address Picker Capsule */}
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.96 : 1 }],
-                maxWidth: '60%'
-              })}
-            >
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-                borderRadius: 20, 
-                paddingHorizontal: 8, 
+              scaleValue={0.96}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.08)' : '#fff5f5',
+                borderColor: isDarkMode ? 'rgba(225, 29, 72, 0.3)' : '#fecdd3',
+                borderWidth: 1,
+                borderRadius: 99,
+                paddingHorizontal: 10,
                 paddingVertical: 5,
-                justifyContent: 'center',
-              }}>
-                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
-                <Text 
-                  numberOfLines={1} 
-                  style={{ 
-                    fontSize: 10, 
-                    fontWeight: 'bold', 
-                    color: isDarkMode ? '#fafafa' : '#0f172a',
-                    flexShrink: 1,
-                    marginRight: 3
-                  }}
-                >
-                  {formatHeaderAddress(selectedLocation)}
-                </Text>
-                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-              </View>
-            </Pressable>
+                maxWidth: '62%',
+              }}
+            >
+              <MapPin size={12} color="#e20a22" style={{ marginRight: 4, flexShrink: 0 }} />
+              <Text 
+                numberOfLines={1} 
+                style={{ 
+                  fontSize: 11, 
+                  fontWeight: '800', 
+                  color: isDarkMode ? '#f4f4f5' : '#0f172a',
+                  marginRight: 3,
+                  flexShrink: 1,
+                }}
+              >
+                {formatHeaderAddress(selectedLocation)}
+              </Text>
+              <ChevronDown size={11} color={isDarkMode ? '#fda4af' : '#64748b'} style={{ flexShrink: 0 }} />
+            </ScalePressable>
           </Animated.View>
 
-          {/* Store Switcher Tab Pills - Inline */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', width: '100%', marginVertical: 10 }}>
-            {/* Grocery Pill (Active) */}
-            <Pressable
+          {/* Store Switcher Tab Pills - Segmented Control */}
+          <View style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            width: '100%',
+            height: 38,
+            borderRadius: 19,
+            borderWidth: 1.5,
+            borderColor: isDarkMode ? '#27272a' : '#ffe4e6',
+            backgroundColor: isDarkMode ? '#18181b' : '#fffcfc',
+            padding: 3,
+            marginTop: 6,
+            marginBottom: 4,
+          }}>
+            {/* Grocery Segment */}
+            <ScalePressable
               onPress={() => {
                 triggerHaptic('light');
+                setLocalActiveSegment('grocery');
               }}
+              scaleValue={0.97}
               style={{
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: 38,
-                borderRadius: 19,
-                paddingHorizontal: 12,
-                borderWidth: 1.5,
-                backgroundColor: '#e20a22',
-                borderColor: '#e20a22',
-                marginRight: 8,
-                elevation: 1,
+                height: '100%',
+                borderRadius: 16,
+                backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : 'transparent',
               }}
             >
-              <ShoppingBag size={14} color="#ffffff" strokeWidth={2.5} style={{ marginRight: 5 }} />
-              <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#ffffff' }}>
+              <ShoppingBag size={14} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.5} style={{ marginRight: 6 }} />
+              <Text allowFontScaling={false} style={{ fontSize: 12, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'), textTransform: 'uppercase' }}>
                 Grocery
               </Text>
-            </Pressable>
+            </ScalePressable>
 
-            {/* Café Pill (Inactive) */}
-            <Pressable
+            {/* Food Segment */}
+            <ScalePressable
               onPress={() => {
                 triggerHaptic('light');
                 router.push('/cafe');
               }}
+              scaleValue={0.97}
               style={{
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
-                height: 38,
-                borderRadius: 19,
-                paddingHorizontal: 12,
-                borderWidth: 1.5,
-                backgroundColor: '#ffffff',
-                borderColor: '#fed7aa',
-                elevation: 1,
+                height: '100%',
+                borderRadius: 16,
+                backgroundColor: localActiveSegment === 'food' ? '#e20a22' : 'transparent',
               }}
             >
-              <Coffee size={14} color="#ea580c" strokeWidth={2.5} style={{ marginRight: 5 }} />
-              <Text style={{ fontSize: 12.5, fontWeight: '900', letterSpacing: 0.2, color: '#ea580c' }}>
-                Café
+              <Utensils size={14} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.5} style={{ marginRight: 6 }} />
+              <Text allowFontScaling={false} style={{ fontSize: 12, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'), textTransform: 'uppercase' }}>
+                Food
               </Text>
-            </Pressable>
+            </ScalePressable>
           </View>
 
           {/* Bottom Row: Search Box Shortcut */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.push('/search');
             }}
-            className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
-            style={Platform.OS === 'ios' ? {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: 0.04,
-              shadowRadius: 6,
-            } : Platform.OS === 'android' ? {
-              elevation: 2,
-            } : undefined}
+            scaleValue={0.99}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+              borderRadius: 18,
+              paddingHorizontal: 16,
+              height: 36,
+              width: '100%',
+              marginTop: 6,
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 6,
+                },
+                android: {
+                  elevation: 2,
+                },
+              }),
+            }}
           >
             <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
             <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }, placeholderStyle]}>
@@ -1327,7 +1364,7 @@ export default function HomeScreen() {
             <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
             
             <Mic size={16} color="#16a34a" />
-          </Pressable>
+          </ScalePressable>
         </BlurView>
         {/* Glassmorphic border underline line */}
         <LinearGradient
@@ -1342,7 +1379,7 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Scrollable Content */}
-      {!groceryMartOpen && cafeOpen ? (
+      {false ? (
         // Cafe Storefront View when Grocery is Closed
         <>
           {/* Warning Banner: Grocery is closed, Cafe is open */}
@@ -1354,7 +1391,7 @@ export default function HomeScreen() {
           >
             <View className="flex-row items-center justify-center py-2.5 px-4">
               <Text className="text-white text-xs font-black text-center">
-                ⚠️ Grocery Mart is temporarily closed. Cafe is open! ☕
+                ⚠️ Grocery Mart is temporarily closed. Food is open! 🍔
               </Text>
             </View>
           </LinearGradient>
@@ -1374,19 +1411,26 @@ export default function HomeScreen() {
                 {menuCategories.map((cat) => {
                   const isActive = activeCategory === cat.tag;
                   return (
-                    <Pressable
+                    <ScalePressable
                       key={cat.tag}
                       onLayout={(e) => {
                         const { x, width } = e.nativeEvent.layout;
                         setTabLayouts(prev => ({ ...prev, [cat.tag]: { x, width } }));
                       }}
                       onPress={() => scrollToCategory(cat.tag)}
-                      className={`px-3.5 py-1.5 rounded-full border flex-row items-center gap-1.5 z-10 ${
-                        isActive 
-                          ? 'border-transparent' 
-                          : 'bg-slate-50 dark:bg-zinc-800 border-slate-200/80 dark:border-zinc-700 hover:bg-slate-100 dark:hover:bg-zinc-700'
-                      }`}
-                      style={{ borderStyle: 'solid', borderWidth: 1 }}
+                      scaleValue={0.95}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 6,
+                        borderRadius: 99,
+                        borderWidth: 1,
+                        borderColor: isActive ? 'transparent' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                        backgroundColor: isActive ? 'transparent' : (isDarkMode ? '#27272a' : '#f8fafc'),
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        zIndex: 10,
+                      }}
                     >
                       <Text className="text-xs">{cat.emoji}</Text>
                       <Text className={`text-xs font-black shrink-0 ${
@@ -1401,23 +1445,24 @@ export default function HomeScreen() {
                           isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
                         }`}>{cat.count}</Text>
                       </View>
-                    </Pressable>
+                    </ScalePressable>
                   );
                 })}
               </ScrollView>
             </View>
           )}
 
-          <ScrollView 
+          <Animated.ScrollView 
             ref={scrollViewRef}
             onScroll={handleScroll}
             scrollEventThrottle={16}
             showsVerticalScrollIndicator={false}
             className="flex-1 bg-white dark:bg-zinc-950"
             contentContainerStyle={{ paddingTop: scrollViewPaddingTop, paddingBottom: 160 }}
+            entering={FadeIn.duration(220)}
           >
 
-            {/* Cafe Visual Cover Banner */}
+            {/* Food Visual Cover Banner */}
             <View className="mx-4 mt-4 mb-6 rounded-3xl border border-[#3e241b] dark:border-amber-500/20 shadow-lg relative overflow-hidden">
               <LinearGradient
                 colors={['#2a1711', '#1d0e0a', '#120805']}
@@ -1427,11 +1472,11 @@ export default function HomeScreen() {
               />
               <View className="p-5 flex-row justify-between items-center w-full">
                 <View className="absolute right-[-10px] top-[-10px] opacity-10">
-                  <Text className="text-8xl">☕</Text>
+                  <Text className="text-8xl">🍔</Text>
                 </View>
                 <View className="z-10 flex-1 pr-4">
                   <View className="flex-row items-center gap-1.5 bg-amber-500/20 border border-amber-500/20 px-2.5 py-0.5 rounded-full self-start">
-                    <Text className="text-amber-300 text-[8px] font-black uppercase tracking-wider">FastKirana Cafe ☕</Text>
+                    <Text className="text-amber-300 text-[8px] font-black uppercase tracking-wider">FastKirana Food 🍔</Text>
                   </View>
                   <Text className="text-white text-xl font-black mt-3 leading-6">Freshly Prepared.{"\n"}Fast Delivered.</Text>
                   <Text className="text-amber-100/70 text-[10px] mt-1.5 font-bold leading-4">Warm sandwiches, crispy rolls, momos & thick shakes dispatched instantly from our local store kitchen.</Text>
@@ -1442,7 +1487,7 @@ export default function HomeScreen() {
               </View>
             </View>
 
-            {/* Render Cafe grouped sections */}
+            {/* Render Food grouped sections */}
             {categorySections.sections.map((section) => (
               <View 
                 key={section.tag}
@@ -1461,11 +1506,16 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {/* Cafe Product Grid */}
-                <View className="flex-row flex-wrap justify-between mt-2">
-                  {section.products.map((product: any, idx: number) => (
-                    <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} />
-                  ))}
+                {/* Food Product Grid */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
+                  {section.products.map((product: any, idx: number) => {
+                    const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
+                    return (
+                      <View key={product.id} style={{ width: cardWidth, marginBottom: 16 }}>
+                        <ProductCard product={product} className="w-full" index={idx} />
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             ))}
@@ -1483,35 +1533,61 @@ export default function HomeScreen() {
                   <Text className="text-xl">🍽️</Text>
                   <View>
                     <Text className="text-slate-800 dark:text-zinc-200 font-black text-sm uppercase tracking-wider">More Specials</Text>
-                    <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold">Additional café items and specials</Text>
+                    <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold">Additional food items and specials</Text>
                   </View>
                 </View>
 
-                {/* Cafe Product Grid */}
-                <View className="flex-row flex-wrap justify-between mt-2">
-                  {categorySections.moreItems.map((product: any, idx: number) => (
-                    <ProductCard key={product.id} product={product} className="w-[48%] mb-4" index={idx} />
-                  ))}
+                {/* Food Product Grid */}
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
+                  {categorySections.moreItems.map((product: any, idx: number) => {
+                    const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
+                    return (
+                      <View key={product.id} style={{ width: cardWidth, marginBottom: 16 }}>
+                        <ProductCard product={product} className="w-full" index={idx} />
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             )}
 
             <View className="h-28" />
-          </ScrollView>
+          </Animated.ScrollView>
 
           {/* Floating Menu Button (Swiggy Style FAB) */}
           {showFloatingMenuBtn && menuCategories.length > 0 && !isMenuOpen && (
             <View className="absolute bottom-24 left-0 right-0 items-center z-30">
-              <Pressable
+              <ScalePressable
                 onPress={() => {
                   setIsMenuOpen(true);
-                  triggerHaptic('light');
                 }}
-                className="bg-slate-900 border border-slate-800 px-5 py-3 rounded-full shadow-2xl flex-row items-center gap-2 active:scale-95 transition-all"
+                scaleValue={0.95}
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#1e293b' : '#334155',
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 99,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 10,
+                    },
+                    android: {
+                      elevation: 6,
+                    }
+                  })
+                }}
               >
                 <Menu size={14} color="#fff" strokeWidth={3} />
                 <Text className="text-white font-black text-xs uppercase tracking-wider">Menu</Text>
-              </Pressable>
+              </ScalePressable>
             </View>
           )}
 
@@ -1527,13 +1603,21 @@ export default function HomeScreen() {
               {/* Sliding Categories Drawer */}
               <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-50 p-5 max-h-[60%] flex-col border-t border-slate-100 dark:border-zinc-800">
                 <View className="flex-row justify-between items-center pb-3 border-b border-slate-100 dark:border-zinc-800 mb-3 shrink-0">
-                  <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs uppercase tracking-wider">Browse Café Categories</Text>
-                  <Pressable 
+                  <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs uppercase tracking-wider">Browse Food Categories</Text>
+                  <ScalePressable 
                     onPress={() => setIsMenuOpen(false)}
-                    className="w-7 h-7 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center"
+                    scaleValue={0.9}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
                   >
                     <X size={16} color={isDarkMode ? "#a1a1aa" : "#64748b"} />
-                  </Pressable>
+                  </ScalePressable>
                 </View>
 
                 <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
@@ -1541,14 +1625,24 @@ export default function HomeScreen() {
                     {menuCategories.map((cat) => {
                       const isActive = activeCategory === cat.tag;
                       return (
-                        <Pressable
+                        <ScalePressable
                           key={cat.tag}
                           onPress={() => scrollToCategory(cat.tag)}
-                          className={`flex-row justify-between items-center p-3 rounded-xl border ${
-                            isActive 
-                              ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/60' 
-                              : 'bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800 active:bg-slate-50 dark:active:bg-zinc-800'
-                          }`}
+                          scaleValue={0.97}
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 12,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: isActive 
+                              ? (isDarkMode ? 'rgba(244,63,94,0.3)' : '#fecdd3')
+                              : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                            backgroundColor: isActive
+                              ? (isDarkMode ? 'rgba(244,63,94,0.1)' : '#fff5f5')
+                              : (isDarkMode ? '#18181b' : '#ffffff'),
+                          }}
                         >
                           <View className="flex-row items-center gap-3">
                             <Text className="text-lg">{cat.emoji}</Text>
@@ -1563,7 +1657,7 @@ export default function HomeScreen() {
                               isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
                             }`}>{cat.count}</Text>
                           </View>
-                        </Pressable>
+                        </ScalePressable>
                       );
                     })}
                   </View>
@@ -1572,58 +1666,103 @@ export default function HomeScreen() {
             </>
           )}
         </>
-      ) : groceryMartOpen ? (
+      ) : true ? (
         // Grocery Storefront View (matching the screenshot exactly)
-        <ScrollView 
+         <Animated.ScrollView 
           onScroll={handleGroceryScroll}
           scrollEventThrottle={16}
+          style={{ flex: 1 }}
           className="flex-1 bg-white dark:bg-zinc-950" 
           contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 160 }} 
           showsVerticalScrollIndicator={false}
+          entering={FadeIn.duration(220)}
         >
           {/* Top Promotional Carousel Banner */}
           <GroceryPromoCarousel />
 
+          {!groceryMartOpen && (
+            <BlurView
+              intensity={isDarkMode ? 45 : 75}
+              tint={isDarkMode ? 'dark' : 'light'}
+              style={{
+                marginHorizontal: 16,
+                marginTop: 12,
+                borderRadius: 14,
+                borderWidth: 1.5,
+                borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.2)' : 'rgba(226, 10, 34, 0.12)',
+                backgroundColor: isDarkMode ? 'rgba(28, 28, 30, 0.85)' : 'rgba(255, 241, 242, 0.85)',
+                overflow: 'hidden',
+                paddingVertical: 10,
+                paddingHorizontal: 14,
+                flexDirection: 'row',
+                alignItems: 'center',
+                gap: 10,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: '#e20a22',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.05,
+                    shadowRadius: 8,
+                  },
+                  android: {
+                    elevation: 1,
+                  }
+                })
+              }}
+            >
+              <Text style={{ fontSize: 16 }}>🌙</Text>
+              <View style={{ flex: 1 }}>
+                <Text allowFontScaling={false} style={{ color: '#e20a22', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.4 }}>
+                  Mart is currently closed
+                </Text>
+                <Text allowFontScaling={false} style={{ color: isDarkMode ? '#a1a1aa' : '#475569', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>
+                  Pre-orders are open! Explore items and build your cart. We reopen at 7:00 AM.
+                </Text>
+              </View>
+            </BlurView>
+          )}
+
           {/* Category Grid Section Title */}
           <View className="px-4 flex-row justify-between items-center mb-3">
             <Text className="text-base font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>Trending Categories</Text>
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/(tabs)/categories');
               }}
-              style={({ pressed }) => [{
-                opacity: pressed ? 0.7 : 1
-              }]}
-              className="flex-row items-center"
+              scaleValue={0.93}
+              style={{
+                flexDirection: 'row',
+                alignItems: 'center',
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
+                paddingHorizontal: 9,
+                paddingVertical: 4.5,
+                borderRadius: 12,
+                borderWidth: 1,
+                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
+                gap: 2,
+              }}
             >
-              <Text className="text-rose-600 dark:text-rose-400 font-bold text-xs">See all</Text>
-              <ChevronRight size={14} color="#e11d48" />
-            </Pressable>
+              <Text className="text-rose-600 dark:text-rose-450 font-extrabold text-[10px] uppercase tracking-wider">See all</Text>
+              <ChevronRight size={11} color="#e20a22" strokeWidth={3} />
+            </ScalePressable>
           </View>
 
           {/* Category Grid (2 rows x 4 icons) */}
           <CategoryGrid />
 
-
-
-          {/* Time Greeting Hero */}
-          <TimeGreetingHero />
-
           {/* Active Order Tracker */}
           {activeOrder && (
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push(`/order/${activeOrder.id}`);
               }}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.98 : 1 }],
+              scaleValue={0.98}
+              style={{
                 marginHorizontal: 16,
                 marginBottom: 16,
                 borderRadius: 16,
                 overflow: 'hidden',
-              }]}
+              }}
             >
               <LinearGradient
                 colors={['#10b981', '#047857']}
@@ -1667,15 +1806,16 @@ export default function HomeScreen() {
                   })}
                 </View>
               </LinearGradient>
-            </Pressable>
+            </ScalePressable>
           )}
 
           {/* Reorder Last Order Banner */}
           {!activeOrder && lastCompletedOrder && (
-            <Pressable 
+            <ScalePressable 
               onPress={handleReorderLast}
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.97 : 1 }],
+              scaleValue={0.97}
+              haptic="medium"
+              style={{
                 marginHorizontal: 16,
                 marginBottom: 18,
                 borderRadius: 18,
@@ -1685,7 +1825,7 @@ export default function HomeScreen() {
                 shadowOpacity: isDarkMode ? 0.15 : 0.25,
                 shadowRadius: 10,
                 elevation: 4,
-              }]}
+              }}
             >
               <LinearGradient
                 colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : ['#fff7ed', '#fff1f2']}
@@ -1702,18 +1842,20 @@ export default function HomeScreen() {
                   alignItems: 'center',
                 }}
               >
-                <View className="flex-row items-center gap-3.5 flex-1 pr-3">
-                  <View className="w-11 h-11 rounded-full bg-rose-500/10 dark:bg-rose-500/15 items-center justify-center border border-rose-500/20">
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1, paddingRight: 20 }}>
+                  <View className="w-11 h-11 rounded-full bg-rose-500/10 dark:bg-rose-500/15 items-center justify-center border border-rose-500/20 shrink-0">
                     <RefreshCw size={18} color="#e11d48" strokeWidth={2.5} />
                   </View>
-                  <View className="flex-1">
-                    <View className="flex-row items-center gap-1.5">
-                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs uppercase tracking-wider">Reorder Last Order</Text>
-                      <View className="bg-rose-500/10 px-1.5 py-0.5 rounded-md">
+                  <View style={{ flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: 0.1 }} numberOfLines={1}>
+                        Reorder Last Order
+                      </Text>
+                      <View className="bg-rose-500/10 px-1.5 py-0.5 rounded-md shrink-0">
                         <Text className="text-rose-600 dark:text-rose-400 text-[8px] font-black uppercase">Quick</Text>
                       </View>
                     </View>
-                    <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-bold mt-1" numberOfLines={1}>
+                    <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '500', marginTop: 3 }} numberOfLines={1}>
                       {lastCompletedOrder.items?.map((it: any) => it.name).join(', ')}
                     </Text>
                   </View>
@@ -1737,7 +1879,7 @@ export default function HomeScreen() {
                   </LinearGradient>
                 </View>
               </LinearGradient>
-            </Pressable>
+            </ScalePressable>
           )}
 
           {/* Curated For You (Deals Curation Hub) */}
@@ -1752,7 +1894,7 @@ export default function HomeScreen() {
               <ActivityIndicator size="small" color="#e11d48" />
             </View>
           )}
-        </ScrollView>
+          </Animated.ScrollView>
       ) : (
         // Store Completely Closed View (both Grocery and Cafe closed)
         <StoreClosedPremiumView isDarkMode={isDarkMode} paddingTop={scrollViewPaddingTop} />

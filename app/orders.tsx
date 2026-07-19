@@ -11,7 +11,10 @@ import { formatPrice } from '../lib/utils';
 import { toast } from '../lib/toast';
 import { triggerHaptic } from '../lib/haptic';
 import { useTheme } from './context/ThemeContext';
+import { ScalePressable } from '../components/shared/ScalePressable';
 import BuyAgainSection from '../components/home/BuyAgainSection';
+import { THEME } from '../lib/theme';
+
 
 interface OrderItem {
   id: string;
@@ -68,21 +71,28 @@ export default function OrdersScreen() {
         const { mmkvStorage } = require('../lib/storage');
         const localKey = `local_orders_${user?.id || 'guest'}`;
         const localData = mmkvStorage.getItem(localKey);
-        if (localData) {
-          const localList = JSON.parse(localData);
-          // Combine list, avoiding duplicates by id
-          const combined = [...localList];
-          serverOrders.forEach((so: Order) => {
-            if (!combined.some((lo) => lo.id === so.id)) {
-              combined.push(so);
-            }
-          });
-          
-          // Sort by date descending
-          combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
-          setOrders(combined);
-          setIsLoading(false);
-          return;
+        if (localData && localData !== 'undefined') {
+          let localList = [];
+          try {
+            localList = JSON.parse(localData);
+          } catch (jsonErr) {
+            console.warn('Local orders parse error:', jsonErr);
+          }
+          if (Array.isArray(localList)) {
+            // Combine list, avoiding duplicates by id
+            const combined = [...localList];
+            serverOrders.forEach((so: Order) => {
+              if (!combined.some((lo) => lo.id === so.id)) {
+                combined.push(so);
+              }
+            });
+            
+            // Sort by date descending
+            combined.sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime());
+            setOrders(combined);
+            setIsLoading(false);
+            return;
+          }
         }
       } catch (storageErr) {
         console.warn('Failed to load local fallback orders:', storageErr);
@@ -113,11 +123,11 @@ export default function OrdersScreen() {
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row justify-between items-center shadow-xs">
         <View className="flex-row items-center gap-3">
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.back();
             }}
+            scaleValue={0.9}
             style={{
               width: 32,
               height: 32,
@@ -128,7 +138,7 @@ export default function OrdersScreen() {
             }}
           >
             <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
-          </Pressable>
+          </ScalePressable>
           <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">My Orders</Text>
         </View>
         <View style={{ width: 32 }} />
@@ -146,20 +156,24 @@ export default function OrdersScreen() {
             <Text className="text-slate-400 dark:text-zinc-400 text-xs mt-1 text-center leading-4">
               Your grocery basket is empty! Check out our categories and order fresh produce & hot brews.
             </Text>
-            <Pressable 
+            <ScalePressable 
               onPress={() => router.replace('/(tabs)')}
-              className="bg-rose-600 px-6 py-3 rounded-xl mt-6 shadow-xs"
+              scaleValue={0.96}
+              style={{ backgroundColor: THEME.COLORS.brand.primary, paddingHorizontal: 24, paddingVertical: 12, borderRadius: THEME.RADIUS.sm }}
+              className="mt-6 shadow-xs"
             >
               <Text className="text-white font-extrabold text-xs">Start Shopping</Text>
-            </Pressable>
+            </ScalePressable>
           </View>
         ) : (
           <View className="gap-3.5 mb-2">
             {orders.map((order) => (
-              <Pressable
+              <ScalePressable
                 key={order.id}
                 onPress={() => router.push(`/order/${order.id}`)}
-                className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-xs active:scale-[0.99] transition-all"
+                scaleValue={0.98}
+                style={{ borderRadius: THEME.RADIUS.md, borderColor: isDarkMode ? THEME.COLORS.dark.border : '#f1f5f9' }}
+                className="bg-white dark:bg-zinc-900 border p-4 shadow-xs transition-all"
               >
                 {/* Header Row */}
                 <View className="flex-row justify-between items-center pb-2 border-b border-slate-50 dark:border-zinc-800/50">
@@ -201,7 +215,7 @@ export default function OrdersScreen() {
                     <ChevronRight size={14} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
                   </View>
                 </View>
-              </Pressable>
+              </ScalePressable>
             ))}
           </View>
         )}

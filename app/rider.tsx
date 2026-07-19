@@ -3,13 +3,14 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { ArrowLeft, Truck, Phone, MapPin, Camera, QrCode, X } from 'lucide-react-native';
+import { ArrowLeft, Truck, Phone, MapPin, Camera, QrCode, X, RefreshCw } from 'lucide-react-native';
 import { formatPrice } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
 import { useAuthStore } from '../stores/auth-store';
 import { API_BASE_URL } from '../lib/constants';
 import { StatusBar } from 'expo-status-bar';
+import { useTheme } from './context/ThemeContext';
 
 interface OrderItem {
   id: string;
@@ -47,6 +48,8 @@ const INITIAL_SIMULATION_ORDERS: Order[] = [
 ];
 
 export default function RiderScreen() {
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
   const { user, logout } = useAuthStore();
   const [orders, setOrders] = useState<Order[]>(INITIAL_SIMULATION_ORDERS);
   const [isOnline, setIsOnline] = useState(false);
@@ -329,7 +332,7 @@ export default function RiderScreen() {
   const finalizeDelivery = async () => {
     if (!photoTargetOrder) return;
     const orderId = photoTargetOrder.id;
-    const mockPhotoBase64 = "/delivered_package_proof.png";
+    const mockPhotoBase64 = "/delivered_package_proof.webp";
     
     if (isOnline) {
       const ok = await updateOrderStatus(orderId, 'DELIVERED', {
@@ -418,11 +421,14 @@ export default function RiderScreen() {
   }, [orders]);
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-955">
-      <StatusBar style="light" />
+    <SafeAreaView 
+      className="flex-1"
+      style={{ backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}
+    >
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
-      <View className="bg-slate-900 px-3 py-2 flex-row items-center justify-between border-b border-slate-800">
-        <View className="flex-row items-center gap-2">
+      <View className="px-4 py-3 flex-row items-center justify-between border-b bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800 shadow-sm">
+        <View className="flex-row items-center gap-3">
           <Pressable 
             onPress={() => {
               if (router.canGoBack()) {
@@ -431,20 +437,20 @@ export default function RiderScreen() {
                 router.replace('/operations');
               }
             }}
-            className="w-8 h-8 rounded-full bg-slate-800 items-center justify-center border border-slate-700 active:bg-slate-700"
+            className="w-8 h-8 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-100 dark:border-zinc-700 active:opacity-80"
           >
-            <ArrowLeft size={15} color="#fff" />
+            <ArrowLeft size={15} color={isDarkMode ? "#fff" : "#1e293b"} />
           </Pressable>
           <View>
-            <View className="flex-row items-center gap-1.5">
-              <Text className="text-white font-black text-sm">Rider Console 🛵</Text>
-              <View className="px-1.5 py-0.5 rounded bg-indigo-900 border border-indigo-750">
-                <Text className="text-white font-extrabold text-[7.5px] tracking-wider uppercase">
+            <View className="flex-row items-center gap-2">
+              <Text className="text-slate-800 dark:text-white font-black text-sm">Rider Console</Text>
+              <View className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900">
+                <Text className="text-indigo-650 dark:text-indigo-400 font-extrabold text-[7.5px] tracking-wider uppercase">
                   {user?.role || 'DELIVERY'}
                 </Text>
               </View>
             </View>
-            <Text className="text-slate-400 text-[9px] font-bold tracking-wide">FastKirana Logistics Delivery Fleet</Text>
+            <Text className="text-slate-400 dark:text-zinc-550 text-[9px] font-bold tracking-wide">FastKirana Logistics Delivery Fleet</Text>
           </View>
         </View>
         
@@ -474,57 +480,57 @@ export default function RiderScreen() {
               );
             }
           }}
-          className="px-2.5 py-1 rounded-md bg-red-600/15 border border-red-500/25 active:bg-red-600/30"
+          className="px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 active:opacity-85"
         >
-          <Text className="text-red-500 font-bold text-[10px]">Log Out</Text>
+          <Text className="text-red-650 dark:text-red-400 font-black text-[10px] uppercase tracking-wider">Log Out</Text>
         </Pressable>
       </View>
 
       {/* Main Content */}
-      <ScrollView className="flex-1 p-2.5" showsVerticalScrollIndicator={false}>
+      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
         {/* Today Rider Stats */}
-        <View className="flex-row justify-between gap-2.5 mb-4 bg-slate-900 p-2.5 rounded-xl shadow-sm border border-slate-800">
-          <View className="flex-1 items-center border-r border-slate-800">
-            <Text className="text-white font-black text-base">{todayDeliveries}</Text>
-            <Text className="text-slate-400 text-[7px] font-black uppercase tracking-wider mt-0.5">Delivered</Text>
+        <View className="flex-row justify-between gap-2.5 mb-4 bg-white dark:bg-zinc-900 p-3.5 rounded-2xl shadow-sm border border-slate-100 dark:border-zinc-800">
+          <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+            <Text className="text-slate-800 dark:text-white font-black text-base">{todayDeliveries}</Text>
+            <Text className="text-slate-405 dark:text-zinc-500 text-[7px] font-black uppercase tracking-wider mt-0.5">Delivered</Text>
           </View>
-          <View className="flex-1 items-center border-r border-slate-800">
-            <Text className="text-white font-black text-base">{riderActiveDeliveries.length}</Text>
-            <Text className="text-slate-400 text-[7px] font-black uppercase tracking-wider mt-0.5">Active Run</Text>
+          <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+            <Text className="text-slate-800 dark:text-white font-black text-base">{riderActiveDeliveries.length}</Text>
+            <Text className="text-slate-405 dark:text-zinc-500 text-[7px] font-black uppercase tracking-wider mt-0.5">Active Run</Text>
           </View>
           <View className="flex-1 items-center">
-            <Text className="text-emerald-400 font-black text-base">{formatPrice(codCollected)}</Text>
-            <Text className="text-slate-400 text-[7px] font-black uppercase tracking-wider mt-0.5">COD Cash</Text>
+            <Text className="text-emerald-600 dark:text-emerald-400 font-black text-base">{formatPrice(codCollected)}</Text>
+            <Text className="text-slate-405 dark:text-zinc-500 text-[7px] font-black uppercase tracking-wider mt-0.5">COD Cash</Text>
           </View>
         </View>
 
         {/* Active Shipments Route */}
         {riderActiveDeliveries.length > 0 && (
           <View className="mb-4">
-            <Text className="text-white font-black text-sm mb-2">Rider Active Run ({riderActiveDeliveries.length})</Text>
+            <Text className="text-slate-800 dark:text-white font-black text-sm mb-2">Rider Active Run ({riderActiveDeliveries.length})</Text>
             <View className="gap-2.5">
               {riderActiveDeliveries.map((ord) => (
-                <View key={ord.id} className="bg-slate-900 rounded-xl border border-slate-800 p-3 shadow-xs">
-                  <View className="flex-row justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+                <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-sm">
+                  <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-2 mb-2.5">
                     <View>
-                      <Text className="text-white font-black text-xs uppercase">Shipment #{ord.id.slice(-6).toUpperCase()}</Text>
-                      <Text className="text-slate-400 text-[8px] font-bold">Payment: {ord.paymentMethod} • {formatPrice(ord.total)}</Text>
+                      <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Shipment #{ord.id.slice(-6).toUpperCase()}</Text>
+                      <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-bold">Payment: {ord.paymentMethod} • {formatPrice(ord.total)}</Text>
                     </View>
-                    <View className="bg-indigo-950/20 border border-indigo-900/30 px-1.5 py-0.5 rounded-full">
-                      <Text className="text-indigo-400 font-extrabold text-[7px] uppercase tracking-wider">Active</Text>
+                    <View className="bg-indigo-50 dark:bg-indigo-950/20 border border-indigo-100 dark:border-indigo-900/30 px-2 py-0.5 rounded-full">
+                      <Text className="text-indigo-650 dark:text-indigo-400 font-extrabold text-[7.5px] uppercase tracking-wider">Active</Text>
                     </View>
                   </View>
 
                   <View className="flex-row items-center justify-between gap-2 mb-1.5">
                     <View className="flex-row items-center gap-1.5 flex-1">
-                      <MapPin size={10} color="#ef4444" />
-                      <Text className="text-slate-200 text-[11px] font-semibold flex-1 leading-4">
+                      <MapPin size={12} color="#ef4444" />
+                      <Text className="text-slate-700 dark:text-zinc-200 text-[11px] font-semibold flex-1 leading-4">
                         {ord.address.houseNo}, {ord.address.street}, {ord.address.area}, {ord.address.city}
                       </Text>
                     </View>
                     <Pressable
                       onPress={() => handleNavigateToAddress(ord.address)}
-                      className="bg-indigo-650 active:bg-indigo-800 px-2.5 py-1 rounded-md flex-row items-center gap-1 shrink-0"
+                      className="bg-indigo-600 active:bg-indigo-700 px-3 py-1.5 rounded-lg flex-row items-center gap-1 shrink-0"
                     >
                       <Text className="text-white text-[9.5px] font-black uppercase">Navigate 🗺️</Text>
                     </Pressable>
@@ -532,12 +538,12 @@ export default function RiderScreen() {
 
                   <View className="flex-row items-center gap-1.5 mb-3">
                     <Phone size={10} color="#94a3b8" />
-                    <Text className="text-slate-300 text-[11px] font-bold">{ord.user.name} ({ord.user.phone})</Text>
+                    <Text className="text-slate-600 dark:text-zinc-350 text-[11px] font-bold">{ord.user.name} ({ord.user.phone})</Text>
                   </View>
 
                   <Pressable
                     onPress={() => initiateConfirmDelivery(ord)}
-                    className="bg-emerald-600 py-2.5 rounded-lg flex-row items-center justify-center gap-1 active:bg-emerald-700"
+                    className="bg-emerald-600 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 active:bg-emerald-700"
                   >
                     <Camera size={12} color="#fff" />
                     <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Confirm Delivery Proof</Text>
@@ -549,47 +555,47 @@ export default function RiderScreen() {
         )}
 
         {/* Pickup queue from Picker Packing */}
-        <View className="flex-row justify-between items-center mb-2">
-          <Text className="text-white font-black text-sm">Rider Pickup Queue ({riderQueueOrders.length})</Text>
+        <View className="flex-row justify-between items-center mb-3">
+          <Text className="text-slate-800 dark:text-white font-black text-sm">Rider Pickup Queue ({riderQueueOrders.length})</Text>
           <Pressable 
             onPress={() => fetchServerOrders(true)} 
-            className="w-7 h-7 rounded-full bg-slate-900 items-center justify-center border border-slate-800 active:bg-slate-800"
+            className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900 items-center justify-center border border-slate-100 dark:border-zinc-800 shadow-sm active:opacity-80"
           >
-            <Text className="text-[10px]">🔄</Text>
+            <RefreshCw size={13} color={isDarkMode ? '#ffffff' : '#64748b'} />
           </Pressable>
         </View>
 
         {riderQueueOrders.length === 0 ? (
-          <View className="bg-slate-900 rounded-xl border border-slate-800 p-4 items-center shadow-xs">
-            <Text className="text-3xl">📦</Text>
-            <Text className="text-white font-black text-xs mt-2">No shipments ready for pickup</Text>
-            <Text className="text-slate-400 text-[10px] mt-1 text-center leading-normal">
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-6 items-center shadow-sm">
+            <Text className="text-3xl mb-1">📦</Text>
+            <Text className="text-slate-800 dark:text-white font-black text-xs mt-2">No shipments ready for pickup</Text>
+            <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1 text-center leading-normal">
               Riders wait here. Packhouses auto-pack orders to dispatch them here.
             </Text>
           </View>
         ) : (
           <View className="gap-2.5">
             {riderQueueOrders.map((ord) => (
-              <View key={ord.id} className="bg-slate-900 rounded-xl border border-slate-800 p-3 shadow-xs">
-                <View className="flex-row justify-between items-center border-b border-slate-800 pb-1.5 mb-2">
+              <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-sm">
+                <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-2 mb-2.5">
                   <View>
-                    <Text className="text-white font-black text-xs uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
-                    <Text className="text-slate-400 text-[8px] font-bold">{ord.address.area} • {formatPrice(ord.total)}</Text>
+                    <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-bold">{ord.address.area} • {formatPrice(ord.total)}</Text>
                   </View>
-                  <View className="bg-emerald-955/20 border border-emerald-900/30 px-1.5 py-0.5 rounded-full">
-                    <Text className="text-emerald-400 font-extrabold text-[7px] uppercase tracking-wider">Packed</Text>
+                  <View className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-2 py-0.5 rounded-full">
+                    <Text className="text-emerald-600 dark:text-emerald-400 font-extrabold text-[7.5px] uppercase tracking-wider">Packed</Text>
                   </View>
                 </View>
 
-                <Text className="text-slate-200 text-[11px] font-semibold">User: {ord.user.name}</Text>
-                <Text className="text-slate-400 text-[9px] font-semibold mt-0.5">Delivery address: {ord.address.houseNo}, {ord.address.street}</Text>
+                <Text className="text-slate-700 dark:text-zinc-200 text-[11px] font-semibold">User: {ord.user.name}</Text>
+                <Text className="text-slate-500 dark:text-zinc-400 text-[9px] font-semibold mt-0.5">Delivery: {ord.address.houseNo}, {ord.address.street}</Text>
 
                 <Pressable
                   onPress={() => acceptShipment(ord)}
-                  className="bg-indigo-650 mt-3 py-2.5 rounded-lg flex-row items-center justify-center gap-1 active:bg-indigo-750"
+                  className="bg-indigo-605 mt-3 py-2.5 rounded-xl flex-row items-center justify-center gap-1.5 active:bg-indigo-750"
                 >
                   <Truck size={12} color="#fff" />
-                  <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Accept Delivery shipment</Text>
+                  <Text className="text-white font-black text-[10px] uppercase tracking-wider">Accept Delivery shipment</Text>
                 </Pressable>
               </View>
             ))}
@@ -606,35 +612,54 @@ export default function RiderScreen() {
           animationType="fade"
           onRequestClose={() => setIsUpiQrVisible(false)}
         >
-          <View className="flex-1 bg-black/60 justify-center items-center p-6">
-            <View className="bg-slate-900 rounded-3xl p-6 w-full max-w-sm items-center border border-slate-800 shadow-2xl">
+          <Pressable 
+            style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' }}
+            onPress={() => setIsUpiQrVisible(false)}
+          >
+            <Pressable 
+              style={{
+                width: '85%',
+                maxWidth: 340,
+                backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                borderRadius: 24,
+                padding: 24,
+                alignItems: 'center',
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 10 },
+                shadowOpacity: 0.25,
+                shadowRadius: 15,
+                elevation: 10,
+                borderWidth: 1,
+                borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+              }}
+            >
               <QrCode size={40} color="#6366f1" />
-              <Text className="text-white font-black text-base mt-3">Scan UPI QR Code</Text>
-              <Text className="text-slate-400 text-[10px] font-bold text-center mt-1 uppercase tracking-wider">Amount: {formatPrice(upiTargetOrder.total)}</Text>
+              <Text className="text-slate-800 dark:text-white font-black text-base mt-3">Scan UPI QR Code</Text>
+              <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold text-center mt-1 uppercase tracking-wider">Amount: {formatPrice(upiTargetOrder.total)}</Text>
               
-              <View className="w-48 h-48 bg-white rounded-2xl border border-slate-700 mt-5 items-center justify-center p-2.5">
+              <View className="w-48 h-48 bg-white rounded-2xl border border-slate-100 dark:border-zinc-800 mt-5 items-center justify-center p-2.5">
                 <Image
                   source={{ uri: `https://api.qrserver.com/v1/create-qr-code/?size=250x250&data=${encodeURIComponent(`upi://pay?pa=iamuv26@ptyes&pn=FastKirana&am=${upiTargetOrder.total}&cu=INR&tn=Order_${upiTargetOrder.id.slice(0, 8)}`)}` }}
                   style={{ width: '100%', height: '100%', resizeMode: 'contain' }}
                 />
               </View>
 
-              <View className="flex-row w-full gap-2.5 mt-6 border-t border-slate-800 pt-5">
+              <View className="flex-row w-full gap-2.5 mt-6 border-t border-slate-100 dark:border-zinc-800 pt-5">
                 <Pressable
                   onPress={() => handleCashCollected(upiTargetOrder)}
-                  className="flex-1 border border-slate-800 py-3 rounded-xl items-center bg-slate-950 active:bg-slate-800"
+                  className="flex-1 border border-slate-200 dark:border-zinc-700 py-3 rounded-xl items-center bg-slate-50 dark:bg-zinc-800 active:opacity-80"
                 >
-                  <Text className="text-slate-300 font-extrabold text-xs uppercase tracking-wider">Paid Cash</Text>
+                  <Text className="text-slate-600 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Paid Cash</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleUpiQrPaid(upiTargetOrder)}
-                  className="flex-1 bg-indigo-600 py-3 rounded-xl items-center active:bg-indigo-700"
+                  className="flex-1 bg-indigo-600 py-3 rounded-xl items-center active:bg-indigo-755"
                 >
                   <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Confirm Paid</Text>
                 </Pressable>
               </View>
-            </View>
-          </View>
+            </Pressable>
+          </Pressable>
         </Modal>
       )}
 

@@ -4,6 +4,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { Sun, Utensils, Cookie, Moon } from 'lucide-react-native';
 import ProductCard, { Product } from '../product/ProductCard';
 import { useTheme } from '../../app/context/ThemeContext';
+import { THEME } from '../../lib/theme';
 
 interface TimeSuggestionsProps {
   products: Product[];
@@ -65,21 +66,21 @@ export default function TimeSuggestions({ products }: TimeSuggestionsProps) {
   }
 
   return (
-    <View className="mx-4 my-3 rounded-2xl overflow-hidden border shadow-xs" style={{ borderColor: isDarkMode ? '#27272a' : '#f1f5f9' }}>
+    <View style={{ marginHorizontal: THEME.SPACING.lg, marginVertical: THEME.SPACING.sm, borderRadius: THEME.RADIUS.lg, borderColor: isDarkMode ? THEME.COLORS.dark.border : '#f1f5f9' }} className="overflow-hidden border shadow-xs">
       <LinearGradient
         colors={gradientColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 0, y: 1 }}
-        style={{ padding: 16 }}
+        style={{ padding: THEME.SPACING.lg }}
       >
         {/* Section Header */}
         <View className="flex-row items-center gap-3 mb-4">
-          <View className="w-10 h-10 rounded-xl bg-white dark:bg-zinc-800 items-center justify-center shadow-xs border border-slate-100 dark:border-zinc-700/50">
+          <View style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm }} className="bg-white dark:bg-zinc-800 items-center justify-center shadow-xs border border-slate-100 dark:border-zinc-700/50">
             {icon}
           </View>
           <View>
-            <Text className="text-sm font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>{title}</Text>
-            <Text className="text-[10px] font-semibold" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>{subtitle}</Text>
+            <Text style={{ fontSize: 15, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b' }}>{title}</Text>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', color: isDarkMode ? '#cbd5e1' : '#64748b', marginTop: 1 }}>{subtitle}</Text>
           </View>
         </View>
 
@@ -87,11 +88,11 @@ export default function TimeSuggestions({ products }: TimeSuggestionsProps) {
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+          contentContainerStyle={{ gap: THEME.SPACING.md, paddingBottom: 4 }}
           decelerationRate="fast"
         >
           {products.map((product, idx) => (
-            <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
+            <View key={product.id} style={{ width: 144, height: 248 }}>
               <ProductCard product={product} index={idx} className="w-full" />
             </View>
           ))}

@@ -1,17 +1,20 @@
 import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, Modal } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { User, LogIn, LogOut, ShoppingBag, MapPin, Settings, HelpCircle, PhoneCall, ShieldCheck, Edit3, Save, X, Moon, Sun, ChevronRight, ChevronDown, Search } from 'lucide-react-native';
+import { User, LogIn, LogOut, ShoppingBag, MapPin, Settings, HelpCircle, PhoneCall, ShieldCheck, Edit3, Save, X, Moon, Sun, ChevronRight, ChevronDown, Search, Package, ChefHat, Truck, Coffee } from 'lucide-react-native';
 import { router } from 'expo-router';
 import { useState } from 'react';
 import { useAuthStore } from '../../stores/auth-store';
 import { useTheme } from '../context/ThemeContext';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { API_BASE_URL } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatHeaderAddress } from '../../lib/utils';
+import { THEME } from '../../lib/theme';
+
 
 export default function AccountScreen() {
   const { isLoggedIn, user, token, setAuth, logout } = useAuthStore();
@@ -101,9 +104,16 @@ export default function AccountScreen() {
   };
 
   const formatEmailForDisplay = (email: string) => {
-    if (email.startsWith('wa-') && email.includes('@')) {
-      const phoneDigits = email.split('@')[0].replace('wa-', '');
-      return `+91 ${phoneDigits}`;
+    if (!email) return '';
+    const lowerEmail = email.toLowerCase().trim();
+    if (lowerEmail.endsWith('@fastkirana.com')) {
+      const prefix = lowerEmail.split('@')[0];
+      const phoneDigits = prefix.replace('wa-', '');
+      if (/^\d{10}$/.test(phoneDigits)) {
+        return `+91 ${phoneDigits}`;
+      }
+      if (prefix === 'help') return email;
+      return prefix;
     }
     return email;
   };
@@ -128,13 +138,16 @@ export default function AccountScreen() {
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ 
                 backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                padding: 4, 
+                width: 32,
+                height: 32,
+                justifyContent: 'center',
+                alignItems: 'center',
                 borderRadius: 8, 
                 borderWidth: 1, 
                 borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
                 flexShrink: 0
               }}>
-                <Logo size={24} />
+                <Logo size={22} />
               </View>
               <View style={{ marginLeft: 6 }}>
                 <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
@@ -148,15 +161,14 @@ export default function AccountScreen() {
             </View>
 
             {/* Right: Location Capsule Picker */}
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
+              scaleValue={0.96}
+              style={{
                 maxWidth: '60%'
-              })}
+              }}
             >
               <View style={{ 
                 flexDirection: 'row', 
@@ -184,7 +196,7 @@ export default function AccountScreen() {
                 </Text>
                 <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
               </View>
-            </Pressable>
+            </ScalePressable>
           </View>
 
           {/* Bottom Row: Search Box Shortcut */}
@@ -256,30 +268,33 @@ export default function AccountScreen() {
                         </View>
 
                         <View style={{ flex: 1 }}>
-                          <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 18, fontWeight: '900', letterSpacing: -0.4 }}>
-                            {user.name || 'FastKirana User'}
-                          </Text>
+                          <Pressable onPress={handleEditToggle}>
+                            <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 18, fontWeight: '900', letterSpacing: -0.4 }}>
+                              {user.name || 'FastKirana User'}
+                            </Text>
+                          </Pressable>
                           <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
                             {formatEmailForDisplay(user.email || '')}
                           </Text>
                           
-                          <View style={{
-                            flexDirection: 'row',
-                            alignItems: 'center',
-                            gap: 4.5,
-                            backgroundColor: isDarkMode ? 'rgba(239,68,68,0.1)' : 'rgba(226,10,34,0.05)',
-                            borderWidth: 1,
-                            borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : 'rgba(226,10,34,0.12)',
-                            paddingHorizontal: 10,
-                            paddingVertical: 4,
-                            borderRadius: 99,
-                            marginTop: 8,
-                            alignSelf: 'flex-start'
-                          }}>
-                            <ShieldCheck size={11} color={isDarkMode ? '#ef4444' : '#e20a22'} />
-                            <Text style={{ color: isDarkMode ? '#ef4444' : '#e20a22', fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                              {user.role} Member
-                            </Text>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              gap: 4.5,
+                              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.1)' : 'rgba(226,10,34,0.05)',
+                              borderWidth: 1,
+                              borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : 'rgba(226,10,34,0.12)',
+                              paddingHorizontal: 10,
+                              paddingVertical: 4,
+                              borderRadius: 99,
+                              alignSelf: 'flex-start'
+                            }}>
+                              <ShieldCheck size={11} color={isDarkMode ? '#ef4444' : '#e20a22'} />
+                              <Text style={{ color: isDarkMode ? '#ef4444' : '#e20a22', fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                                {user.role} Member
+                              </Text>
+                            </View>
                           </View>
                         </View>
                       </View>
@@ -413,12 +428,12 @@ export default function AccountScreen() {
                       end={{ x: 1, y: 0 }}
                       style={StyleSheet.absoluteFill}
                     />
-                    <TouchableOpacity
-                      activeOpacity={0.95}
+                    <ScalePressable
                       onPress={() => {
-                        triggerHaptic('medium');
                         router.push('/(auth)/login');
                       }}
+                      scaleValue={0.96}
+                      haptic="medium"
                       style={{
                         width: '100%',
                         paddingVertical: 14,
@@ -438,7 +453,7 @@ export default function AccountScreen() {
                       }}>
                         Login
                       </Text>
-                    </TouchableOpacity>
+                    </ScalePressable>
                   </View>
                 </View>
               )}
@@ -447,47 +462,53 @@ export default function AccountScreen() {
         </View>
 
         {/* Quick Action Cards Grid */}
-        <View style={{ paddingHorizontal: 16, marginBottom: 20 }}>
-          <Text style={{ color: isDarkMode ? '#e4e4e7' : '#1e293b', fontWeight: '800', fontSize: 15, letterSpacing: -0.2 }}>
+        <View style={{ paddingHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.lg }}>
+          <Text style={{ color: isDarkMode ? '#e4e4e7' : '#1e293b', fontWeight: '700', fontSize: 15, letterSpacing: -0.2 }}>
             Quick Actions
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12, marginTop: 12 }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: THEME.SPACING.md, marginTop: 12 }}>
             {/* My Orders */}
             <Pressable 
               onPress={() => isLoggedIn ? router.push('/orders') : router.push('/(auth)/login')}
-              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[22px] py-5 px-3.5 items-center active:scale-95"
-              style={Platform.OS === 'ios' ? {
-                shadowColor: '#e20a22',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isDarkMode ? 0.25 : 0.06,
-                shadowRadius: 14,
-              } : Platform.OS === 'android' ? {
-                elevation: 3,
-              } : undefined}
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
+              style={{
+                borderRadius: THEME.RADIUS.lg,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: '#e20a22',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: isDarkMode ? 0.25 : 0.04,
+                    shadowRadius: 12,
+                  },
+                  android: {
+                    elevation: 2,
+                  }
+                })
+              }}
             >
               <LinearGradient
                 colors={['#ff416c', '#ff4b2b']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
                   shadowColor: '#ff416c',
                   shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.25,
                   shadowRadius: 8,
-                  elevation: 4
+                  elevation: 3
                 }}
               >
-                <ShoppingBag size={22} color="#ffffff" strokeWidth={2.2} />
+                <ShoppingBag size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '900', fontSize: 11, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 My Orders
               </Text>
-              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 9.5, fontWeight: '600', marginTop: 3 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Order History
               </Text>
             </Pressable>
@@ -495,39 +516,45 @@ export default function AccountScreen() {
             {/* Saved Addresses */}
             <Pressable 
               onPress={() => isLoggedIn ? router.push('/addresses') : router.push('/(auth)/login')}
-              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[22px] py-5 px-3.5 items-center active:scale-95"
-              style={Platform.OS === 'ios' ? {
-                shadowColor: '#10b981',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isDarkMode ? 0.25 : 0.06,
-                shadowRadius: 14,
-              } : Platform.OS === 'android' ? {
-                elevation: 3,
-              } : undefined}
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
+              style={{
+                borderRadius: THEME.RADIUS.lg,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: '#10b981',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: isDarkMode ? 0.25 : 0.04,
+                    shadowRadius: 12,
+                  },
+                  android: {
+                    elevation: 2,
+                  }
+                })
+              }}
             >
               <LinearGradient
                 colors={['#10b981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
                   shadowColor: '#10b981',
                   shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.25,
                   shadowRadius: 8,
-                  elevation: 4
+                  elevation: 3
                 }}
               >
-                <MapPin size={22} color="#ffffff" strokeWidth={2.2} />
+                <MapPin size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '900', fontSize: 11, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 Addresses
               </Text>
-              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 9.5, fontWeight: '600', marginTop: 3 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Manage Locations
               </Text>
             </Pressable>
@@ -535,39 +562,45 @@ export default function AccountScreen() {
             {/* Contact Support */}
             <Pressable 
               onPress={() => router.push('tel:1800123456')}
-              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-[22px] py-5 px-3.5 items-center active:scale-95"
-              style={Platform.OS === 'ios' ? {
-                shadowColor: '#3b82f6',
-                shadowOffset: { width: 0, height: 6 },
-                shadowOpacity: isDarkMode ? 0.25 : 0.06,
-                shadowRadius: 14,
-              } : Platform.OS === 'android' ? {
-                elevation: 3,
-              } : undefined}
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
+              style={{
+                borderRadius: THEME.RADIUS.lg,
+                ...Platform.select({
+                  ios: {
+                    shadowColor: '#3b82f6',
+                    shadowOffset: { width: 0, height: 6 },
+                    shadowOpacity: isDarkMode ? 0.25 : 0.04,
+                    shadowRadius: 12,
+                  },
+                  android: {
+                    elevation: 2,
+                  }
+                })
+              }}
             >
               <LinearGradient
                 colors={['#3b82f6', '#2563eb']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
-                  width: 50,
-                  height: 50,
-                  borderRadius: 25,
+                  width: 48,
+                  height: 48,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
                   shadowColor: '#3b82f6',
                   shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.3,
+                  shadowOpacity: 0.25,
                   shadowRadius: 8,
-                  elevation: 4
+                  elevation: 3
                 }}
               >
-                <PhoneCall size={22} color="#ffffff" strokeWidth={2.2} />
+                <PhoneCall size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '900', fontSize: 11, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 Support
               </Text>
-              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 9.5, fontWeight: '600', marginTop: 3 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Instant Call Support
               </Text>
             </Pressable>
@@ -585,144 +618,149 @@ export default function AccountScreen() {
                 </Text>
                 
                 {/* 1. Operations & Settings */}
-                <LinearGradient
-                  colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#e0e7ff', '#c7d2fe']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 20, padding: 1 }}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/operations');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
                 >
-                  <Pressable 
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      router.push('/operations');
-                    }}
-                    style={({ pressed }) => [{
-                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-                      borderRadius: 19,
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: pressed ? 0.95 : 1
-                    }]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                        <ShieldCheck size={18} color="#4f46e5" />
-                      </View>
-                      <View>
-                        <Text style={{ color: isDarkMode ? '#ffffff' : '#1e1b4b', fontWeight: '800', fontSize: 12 }}>Operations Console</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Store configuration & live analytics</Text>
-                      </View>
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 items-center justify-center flex-shrink-0">
+                      <ShieldCheck size={18} color="#4f46e5" strokeWidth={2.5} />
                     </View>
-                    <ChevronRight size={14} color="#94a3b8" />
-                  </Pressable>
-                </LinearGradient>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Operations Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Store configuration & live analytics</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
 
                 {/* 2. Picker Console */}
-                <LinearGradient
-                  colors={isDarkMode ? ['#1e3a8a', '#172554'] : ['#dbeafe', '#bfdbfe']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 20, padding: 1 }}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/picker');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
                 >
-                  <Pressable 
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      router.push('/picker');
-                    }}
-                    style={({ pressed }) => [{
-                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-                      borderRadius: 19,
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: pressed ? 0.95 : 1
-                    }]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 16 }}>📦</Text>
-                      </View>
-                      <View>
-                        <Text style={{ color: isDarkMode ? '#ffffff' : '#172554', fontWeight: '800', fontSize: 12 }}>Picker Console</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Packhouse inventory & dispatch queue</Text>
-                      </View>
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/20 items-center justify-center flex-shrink-0">
+                      <Package size={18} color="#d97706" strokeWidth={2.5} />
                     </View>
-                    <ChevronRight size={14} color="#94a3b8" />
-                  </Pressable>
-                </LinearGradient>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Picker Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Packhouse inventory & dispatch queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
 
-                {/* 3. Chef Console */}
-                <LinearGradient
-                  colors={isDarkMode ? ['#14532d', '#052e16'] : ['#dcfce7', '#bbf7d0']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 20, padding: 1 }}
+                {/* 3. Rider Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/rider');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
                 >
-                  <Pressable 
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      router.push('/chef');
-                    }}
-                    style={({ pressed }) => [{
-                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-                      borderRadius: 19,
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: pressed ? 0.95 : 1
-                    }]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 16 }}>🍳</Text>
-                      </View>
-                      <View>
-                        <Text style={{ color: isDarkMode ? '#ffffff' : '#052e16', fontWeight: '800', fontSize: 12 }}>Chef Kitchen Console</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Cafe kitchen orders & food prep</Text>
-                      </View>
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/20 items-center justify-center flex-shrink-0">
+                      <Truck size={18} color="#8b5cf6" strokeWidth={2.5} />
                     </View>
-                    <ChevronRight size={14} color="#94a3b8" />
-                  </Pressable>
-                </LinearGradient>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Rider Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Delivery dispatch list & location tracking</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
 
-                {/* 4. Rider Console */}
-                <LinearGradient
-                  colors={isDarkMode ? ['#701a75', '#4a044e'] : ['#fdf4ff', '#fae8ff']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: 20, padding: 1 }}
+                {/* 4. Restaurant Chef Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/restaurant-chef');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
                 >
-                  <Pressable 
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      router.push('/rider');
-                    }}
-                    style={({ pressed }) => [{
-                      backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-                      borderRadius: 19,
-                      padding: 14,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: pressed ? 0.95 : 1
-                    }]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                      <View style={{ width: 36, height: 36, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}>
-                        <Text style={{ fontSize: 16 }}>🛵</Text>
-                      </View>
-                      <View>
-                        <Text style={{ color: isDarkMode ? '#ffffff' : '#4a044e', fontWeight: '800', fontSize: 12 }}>Rider Console</Text>
-                        <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '500', marginTop: 1 }}>Delivery dispatch list & location tracking</Text>
-                      </View>
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/20 items-center justify-center flex-shrink-0">
+                      <ChefHat size={18} color="#e20a22" strokeWidth={2.5} />
                     </View>
-                    <ChevronRight size={14} color="#94a3b8" />
-                  </Pressable>
-                </LinearGradient>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Restaurant Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Restaurant food prep & kitchen cooking queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
+
+                {/* 5. Cafe Chef Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/cafe-chef');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/20 items-center justify-center flex-shrink-0">
+                      <Coffee size={18} color="#ea580c" strokeWidth={2.5} />
+                    </View>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Cafe Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Cafe items, beverages & baking queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
               </View>
             ) : (
               <LinearGradient
@@ -743,7 +781,7 @@ export default function AccountScreen() {
                   onPress={() => {
                     triggerHaptic('medium');
                     if (user.role === 'PICKER') router.push('/picker');
-                    else if (user.role === 'CHEF') router.push('/chef');
+                    else if (user.role === 'CHEF') router.push(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
                     else if (user.role === 'DELIVERY') router.push('/rider');
                     else router.push('/operations');
                   }}
@@ -841,48 +879,6 @@ export default function AccountScreen() {
                 </View>
               </View>
               <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
-            </Pressable>
-
-            {/* Theme Toggle (Dark / Light Mode) */}
-            <Pressable 
-              onPress={() => {
-                triggerHaptic('medium');
-                toggleTheme();
-              }}
-              className="flex-row items-center justify-between p-4 border-b border-slate-100 dark:border-zinc-800 active:bg-slate-50 dark:active:bg-zinc-800"
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
-                <LinearGradient
-                  colors={isDarkMode ? ['#3f3f46', '#27272a'] : ['#fef3c7', '#fde68a']}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: 12,
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {isDarkMode ? (
-                    <Sun size={18} color="#fbbf24" strokeWidth={2.2} />
-                  ) : (
-                    <Moon size={18} color="#d97706" strokeWidth={2.2} />
-                  )}
-                </LinearGradient>
-                <View style={{ flexDirection: 'column' }}>
-                  <Text style={{ color: isDarkMode ? '#f4f4f5' : '#1e293b', fontWeight: '800', fontSize: 13 }}>
-                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-                  </Text>
-                  <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
-                    Switch to {isDarkMode ? 'light' : 'dark'} theme
-                  </Text>
-                </View>
-              </View>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
-                  {isDarkMode ? 'Dark' : 'Light'}
-                </Text>
-                <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
-              </View>
             </Pressable>
 
             {/* Help & FAQs */}
@@ -1040,12 +1036,12 @@ export default function AccountScreen() {
               marginTop: 16
             }}>
               {/* Cancel Button */}
-              <TouchableOpacity
+              <ScalePressable
                 onPress={() => {
-                  triggerHaptic('light');
                   setIsLogoutModalVisible(false);
                 }}
-                activeOpacity={0.7}
+                scaleValue={0.96}
+                haptic="light"
                 style={{
                   width: '48%',
                   height: 46,
@@ -1066,16 +1062,16 @@ export default function AccountScreen() {
                 }}>
                   Cancel
                 </Text>
-              </TouchableOpacity>
+              </ScalePressable>
 
               {/* Logout Button */}
-              <TouchableOpacity
+              <ScalePressable
                 onPress={() => {
-                  triggerHaptic('medium');
                   setIsLogoutModalVisible(false);
                   logout();
                 }}
-                activeOpacity={0.8}
+                scaleValue={0.96}
+                haptic="medium"
                 style={{
                   width: '48%',
                   height: 46,
@@ -1094,7 +1090,7 @@ export default function AccountScreen() {
                 }}>
                   Logout
                 </Text>
-              </TouchableOpacity>
+              </ScalePressable>
             </View>
           </View>
         </View>

@@ -12,22 +12,24 @@ import ProductCard, { Product } from '../../components/product/ProductCard';
 import { triggerHaptic } from '../../lib/haptic';
 import { playCartPop } from '../../lib/audio';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
+import AlertModal from '../../components/shared/AlertModal';
 import { API_BASE_URL } from '../../lib/constants';
 import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 
 const CATEGORY_IMAGES: Record<string, any> = {
-  'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
-  'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
-  'beverages': require('../../assets/beverages_category.png'),
-  'personal-care': require('../../assets/personal_care_category.png'),
-  'household': require('../../assets/household_category.png'),
-  'bakery': require('../../assets/bakery_biscuits_category.png'),
-  'grocery-essential': require('../../assets/atta_rice_dal_category.png'),
-  'cafe': require('../../assets/cafe_category.png'),
+  'fruits-vegetables': require('../../assets/fruits_vegetables_category.webp'),
+  'dairy-breakfast': require('../../assets/dairy_breakfast_category.webp'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.webp'),
+  'beverages': require('../../assets/beverages_category.webp'),
+  'personal-care': require('../../assets/personal_care_category.webp'),
+  'household': require('../../assets/household_category.webp'),
+  'bakery': require('../../assets/bakery_biscuits_category.webp'),
+  'grocery-essential': require('../../assets/atta_rice_dal_category.webp'),
+  'cafe': require('../../assets/cafe_category.webp'),
 };
 
 const DEFAULT_MOCK_DETAIL = {
@@ -55,6 +57,7 @@ export default function ProductDetailScreen() {
   const isDarkMode = theme === 'dark';
   
   const [notified, setNotified] = useState(false);
+  const [isAlertVisible, setIsAlertVisible] = useState(false);
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
   const selectedLocation = useUIStore((s) => s.selectedLocation);
@@ -110,32 +113,6 @@ export default function ProductDetailScreen() {
     const basePrice = product.price || 0;
     const baseMrp = product.mrp || basePrice;
     
-    // Parse unit number and label (e.g. "500 gms" -> 500, "gms")
-    const unitMatch = baseUnit.match(/^(\d+(?:\.\d+)?)\s*(.*)$/);
-    if (unitMatch) {
-      const val = parseFloat(unitMatch[1]);
-      const unitLabel = unitMatch[2] || '';
-      
-      const doubleVal = val * 2;
-      const doublePrice = basePrice * 2;
-      const doubleMrp = baseMrp * 2;
-      
-      return [
-        {
-          id: 'default',
-          unit: baseUnit,
-          price: basePrice,
-          mrp: baseMrp,
-        },
-        {
-          id: 'double',
-          unit: `${doubleVal} ${unitLabel}`.trim(),
-          price: doublePrice,
-          mrp: doubleMrp,
-        }
-      ];
-    }
-    
     return [
       {
         id: 'default',
@@ -157,7 +134,7 @@ export default function ProductDetailScreen() {
   const handleNotify = () => {
     triggerHaptic('success');
     setNotified(true);
-    Alert.alert("Stock Alert Set 🔔", `We will notify you as soon as ${product.name} is back in stock!`);
+    setIsAlertVisible(true);
   };
 
   const activeVariant = variantsList.find((v: any) => v.id === selectedVariantId) || {
@@ -230,14 +207,12 @@ export default function ProductDetailScreen() {
       }}>
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
           {/* Left: Brand Logo & Text (Matched with Landing Page) */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.replace('/(tabs)');
             }} 
-            style={({ pressed }) => [
-              { opacity: pressed ? 0.85 : 1 }
-            ]}
+            scaleValue={0.97}
+            style={{}}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
               <View style={{ 
@@ -260,20 +235,17 @@ export default function ProductDetailScreen() {
                 </Text>
               </View>
             </View>
-          </Pressable>
+          </ScalePressable>
           
           {/* Right: Location Capsule Picker (Matched with Landing Page) */}
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.push('/location-picker');
             }} 
-            style={({ pressed }) => [
-              {
-                opacity: pressed ? 0.85 : 1,
-                maxWidth: '60%'
-              }
-            ]}
+            scaleValue={0.96}
+            style={{
+              maxWidth: '60%'
+            }}
           >
             <View style={{ 
               flexDirection: 'row', 
@@ -301,37 +273,39 @@ export default function ProductDetailScreen() {
               </Text>
               <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
             </View>
-          </Pressable>
+          </ScalePressable>
         </View>
 
-        {/* Row 2: Search input placeholder (Matched with Landing Page) */}
-        <Pressable 
+        <ScalePressable 
           onPress={() => {
-            triggerHaptic('light');
             router.push('/search');
           }}
-          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+          scaleValue={0.99}
           style={Platform.OS === 'ios' ? {
             marginTop: 10,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: 0.04,
             shadowRadius: 6,
+            width: '100%',
           } : Platform.OS === 'android' ? {
             marginTop: 10,
             elevation: 2,
-          } : { marginTop: 10 }}
+            width: '100%',
+          } : { marginTop: 10, width: '100%' }}
         >
-          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
-          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
-            Search for vegetables, dairy, snacks...
-          </Text>
-          
-          {/* Vertical Divider */}
-          <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
-          
-          <Mic size={16} color="#16a34a" />
-        </Pressable>
+          <View className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full">
+            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+            <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
+              Search for vegetables, dairy, snacks...
+            </Text>
+            
+            {/* Vertical Divider */}
+            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+            
+            <Mic size={16} color="#e20a22" />
+          </View>
+        </ScalePressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
         <View style={{
@@ -345,34 +319,35 @@ export default function ProductDetailScreen() {
           paddingVertical: 5,
           marginTop: 12,
           marginBottom: 2,
-          backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff'
+          backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+          maxWidth: '100%',
         }}>
-          <Pressable 
+          <ScalePressable 
             onPress={() => {
-              triggerHaptic('light');
               router.replace('/(tabs)');
             }}
-            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            scaleValue={0.96}
+            style={{}}
           >
             <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
-          </Pressable>
-          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6 }} />
-          <Pressable 
+          </ScalePressable>
+          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6, flexShrink: 0 }} />
+          <ScalePressable 
             onPress={() => {
               if (product.category?.slug) {
-                triggerHaptic('light');
                 router.push(`/category/${product.category.slug}`);
               }
             }}
-            style={({ pressed }) => [{ opacity: pressed ? 0.7 : 1 }]}
+            scaleValue={0.96}
+            style={{ flexShrink: 0 }}
             disabled={!product.category?.slug}
           >
             <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5, textTransform: 'uppercase' }}>
               {product.category?.name || 'MART'}
             </Text>
-          </Pressable>
-          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6 }} />
-          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#71717a' : '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
+          </ScalePressable>
+          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6, flexShrink: 0 }} />
+          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#71717a' : '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase', flexShrink: 1 }} numberOfLines={1}>
             {product.name}
           </Text>
         </View>
@@ -392,7 +367,24 @@ export default function ProductDetailScreen() {
           <View className="mx-4 mt-4 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 p-5 rounded-3xl shadow-sm">
             
             {/* Image Box Container with Inner Border */}
-            <View className="w-full h-80 bg-slate-50 dark:bg-zinc-900/40 items-center justify-center relative border border-slate-100/50 dark:border-zinc-800/50 overflow-hidden rounded-2xl mx-auto mb-4">
+            <View 
+              style={{
+                width: '100%',
+                aspectRatio: 1.1,
+                maxHeight: 280,
+                backgroundColor: isDarkMode ? 'rgba(24,24,27,0.4)' : '#f8fafc',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                borderWidth: 1,
+                borderColor: isDarkMode ? 'rgba(63,63,70,0.5)' : 'rgba(241,245,249,0.5)',
+                overflow: 'hidden',
+                borderRadius: 16,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                marginBottom: 16,
+              }}
+            >
               
               {/* Product Image */}
               {imageSource ? (
@@ -440,7 +432,7 @@ export default function ProductDetailScreen() {
             <View className="w-12 h-1 bg-[#e20a22] rounded-full mt-2.5 mb-4" />
 
             {/* Select Size / Option Row (Styled like Blinkit/Zepto) */}
-            {variantsList.length > 0 && (
+            {variantsList.length > 1 && (
               <View className="mb-6">
                 <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-sm mb-3">
                   Select Size
@@ -449,38 +441,40 @@ export default function ProductDetailScreen() {
                   {variantsList.map((v: any) => {
                     const isSelected = selectedVariantId === v.id;
                     return (
-                      <Pressable
-                        key={v.id}
-                        onPress={() => {
-                          triggerHaptic('light');
-                          setSelectedVariantId(v.id);
-                        }}
-                        style={({ pressed }) => ({
-                          transform: [{ scale: pressed ? 0.96 : 1 }]
-                        })}
-                        className={`w-28 py-3.5 rounded-2xl border-2 items-center justify-center ${
-                          isSelected
-                            ? 'bg-emerald-50/20 border-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-500'
-                            : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'
-                        }`}
-                      >
-                        {/* Variant Unit */}
-                        <Text
-                          className={`text-xs font-black text-center ${
-                            isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-750 dark:text-zinc-300'
-                          }`}
+                      <View key={v.id} style={{ width: 112, height: 60 }}>
+                        <ScalePressable
+                          onPress={() => {
+                            setSelectedVariantId(v.id);
+                          }}
+                          scaleValue={0.96}
+                          style={{ width: '100%', height: '100%' }}
                         >
-                          {v.unit}
-                        </Text>
-                        {/* Variant Price */}
-                        <Text
-                          className={`text-xs font-bold text-center mt-1 ${
-                            isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-400'
-                          }`}
-                        >
-                          {formatPrice(v.price)}
-                        </Text>
-                      </Pressable>
+                          <View
+                            className={`w-full h-full rounded-2xl border-2 items-center justify-center ${
+                              isSelected
+                                ? 'bg-emerald-50/20 border-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-500'
+                                : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'
+                            }`}
+                          >
+                            {/* Variant Unit */}
+                            <Text
+                              className={`text-xs font-black text-center ${
+                                isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-750 dark:text-zinc-300'
+                              }`}
+                            >
+                              {v.unit}
+                            </Text>
+                            {/* Variant Price */}
+                            <Text
+                              className={`text-xs font-bold text-center mt-1 ${
+                                isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-400'
+                              }`}
+                            >
+                              {formatPrice(v.price)}
+                            </Text>
+                          </View>
+                        </ScalePressable>
+                      </View>
                     );
                   })}
                 </View>
@@ -512,62 +506,69 @@ export default function ProductDetailScreen() {
                 <Text className="font-black text-xs tracking-wider text-slate-400 dark:text-zinc-500 uppercase">STORE CLOSED</Text>
               </View>
             ) : ((product.stock ?? 0) <= 0 || product.isAvailable === false) ? (
-              <Pressable
+              <ScalePressable
                 onPress={() => {
                   if (!notified) handleNotify();
                 }}
-                className={`py-3.5 rounded-xl border flex items-center justify-center active:scale-95 mb-6 ${
+                scaleValue={0.96}
+                style={{ width: '100%' }}
+              >
+                <View className={`py-3.5 rounded-xl border flex items-center justify-center mb-6 w-full ${
                   notified 
                     ? 'bg-emerald-950/15 border-emerald-600 dark:border-emerald-500'
                     : 'bg-amber-950/15 border-amber-500 dark:border-amber-400'
-                }`}
-              >
-                <Text className={`font-black text-xs uppercase tracking-wider ${
-                  notified ? 'text-emerald-500' : 'text-amber-550 dark:text-amber-500'
                 }`}>
-                  {notified ? '✓ Alerted' : '🔔 Notify Me'}
-                </Text>
-              </Pressable>
+                  <Text className={`font-black text-xs uppercase tracking-wider ${
+                    notified ? 'text-emerald-500' : 'text-amber-550 dark:text-amber-500'
+                  }`}>
+                    {notified ? '✓ Alerted' : '🔔 Notify Me'}
+                  </Text>
+                </View>
+              </ScalePressable>
             ) : quantity === 0 ? (
-              <Pressable
+              <ScalePressable
                 onPress={() => {
-                  triggerHaptic('success');
                   playCartPop();
                   addItem(cartProduct);
                 }}
-                style={({ pressed }) => ({
-                  transform: [{ scale: pressed ? 0.96 : 1 }]
-                })}
-                className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-xl items-center justify-center flex-row gap-2 transition-transform mb-6"
+                scaleValue={0.96}
+                haptic="success"
+                style={{ width: '100%' }}
               >
-                <Text className="text-white font-black text-sm uppercase tracking-wider">Add to Cart</Text>
-                <ShoppingBag size={15} color="#ffffff" strokeWidth={3} />
-              </Pressable>
+                <View className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-xl items-center justify-center flex-row gap-2 mb-6 w-full">
+                  <Text className="text-white font-black text-sm uppercase tracking-wider">Add to Cart</Text>
+                  <ShoppingBag size={15} color="#ffffff" strokeWidth={3} />
+                </View>
+              </ScalePressable>
             ) : (
-              <View className="flex-row items-center border border-emerald-650 dark:border-emerald-500 bg-emerald-50 dark:bg-zinc-950 rounded-xl p-0.5 mb-6">
-                <Pressable
+              <View className="flex-row items-center border border-emerald-650 dark:border-emerald-500 bg-emerald-50 dark:bg-zinc-950 rounded-xl p-0.5 mb-6 w-full">
+                <ScalePressable
                   onPress={() => {
-                    triggerHaptic('light');
                     playCartPop();
                     updateQuantity(cartProduct.id, cartProduct.name, quantity - 1);
                   }}
-                  style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
-                  className="flex-1 py-3 items-center"
+                  scaleValue={0.88}
+                  haptic="light"
+                  style={{ flex: 1 }}
                 >
-                  <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">-</Text>
-                </Pressable>
+                  <View className="py-3 items-center w-full">
+                    <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">-</Text>
+                  </View>
+                </ScalePressable>
                 <Text className="px-6 text-emerald-805 dark:text-zinc-100 font-black text-sm">{quantity}</Text>
-                <Pressable
+                <ScalePressable
                   onPress={() => {
-                    triggerHaptic('light');
                     playCartPop();
                     updateQuantity(cartProduct.id, cartProduct.name, quantity + 1);
                   }}
-                  style={({ pressed }) => ({ transform: [{ scale: pressed ? 0.94 : 1 }] })}
-                  className="flex-1 py-3 items-center"
+                  scaleValue={0.88}
+                  haptic="light"
+                  style={{ flex: 1 }}
                 >
-                  <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">+</Text>
-                </Pressable>
+                  <View className="py-3 items-center w-full">
+                    <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">+</Text>
+                  </View>
+                </ScalePressable>
               </View>
             )}
 
@@ -673,7 +674,7 @@ export default function ProductDetailScreen() {
               >
                 {relatedProducts.map((p: any, idx: number) => (
                   <View key={p.id} className="w-36">
-                    <ProductCard product={p} index={idx} className="w-full" />
+                    <ProductCard product={p} index={idx} className="w-full" isCafeStyle={isCafe} />
                   </View>
                 ))}
               </ScrollView>
@@ -699,6 +700,14 @@ export default function ProductDetailScreen() {
 
       {/* Sticky Bottom Cart Bar */}
       <FloatingCartBar bottomOffset={8} />
+
+      {/* Premium Success Modal */}
+      <AlertModal
+        visible={isAlertVisible}
+        onClose={() => setIsAlertVisible(false)}
+        title="Stock Alert Set 🔔"
+        message={`We will notify you as soon as ${product.name} is back in stock!`}
+      />
     </SafeAreaView>
   );
 }

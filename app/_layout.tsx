@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { Stack, router, usePathname } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
+import AnimatedSplashScreen from '../components/shared/AnimatedSplashScreen';
 // Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync().catch(() => {});
 import { useAuthStore } from '../stores/auth-store';
@@ -41,6 +42,7 @@ const queryClient = new QueryClient({
 
 import { registerForPushNotificationsAsync, addNotificationResponseListener } from '../lib/push-notifications';
 import VariantSelectorDrawer from '../components/product/VariantSelectorDrawer';
+import CartConflictDrawer from '../components/product/CartConflictDrawer';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
 import { isWithinOperatingHours, isHoliday } from '../lib/store-hours';
@@ -63,9 +65,89 @@ function CartSynchronizer() {
   const { isLoggedIn, user } = useAuthStore();
   const items = useCartStore((s) => s.items);
   const isInitialMount = React.useRef(true);
+  const [hasInitialSyncCompleted, setHasInitialSyncCompleted] = useState(false);
+  const isFetchingServerCart = React.useRef(false);
 
+  // Reset sync complete state if user logs out
   useEffect(() => {
-    if (!isLoggedIn || !user) return;
+    if (!isLoggedIn) {
+      setHasInitialSyncCompleted(false);
+    }
+  }, [isLoggedIn]);
+
+  // 1. Fetch server cart on login and merge with local cart
+  useEffect(() => {
+    if (!isLoggedIn || !user || hasInitialSyncCompleted || isFetchingServerCart.current) {
+      return;
+    }
+
+    isFetchingServerCart.current = true;
+
+    const loadServerCart = async () => {
+      try {
+        const headers = {
+          'Content-Type': 'application/json',
+          'x-user-id': user.id,
+          'x-user-role': user.role,
+          'x-user-email': user.email || '',
+          'x-user-name': user.name || '',
+          'x-user-phone': user.phone || '',
+        };
+
+        const response = await fetch(`${API_BASE_URL}/cart`, {
+          method: 'GET',
+          headers,
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.success && Array.isArray(data.items)) {
+            const serverItems = data.items;
+            const localItems = useCartStore.getState().items;
+
+            const mergedMap = new Map();
+
+            // First add server items
+            for (const item of serverItems) {
+              mergedMap.set(item.product.id, item);
+            }
+
+            // Then merge local items
+            for (const item of localItems) {
+              const existing = mergedMap.get(item.product.id);
+              if (existing) {
+                const limit = item.product.stock || 99;
+                const newQty = Math.min(Math.max(existing.quantity, item.quantity), limit);
+                
+                mergedMap.set(item.product.id, {
+                  ...existing,
+                  quantity: newQty,
+                  notes: item.notes || existing.notes
+                });
+              } else {
+                mergedMap.set(item.product.id, item);
+              }
+            }
+
+            const finalItems = Array.from(mergedMap.values());
+            useCartStore.setState({ items: finalItems });
+            console.log('Mobile: Successfully synced/merged cart from DB:', finalItems.length, 'items');
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to load server cart on mobile mount:', err);
+      } finally {
+        setHasInitialSyncCompleted(true);
+        isFetchingServerCart.current = false;
+      }
+    };
+
+    loadServerCart();
+  }, [isLoggedIn, user, hasInitialSyncCompleted]);
+
+  // 2. Sync local cart changes back to DB (debounced)
+  useEffect(() => {
+    if (!isLoggedIn || !user || !hasInitialSyncCompleted) return;
 
     const delay = isInitialMount.current ? 800 : 2000;
     isInitialMount.current = false;
@@ -106,7 +188,7 @@ function CartSynchronizer() {
     }, delay);
 
     return () => clearTimeout(timer);
-  }, [items, isLoggedIn, user]);
+  }, [items, isLoggedIn, user, hasInitialSyncCompleted]);
 
   return null;
 }
@@ -129,11 +211,12 @@ export default function RootLayout() {
     PlusJakartaSans_800ExtraBold,
   });
 
+  const [showSplash, setShowSplash] = useState(true);
+
+  // Hide the native static splash screen immediately on mount so only the dynamic animated one is seen!
   useEffect(() => {
-    if (fontsLoaded) {
-      SplashScreen.hideAsync().catch(() => {});
-    }
-  }, [fontsLoaded]);
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
 
   useEffect(() => {
     // Request push notification token on startup
@@ -159,6 +242,11 @@ export default function RootLayout() {
           const surgeMultiplier = settings.surge_multiplier ? parseFloat(settings.surge_multiplier) : 1.0;
           const taxRateSetting = settings.tax_rate !== undefined ? parseFloat(settings.tax_rate) : 5;
           const onlyCodSetting = settings.only_cod === 'true';
+          const miscFeeSetting = settings.misc_fee !== undefined ? parseFloat(settings.misc_fee) : 0;
+          const miscFeeLabelSetting = settings.misc_fee_label || '';
+          const deliveryFeeBaseSetting = settings.delivery_fee !== undefined ? parseFloat(settings.delivery_fee) : 25;
+          const groceryThresholdSetting = settings.grocery_free_delivery_threshold !== undefined ? parseFloat(settings.grocery_free_delivery_threshold) : 199;
+          const cafeThresholdSetting = settings.cafe_free_delivery_threshold !== undefined ? parseFloat(settings.cafe_free_delivery_threshold) : 199;
 
           // Check store hours auto-close and holiday calendar
           const inHours = isWithinOperatingHours(storeOpenHour, storeCloseHour);
@@ -185,7 +273,12 @@ export default function RootLayout() {
             holidays,
             surgeMultiplier,
             taxRateSetting,
-            onlyCodSetting
+            onlyCodSetting,
+            miscFeeSetting,
+            miscFeeLabelSetting,
+            deliveryFeeBaseSetting,
+            groceryThresholdSetting,
+            cafeThresholdSetting
           );
         }
       } catch (err) {
@@ -214,7 +307,7 @@ export default function RootLayout() {
     if (isLoggedIn && user && user.role !== 'USER') {
       redirectTimer = setTimeout(() => {
         if (user.role === 'PICKER') router.replace('/picker');
-        else if (user.role === 'CHEF') router.replace('/chef');
+        else if (user.role === 'CHEF') router.replace(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
         else if (user.role === 'DELIVERY') router.replace('/rider');
         else router.replace('/operations');
       }, 200);
@@ -228,7 +321,7 @@ export default function RootLayout() {
   }, [isLoggedIn, user]);
 
   const pathname = usePathname();
-  const isStaffRoute = ['/operations', '/picker', '/chef', '/rider'].some(path => pathname?.startsWith(path));
+  const isStaffRoute = ['/operations', '/picker', '/chef', '/cafe-chef', '/restaurant-chef', '/rider'].some(path => pathname?.startsWith(path));
   const shouldRestrictWidth = isWide && !isStaffRoute;
 
   if (!fontsLoaded) {
@@ -267,15 +360,19 @@ export default function RootLayout() {
                 }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
+                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
+                  <Stack.Screen name="cafe-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
+                  <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
                   <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
-                  <Stack.Screen name="cart" options={{ presentation: 'modal', headerShown: false, animation: 'slide_from_bottom' }} />
+                  <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
                   <Stack.Screen name="checkout" options={{ headerShown: false }} />
                   <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
                 </Stack>
-                 <VariantSelectorDrawer />
-                 <CartSynchronizer />
+                  <VariantSelectorDrawer />
+                  <CartConflictDrawer />
+                  <CartSynchronizer />
+                  {showSplash && <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />}
                </View>
             </ErrorBoundary>
           </RootThemeWrapper>

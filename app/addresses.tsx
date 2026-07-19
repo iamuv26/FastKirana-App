@@ -1,18 +1,20 @@
-import { View, Text, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Switch, Platform, StyleSheet, BackHandler } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, Alert, ActivityIndicator, Switch, Platform, StyleSheet, BackHandler, Modal, TouchableOpacity } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useCallback } from 'react';
 import { router, useFocusEffect } from 'expo-router';
-import { ArrowLeft, MapPin, Trash2, Plus, Check, Navigation, Compass, Home, Briefcase } from 'lucide-react-native';
+import { ArrowLeft, MapPin, Trash2, Plus, Check, Navigation, Compass, Home, Briefcase, Edit3 } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
 import { api } from '../lib/api-client';
+import { LinearGradient } from 'expo-linear-gradient';
 
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
 import { useTheme } from './context/ThemeContext';
+import { ScalePressable } from '../components/shared/ScalePressable';
 
 let MapView: any;
 let Marker: any;
@@ -48,6 +50,9 @@ export default function AddressesScreen() {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [showAddForm, setShowAddForm] = useState(false);
+  const [editingAddressId, setEditingAddressId] = useState<string | null>(null);
+  const [deleteModalVisible, setDeleteModalVisible] = useState(false);
+  const [addressToDelete, setAddressToDelete] = useState<string | null>(null);
 
   // Form State
   const [label, setLabel] = useState('Home');
@@ -204,10 +209,14 @@ export default function AddressesScreen() {
     try {
       const { mmkvStorage } = require('../lib/storage');
       const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-      if (localData) {
-        const parsed = JSON.parse(localData);
-        if (Array.isArray(parsed)) {
-          localList = parsed;
+      if (localData && localData !== 'undefined') {
+        try {
+          const parsed = JSON.parse(localData);
+          if (Array.isArray(parsed)) {
+            localList = parsed;
+          }
+        } catch (jsonErr) {
+          console.warn('Local addresses parse error:', jsonErr);
         }
       }
     } catch (e) {
@@ -254,9 +263,162 @@ export default function AddressesScreen() {
     }, [user])
   );
 
+  const resetForm = () => {
+    setShowAddForm(false);
+    setEditingAddressId(null);
+    setLabel('Home');
+    setFullAddress('');
+    setCity('Ghatampur');
+    setPincode('209206');
+    setIsDefault(false);
+  };
+
+  const handleEditAddress = (address: Address) => {
+    triggerHaptic('light');
+    setEditingAddressId(address.id);
+    setLabel(address.label || 'Home');
+    setFullAddress(address.area || '');
+    setCity(address.city || 'Ghatampur');
+    setPincode(address.pincode || '209206');
+    setPhone(address.phone || user?.phone || '');
+    setIsDefault(address.isDefault || false);
+    setShowAddForm(true);
+  };
+
   const saveAddressData = async (cleanPin: string, cleanCity: string, cleanAddress: string, cleanPhone: string) => {
     setIsSaving(true);
     triggerHaptic('light');
+
+    if (editingAddressId) {
+      if (user?.id?.startsWith('mock-') || editingAddressId.startsWith('local-addr-')) {
+        try {
+          const { mmkvStorage } = require('../lib/storage');
+          const localKey = `local_addresses_${user?.id || 'guest'}`;
+          const localData = mmkvStorage.getItem(localKey);
+          const list = localData ? JSON.parse(localData) : [];
+          
+          const updatedList = list.map((a: any) => {
+            if (a.id === editingAddressId) {
+              return {
+                ...a,
+                label,
+                area: cleanAddress,
+                city: cleanCity,
+                pincode: cleanPin,
+                phone: cleanPhone,
+                isDefault,
+                lat: userCoords?.lat || a.lat || storeLat,
+                lng: userCoords?.lng || a.lng || storeLng,
+              };
+            }
+            return isDefault ? { ...a, isDefault: false } : a;
+          });
+          
+          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
+          toast.success('Address updated locally!');
+          resetForm();
+          setAddresses(updatedList);
+          setTimeout(() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/account');
+            }
+          }, 600);
+        } catch (e) {
+          Alert.alert('Error', 'Failed to update address locally');
+        } finally {
+          setIsSaving(false);
+        }
+        return;
+      }
+
+      let lat: number | null = userCoords?.lat || null;
+      let lng: number | null = userCoords?.lng || null;
+      if (!lat || !lng) {
+        try {
+          const geoPromise = Location.geocodeAsync(`${cleanAddress}, ${cleanCity} ${cleanPin}`);
+          const timeoutPromise = new Promise<null>((resolve) => setTimeout(() => resolve(null), 3000));
+          const geoResults = await Promise.race([geoPromise, timeoutPromise]);
+          if (geoResults && geoResults.length > 0) {
+            lat = geoResults[0].latitude;
+            lng = geoResults[0].longitude;
+          }
+        } catch (e) {
+          console.warn('Geocoding failed during edit:', e);
+        }
+      }
+
+      try {
+        await api.put('/addresses', {
+          id: editingAddressId,
+          label,
+          houseNo: '-',
+          street: '-',
+          area: cleanAddress,
+          city: cleanCity,
+          pincode: cleanPin,
+          phone: cleanPhone,
+          isDefault,
+          lat,
+          lng,
+        });
+
+        toast.success('Address updated!');
+        resetForm();
+        loadAddresses();
+        setTimeout(() => {
+          if (router.canGoBack()) {
+            router.back();
+          } else {
+            router.replace('/(tabs)/account');
+          }
+        }, 600);
+      } catch (err: any) {
+        console.warn('Error updating address on server:', err);
+        // Local fallback update
+        try {
+          const { mmkvStorage } = require('../lib/storage');
+          const localKey = `local_addresses_${user?.id || 'guest'}`;
+          const localData = mmkvStorage.getItem(localKey);
+          const list = localData ? JSON.parse(localData) : [];
+          
+          const updatedList = list.map((a: any) => {
+            if (a.id === editingAddressId) {
+              return {
+                ...a,
+                label,
+                area: cleanAddress,
+                city: cleanCity,
+                pincode: cleanPin,
+                phone: cleanPhone,
+                isDefault,
+                lat: lat || a.lat || storeLat,
+                lng: lng || a.lng || storeLng,
+              };
+            }
+            return isDefault ? { ...a, isDefault: false } : a;
+          });
+          
+          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
+          toast.success('Address updated locally (Demo fallback)');
+          resetForm();
+          setAddresses(updatedList);
+          setTimeout(() => {
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)/account');
+            }
+          }, 600);
+        } catch (storageErr) {
+          Alert.alert('Error', err.message || 'Failed to update address.');
+        }
+      } finally {
+        setIsSaving(false);
+      }
+      return;
+    }
 
     if (user?.id?.startsWith('mock-')) {
       try {
@@ -457,64 +619,60 @@ export default function AddressesScreen() {
   };
 
   const handleDeleteAddress = (id: string) => {
-    Alert.alert(
-      'Delete Address 🗑️',
-      'Are you sure you want to remove this address?',
-      [
-        { text: 'Cancel', style: 'cancel' },
-        { 
-          text: 'Delete', 
-          style: 'destructive', 
-          onPress: async () => {
-            triggerHaptic('medium');
-            
-            if (user?.id?.startsWith('mock-') || id.startsWith('local-addr-')) {
-              try {
-                const { mmkvStorage } = require('../lib/storage');
-                const localKey = `local_addresses_${user?.id || 'guest'}`;
-                const localData = mmkvStorage.getItem(localKey);
-                if (localData) {
-                  const list = JSON.parse(localData);
-                  const updatedList = list.filter((a: any) => a.id !== id);
-                  mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-                  setAddresses(updatedList);
-                  toast.success('Address deleted locally');
-                }
-              } catch (e) {
-                toast.error('Failed to delete local address');
-              }
-              return;
-            }
+    setAddressToDelete(id);
+    setDeleteModalVisible(true);
+  };
 
-            try {
-              await api.delete('/addresses', {
-                body: JSON.stringify({ id }),
-              });
-              toast.success('Address deleted');
-              loadAddresses();
-            } catch (err: any) {
-              console.warn('Error deleting address from backend, trying local:', err);
-              try {
-                const { mmkvStorage } = require('../lib/storage');
-                const localKey = `local_addresses_${user?.id || 'guest'}`;
-                const localData = mmkvStorage.getItem(localKey);
-                if (localData) {
-                  const list = JSON.parse(localData);
-                  const updatedList = list.filter((a: any) => a.id !== id);
-                  mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-                  setAddresses(updatedList);
-                  toast.success('Address deleted locally');
-                  return;
-                }
-              } catch (storageErr) {
-                console.warn('Failed to delete address locally:', storageErr);
-              }
-              toast.error(err.message || 'Error deleting address');
-            }
-          }
+  const confirmDeleteAddress = async () => {
+    if (!addressToDelete) return;
+    const id = addressToDelete;
+    setDeleteModalVisible(false);
+    setAddressToDelete(null);
+    triggerHaptic('medium');
+    
+    if (user?.id?.startsWith('mock-') || id.startsWith('local-addr-')) {
+      try {
+        const { mmkvStorage } = require('../lib/storage');
+        const localKey = `local_addresses_${user?.id || 'guest'}`;
+        const localData = mmkvStorage.getItem(localKey);
+        if (localData) {
+          const list = JSON.parse(localData);
+          const updatedList = list.filter((a: any) => a.id !== id);
+          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
+          setAddresses(updatedList);
+          toast.success('Address deleted locally');
         }
-      ]
-    );
+      } catch (e) {
+        toast.error('Failed to delete local address');
+      }
+      return;
+    }
+
+    try {
+      await api.delete('/addresses', {
+        body: JSON.stringify({ id }),
+      });
+      toast.success('Address deleted');
+      loadAddresses();
+    } catch (err: any) {
+      console.warn('Error deleting address from backend, trying local:', err);
+      try {
+        const { mmkvStorage } = require('../lib/storage');
+        const localKey = `local_addresses_${user?.id || 'guest'}`;
+        const localData = mmkvStorage.getItem(localKey);
+        if (localData) {
+          const list = JSON.parse(localData);
+          const updatedList = list.filter((a: any) => a.id !== id);
+          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
+          setAddresses(updatedList);
+          toast.success('Address deleted locally');
+          return;
+        }
+      } catch (storageErr) {
+        console.warn('Failed to delete address locally:', storageErr);
+      }
+      toast.error(err.message || 'Error deleting address');
+    }
   };
 
   return (
@@ -527,7 +685,7 @@ export default function AddressesScreen() {
             onPress={() => {
               triggerHaptic('light');
               if (showAddForm) {
-                setShowAddForm(false);
+                resetForm();
               } else {
                 if (router.canGoBack()) {
                   router.back();
@@ -541,7 +699,7 @@ export default function AddressesScreen() {
             <ArrowLeft size={18} color={isDarkMode ? '#e4e4e7' : '#3f3f46'} />
           </Pressable>
           <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">
-            {showAddForm ? 'Add New Address' : 'My Addresses'}
+            {showAddForm ? (editingAddressId ? 'Edit Address' : 'Add New Address') : 'My Addresses'}
           </Text>
         </View>
 
@@ -563,7 +721,9 @@ export default function AddressesScreen() {
         {showAddForm ? (
           /* Add Address Form */
           <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-10 shadow-xs gap-4">
-            <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm uppercase tracking-wider mb-1">Add New Address</Text>
+            <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm uppercase tracking-wider mb-1">
+              {editingAddressId ? 'Edit Address' : 'Add New Address'}
+            </Text>
 
             {/* Embedded Google Maps Location Picker Section */}
             <View className="bg-slate-50 dark:bg-zinc-800/60 border border-slate-200/80 dark:border-zinc-700/80 rounded-2xl overflow-hidden mb-2 shadow-xs">
@@ -746,8 +906,8 @@ export default function AddressesScreen() {
             {/* Form buttons */}
             <View className="flex-row gap-3 mt-2">
               <Pressable
-                onPress={() => setShowAddForm(false)}
-                className="flex-1 py-3 bg-slate-100 dark:bg-zinc-800 rounded-xl items-center"
+                onPress={resetForm}
+                className="flex-1 py-3 bg-slate-100 dark:bg-zinc-800 rounded-xl items-center active:bg-slate-200 dark:active:bg-zinc-700 active:scale-[0.98]"
               >
                 <Text className="text-slate-600 dark:text-zinc-350 font-bold text-xs">Cancel</Text>
               </Pressable>
@@ -755,12 +915,14 @@ export default function AddressesScreen() {
               <Pressable
                 onPress={handleAddAddress}
                 disabled={isSaving}
-                className="flex-1 py-3 bg-rose-600 rounded-xl items-center justify-center flex-row"
+                className="flex-1 py-3 bg-rose-600 rounded-xl items-center justify-center flex-row active:bg-rose-700 active:scale-[0.98]"
               >
                 {isSaving ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
-                  <Text className="text-white font-black text-xs">Save Address</Text>
+                  <Text className="text-white font-black text-xs">
+                    {editingAddressId ? 'Update Address' : 'Save Address'}
+                  </Text>
                 )}
               </Pressable>
             </View>
@@ -836,19 +998,145 @@ export default function AddressesScreen() {
                     <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1 font-semibold">Contact: {address.phone}</Text>
                   </View>
 
-                  {/* Delete Button */}
-                  <Pressable
-                    onPress={() => handleDeleteAddress(address.id)}
-                    className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 items-center justify-center active:bg-rose-50 dark:active:bg-rose-950/20"
-                  >
-                    <Trash2 size={15} color="#ef4444" />
-                  </Pressable>
+                  <View className="flex-row gap-2">
+                    {/* Edit Button */}
+                    <Pressable
+                      onPress={() => handleEditAddress(address)}
+                      className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 items-center justify-center active:bg-indigo-50 dark:active:bg-indigo-950/20"
+                    >
+                      <Edit3 size={15} color={isDarkMode ? '#a1a1aa' : '#475569'} />
+                    </Pressable>
+
+                    {/* Delete Button */}
+                    <Pressable
+                      onPress={() => handleDeleteAddress(address.id)}
+                      className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 items-center justify-center active:bg-rose-50 dark:active:bg-rose-950/20"
+                    >
+                      <Trash2 size={15} color="#ef4444" />
+                    </Pressable>
+                  </View>
                 </View>
               );
             })}
           </View>
         )}
       </ScrollView>
+
+      {/* Premium Custom Delete Modal */}
+      <Modal
+        visible={deleteModalVisible}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={() => setDeleteModalVisible(false)}
+      >
+        <Pressable 
+          style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' }}
+          onPress={() => setDeleteModalVisible(false)}
+        >
+          <Pressable 
+            style={{
+              width: '85%',
+              maxWidth: 340,
+              backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 10 },
+              shadowOpacity: 0.25,
+              shadowRadius: 15,
+              elevation: 10,
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+            }}
+          >
+            {/* Trash icon with glowing circle */}
+            <View style={{
+              width: 56,
+              height: 56,
+              borderRadius: 28,
+              backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.12)' : '#fee2e2',
+              justifyContent: 'center',
+              alignItems: 'center',
+              marginBottom: 16,
+            }}>
+              <Trash2 size={24} color="#ef4444" strokeWidth={2} />
+            </View>
+
+            {/* Modal Title */}
+            <Text style={{
+              fontSize: 18,
+              fontWeight: '900',
+              color: isDarkMode ? '#ffffff' : '#0f172a',
+              textAlign: 'center',
+              marginBottom: 8,
+            }}>
+              Delete Address
+            </Text>
+
+            {/* Modal Description */}
+            <Text style={{
+              fontSize: 13,
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
+              textAlign: 'center',
+              lineHeight: 18,
+              marginBottom: 24,
+              fontWeight: '600',
+            }}>
+              Are you sure you want to remove this address? This action cannot be undone.
+            </Text>
+
+            {/* Buttons Row */}
+            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  setDeleteModalVisible(false);
+                }}
+                style={{
+                  flex: 1,
+                  paddingVertical: 12,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
+                }}
+              >
+                <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#d4d4d8' : '#71717a' }}>
+                  Cancel
+                </Text>
+              </Pressable>
+
+              <ScalePressable
+                onPress={confirmDeleteAddress}
+                scaleValue={0.96}
+                haptic="medium"
+                style={{
+                  flex: 1,
+                  borderRadius: 16,
+                  overflow: 'hidden',
+                }}
+              >
+                <LinearGradient
+                  colors={['#ef4444', '#dc2626']}
+                  start={{ x: 0, y: 0 }}
+                  end={{ x: 1, y: 0 }}
+                  style={{
+                    paddingVertical: 12,
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    width: '100%',
+                  }}
+                >
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>
+                    Delete
+                  </Text>
+                </LinearGradient>
+              </ScalePressable>
+            </View>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </SafeAreaView>
   );
 }

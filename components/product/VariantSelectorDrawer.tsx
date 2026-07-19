@@ -9,17 +9,19 @@ import { API_BASE_URL } from '../../lib/constants';
 import { useTheme } from '../../app/context/ThemeContext';
 import { triggerHaptic } from '../../lib/haptic';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { THEME } from '../../lib/theme';
+
 
 const CATEGORY_IMAGES: Record<string, any> = {
-  'fruits-vegetables': require('../../assets/fruits_vegetables_category.png'),
-  'dairy-breakfast': require('../../assets/dairy_breakfast_category.png'),
-  'snacks-biscuits': require('../../assets/snacks_munchies_category.png'),
-  'beverages': require('../../assets/beverages_category.png'),
-  'personal-care': require('../../assets/personal_care_category.png'),
-  'household': require('../../assets/household_category.png'),
-  'bakery-biscuits': require('../../assets/bakery_biscuits_category.png'),
-  'grocery-essential': require('../../assets/atta_rice_dal_category.png'),
-  'cafe': require('../../assets/cafe_category.png'),
+  'fruits-vegetables': require('../../assets/fruits_vegetables_category.webp'),
+  'dairy-breakfast': require('../../assets/dairy_breakfast_category.webp'),
+  'snacks-biscuits': require('../../assets/snacks_munchies_category.webp'),
+  'beverages': require('../../assets/beverages_category.webp'),
+  'personal-care': require('../../assets/personal_care_category.webp'),
+  'household': require('../../assets/household_category.webp'),
+  'bakery-biscuits': require('../../assets/bakery_biscuits_category.webp'),
+  'grocery-essential': require('../../assets/atta_rice_dal_category.webp'),
+  'cafe': require('../../assets/cafe_category.webp'),
 };
 
 interface VariantRowProps {
@@ -351,14 +353,14 @@ export default function VariantSelectorDrawer() {
 const styles = StyleSheet.create({
   modalOverlay: {
     flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: 'rgba(0, 0, 0, 0.65)',
     justifyContent: 'flex-end',
   },
   drawerContent: {
     width: '100%',
     height: Math.round(Dimensions.get('window').height * 0.72),
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
+    borderTopLeftRadius: THEME.RADIUS.xl,
+    borderTopRightRadius: THEME.RADIUS.xl,
     borderTopWidth: 1,
   },
   dragHandle: {
@@ -387,18 +389,18 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
   },
   productNameText: {
-    fontWeight: '900',
-    fontSize: 15,
-    lineHeight: 18,
+    fontWeight: '700',
+    fontSize: 16.5,
+    lineHeight: 20,
   },
   productUnitText: {
-    fontSize: 11,
-    fontWeight: '700',
+    fontSize: 12,
+    fontWeight: '500',
     marginTop: 2,
   },
   sectionTitle: {
-    fontSize: 11,
-    fontWeight: '900',
+    fontSize: 12,
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: '#94a3b8',
@@ -414,7 +416,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     padding: 16,
     marginBottom: 12,
-    borderRadius: 12,
+    borderRadius: THEME.RADIUS.sm,
     borderWidth: 1.5,
   },
   variantInfo: {
@@ -422,8 +424,8 @@ const styles = StyleSheet.create({
     paddingRight: 12,
   },
   variantName: {
-    fontSize: 12,
-    fontWeight: '900',
+    fontSize: 13,
+    fontWeight: '700',
     textTransform: 'uppercase',
     letterSpacing: 0.3,
   },
@@ -435,13 +437,13 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
   },
   variantPrice: {
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: 15.5,
+    fontWeight: '700',
   },
   variantMrp: {
-    fontSize: 10,
+    fontSize: 11,
     textDecorationLine: 'line-through',
-    fontWeight: '700',
+    fontWeight: '500',
   },
   discountTag: {
     paddingHorizontal: 6,
@@ -449,13 +451,13 @@ const styles = StyleSheet.create({
     borderRadius: 4,
   },
   discountTagText: {
-    fontWeight: '900',
-    fontSize: 8,
+    fontWeight: '700',
+    fontSize: 10,
     textTransform: 'uppercase',
   },
   lowStockText: {
-    fontSize: 9,
-    fontWeight: '700',
+    fontSize: 10.5,
+    fontWeight: '600',
     color: '#ef4444',
     marginTop: 4,
   },
@@ -465,7 +467,7 @@ const styles = StyleSheet.create({
     gap: 12,
     borderWidth: 1,
     padding: 14,
-    borderRadius: 12,
+    borderRadius: THEME.RADIUS.sm,
     borderLeftWidth: 4,
     borderLeftColor: '#10b981',
   },
@@ -474,23 +476,23 @@ const styles = StyleSheet.create({
   },
   trustBadgeTitle: {
     color: '#047857',
-    fontWeight: '900',
-    fontSize: 10,
+    fontWeight: '700',
+    fontSize: 11,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },
   trustBadgeDesc: {
-    fontSize: 9.5,
-    fontWeight: '700',
+    fontSize: 11,
+    fontWeight: '500',
     marginTop: 4,
-    lineHeight: 13,
+    lineHeight: 15,
   },
   variantAddBtn: {
     width: '100%',
     height: '100%',
     borderWidth: 1.5,
     borderColor: '#0c831f',
-    borderRadius: 10,
+    borderRadius: THEME.RADIUS.xs,
     backgroundColor: '#ffffff',
     overflow: 'hidden',
   },
@@ -504,8 +506,8 @@ const styles = StyleSheet.create({
   },
   variantAddBtnText: {
     color: '#0c831f',
-    fontSize: 12,
-    fontWeight: '800',
+    fontSize: 11.5,
+    fontWeight: '700',
     letterSpacing: 0.3,
   },
   variantStepperWrap: {
@@ -513,7 +515,7 @@ const styles = StyleSheet.create({
     height: 32,
     width: 80,
     alignItems: 'center',
-    borderRadius: 10,
+    borderRadius: THEME.RADIUS.xs,
     backgroundColor: '#2d5a27',
   },
   variantStepperBtn: {
@@ -548,7 +550,7 @@ const styles = StyleSheet.create({
   productImageWrap: {
     width: 64,
     height: 64,
-    borderRadius: 32,
+    borderRadius: THEME.RADIUS.sm,
     backgroundColor: '#f8fafc',
     padding: 4,
     alignItems: 'center',

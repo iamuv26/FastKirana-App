@@ -13,6 +13,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../app/context/ThemeContext';
+import { THEME } from '../../lib/theme';
 
 export default function EtaBadge() {
   const { theme } = useTheme();
@@ -149,47 +150,47 @@ const styles = StyleSheet.create({
   badge: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 5,
+    gap: 6,
     borderWidth: 1,
-    borderRadius: 99,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+    borderRadius: THEME.RADIUS.pill,
+    paddingHorizontal: 12,
+    paddingVertical: 5,
   },
   dotContainer: {
     position: 'relative',
-    width: 8,
-    height: 8,
+    width: 10,
+    height: 10,
     justifyContent: 'center',
     alignItems: 'center',
   },
   dotGlow: {
     position: 'absolute',
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   dotCenter: {
-    width: 6,
-    height: 6,
-    borderRadius: 3,
+    width: 8,
+    height: 8,
+    borderRadius: 4,
   },
   bolt: {
-    fontSize: 9,
+    fontSize: 11,
     marginRight: -2,
   },
   textContainer: {
     alignItems: 'center',
   },
   mainText: {
-    fontSize: 10.5,
-    fontWeight: '900',
+    fontSize: 11.5,
+    fontWeight: '700',
     letterSpacing: 0.3,
-    lineHeight: 13,
+    lineHeight: 14,
   },
   subText: {
-    fontSize: 6,
-    fontWeight: '800',
-    letterSpacing: 1,
-    lineHeight: 8,
+    fontSize: 8.5,
+    fontWeight: '600',
+    letterSpacing: 0.5,
+    lineHeight: 10,
   },
 });

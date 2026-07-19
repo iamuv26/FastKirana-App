@@ -26,7 +26,7 @@ const getApiUrl = () => {
     if (typeof window !== 'undefined' && window.location) {
       const hostname = window.location.hostname;
       if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'http://localhost:3999/api';
+        return 'https://www.fastkirana.in/api';
       }
     }
   }
@@ -38,12 +38,11 @@ export const API_BASE_URL = getApiUrl();
 export const FREE_DELIVERY_THRESHOLD = 199
 export const GROCERY_FREE_DELIVERY_THRESHOLD = 199
 export const CAFE_FREE_DELIVERY_THRESHOLD = 199
-export const COMBINED_FREE_DELIVERY_THRESHOLD = 300
 export const DELIVERY_FEE = 25
 export const TAX_RATE = 0.05 // 5% GST
 
 // Operational Control Defaults
-export const MIN_ORDER_VALUE = 99
+export const MIN_ORDER_VALUE = 20
 export const SURGE_MULTIPLIER = 1.0
 export const STORE_OPEN_HOUR = 7
 export const STORE_CLOSE_HOUR = 23
@@ -83,6 +82,9 @@ export interface CafeMenuSection {
   title: string
   emoji: string
   description: string
+  imageUrl?: string
+  image?: string
+  disabled?: boolean
 }
 
 export const DEFAULT_CAFE_MENU_SECTIONS: CafeMenuSection[] = [
@@ -179,9 +181,54 @@ export const DEFAULT_CAFE_MENU_SECTIONS: CafeMenuSection[] = [
   },
   {
     tag: 'chilled',
-    matchTags: ['chilled', 'cold-drink'],
+    matchTags: ['chilled', 'cold-drink', 'beverages', 'beverage', 'drinks', 'drink'],
     title: 'Chilled Sips & Sodas',
     emoji: '🥤',
     description: 'Carbonated soft drinks and cold energy boosts',
+  },
+  {
+    tag: 'desserts',
+    matchTags: ['desserts', 'ice-cream', 'ice cream', 'kulfi', 'dessert', 'sweet'],
+    title: 'Ice Creams & Desserts',
+    emoji: '🍦',
+    description: 'Chilled premium ice creams, kulfis, and desserts',
+  }
+]
+
+export const DEFAULT_RESTAURANT_MENU_SECTIONS: CafeMenuSection[] = [
+  {
+    tag: 'north-indian',
+    matchTags: ['north-indian', 'curry', 'roti', 'dal-makhani', 'paneer-butter-masala', 'paneer', 'naan'],
+    title: 'North Indian Curries & Breads',
+    emoji: '🥘',
+    description: 'Rich paneer butter masala, creamy dal makhani, and warm butter naans',
+  },
+  {
+    tag: 'south-indian',
+    matchTags: ['south-indian', 'dosa', 'idli', 'sambar', 'vada', 'uttapam'],
+    title: 'South Indian Specials',
+    emoji: '🍛',
+    description: 'Crispy butter masalas, steamed soft idlis, and hot sambar vadas',
+  },
+  {
+    tag: 'biryani-rice',
+    matchTags: ['biryani-rice', 'biryani', 'pulav', 'fried-rice', 'jeera-rice'],
+    title: 'Biryani & Rice Feasts',
+    emoji: '🍚',
+    description: 'Aromatic basmati veg biryanis, paneer pulavs & loaded fried rice bowls',
+  },
+  {
+    tag: 'chinese',
+    matchTags: ['chinese', 'noodles', 'manchurian', 'chilli-paneer', 'spring-rolls'],
+    title: 'Chinese Kitchen Wok',
+    emoji: '🥡',
+    description: 'Stir-fried noodles, saucy veg manchurian, and crispy spring rolls',
+  },
+  {
+    tag: 'desserts',
+    matchTags: ['desserts', 'gulab-jamun', 'ice-cream', 'kheer', 'dessert'],
+    title: 'Desserts & Sweet Sips',
+    emoji: '🍨',
+    description: 'Hot gulab jamuns, premium ice creams, and traditional sweets',
   }
 ]

@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect } from 'react';
-import { View, Text, Pressable, ScrollView } from 'react-native';
+import { View, Text, Pressable, ScrollView, useWindowDimensions, Platform } from 'react-native';
 import Svg, { Rect, Circle, Path, Defs, LinearGradient, Stop, G, Ellipse, ClipPath } from 'react-native-svg';
 import { router } from 'expo-router';
 import { ChevronRight, Clock } from 'lucide-react-native';
@@ -7,7 +7,9 @@ import { LinearGradient as ExpoLinearGradient } from 'expo-linear-gradient';
 import ProductCard, { Product } from '../product/ProductCard';
 import ProductCardSkeleton from '../product/ProductCardSkeleton';
 import { useTheme } from '../../app/context/ThemeContext';
+import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
+import { THEME } from '../../lib/theme';
 
 // ==========================================
 // --- PREMIUM INLINE VECTOR SVG COMPONENT DESIGN ---
@@ -145,7 +147,9 @@ interface DealsCurationHubProps {
 export default function DealsCurationHub({ products, isLoading }: DealsCurationHubProps) {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { width: windowWidth } = useWindowDimensions();
   const [activeCuration, setActiveCuration] = useState<'all' | 'flash-deals' | 'best-sellers' | 'trending' | 'dynamic-craving'>('all');
+  const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
   
   // Live Countdown Timer for Flash Deals (starts at 2h 14m 45s and ticks down)
   const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 14, seconds: 45 });
@@ -180,20 +184,20 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
   // Filter Sub-lists
   const flashDeals = useMemo(() => {
-    return products.filter((p) => p.isAvailable !== false && (p.isFlashDeal || p.discount > 0) && !isCafeProduct(p));
+    return products.filter((p) => (p.isFlashDeal || p.discount > 0) && !isCafeProduct(p));
   }, [products]);
 
   const bestSellers = useMemo(() => {
-    const dbBestsellers = products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.isBestSeller || p.tags?.includes('popular') || p.tags?.includes('essential')));
+    const dbBestsellers = products.filter(p => !isCafeProduct(p) && (p.isBestSeller || p.tags?.includes('popular') || p.tags?.includes('essential')));
     if (dbBestsellers.length > 0) return dbBestsellers;
     // Fallback to static selection
     return products.filter(p => p.id === 'db1' || p.id === 'sm2' || p.id === 'fv1' || p.id === 'def2' || p.id === 'db3' || p.id === 'bv2');
   }, [products]);
 
   const topPicks = useMemo(() => {
-    const dbTopPicks = products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.isTopPick || p.tags?.includes('trending')));
+    const dbTopPicks = products.filter(p => !isCafeProduct(p) && (p.isTopPick || p.tags?.includes('trending')));
     if (dbTopPicks.length > 0) return dbTopPicks;
-    return products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.category?.slug === 'fruits-vegetables' || p.category?.slug === 'dairy-breakfast' || p.id === 'fv3' || p.id === 'db4' || p.id === 'db3'));
+    return products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'fruits-vegetables' || p.category?.slug === 'dairy-breakfast' || p.id === 'fv3' || p.id === 'db4' || p.id === 'db3'));
   }, [products]);
 
   // Dynamic Suggestion lists based on hour
@@ -246,7 +250,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
   // Combine products for "All" curation dynamically (load all grocery products)
   const allProducts = useMemo(() => {
-    return products.filter((p) => !isCafeProduct(p) && p.isAvailable !== false);
+    return products.filter((p) => !isCafeProduct(p));
   }, [products]);
 
   const curations = useMemo(() => [
@@ -304,6 +308,19 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
       }
       groups[categoryName].products.push(product);
     });
+
+    // Sort products inside each group by sortOrder desc, then by createdAt desc to match admin panel
+    Object.values(groups).forEach((g) => {
+      g.products.sort((a, b) => {
+        const aOrder = a.sortOrder || 0;
+        const bOrder = b.sortOrder || 0;
+        if (bOrder !== aOrder) return bOrder - aOrder;
+        const aTime = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+        const bTime = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+        return bTime - aTime;
+      });
+    });
+
     return Object.values(groups).sort((a, b) => a.sortOrder - b.sortOrder);
   }, [currentCuration]);
 
@@ -409,16 +426,16 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
           const isActive = activeCuration === c.id;
           const IconComponent = c.icon;
           return (
-            <Pressable
+            <ScalePressable
               key={c.id}
               onPress={() => {
-                triggerHaptic('light');
                 setActiveCuration(c.id);
               }}
-              className="items-center"
-              style={({ pressed }) => [{
-                transform: [{ scale: pressed ? 0.95 : 1 }]
-              }]}
+              scaleValue={0.94}
+              style={{
+                flexDirection: 'column',
+                alignItems: 'center',
+              }}
             >
               {/* Circular Icon container */}
               <View
@@ -448,7 +465,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                   backgroundColor: isActive ? c.activeBorderColor : 'transparent',
                 }}
               />
-            </Pressable>
+            </ScalePressable>
           );
         })}
       </ScrollView>
@@ -511,108 +528,176 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
             <Text className="text-slate-400 dark:text-zinc-500 text-xs font-bold">No deals available</Text>
           </View>
         ) : (
-          groupedProducts.map((group) => (
-            <View key={group.categoryName} className="mb-6">
-              {/* Category subheader row */}
-              <View className="flex-row items-center justify-between mb-3">
-                <View className="flex-row items-center gap-1.5">
-                  <Text className="text-base font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
-                    {group.categoryName}
-                  </Text>
-                  <View className="bg-rose-50 dark:bg-rose-950/20 px-2 py-0.5 rounded-full">
-                    <Text className="text-rose-600 dark:text-rose-400 text-[10px] font-bold">
-                      {group.products.length} {group.products.length === 1 ? 'item' : 'items'}
+          groupedProducts.map((group) => {
+            const categoryKey = group.categorySlug || group.categoryName;
+            const isExpanded = !!expandedCategories[categoryKey];
+
+            return (
+              <View key={group.categoryName} style={{ marginBottom: THEME.SPACING.lg }}>
+                {/* Category subheader row */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+                      {group.categoryName}
                     </Text>
-                  </View>
-                </View>
-
-                {/* See All link */}
-                <Pressable
-                  onPress={() => {
-                    triggerHaptic('light');
-                    if (group.categorySlug === 'cafe') {
-                      router.push('/cafe');
-                    } else if (group.categorySlug) {
-                      router.push(`/category/${group.categorySlug}`);
-                    } else {
-                      router.push('/(tabs)/categories');
-                    }
-                  }}
-                  className="flex-row items-center"
-                >
-                  <Text className="text-rose-600 dark:text-rose-400 text-xs font-bold">See All</Text>
-                  <ChevronRight size={14} color="#e11d48" />
-                </Pressable>
-              </View>
-
-              {/* Horizontal scroll track of products in category */}
-              <ScrollView
-                horizontal
-                showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
-                decelerationRate="fast"
-              >
-                {group.products.length <= 10 ? (
-                  group.products.map((product, idx) => (
-                    <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
-                      <ProductCard product={product} index={idx} className="w-full" isFlashDeal={true} />
+                    <View style={{ backgroundColor: isDarkMode ? 'rgba(239,68,68,0.15)' : '#ffe4e6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.pill }}>
+                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }}>
+                        {group.products.length} {group.products.length === 1 ? 'item' : 'items'}
+                      </Text>
                     </View>
-                  ))
-                ) : (
-                  <>
-                    {group.products.slice(0, 10).map((product, idx) => (
-                      <View key={product.id} className="w-[155px]" style={{ height: 290 }}>
-                        <ProductCard product={product} index={idx} className="w-full" isFlashDeal={true} />
-                      </View>
-                    ))}
-                    
-                    {/* See More + N Items Left Card */}
-                    <Pressable
+                  </View>
+
+                  {/* See All link toggles expansion */}
+                  <ScalePressable
+                    onPress={() => {
+                      triggerHaptic('light');
+                      if (group.categorySlug) {
+                        router.push(`/category/${group.categorySlug}`);
+                      }
+                    }}
+                    scaleValue={0.93}
+                    style={{
+                      flexDirection: 'row',
+                      alignItems: 'center',
+                      backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
+                      paddingHorizontal: 9,
+                      paddingVertical: 4.5,
+                      borderRadius: 12,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
+                      gap: 2,
+                    }}
+                  >
+                    <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.2 }}>
+                      See All
+                    </Text>
+                    <ChevronRight 
+                      size={11} 
+                      color={THEME.COLORS.brand.primary} 
+                      strokeWidth={3}
+                    />
+                  </ScalePressable>
+                </View>
+ 
+                {/* Conditional Layout: 2-Column Vertical Grid when expanded, else Horizontal scroll track */}
+                {isExpanded ? (
+                  <View>
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', paddingHorizontal: 2 }}>
+                      {group.products.map((product, idx) => {
+                        const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
+                        return (
+                          <View key={product.id} style={{ width: cardWidth, marginBottom: THEME.SPACING.md }}>
+                            <ProductCard product={product} index={idx} className="w-full" />
+                          </View>
+                        );
+                      })}
+                    </View>
+                    <ScalePressable
                       onPress={() => {
-                        triggerHaptic('light');
-                        if (group.categorySlug === 'cafe') {
-                          router.push('/cafe');
-                        } else if (group.categorySlug) {
-                          router.push(`/category/${group.categorySlug}`);
-                        } else {
-                          router.push('/(tabs)/categories');
-                        }
+                        setExpandedCategories((prev) => ({
+                          ...prev,
+                          [categoryKey]: false,
+                        }));
                       }}
+                      scaleValue={0.97}
                       style={{
-                        width: 155,
-                        height: 255,
-                        borderRadius: 16,
-                        backgroundColor: isDarkMode ? '#18181b' : '#f8fafc',
+                        width: '100%',
+                        paddingVertical: 10,
+                        backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#fcf8f8',
+                        borderRadius: THEME.RADIUS.sm,
                         borderWidth: 1,
-                        borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                        borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(226,10,34,0.1)',
                         alignItems: 'center',
                         justifyContent: 'center',
-                        padding: 16,
+                        marginTop: 4,
+                        marginBottom: 12,
                       }}
                     >
-                      <View style={{
-                        width: 44,
-                        height: 44,
-                        borderRadius: 22,
-                        backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        marginBottom: 12,
-                      }}>
-                        <ChevronRight size={20} color="#e20a22" />
-                      </View>
-                      <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', textAlign: 'center' }}>
-                        See More
-                      </Text>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: '#e20a22', marginTop: 4, textAlign: 'center' }}>
-                        {`+${group.products.length - 10} Items Left`}
-                      </Text>
-                    </Pressable>
-                  </>
+                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>Show Less ▴</Text>
+                    </ScalePressable>
+                  </View>
+                ) : (
+                  <ScrollView
+                    horizontal
+                    showsHorizontalScrollIndicator={false}
+                    contentContainerStyle={{ gap: THEME.SPACING.md, paddingBottom: 4 }}
+                    decelerationRate="fast"
+                  >
+                    {group.products.length <= 10 ? (
+                      group.products.map((product, idx) => (
+                        <View key={product.id} style={{ width: 144 }}>
+                          <ProductCard product={product} index={idx} className="w-full" />
+                        </View>
+                      ))
+                    ) : (
+                      <>
+                        {group.products.slice(0, 10).map((product, idx) => (
+                          <View key={product.id} style={{ width: 144 }}>
+                            <ProductCard product={product} index={idx} className="w-full" />
+                          </View>
+                        ))}
+                        
+                        {/* See More Card toggles expansion */}
+                        <ScalePressable
+                          onPress={() => {
+                            setExpandedCategories((prev) => ({
+                              ...prev,
+                              [categoryKey]: true,
+                            }));
+                          }}
+                          scaleValue={0.96}
+                          style={{
+                            width: 144,
+                            height: 244, // Match ProductCard actual height (244px)
+                            borderRadius: THEME.RADIUS.md,
+                            backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : THEME.COLORS.light.surface,
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? THEME.COLORS.dark.border : THEME.COLORS.light.border,
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexDirection: 'column',
+                            padding: 16,
+                            marginBottom: 16, // Align bottom edge
+                            ...Platform.select({
+                              ios: {
+                                shadowColor: '#000000',
+                                shadowOffset: { width: 0, height: 4 },
+                                shadowOpacity: isDarkMode ? 0.2 : 0.05,
+                                shadowRadius: 8,
+                              },
+                              android: {
+                                elevation: 2,
+                              },
+                            })
+                          }}
+                        >
+                          <View style={{
+                            width: 40,
+                            height: 40,
+                            borderRadius: 20,
+                            backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginBottom: 10,
+                          }}>
+                            <ChevronRight size={16} color={THEME.COLORS.brand.primary} strokeWidth={3} />
+                          </View>
+                          <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', textAlign: 'center', letterSpacing: 0.1 }}>
+                            See More
+                          </Text>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: THEME.COLORS.brand.primary, marginTop: 4, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.2 }}>
+                            {`+${group.products.length - 10} Items`}
+                          </Text>
+                        </ScalePressable>
+                      </>
+                    )}
+                  </ScrollView>
                 )}
-              </ScrollView>
-            </View>
-          ))
+              </View>
+            );
+          })
         )}
       </View>
     </View>

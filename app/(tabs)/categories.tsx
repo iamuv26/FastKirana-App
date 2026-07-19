@@ -9,72 +9,75 @@ import { SkeletonShimmer } from '../../components/shared/SkeletonShimmer';
 import { triggerHaptic } from '../../lib/haptic';
 import { ArrowLeft, ChevronRight, ChevronDown, MapPin, Search, ShoppingBag, Moon, Sun, X, Mic } from 'lucide-react-native';
 import { useUIStore } from '../../stores/ui-store';
+import { ScalePressable } from '../../components/shared/ScalePressable';
 import Logo from '../../components/shared/Logo';
 import { useState, useMemo, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../../lib/constants';
 import { getAppImageSource, formatHeaderAddress } from '../../lib/utils';
+import { THEME } from '../../lib/theme';
+
 
 // Local assets mapping for styling and fallback
 const LOCAL_CATEGORY_CONFIGS: Record<string, { name: string; image: any; description: string; color: string }> = {
   'fruits-vegetables': {
     name: 'Fruits & Vegetables',
-    image: require('../../assets/fruits_vegetables_category.png'),
+    image: require('../../assets/fruits_vegetables_category.webp'),
     description: '100% Farm-Fresh Organic',
     color: '#059669' // emerald-600
   },
   'dairy-breakfast': {
     name: 'Dairy & Breakfast',
-    image: require('../../assets/dairy_breakfast_category.png'),
+    image: require('../../assets/dairy_breakfast_category.webp'),
     description: 'Milk, Butter, Bread & Eggs',
     color: '#1d4ed8' // blue-700
   },
   'snacks-biscuits': {
     name: 'Snacks & Munchies',
-    image: require('../../assets/snacks_munchies_category.png'),
+    image: require('../../assets/snacks_munchies_category.webp'),
     description: 'Chips, Cookies & Popcorn',
     color: '#d97706' // amber-600
   },
   'beverages': {
     name: 'Beverages',
-    image: require('../../assets/beverages_category.png'),
+    image: require('../../assets/beverages_category.webp'),
     description: 'Soft Drinks & Coolers',
     color: '#7c3aed' // violet-600
   },
   'ice-cream': {
     name: 'Ice Cream',
-    image: require('../../assets/ice_cream_category.png'),
+    image: require('../../assets/ice_cream_category.webp'),
     description: 'Frozen Desserts & Tubs',
     color: '#0ea5e9' // sky-600
   },
   'cafe': {
     name: 'FastKirana Cafe',
-    image: require('../../assets/cafe_category.png'),
+    image: require('../../assets/cafe_category.webp'),
     description: 'Hot Pizza, Rolls & Coffee',
     color: '#e20a22' // primary brand red
   },
   'personal-care': {
     name: 'Personal Care',
-    image: require('../../assets/personal_care_category.png'),
+    image: require('../../assets/personal_care_category.webp'),
     description: 'Soaps, Shampoos & Hygiene',
     color: '#db2777' // pink-600
   },
   'household': {
     name: 'Household',
-    image: require('../../assets/household_category.png'),
+    image: require('../../assets/household_category.webp'),
     description: 'Detergents, Cleaners & Tools',
     color: '#4b5563' // grey-600
   },
   'bakery': {
     name: 'Bakery & Biscuits',
-    image: require('../../assets/bakery_biscuits_category.png'),
+    image: require('../../assets/bakery_biscuits_category.webp'),
     description: 'Fresh Bread, Buns & Cookies',
     color: '#c2410c' // orange-700
   },
   'grocery-essential': {
     name: 'Atta, Rice & Dal',
-    image: require('../../assets/atta_rice_dal_category.png'),
+    image: require('../../assets/atta_rice_dal_category.webp'),
     description: 'Grains, Flours & Lentils',
     color: '#854d0e' // yellow-800
   }
@@ -94,8 +97,8 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
 
   return (
     <Animated.View 
-      entering={FadeInDown.delay(index * 50).duration(400)}
-      style={[{ width: '48%', marginBottom: 16 }, animatedStyle]}
+      entering={undefined}
+      style={[{ width: '48%', marginBottom: 12 }, animatedStyle]}
     >
       <Pressable
         onPress={() => {
@@ -106,28 +109,34 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
             router.push(`/category/${category.slug}`);
           }
         }}
-        onPressIn={() => { scale.value = 0.95; }}
+        onPressIn={() => { scale.value = 0.96; }}
         onPressOut={() => { scale.value = 1.0; }}
         style={{
           width: '100%',
-          backgroundColor: isDarkMode ? '#121212' : '#ffffff',
-          borderRadius: 24,
+          backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff',
+          borderRadius: THEME.RADIUS.md,
           borderWidth: 1,
-          borderColor: isDarkMode ? '#1c1c1e' : '#e2e8f0',
-          padding: 10,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: isDarkMode ? 0.2 : 0.03,
-          shadowRadius: 6,
-          elevation: 2,
+          borderColor: isDarkMode ? THEME.COLORS.dark.border : '#e2e8f0',
+          padding: 8,
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode ? 0.2 : 0.03,
+              shadowRadius: 4,
+            },
+            android: {
+              elevation: 2,
+            }
+          })
         }}
       >
         {/* Image Area with tinted background & Badge */}
         <View 
           style={{
             width: '100%',
-            height: 135,
-            borderRadius: 18,
+            height: 110,
+            borderRadius: THEME.RADIUS.sm,
             backgroundColor: imageBg,
             alignItems: 'center',
             justifyContent: 'center',
@@ -139,89 +148,63 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
           <View 
             style={{
               position: 'absolute',
-              top: 8,
-              left: 8,
+              top: 6,
+              left: 6,
               flexDirection: 'row',
               alignItems: 'center',
               backgroundColor: 'rgba(15, 23, 42, 0.85)',
-              borderRadius: 20,
-              paddingHorizontal: 8,
-              paddingVertical: 3.5,
-              gap: 3.5,
+              borderRadius: THEME.RADIUS.pill,
+              paddingHorizontal: 6,
+              paddingVertical: 2,
+              gap: 2,
               zIndex: 10
             }}
           >
-            <ShoppingBag size={8.5} color="#e20a22" />
-            <Text style={{ fontSize: 8, fontWeight: '900', color: '#ffffff', letterSpacing: 0.4 }}>
+            <ShoppingBag size={8} color={THEME.COLORS.brand.primary} />
+            <Text style={{ fontSize: 7, fontWeight: '700', color: '#ffffff', letterSpacing: 0.3 }}>
               {`${category.itemCount} ITEMS`}
             </Text>
           </View>
 
-          <Image 
-            source={category.serverImage ? { uri: category.serverImage } : category.image}
-            style={{
-              width: '85%',
-              height: '85%',
-              resizeMode: 'contain',
-            }}
-          />
+          {category.emoji ? (
+            <Text style={{ fontSize: 36 }}>{category.emoji}</Text>
+          ) : (
+            <Image 
+              source={category.serverImage ? { uri: category.serverImage } : category.image}
+              style={{
+                width: '100%',
+                height: '100%',
+                resizeMode: 'cover',
+              }}
+            />
+          )}
         </View>
 
         {/* Info Area */}
-        <Text 
-          numberOfLines={1}
-          style={{ 
-            color: category.color || (isDarkMode ? '#f4f4f5' : '#0f172a'), 
-            fontSize: 14, 
-            fontWeight: '900',
-            marginTop: 10,
-            letterSpacing: -0.3
-          }}
-        >
-          {category.name}
-        </Text>
-        
-        <Text 
-          numberOfLines={1}
-          style={{ 
-            color: isDarkMode ? '#a1a1aa' : '#64748b', 
-            fontSize: 10.5, 
-            fontWeight: '700', 
-            marginTop: 2,
-          }}
-        >
-          {category.description}
-        </Text>
-
-        {/* Shop Now Button */}
-        <View 
-          style={{
-            marginTop: 12,
-            height: 38,
-            borderRadius: 19,
-            backgroundColor: category.color || '#e20a22',
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'center',
-            paddingHorizontal: 12,
-            gap: 6
-          }}
-        >
-          <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '900', letterSpacing: 0.3 }}>
-            SHOP NOW
-          </Text>
-          <View 
-            style={{
-              width: 16,
-              height: 16,
-              borderRadius: 8,
-              backgroundColor: 'rgba(0,0,0,0.25)',
-              alignItems: 'center',
-              justifyContent: 'center'
+        <View style={{ marginTop: 6, paddingHorizontal: 2 }}>
+          <Text 
+            numberOfLines={1}
+            style={{ 
+              color: category.color || (isDarkMode ? '#f4f4f5' : '#0f172a'), 
+              fontSize: 12.5, 
+              fontWeight: '700',
+              letterSpacing: -0.2
             }}
           >
-            <ChevronRight size={10} color="#ffffff" />
-          </View>
+            {category.name}
+          </Text>
+          
+          <Text 
+            numberOfLines={1}
+            style={{ 
+              color: isDarkMode ? '#a1a1aa' : '#64748b', 
+              fontSize: THEME.TYPOGRAPHY.sizes.micro, 
+              fontWeight: '500', 
+              marginTop: 2,
+            }}
+          >
+            {category.description}
+          </Text>
         </View>
       </Pressable>
     </Animated.View>
@@ -260,25 +243,83 @@ export default function CategoriesScreen() {
 
   // Build the list of display categories based on local configs merged with server updates to ensure they never disappear
   const displayCategories = useMemo(() => {
+    if (serverCategories && serverCategories.length > 0) {
+      const serverSlugs = new Set(serverCategories.map(c => c.slug));
+      
+      const list = serverCategories.map(serverCat => {
+        const local = LOCAL_CATEGORY_CONFIGS[serverCat.slug] || {
+          name: serverCat.name,
+          description: 'Quality Grocery & Essentials',
+          color: '#16a34a', // Default green
+          image: null
+        };
+
+        const resolvedImg = serverCat.imageUrl ? getAppImageSource(serverCat.imageUrl) : null;
+        const serverImage = resolvedImg ? resolvedImg.uri : null;
+
+        // Check if imageUrl is actually an emoji (less than 5 chars and doesn't start with http/data//)
+        const isEmoji = serverCat.imageUrl && 
+                        serverCat.imageUrl.length < 5 && 
+                        !serverCat.imageUrl.startsWith('http') && 
+                        !serverCat.imageUrl.startsWith('/');
+        const emoji = isEmoji ? serverCat.imageUrl : null;
+
+        let itemCount = 0;
+        if (serverCat.slug === 'cafe') {
+          itemCount = cafeCount;
+        } else {
+          itemCount = serverCat._count?.products ?? 0;
+        }
+
+        return {
+          name: serverCat.name || local.name,
+          slug: serverCat.slug,
+          image: local.image,
+          serverImage: emoji ? null : serverImage,
+          emoji: emoji,
+          itemCount: itemCount,
+          description: local.description || 'Quality Grocery & Essentials',
+          color: local.color || '#16a34a'
+        };
+      });
+
+      // Also append any local config categories that are NOT present on the server
+      Object.keys(LOCAL_CATEGORY_CONFIGS).forEach(slug => {
+        if (!serverSlugs.has(slug)) {
+          const local = LOCAL_CATEGORY_CONFIGS[slug];
+          let itemCount = 0;
+          if (slug === 'cafe') itemCount = cafeCount;
+
+          list.push({
+            name: local.name,
+            slug: slug,
+            image: local.image,
+            serverImage: null,
+            emoji: null,
+            itemCount: itemCount,
+            description: local.description,
+            color: local.color
+          });
+        }
+      });
+
+      return list;
+    }
+
+    // Fallback: serverCategories is empty
     return Object.keys(LOCAL_CATEGORY_CONFIGS).map(slug => {
       const local = LOCAL_CATEGORY_CONFIGS[slug];
-      const serverCat = serverCategories.find(c => c.slug === slug);
-
-      const resolvedImg = (serverCat && serverCat.imageUrl) ? getAppImageSource(serverCat.imageUrl) : null;
-      const serverImage = resolvedImg ? resolvedImg.uri : null;
-
       let itemCount = 0;
       if (slug === 'cafe') {
         itemCount = cafeCount;
-      } else if (serverCat) {
-        itemCount = serverCat._count?.products ?? 0;
       }
 
       return {
         name: local.name,
         slug: slug,
         image: local.image,
-        serverImage: serverImage,
+        serverImage: null,
+        emoji: null,
         itemCount: itemCount,
         description: local.description,
         color: local.color
@@ -308,14 +349,11 @@ export default function CategoriesScreen() {
           {/* Top Row: Location & Theme */}
           <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
             {/* Left: Brand Logo & Text (Interactive scroll-to-top) */}
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 scrollViewRef.current?.scrollTo({ y: 0, animated: true });
               }}
-              style={({ pressed }) => ({
-                transform: [{ scale: pressed ? 0.97 : 1 }]
-              })}
+              scaleValue={0.97}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ 
@@ -341,19 +379,17 @@ export default function CategoriesScreen() {
                   </Text>
                 </View>
               </View>
-            </Pressable>
+            </ScalePressable>
 
             {/* Right: Location Capsule Picker */}
-            <Pressable 
+            <ScalePressable 
               onPress={() => {
-                triggerHaptic('light');
                 router.push('/location-picker');
               }}
-              style={({ pressed }) => ({
-                opacity: pressed ? 0.85 : 1,
-                transform: [{ scale: pressed ? 0.96 : 1 }],
+              scaleValue={0.96}
+              style={{
                 maxWidth: '60%'
-              })}
+              }}
             >
               <View style={{ 
                 flexDirection: 'row', 
@@ -381,7 +417,7 @@ export default function CategoriesScreen() {
                 </Text>
                 <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
               </View>
-            </Pressable>
+              </ScalePressable>
           </View>
         </View>
       </View>
@@ -418,7 +454,7 @@ export default function CategoriesScreen() {
           
           {/* Right Image */}
           <Image 
-            source={require('../../assets/grocery_bag_banner.png')}
+            source={require('../../assets/grocery_bag_banner.webp')}
             style={{ width: 85, height: 85, resizeMode: 'contain' }}
           />
         </View>
@@ -457,15 +493,15 @@ export default function CategoriesScreen() {
               }}
             />
             {searchQuery.length > 0 ? (
-              <Pressable onPress={() => setSearchQuery('')} style={{ padding: 4 }}>
+              <ScalePressable onPress={() => setSearchQuery('')} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
                 <X size={14} color="#94a3b8" />
-              </Pressable>
+              </ScalePressable>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
                 <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
-                <Pressable onPress={() => router.push('/search')} style={{ padding: 4 }}>
-                  <Mic size={16} color="#16a34a" />
-                </Pressable>
+                <ScalePressable onPress={() => router.push('/search')} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
+                  <Mic size={16} color="#e20a22" />
+                </ScalePressable>
               </View>
             )}
           </View>
@@ -479,17 +515,17 @@ export default function CategoriesScreen() {
                 key={i} 
                 style={{ 
                   width: '48%', 
-                  marginBottom: 16,
+                  marginBottom: 12,
                   backgroundColor: isDarkMode ? '#121212' : '#ffffff',
-                  borderRadius: 24,
+                  borderRadius: 16,
                   borderWidth: 1,
                   borderColor: isDarkMode ? '#1c1c1e' : '#e2e8f0',
-                  padding: 10,
-                  height: 190,
+                  padding: 8,
+                  height: 150,
                 }}
               >
-                <SkeletonShimmer width="100%" height={135} borderRadius={18} />
-                <SkeletonShimmer width="75%" height={14} style={{ marginTop: 12, marginBottom: 4 }} />
+                <SkeletonShimmer width="100%" height={110} borderRadius={12} />
+                <SkeletonShimmer width="75%" height={10} style={{ marginTop: 8, marginBottom: 2 }} />
               </View>
             ))
           ) : (

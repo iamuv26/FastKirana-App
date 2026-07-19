@@ -2,7 +2,7 @@ import React, { useEffect, useState, useMemo } from 'react';
 import { View, Text, Pressable, Platform } from 'react-native';
 import { Image } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, interpolate, FadeInDown } from 'react-native-reanimated';
 import { useUIStore } from '../../stores/ui-store';
 import { useTheme } from '../../app/context/ThemeContext';
 import { Coffee, Utensils, Cookie, Moon, ArrowRight, MapPin } from 'lucide-react-native';
@@ -10,8 +10,10 @@ import { triggerHaptic } from '../../lib/haptic';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../../lib/constants';
 import { router } from 'expo-router';
+import { THEME } from '../../lib/theme';
 
 export default function TimeGreetingHero() {
+
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const selectedLocation = useUIStore((s) => s.selectedLocation);
@@ -171,39 +173,34 @@ export default function TimeGreetingHero() {
   }, [currentHour, groceryMartOpen, cafeOpen, settings]);
 
   return (
-    <View className="mx-4 mb-5">
+    <Animated.View entering={FadeInDown.springify()} style={{ marginHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.xl }}>
       <LinearGradient
         colors={isDarkMode ? themeConfig.darkGradient : themeConfig.lightGradient}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={{
-          borderRadius: 20,
+          borderRadius: THEME.RADIUS.lg,
           borderWidth: 1,
-          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-          padding: 12,
+          borderColor: isDarkMode ? THEME.COLORS.dark.borderLight : 'rgba(0,0,0,0.04)',
+          padding: THEME.SPACING.lg,
           position: 'relative',
           overflow: 'hidden',
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: isDarkMode ? 0.15 : 0.02,
-              shadowRadius: 8,
-            },
+          ...Platform.select<any>({
+            ios: THEME.SHADOWS.md,
             android: {
-              elevation: 2,
+              elevation: 4,
             },
           }),
         }}
       >
         {/* Glossy decorative background accents */}
-        <View className="absolute right-[-40px] top-[-40px] w-48 h-48 rounded-full border border-white/5 bg-white/[0.03] z-0" />
-        <View className="absolute right-[-20px] bottom-[-20px] w-36 h-36 rounded-full border border-white/10 bg-white/[0.05] z-0" />
+        <View style={{ position: 'absolute', right: -40, top: -40, width: 192, height: 192, borderRadius: 96, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.03)', zIndex: 0 }} />
+        <View style={{ position: 'absolute', right: -20, bottom: -20, width: 144, height: 144, borderRadius: 72, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.05)', zIndex: 0 }} />
 
-        <View className="flex-row justify-between items-start gap-4">
-          <View className="flex-1">
+        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: THEME.SPACING.lg }}>
+          <View style={{ flex: 1 }}>
             {/* Time-Aware Greeting Badge */}
-            <View className={`flex-row items-center gap-1.5 self-start px-2 py-0.5 rounded-full mb-2 border ${themeConfig.badgeBg} ${themeConfig.badgeBorder}`}>
+            <View className={`flex-row items-center gap-1.5 self-start px-2.5 py-1 rounded-full mb-3 border ${themeConfig.badgeBg} ${themeConfig.badgeBorder}`}>
               <View className="relative flex justify-center items-center w-2.5 h-2.5">
                 <Animated.View 
                   style={animatedDotStyle}
@@ -213,35 +210,34 @@ export default function TimeGreetingHero() {
               </View>
               <View className="flex-row items-center gap-1">
                 {themeConfig.icon}
-                <Text className={`text-[9px] font-black uppercase tracking-wider ${themeConfig.badgeText}`}>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className={`uppercase tracking-wider ${themeConfig.badgeText}`}>
                   {themeConfig.badge}
                 </Text>
               </View>
             </View>
 
-            <Text className="text-base font-black leading-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }} className="leading-tight">
               {themeConfig.greeting}
             </Text>
-            <Text className="text-[10px] font-semibold mt-1 leading-normal" style={{ color: isDarkMode ? '#cbd5e1' : '#475569' }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', color: isDarkMode ? THEME.COLORS.dark.textSecondary : THEME.COLORS.light.textSecondary, marginTop: 4 }} className="leading-normal">
               {themeConfig.subtitle}
             </Text>
           </View>
 
           {/* Right Side Illustration - Polaroid Photo Sticker Frame */}
           <View 
-            style={{ transform: [{ rotate: '4deg' }], marginTop: 2 }}
-            className="w-16 h-16 rounded-xl bg-white p-1 border border-slate-100 dark:border-zinc-800 shadow-md overflow-hidden justify-center items-center"
+            style={{ transform: [{ rotate: '4deg' }], width: 76, height: 76, borderRadius: THEME.RADIUS.sm, padding: 4, borderWidth: 1, borderColor: isDarkMode ? '#27272a' : '#f1f5f9', elevation: 3 }}
+            className="bg-white shadow-md overflow-hidden justify-center items-center"
           >
             <Image
-              source={require('../../assets/grocery_bag_banner.png')}
-              style={{ width: '100%', height: '100%' }}
+              source={require('../../assets/grocery_bag_banner.webp')}
+              style={{ width: '100%', height: '100%', borderRadius: THEME.RADIUS.xs }}
               contentFit="cover"
             />
           </View>
         </View>
 
-
       </LinearGradient>
-    </View>
+    </Animated.View>
   );
 }
