@@ -76,9 +76,15 @@ export default function AppFooter() {
 
   return (
     <View style={{ backgroundColor: '#0a0a0f', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
-      {/* ── Social Proof Strip (matches web: bg-accent/10 border-b) ── */}
-      <View style={{ backgroundColor: 'rgba(16,185,129,0.1)', borderBottomWidth: 1, borderBottomColor: 'rgba(16,185,129,0.2)', paddingVertical: 12, paddingHorizontal: 16 }}>
-        <Text style={{ color: '#10b981', fontSize: 13, fontWeight: '700', textAlign: 'center' }}>
+      {/* ── Social Proof Strip ── */}
+      <View style={{ 
+        backgroundColor: '#10b981', 
+        paddingVertical: 14, 
+        paddingHorizontal: 16,
+        alignItems: 'center',
+        justifyContent: 'center'
+      }}>
+        <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900', letterSpacing: 0.3, textAlign: 'center' }}>
           {trustedText}
         </Text>
       </View>
@@ -105,99 +111,99 @@ export default function AppFooter() {
               Groceries and daily essentials delivered instantly from our local dark stores. Fresh fruits, vegetables, dairy, and snacks at your doorstep in 10 minutes.
             </Text>
             {/* Social Media Icons (matching web: Instagram, X, Facebook) */}
-            <View className="flex-row items-center gap-3 mt-4">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12, marginTop: 16 }}>
               <ScalePressable
                 onPress={() => {}}
                 scaleValue={0.9}
-                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
                 className="items-center justify-center"
               >
-                <InstagramIcon size={16} color="#9ca3af" />
+                <InstagramIcon size={14} color="#9ca3af" />
               </ScalePressable>
               <ScalePressable
                 onPress={() => {}}
                 scaleValue={0.9}
-                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
                 className="items-center justify-center"
               >
-                <XTwitterIcon size={16} color="#9ca3af" />
+                <XTwitterIcon size={14} color="#9ca3af" />
               </ScalePressable>
               <ScalePressable
                 onPress={() => {}}
                 scaleValue={0.9}
-                style={{ width: 36, height: 36, borderRadius: THEME.RADIUS.sm, backgroundColor: 'rgba(255,255,255,0.08)' }}
+                style={{ width: 34, height: 34, borderRadius: 17, backgroundColor: 'rgba(255,255,255,0.05)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.08)' }}
                 className="items-center justify-center"
               >
-                <FacebookIcon size={16} color="#9ca3af" />
+                <FacebookIcon size={14} color="#9ca3af" />
               </ScalePressable>
             </View>
           </View>
 
           {/* Columns 2-4: Shop | Account | Contact */}
-          <View className="flex-row w-full gap-2">
+          <View style={{ flexDirection: 'row', width: '100%', gap: 10, justifyContent: 'space-between' }}>
             {/* Column 2: Shop */}
-            <View className="flex-1">
-              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
+            <View style={{ flex: 1.1 }}>
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 14 }} className="uppercase tracking-wider">
                 Shop
               </Text>
               <View className="gap-2.5">
                 <ScalePressable onPress={() => handleLinkPress('/category/fruits-vegetables')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Fruits & Vegetables</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Fruits & Veg</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/category/dairy-breakfast')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Dairy & Breakfast</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Milk & Dairy</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/category/snacks-biscuits')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Snacks</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Snacks</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/category/beverages')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Beverages</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Beverages</Text>
                 </ScalePressable>
               </View>
             </View>
 
             {/* Column 3: Account */}
-            <View className="flex-1">
-              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
+            <View style={{ flex: 1.0 }}>
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 14 }} className="uppercase tracking-wider">
                 Account
               </Text>
               <View className="gap-2.5">
                 <ScalePressable onPress={() => handleLinkPress('/(tabs)/account')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>My Profile</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>My Profile</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/orders')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>My Orders</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>My Orders</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/addresses')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Saved Addresses</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Addresses</Text>
                 </ScalePressable>
                 <ScalePressable onPress={() => handleLinkPress('/cart')} scaleValue={0.98}>
-                  <Text style={{ color: '#94a3b8', fontSize: 12 }}>Cart</Text>
+                  <Text style={{ color: '#94a3b8', fontSize: 11 }}>Cart</Text>
                 </ScalePressable>
               </View>
             </View>
 
             {/* Column 4: Contact */}
-            <View className="flex-1">
-              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 16 }} className="uppercase tracking-wider">
+            <View style={{ flex: 1.5 }}>
+              <Text style={{ color: '#e2e8f0', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', marginBottom: 14 }} className="uppercase tracking-wider">
                 Contact
               </Text>
               <View className="gap-2.5">
-                <ScalePressable onPress={handlePhonePress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Phone size={13} color="#9ca3af" />
-                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{formatPhone(contactPhone)}</Text>
+                <ScalePressable onPress={handlePhonePress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Phone size={11} color="#9ca3af" />
+                  <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>{formatPhone(contactPhone)}</Text>
                 </ScalePressable>
-                <ScalePressable onPress={handleEmailPress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                  <Mail size={13} color="#9ca3af" />
-                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{contactEmail}</Text>
+                <ScalePressable onPress={handleEmailPress} scaleValue={0.98} style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Mail size={11} color="#9ca3af" />
+                  <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>{contactEmail}</Text>
                 </ScalePressable>
-                <View className="flex-row items-center gap-2">
-                  <Clock size={13} color="#9ca3af" />
-                  <Text style={{ color: '#94a3b8', fontSize: 11 }} numberOfLines={1}>{contactTimings}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+                  <Clock size={11} color="#9ca3af" />
+                  <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>{contactTimings}</Text>
                 </View>
-                <View className="flex-row items-start gap-2">
-                  <MapPin size={13} color="#9ca3af" style={{ marginTop: 2 }} />
-                  <Text style={{ color: '#94a3b8', fontSize: 11, lineHeight: 15 }} className="flex-1">{contactAddress}</Text>
+                <View style={{ flexDirection: 'row', alignItems: 'start', gap: 6 }}>
+                  <MapPin size={11} color="#9ca3af" style={{ marginTop: 2 }} />
+                  <Text style={{ color: '#94a3b8', fontSize: 10, lineHeight: 14 }} className="flex-1">{contactAddress}</Text>
                 </View>
               </View>
             </View>

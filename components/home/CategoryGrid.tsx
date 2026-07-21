@@ -41,9 +41,9 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
   return (
     <Animated.View
       entering={undefined}
-      style={{ width: itemWidth || 78, alignItems: 'center' }}
+      style={{ width: itemWidth || '23%', alignItems: 'center' }}
     >
-      <Animated.View style={[{ width: '100%', alignItems: 'center' }, animatedStyle]}>
+      <Animated.View style={[{ width: '100%' }, animatedStyle]}>
         <Pressable
           onPress={() => {
             triggerHaptic('light');
@@ -54,89 +54,88 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
             }
           }}
           onPressIn={() => {
-            scale.value = withSpring(0.92, { damping: 12, stiffness: 180 });
+            scale.value = withSpring(0.95, { damping: 12, stiffness: 180 });
           }}
           onPressOut={() => {
             scale.value = withSpring(1, { damping: 12, stiffness: 180 });
           }}
-          style={{ alignItems: 'center', width: '100%' }}
+          style={{
+            width: '100%',
+            backgroundColor: isDarkMode ? '#1e1e24' : '#ffffff',
+            borderRadius: 16,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#2d2d34' : '#f1f5f9',
+            paddingVertical: 12,
+            paddingHorizontal: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.35 : 0.04,
+                shadowRadius: 4,
+              },
+              android: {
+                elevation: 2,
+              },
+              web: {
+                // @ts-ignore
+                boxShadow: isDarkMode 
+                  ? '0 4px 12px rgba(0,0,0,0.3)' 
+                  : '0 4px 12px rgba(0, 0, 0, 0.03)',
+              }
+            })
+          }}
         >
-          {/* Outer Shadow & Glow Ring Wrapper */}
-          <View
+          {/* Inner Circle Image Container */}
+          <View 
             style={{
-              width: 72,
-              height: 72,
-              borderRadius: 36,
-              borderWidth: 1.5,
-              borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(226, 10, 34, 0.08)',
-              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              width: 58,
+              height: 58,
+              borderRadius: 29,
+              overflow: 'hidden',
               alignItems: 'center',
               justifyContent: 'center',
-              ...Platform.select({
-                ios: {
-                  shadowColor: isDarkMode ? '#000' : '#e20a22',
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: isDarkMode ? 0.35 : 0.06,
-                  shadowRadius: 6,
-                },
-                android: {
-                  elevation: 3,
-                },
-                web: {
-                  // @ts-ignore
-                  boxShadow: isDarkMode 
-                    ? '0 4px 12px rgba(0,0,0,0.4)' 
-                    : '0 6px 16px rgba(226, 10, 34, 0.05), 0 2px 4px rgba(0,0,0,0.01)',
-                }
-              })
+              backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
             }}
           >
-            {/* Inner Circle Image Container */}
-            <View 
-              style={{
-                width: 64,
-                height: 64,
-                borderRadius: 32,
-                overflow: 'hidden',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {/* Visual Gradient Background */}
-              <LinearGradient
-                colors={isDarkMode ? category.darkColors : category.colors}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
-                style={StyleSheet.absoluteFill}
-              />
+            {/* Visual Gradient Background */}
+            <LinearGradient
+              colors={isDarkMode ? category.darkColors : category.colors}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={StyleSheet.absoluteFill}
+            />
 
-              {category.emoji ? (
-                <Text style={{ fontSize: 30 }}>{category.emoji}</Text>
-              ) : (
-                <ExpoImage 
-                  source={category.source}
-                  contentFit="cover"
-                  style={{ width: '100%', height: '100%' }}
-                  transition={200}
-                  cachePolicy="memory-disk"
-                  placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
-                />
-              )}
-            </View>
+            {category.emoji ? (
+              <Text style={{ fontSize: 26 }}>{category.emoji}</Text>
+            ) : (
+              <ExpoImage 
+                source={category.source}
+                contentFit="cover"
+                style={{ width: '100%', height: '100%' }}
+                transition={200}
+                cachePolicy="memory-disk"
+                placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
+              />
+            )}
           </View>
           
           {/* Label with upgraded typography */}
           <Text 
-            numberOfLines={1} 
+            numberOfLines={2} 
+            allowFontScaling={false}
             style={{
-              color: isDarkMode ? THEME.COLORS.dark.textPrimary : '#1e293b',
-              fontSize: 11,
-              fontWeight: '700',
-              marginTop: 8,
-              letterSpacing: -0.15,
-              lineHeight: 14,
+              color: isDarkMode ? '#f4f4f5' : '#0f172a',
+              fontSize: 10,
+              fontWeight: '900',
+              marginTop: 10,
+              letterSpacing: -0.2,
+              lineHeight: 12,
               textAlign: 'center',
               width: '100%',
+              paddingHorizontal: 2,
             }}
           >
             {category.name}

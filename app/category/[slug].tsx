@@ -766,20 +766,38 @@ export default function CategoryDetailScreen() {
         {/* Row 2: Search input placeholder (Matched with Landing Page) */}
         <ScalePressable 
           onPress={() => {
-            router.push('/search');
+            router.push({
+              pathname: '/search',
+              params: {
+                categorySlug: activeSlug,
+                categoryName: categoryName
+              }
+            });
           }}
           scaleValue={0.99}
-          className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full"
-          style={Platform.OS === 'ios' ? {
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+            borderRadius: 18,
+            paddingHorizontal: 16,
+            height: 36,
+            width: '100%',
             marginTop: 10,
-            shadowColor: '#000',
-            shadowOffset: { width: 0, height: 2 },
-            shadowOpacity: 0.04,
-            shadowRadius: 6,
-          } : Platform.OS === 'android' ? {
-            marginTop: 10,
-            elevation: 2,
-          } : { marginTop: 10 }}
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 6,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}
         >
           <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
           <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
@@ -789,7 +807,7 @@ export default function CategoryDetailScreen() {
           {/* Vertical Divider */}
           <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
           
-          <Mic size={16} color="#e20a22" />
+          <Mic size={16} color="#16a34a" />
         </ScalePressable>
 
         {/* Row 3: Breadcrumbs Capsule */}

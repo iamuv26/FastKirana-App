@@ -9,7 +9,7 @@ export default function DeliveryBanner() {
   const isDarkMode = theme === 'dark';
 
   return (
-    <View style={{ marginHorizontal: THEME.SPACING.lg, marginVertical: THEME.SPACING.md, borderRadius: THEME.RADIUS.lg }} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 shadow-xs overflow-hidden">
+    <View style={{ marginHorizontal: THEME.SPACING.lg, marginTop: THEME.SPACING.md, marginBottom: 20, borderRadius: THEME.RADIUS.lg }} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 shadow-xs overflow-hidden">
       {/* Tagline */}
       <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? THEME.COLORS.dark.border : '#f1f5f9' }} className="bg-rose-50/40 dark:bg-zinc-800/40 flex-row items-center justify-center gap-1.5">
         <Store size={14} color={THEME.COLORS.brand.primary} />

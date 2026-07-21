@@ -3,7 +3,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { Search, ArrowLeft, X, ShoppingBag, Mic } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useLocalSearchParams } from 'expo-router';
 import ProductCard, { Product } from '../components/product/ProductCard';
 import FloatingCartBar from '../components/shared/FloatingCartBar';
 import { formatPrice } from '../lib/utils';
@@ -40,6 +40,7 @@ const ALL_SEARCHABLE_PRODUCTS: Product[] = [];
 export default function SearchScreen() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { categorySlug, categoryName } = useLocalSearchParams<{ categorySlug?: string; categoryName?: string }>();
   const [searchQueryVal, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
 
@@ -294,10 +295,13 @@ export default function SearchScreen() {
 
   // Query search endpoint
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['search-products', debouncedQuery],
+    queryKey: ['search-products', debouncedQuery, categorySlug],
     queryFn: async () => {
       if (!debouncedQuery || !debouncedQuery.trim()) return [];
-      const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}`);
+      const url = categorySlug 
+        ? `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&category=${encodeURIComponent(categorySlug)}`
+        : `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}`;
+      const response = await fetch(url);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -310,7 +314,10 @@ export default function SearchScreen() {
     if (!searchQueryVal || !searchQueryVal.trim()) return [];
     if (serverResults.length > 0) return serverResults;
     const lowerQuery = searchQueryVal.toLowerCase();
-    const sourceProducts = allProducts.length > 0 ? allProducts : ALL_SEARCHABLE_PRODUCTS;
+    let sourceProducts = allProducts.length > 0 ? allProducts : ALL_SEARCHABLE_PRODUCTS;
+    if (categorySlug) {
+      sourceProducts = sourceProducts.filter(p => p.category?.slug === categorySlug);
+    }
     return sourceProducts.filter((p) => 
       p.name.toLowerCase().includes(lowerQuery) || 
       p.slug.toLowerCase().includes(lowerQuery)
@@ -349,7 +356,7 @@ export default function SearchScreen() {
                   pointerEvents: 'none',
                 }, placeholderStyle]}
               >
-                {SUGGESTION_PLACEHOLDERS[placeholderIndex]}
+                {categoryName ? `Search in ${categoryName}...` : SUGGESTION_PLACEHOLDERS[placeholderIndex]}
               </Animated.Text>
             )}
           </View>
