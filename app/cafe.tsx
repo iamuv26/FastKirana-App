@@ -635,11 +635,13 @@ export default function CafeScreen() {
           hasKeywordMatch = nameLower.includes('sandwich') || nameLower.includes('toast');
         } else if (cat.tag.includes('roll') || cat.tag.includes('frankie')) {
           hasKeywordMatch = nameLower.includes('roll') || nameLower.includes('frankie') || nameLower.includes('wrap');
-        } else if (cat.tag.includes('chinese')) {
-          hasKeywordMatch = nameLower.includes('chinese') || nameLower.includes('noodle') || nameLower.includes('chowmein') || nameLower.includes('manchurian') || nameLower.includes('spring roll');
+        } else if (cat.tag.includes('chinese') || cat.tag.includes('noodle') || catTitleLower.includes('noodle')) {
+          hasKeywordMatch = nameLower.includes('chinese') || nameLower.includes('noodle') || nameLower.includes('chowmein') || nameLower.includes('manchurian') || nameLower.includes('spring roll') || nameLower.includes('fried rice');
         } else if (cat.tag.includes('pasta')) {
           hasKeywordMatch = nameLower.includes('pasta') || nameLower.includes('macaroni') || nameLower.includes('spaghetti') || nameLower.includes('garlic bread');
-        } else if (cat.tag.includes('rice') || cat.tag.includes('biryani')) {
+        } else if (cat.tag.includes('biryani') || catTagNorm.includes('basmati') || catTitleLower.includes('biryani') || catTitleLower.includes('basmati')) {
+          hasKeywordMatch = nameLower.includes('biryani') || nameLower.includes('pulav') || nameLower.includes('pulao') || (nameLower.includes('rice') && !nameLower.includes('noodle') && !nameLower.includes('fried'));
+        } else if (cat.tag.includes('rice')) {
           hasKeywordMatch = nameLower.includes('rice') || nameLower.includes('biryani') || nameLower.includes('pulav');
         } else if (cat.tag.includes('shake')) {
           hasKeywordMatch = nameLower.includes('shake') || nameLower.includes('smoothie');
@@ -678,7 +680,7 @@ export default function CafeScreen() {
         const isColdCoffeeItem = nameLower.includes('cold') || nameLower.includes('iced') || product.tags?.some((t: string) => t.toLowerCase() === 'cold-coffee');
         const finalTagMatch = (cat.tag === 'hot-beverage' && isColdCoffeeItem) ? false : hasTagMatch;
 
-        if (finalTagMatch || hasKeywordMatch) {
+        if (!assignedIds.has(product.id) && (finalTagMatch || hasKeywordMatch)) {
           const sec = sectionsMap.get(cat.tag);
           if (sec && !sec.matchedIds.has(product.id)) {
             sec.products.push(product);
