@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
-import { View, Text, Pressable, ScrollView, FlatList, ActivityIndicator, Dimensions, Platform, StyleSheet, Image as RNImage } from 'react-native';
+import { View, Text, Pressable, ScrollView, FlatList, ActivityIndicator, Platform, StyleSheet, Image as RNImage, useWindowDimensions } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -19,10 +19,8 @@ import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { BlurView } from 'expo-blur';
-import { formatHeaderAddress, getAppImageSource } from '../../lib/utils';
+import { formatHeaderAddress, getAppImageSource, getCategoryEmoji, normalizeCategorySlug, isRestaurantProduct } from '../../lib/utils';
 
-const { width: rawWidth } = Dimensions.get('window');
-const screenWidth = rawWidth > 768 ? 540 : rawWidth;
 
 const GROCERY_CATEGORIES = [
   { name: 'Fruits & Vegetables', slug: 'fruits-vegetables', emoji: '🥬' },
@@ -31,6 +29,7 @@ const GROCERY_CATEGORIES = [
   { name: 'Beverages', slug: 'beverages', emoji: '🥤' },
   { name: 'Ice Cream', slug: 'ice-cream', emoji: '🍦' },
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
+  { name: 'Home Cleaners', slug: 'home-cleaners', emoji: '🧹' },
   { name: 'Household', slug: 'household', emoji: '🏠' },
   { name: 'Bakery & Biscuits', slug: 'bakery', emoji: '🍞' },
   { name: 'Atta, Rice & Dal', slug: 'grocery-essential', emoji: '🌾' },
@@ -41,7 +40,9 @@ const CATEGORIES_MAPPING: Record<string, { name: string; image: any; color: stri
   'beverages': { name: 'Beverages', image: require('../../assets/beverages_category.webp'), color: '#eef2f6' },
   'ice-cream': { name: 'Ice Cream', image: require('../../assets/ice_cream_category.webp'), color: '#e0f2f1' },
   'cafe': { name: 'Cafe', image: require('../../assets/cafe_category.webp'), color: '#fff8e1' },
+  'fastkirana-cafe': { name: 'Cafe', image: require('../../assets/cafe_category.webp'), color: '#fff8e1' },
   'personal-care': { name: 'Personal Care', image: require('../../assets/personal_care_category.webp'), color: '#fce4ec' },
+  'home-cleaners': { name: 'Home Cleaners', image: require('../../assets/household_category.webp'), color: '#e0f7fa' },
   'household': { name: 'Household', image: require('../../assets/household_category.webp'), color: '#e0f7fa' },
   'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.webp'), color: '#efebe9' },
   'grocery-essential': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.webp'), color: '#fffde7' },
@@ -71,7 +72,7 @@ const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; ta
     { name: 'All', emoji: '🌾', tags: [] },
     { name: 'Dry Fruits & Seeds', emoji: '🥜', tags: ['seed', 'almond', 'cashew', 'kaju', 'pista', 'pistachio', 'nuts', 'seeds'] },
     { name: 'Sauces & Spreads', emoji: '🥫', tags: ['veeba', 'mayonnaise', 'ketchup', 'sauce'] },
-    { name: 'Personal Care', emoji: '🪥', tags: ['toothpaste', 'colgate', 'dabur', 'gel'] }
+    { name: 'Staples & Pulses', emoji: '🌾', tags: ['atta', 'rice', 'dal', 'oil', 'ghee', 'masala'] }
   ],
   'snacks-biscuits': [
     { name: 'All', emoji: '🍿', tags: [] },
@@ -86,11 +87,81 @@ const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; ta
     { name: 'Juices & Shakes', emoji: '🧃', tags: ['juice', 'shake', 'smoothie', 'real'] },
     { name: 'Tea & Coffee', emoji: '☕', tags: ['tea', 'coffee', 'nescafe', 'bru', 'taj'] },
     { name: 'Water & Soda', emoji: '💧', tags: ['water', 'bisleri', 'club-soda', 'kinley'] }
+  ],
+  'restaurant': [
+    { name: 'All', emoji: '🍱', tags: [] },
+    { name: 'Roti, Naan & Breads', emoji: '🫓', tags: ['roti', 'naan', 'kulcha', 'paratha', 'bread'] },
+    { name: 'Burgers & Wraps', emoji: '🍔', tags: ['burger', 'wrap', 'sandwich', 'frankie', 'roll'] },
+    { name: 'Pizzas & Pastas', emoji: '🍕', tags: ['pizza', 'pasta', 'garlic', 'italian'] },
+    { name: 'Chinese & Starters', emoji: '🥢', tags: ['chinese', 'noodle', 'manchurian', 'momo', 'spring-roll', 'starter'] },
+    { name: 'Biryani & Curries', emoji: '🍛', tags: ['biryani', 'thali', 'rice', 'pulav', 'curry', 'paneer', 'dal'] },
+    { name: 'South Indian', emoji: '🥞', tags: ['dosa', 'idli', 'vada', 'sambar', 'south-indian'] },
+    { name: 'Shakes & Beverages', emoji: '🧋', tags: ['shake', 'drink', 'beverage', 'coffee', 'tea', 'cooler', 'soda'] },
+    { name: 'Desserts & Sweets', emoji: '🍰', tags: ['dessert', 'sweet', 'ice-cream', 'gulab', 'jamun', 'kheer'] }
+  ],
+  'wedson-restaurant': [
+    { name: 'All', emoji: '🍱', tags: [] },
+    { name: 'Roti, Naan & Breads', emoji: '🫓', tags: ['roti', 'naan', 'kulcha', 'paratha', 'bread'] },
+    { name: 'Burgers & Wraps', emoji: '🍔', tags: ['burger', 'wrap', 'sandwich', 'frankie', 'roll'] },
+    { name: 'Pizzas & Pastas', emoji: '🍕', tags: ['pizza', 'pasta', 'garlic', 'italian'] },
+    { name: 'Chinese & Starters', emoji: '🥢', tags: ['chinese', 'noodle', 'manchurian', 'momo', 'spring-roll', 'starter'] },
+    { name: 'Biryani & Curries', emoji: '🍛', tags: ['biryani', 'thali', 'rice', 'pulav', 'curry', 'paneer', 'dal'] },
+    { name: 'South Indian', emoji: '🥞', tags: ['dosa', 'idli', 'vada', 'sambar', 'south-indian'] },
+    { name: 'Shakes & Beverages', emoji: '🧋', tags: ['shake', 'drink', 'beverage', 'coffee', 'tea', 'cooler', 'soda'] },
+    { name: 'Desserts & Sweets', emoji: '🍰', tags: ['dessert', 'sweet', 'ice-cream', 'gulab', 'jamun', 'kheer'] }
+  ],
+  'cafe': [
+    { name: 'All', emoji: '☕', tags: [] },
+    { name: 'Steaming Hot Brews', emoji: '☕', tags: ['tea', 'coffee', 'chai', 'espresso', 'hot-beverage'] },
+    { name: 'Quick Bites & Snacks', emoji: '🥟', tags: ['samosa', 'momo', 'patty', 'fries', 'nugget', 'snack', 'hot-bite'] },
+    { name: 'Gourmet Sandwiches', emoji: '🥪', tags: ['sandwich', 'toast', 'grilled', 'bombay-bites'] },
+    { name: 'Frankie & Rolls', emoji: '🌯', tags: ['roll', 'frankie', 'wrap'] },
+    { name: 'Pizzas & Pastas', emoji: '🍕', tags: ['pizza', 'pasta', 'garlic-bread'] },
+    { name: 'Chinese Kitchen Wok', emoji: '🥡', tags: ['chinese', 'noodle', 'manchurian'] },
+    { name: 'Rice & Biryani', emoji: '🍚', tags: ['rice', 'biryani', 'pulav'] },
+    { name: 'Thick Shakes & Coffee', emoji: '🧋', tags: ['shake', 'cold-coffee', 'mocktail', 'cooler', 'smoothie'] },
+    { name: 'Bakery & Sweets', emoji: '🥐', tags: ['ice-cream', 'dessert', 'cake', 'muffin', 'bakery'] }
+  ],
+  'fastkirana-cafe': [
+    { name: 'All', emoji: '☕', tags: [] },
+    { name: 'Steaming Hot Brews', emoji: '☕', tags: ['tea', 'coffee', 'chai', 'espresso', 'hot-beverage'] },
+    { name: 'Quick Bites & Snacks', emoji: '🥟', tags: ['samosa', 'momo', 'patty', 'fries', 'nugget', 'snack', 'hot-bite'] },
+    { name: 'Gourmet Sandwiches', emoji: '🥪', tags: ['sandwich', 'toast', 'grilled', 'bombay-bites'] },
+    { name: 'Frankie & Rolls', emoji: '🌯', tags: ['roll', 'frankie', 'wrap'] },
+    { name: 'Pizzas & Pastas', emoji: '🍕', tags: ['pizza', 'pasta', 'garlic-bread'] },
+    { name: 'Chinese Kitchen Wok', emoji: '🥡', tags: ['chinese', 'noodle', 'manchurian'] },
+    { name: 'Rice & Biryani', emoji: '🍚', tags: ['rice', 'biryani', 'pulav'] },
+    { name: 'Thick Shakes & Coffee', emoji: '🧋', tags: ['shake', 'cold-coffee', 'mocktail', 'cooler', 'smoothie'] },
+    { name: 'Bakery & Sweets', emoji: '🥐', tags: ['ice-cream', 'dessert', 'cake', 'muffin', 'bakery'] }
+  ],
+  'bakery': [
+    { name: 'All', emoji: '🍞', tags: [] },
+    { name: 'Fresh Breads & Buns', emoji: '🥖', tags: ['bread', 'bun', 'pav', 'toast'] },
+    { name: 'Biscuits & Cookies', emoji: '🍪', tags: ['biscuit', 'cookie', 'rusk'] },
+    { name: 'Cakes & Pastries', emoji: '🧁', tags: ['cake', 'pastry', 'muffin', 'brownie'] }
+  ],
+  'personal-care': [
+    { name: 'All', emoji: '🧴', tags: [] },
+    { name: 'Soaps & Body Wash', emoji: '🧼', tags: ['soap', 'body-wash', 'shower-gel'] },
+    { name: 'Hair Care', emoji: '💇', tags: ['shampoo', 'conditioner', 'hair-oil', 'hair'] },
+    { name: 'Oral Hygiene', emoji: '🪥', tags: ['toothpaste', 'toothbrush', 'mouthwash'] },
+    { name: 'Skin Care & Lotions', emoji: '✨', tags: ['lotion', 'cream', 'face-wash', 'skin'] }
+  ],
+  'household': [
+    { name: 'All', emoji: '🧹', tags: [] },
+    { name: 'Detergents & Dishwash', emoji: '🧼', tags: ['detergent', 'surf', 'rin', 'wheel', 'bar', 'liquid', 'dishwash', 'vim', 'pril'] },
+    { name: 'Surface Cleaners', emoji: '🧽', tags: ['cleaner', 'lizol', 'colin', 'harpic', 'disinfectant', 'floor'] },
+    { name: 'Tissues & Bags', emoji: '🧻', tags: ['tissue', 'mop', 'wiper', 'garbage-bag', 'trash'] }
+  ],
+  'ice-cream': [
+    { name: 'All', emoji: '🍦', tags: [] },
+    { name: 'Cones & Sticks', emoji: '🍦', tags: ['cone', 'stick', 'bar', 'kulfi'] },
+    { name: 'Tubs & Family Packs', emoji: '🍨', tags: ['tub', 'family', 'scoop', 'pack'] }
   ]
 };
 
 const DEFAULT_SUBCATEGORIES = [
-  { name: 'All', emoji: '📦', tags: [] },
+  { name: 'All', emoji: '🛒', tags: [] },
   { name: 'Trending', emoji: '🔥', tags: ['trending'] },
   { name: 'Popular', emoji: '⭐', tags: ['popular'] },
   { name: 'Deals', emoji: '🏷️', tags: ['deal', 'discount'] }
@@ -166,36 +237,38 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
       <Animated.View 
         style={[
           { 
-            width: 32, 
-            height: 32, 
-            borderRadius: 16, 
+            width: 34, 
+            height: 34, 
+            borderRadius: 17, 
             alignItems: 'center', 
             justifyContent: 'center',
             backgroundColor: isActive 
               ? (isDarkMode ? 'rgba(225, 29, 72, 0.2)' : 'rgba(225, 29, 72, 0.12)')
-              : 'transparent'
+              : (isDarkMode ? '#1c1c1e' : '#f1f5f9')
           },
           animatedIconStyle
         ]}
       >
-        <Text style={{ fontSize: 18 }}>{sub.emoji}</Text>
+        <Text style={{ fontSize: 18 }}>
+          {(sub.emoji && sub.emoji !== '📦') ? sub.emoji : getCategoryEmoji(sub.name)}
+        </Text>
       </Animated.View>
       {/* Text Label */}
       <Text 
         style={{ 
-          fontSize: 8.5, 
-          lineHeight: 11,
+          fontSize: 9, 
+          lineHeight: 12,
           fontWeight: isActive ? '900' : '700', 
-          color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b'),
+          color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#475569'),
           textAlign: 'center',
           marginTop: 5,
-          width: '92%',
+          width: '94%',
           letterSpacing: -0.1
         }}
         numberOfLines={2}
         allowFontScaling={false}
       >
-        {sub.name}
+        {sub.name.replace(/–/g, ' ').replace(/-/g, ' ')}
       </Text>
     </ScalePressable>
   );
@@ -209,11 +282,23 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   isDarkMode,
   screenWidth
 }: CategoryProductPageProps) {
+  const normalizedSlug = useMemo(() => normalizeCategorySlug(categorySlug), [categorySlug]);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
+  const isCafeSection = useMemo(() => {
+    return DEFAULT_CAFE_MENU_SECTIONS.some(c => c.tag === categorySlug || c.tag === normalizedSlug) ||
+           categorySlug.startsWith('cafe-') ||
+           categorySlug === 'cafe';
+  }, [categorySlug, normalizedSlug]);
+
   const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['category-products', categorySlug],
+    queryKey: ['category-products', categorySlug, normalizedSlug, isCafeSection, validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?category=${categorySlug}&limit=500`);
+      const categoryParam = isCafeSection
+        ? 'cafe,ice-cream,beverages,burgers-bites'
+        : (categorySlug === normalizedSlug ? categorySlug : `${categorySlug},${normalizedSlug}`);
+      const response = await fetch(`${API_BASE_URL}/products?category=${categoryParam}&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -236,8 +321,8 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   }, [products]);
 
   const subcategoryList = useMemo(() => {
-    return SUBCATEGORIES_DATA[categorySlug] || DEFAULT_SUBCATEGORIES;
-  }, [categorySlug]);
+    return SUBCATEGORIES_DATA[normalizedSlug] || SUBCATEGORIES_DATA[categorySlug] || DEFAULT_SUBCATEGORIES;
+  }, [categorySlug, normalizedSlug]);
 
   const [activeSub, setActiveSub] = useState('All');
   const sidebarScrollViewRef = useRef<ScrollView>(null);
@@ -268,13 +353,32 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
     };
 
     const isProductOutOfStock = (p: Product) => {
+      if (p.isAvailable === false) return true;
+      if (p.isAvailable === true) return false;
       const hasVariants = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
-      if (!hasVariants) return (p.stock || 0) <= 0;
-      const totalStock = (p.variants as any[]).reduce((sum, v) => sum + (v.stock || 0), 0);
-      return totalStock <= 0;
+      if (!hasVariants) return p.stock !== undefined && p.stock !== null && p.stock <= 0;
+      const hasAvailableVariant = (p.variants as any[]).some((v: any) => 
+        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
+      );
+      const totalStock = (p.variants as any[]).reduce((sum, v) => sum + (v.stock ?? 999), 0);
+      return !hasAvailableVariant && totalStock <= 0;
     };
 
     let list = products.filter(p => p.isAvailable !== false);
+
+    // If it's a cafe section, filter out restaurant products and match tags
+    if (isCafeSection) {
+      list = list.filter(p => !isRestaurantProduct(p));
+      const cafeSec = DEFAULT_CAFE_MENU_SECTIONS.find(c => c.tag === categorySlug || c.tag === normalizedSlug);
+      if (cafeSec) {
+        list = list.filter(p => {
+          const catSlug = p.category?.slug?.toLowerCase() || '';
+          const pTags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+          return pTags.some((t: string) => cafeSec.matchTags.includes(t)) ||
+                 cafeSec.matchTags.some((mt: string) => catSlug === mt.toLowerCase());
+        });
+      }
+    }
 
     // Apply primary sorting (pushing out-of-stock to bottom, then sorting by chosen criteria)
     const listWithIndex = list.map((p, index) => ({ product: p, index }));
@@ -329,14 +433,14 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
                pTags.includes(tagLower);
       });
     });
-  }, [products, activeSub, subcategoryList, sortBy]);
+  }, [products, activeSub, subcategoryList, sortBy, isCafeSection, categorySlug, normalizedSlug]);
 
   return (
     <View style={{ width: screenWidth, flex: 1, flexDirection: 'row' }}>
       {/* Left Sidebar (Subcategories) */}
       <View 
         style={{ 
-          width: 90, 
+          width: 94, 
           borderRightWidth: 1, 
           borderColor: isDarkMode ? '#27272a' : '#f1f5f9', 
           backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' 
@@ -547,6 +651,8 @@ const CategoryItem = React.memo(function CategoryItem({
 });
 
 export default function CategoryDetailScreen() {
+  const { width: rawWidth } = useWindowDimensions();
+  const screenWidth = rawWidth > 768 ? 540 : (rawWidth > 0 ? rawWidth : 390);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { getTotalItems, getSubtotal } = useCart();
   const { theme, toggleTheme } = useTheme();
@@ -555,6 +661,15 @@ export default function CategoryDetailScreen() {
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_LOW' | 'PRICE_HIGH'>('RELEVANCE');
   const [activeSlug, setActiveSlug] = useState(slug);
   const [initialRenderDone, setInitialRenderDone] = useState(false);
+  const normalizedSlug = useMemo(() => normalizeCategorySlug(slug), [slug]);
+
+  // If slug is main cafe (e.g. /category/cafe or /category/fastkirana-cafe), redirect to /cafe page
+  useEffect(() => {
+    const s = slug?.toLowerCase().trim();
+    if (s === 'cafe' || s === 'fastkirana-cafe' || s === 'as-cafe' || s === 'café' || normalizedSlug === 'cafe') {
+      router.replace('/cafe');
+    }
+  }, [slug, normalizedSlug]);
 
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -665,6 +780,17 @@ export default function CategoryDetailScreen() {
     offset: screenWidth * index,
     index,
   });
+
+  const s = slug?.toLowerCase().trim();
+  const isMainCafe = s === 'cafe' || s === 'fastkirana-cafe' || s === 'as-cafe' || s === 'café' || normalizedSlug === 'cafe';
+
+  if (isMainCafe) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#09090b' : '#ffffff' }}>
+        <ActivityIndicator size="large" color="#e20a22" />
+      </View>
+    );
+  }
 
   return (
     <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">

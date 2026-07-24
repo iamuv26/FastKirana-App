@@ -87,12 +87,14 @@ function OrderStatusSkeleton() {
 
 let MapView: any;
 let Marker: any;
+let Polyline: any;
 
 if (Platform.OS !== 'web') {
   try {
     const Maps = require('react-native-maps');
     MapView = Maps.default;
     Marker = Maps.Marker;
+    Polyline = Maps.Polyline;
   } catch (e) {
     console.warn('Failed to load react-native-maps:', e);
   }
@@ -328,6 +330,27 @@ function RiderPulseMarker({ latitude, longitude }: { latitude: number; longitude
   );
 }
 
+const getDeliveryPin = (orderId: string) => {
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const pin = Math.abs(hash % 9000) + 1000;
+  return pin.toString();
+};
+
+const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
+  const R = 6371; // Radius of earth in km
+  const dLat = (lat2 - lat1) * Math.PI / 180;
+  const dLon = (lon2 - lon1) * Math.PI / 180;
+  const a = 
+    Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
+  const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+  return R * c;
+};
+
 export default function OrderTrackingScreen() {
   const { id, celebrate } = useLocalSearchParams<{ id: string; celebrate?: string }>();
   const { user } = useAuthStore();
@@ -350,6 +373,18 @@ export default function OrderTrackingScreen() {
     if (!order || order.status === 'DELIVERED' || order.status === 'CANCELLED') return;
 
     const calculateTimeLeft = () => {
+      if (order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng && order.address?.lat && order.address?.lng) {
+        const dist = calculateDistance(
+          order.deliveryLat, 
+          order.deliveryLng, 
+          order.address.lat, 
+          order.address.lng
+        );
+        const mins = Math.max(1, Math.ceil((dist / 25) * 60));
+        setTimeLeft(`${mins} min (${dist.toFixed(1)} km)`);
+        return;
+      }
+
       const created = new Date(order.createdAt).getTime();
       const now = new Date().getTime();
       const elapsed = now - created;
@@ -743,13 +778,6 @@ export default function OrderTrackingScreen() {
              <Text className="text-white text-[9px] font-black tracking-widest uppercase bg-black/20 px-2.5 py-1 rounded-full">
                {order.status === 'DELIVERED' ? 'Completed' : order.status === 'CANCELLED' ? 'Cancelled' : 'Delivery in Progress'}
              </Text>
-             
-             {order.status !== 'DELIVERED' && order.status !== 'CANCELLED' && (
-               <View className="flex-row items-center gap-1 bg-white/20 px-2 py-0.5 rounded-full">
-                 <View className="w-1.5 h-1.5 rounded-full bg-emerald-400" style={{ backgroundColor: '#10b981' }} />
-                 <Text className="text-white text-[8px] font-black">LIVE</Text>
-               </View>
-             )}
            </View>
            
            <Text className="text-white font-black text-lg mt-2 tracking-tight">
@@ -758,7 +786,7 @@ export default function OrderTrackingScreen() {
                : order.status === 'DELIVERED' 
                ? 'Order Delivered!' 
                : order.status === 'SHIPPED' 
-               ? `Arriving in ${timeLeft}` 
+               ? 'On the way' 
                : 'Preparing your order...'}
            </Text>
            
@@ -772,8 +800,63 @@ export default function OrderTrackingScreen() {
                : 'Our team is picking and packing your fresh items at the dark store.'}
            </Text>
           </LinearGradient>
-                {/* Live Tracking / Pickup Location Map */}
-        {((order.status === 'SHIPPED' && order.deliveryLat && order.deliveryLng) || order.deliveryMethod === 'PICKUP') && MapView && Marker && (
+
+          {/* Delivery PIN Card (Only visible before delivery is complete) */}
+          {order.deliveryMethod === 'DELIVERY' && 
+           (order.status === 'PACKED' || order.status === 'SHIPPED' || order.status === 'CONFIRMED' || order.status === 'PENDING') && (
+            <View style={{
+              backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+              borderRadius: 20,
+              borderWidth: 1.5,
+              borderColor: isDarkMode ? 'rgba(16,185,129,0.25)' : '#d1fae5',
+              padding: 16,
+              marginBottom: 16,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'space-between',
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.03,
+                  shadowRadius: 4,
+                },
+                android: {
+                  elevation: 1,
+                }
+              })
+            }}>
+              <View style={{ flex: 1, paddingRight: 12 }}>
+                <Text style={{ fontSize: 10, fontWeight: '900', color: '#10b981', letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                  Share PIN on delivery
+                </Text>
+                <Text style={{ fontSize: 9.5, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2, lineHeight: 14 }}>
+                  Give this 4-digit PIN to the delivery partner when they arrive to verify your order.
+                </Text>
+              </View>
+              
+              <View style={{
+                backgroundColor: isDarkMode ? 'rgba(16,185,129,0.1)' : '#f0fdf4',
+                borderWidth: 1.2,
+                borderColor: '#10b981',
+                borderRadius: 14,
+                paddingHorizontal: 16,
+                paddingVertical: 10,
+                alignItems: 'center',
+                justifyContent: 'center'
+              }}>
+                <Text style={{ fontSize: 8, fontWeight: '800', color: '#10b981', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  DELIVERY PIN
+                </Text>
+                <Text style={{ fontSize: 18, fontWeight: '900', color: isDarkMode ? '#34d399' : '#059669', marginTop: 2, letterSpacing: 0.5 }}>
+                  {getDeliveryPin(order.id)}
+                </Text>
+              </View>
+            </View>
+          )}
+
+        {/* Live Tracking / Pickup Location Map */}
+        {!['DELIVERED', 'CANCELLED'].includes(order.status) && MapView && Marker && (
           <View style={{ width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
             {(() => {
               const isRestaurant = order.shopName === 'FastKirana Restaurant Kitchen';
@@ -826,14 +909,28 @@ export default function OrderTrackingScreen() {
 
                       {/* Destination Marker */}
                       {order.address?.lat && order.address?.lng && (
-                        <Marker
-                          coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
-                          title="Your Home"
-                          description="Delivery destination"
-                          tracksViewChanges={false}
-                        >
-                          <Text style={{ fontSize: 24 }}>🏠</Text>
-                        </Marker>
+                        <>
+                          <Marker
+                            coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
+                            title="Your Home"
+                            description="Delivery destination"
+                            tracksViewChanges={false}
+                          >
+                            <Text style={{ fontSize: 24 }}>🏠</Text>
+                          </Marker>
+
+                          {Polyline && (
+                            <Polyline
+                              coordinates={[
+                                { latitude: deliveryLat, longitude: deliveryLng },
+                                { latitude: order.address.lat, longitude: order.address.lng }
+                              ]}
+                              strokeWidth={3.5}
+                              strokeColor="#e20a22"
+                              lineDashPattern={[6, 4]}
+                            />
+                          )}
+                        </>
                       )}
                     </>
                   )}
@@ -935,7 +1032,7 @@ export default function OrderTrackingScreen() {
          </View>
 
         {/* Rider Partner card */}
-        {order.status === 'SHIPPED' && (
+        {['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) && (
           <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 flex-row justify-between items-center shadow-xs">
             <View className="flex-row items-center gap-3">
               <View className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/20 items-center justify-center border border-emerald-100 dark:border-emerald-900/30">

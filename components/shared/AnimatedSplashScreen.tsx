@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { View, Text, Image, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Image, StyleSheet, useWindowDimensions } from 'react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withTiming, runOnJS } from 'react-native-reanimated';
 import { ShoppingBasket } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -7,18 +7,16 @@ import Svg, { Path } from 'react-native-svg';
 import { THEME } from '../../lib/theme';
 import { useTheme } from '../../app/context/ThemeContext';
 
-
-const { width: SCREEN_WIDTH } = Dimensions.get('window');
-
 interface AnimatedSplashScreenProps {
   onFinish: () => void;
 }
 
 // City Skyline SVG component
 function CitySkyline({ isDarkMode }: { isDarkMode: boolean }) {
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   return (
     <Svg
-      width={SCREEN_WIDTH}
+      width={SCREEN_WIDTH > 0 ? SCREEN_WIDTH : 390}
       height={120}
       viewBox="0 0 400 120"
       preserveAspectRatio="xMidYMax slice"

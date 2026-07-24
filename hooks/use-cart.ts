@@ -30,15 +30,18 @@ export function useCart() {
     const hasGrocery = newItems.some(i => !isCafeProduct(i.product));
     const hasCafe = newItems.some(i => isCafeProduct(i.product));
 
+    const groceryThreshold = useUIStore.getState().groceryFreeDeliveryThreshold || GROCERY_FREE_DELIVERY_THRESHOLD;
+    const cafeThreshold = useUIStore.getState().cafeFreeDeliveryThreshold || CAFE_FREE_DELIVERY_THRESHOLD;
+
     if (hasGrocery) {
-      if (prevGrocerySub < GROCERY_FREE_DELIVERY_THRESHOLD && newGrocerySub >= GROCERY_FREE_DELIVERY_THRESHOLD) {
+      if (prevGrocerySub < groceryThreshold && newGrocerySub >= groceryThreshold) {
         setTimeout(() => {
           triggerHaptic('success');
           toast.success('🎉 FREE Grocery delivery unlocked!');
         }, 300);
       }
     } else if (hasCafe) {
-      if (prevCafeSub < CAFE_FREE_DELIVERY_THRESHOLD && newCafeSub >= CAFE_FREE_DELIVERY_THRESHOLD) {
+      if (prevCafeSub < cafeThreshold && newCafeSub >= cafeThreshold) {
         setTimeout(() => {
           triggerHaptic('success');
           toast.success('🎉 FREE Cafe delivery unlocked!');
@@ -61,7 +64,8 @@ export function useCart() {
       toast.error(`Grocery Mart is temporarily closed. Cannot add ${product.name}.`);
       return;
     }
-    if (product.stock <= 0) {
+    const isOOS = product.isAvailable === false || (product.isAvailable !== true && product.stock !== undefined && product.stock !== null && product.stock <= 0);
+    if (isOOS) {
       triggerHaptic('warning');
       toast.error(`Sorry, ${product.name} is out of stock!`);
       return;
@@ -111,9 +115,10 @@ export function useCart() {
       const { groceryMartOpen, cafeOpen } = useUIStore.getState();
       const item = store.items.find((i) => i.product.id === productId);
       if (item) {
-        if (quantity > item.product.stock) {
+        const effectiveStock = (item.product.isAvailable === true && (item.product.stock === undefined || item.product.stock === null || item.product.stock <= 0)) ? 999 : (item.product.stock ?? 999);
+        if (quantity > effectiveStock) {
           triggerHaptic('warning');
-          toast.error(`Cannot add more. Only ${item.product.stock} units available.`);
+          toast.error(`Cannot add more. Only ${effectiveStock} units available.`);
           return;
         }
         const isCafe = isCafeProduct(item.product);
@@ -197,15 +202,18 @@ export function useCartActions() {
     const hasGrocery = newItems.some(i => !isCafeProduct(i.product));
     const hasCafe = newItems.some(i => isCafeProduct(i.product));
 
+    const groceryThreshold = useUIStore.getState().groceryFreeDeliveryThreshold || GROCERY_FREE_DELIVERY_THRESHOLD;
+    const cafeThreshold = useUIStore.getState().cafeFreeDeliveryThreshold || CAFE_FREE_DELIVERY_THRESHOLD;
+
     if (hasGrocery) {
-      if (prevGrocerySub < GROCERY_FREE_DELIVERY_THRESHOLD && newGrocerySub >= GROCERY_FREE_DELIVERY_THRESHOLD) {
+      if (prevGrocerySub < groceryThreshold && newGrocerySub >= groceryThreshold) {
         setTimeout(() => {
           triggerHaptic('success');
           toast.success('🎉 FREE Grocery delivery unlocked!');
         }, 300);
       }
     } else if (hasCafe) {
-      if (prevCafeSub < CAFE_FREE_DELIVERY_THRESHOLD && newCafeSub >= CAFE_FREE_DELIVERY_THRESHOLD) {
+      if (prevCafeSub < cafeThreshold && newCafeSub >= cafeThreshold) {
         setTimeout(() => {
           triggerHaptic('success');
           toast.success('🎉 FREE Cafe delivery unlocked!');
@@ -228,7 +236,8 @@ export function useCartActions() {
       toast.error(`Grocery Mart is temporarily closed. Cannot add ${product.name}.`);
       return;
     }
-    if (product.stock <= 0) {
+    const isOOS = product.isAvailable === false || (product.isAvailable !== true && product.stock !== undefined && product.stock !== null && product.stock <= 0);
+    if (isOOS) {
       triggerHaptic('warning');
       toast.error(`Sorry, ${product.name} is out of stock!`);
       return;
@@ -279,9 +288,10 @@ export function useCartActions() {
       const { groceryMartOpen, cafeOpen } = useUIStore.getState();
       const item = state.items.find((i) => i.product.id === productId);
       if (item) {
-        if (quantity > item.product.stock) {
+        const effectiveStock = (item.product.isAvailable === true && (item.product.stock === undefined || item.product.stock === null || item.product.stock <= 0)) ? 999 : (item.product.stock ?? 999);
+        if (quantity > effectiveStock) {
           triggerHaptic('warning');
-          toast.error(`Cannot add more. Only ${item.product.stock} units available.`);
+          toast.error(`Cannot add more. Only ${effectiveStock} units available.`);
           return;
         }
         const isCafe = isCafeProduct(item.product);

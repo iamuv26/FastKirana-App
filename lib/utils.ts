@@ -10,12 +10,22 @@ export function formatPrice(price: number): string {
   return `₹${price.toLocaleString('en-IN')}`;
 }
 
+export function isRestaurantProduct(p: any): boolean {
+  if (!p) return false;
+  const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
+  const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+
+  if (catSlug === 'restaurant') return true;
+  return tags.includes('restaurant') && !tags.includes('cafe');
+}
+
 export function isCafeProduct(p: any): boolean {
   if (!p) return false;
-  const categorySlug = p.category?.slug || p.categorySlug;
-  if (categorySlug === 'cafe' || categorySlug === 'restaurant') return true;
-  if (p.tags?.includes('cafe') || p.tags?.includes('restaurant')) return true;
-  return false;
+  const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
+  const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+  
+  if (catSlug === 'fastkirana-cafe') return true;
+  return tags.includes('cafe');
 }
 
 export function getOptimizedImageUrl(url: string | null | undefined, width = 300): string | null {
@@ -50,7 +60,7 @@ export function getAppImageSource(imgUrl: string | null | undefined, width = 250
 
 export function formatHeaderAddress(address: string | null | undefined): string {
   if (!address || address === 'Select Location') return 'Select Location';
-  if (address.startsWith('Lat:')) return address;
+  if (address === 'Current Location') return 'Current Location';
   
   const parts = address.split(',')
     .map(p => p.trim())
@@ -65,4 +75,59 @@ export function formatHeaderAddress(address: string | null | undefined): string 
   
   // Take first 2 readable parts (e.g., street/area and city)
   return parts.slice(0, 2).join(', ');
+}
+
+export function getCategoryEmoji(nameOrSlug: string | null | undefined): string {
+  if (!nameOrSlug) return '🍽️';
+  const n = nameOrSlug.toLowerCase();
+
+  if (n === 'all') return '🛒';
+  if (n.includes('roti') || n.includes('naan') || n.includes('kulcha') || n.includes('paratha')) return '🫓';
+  if (n.includes('burger')) return '🍔';
+  if (n.includes('pizza')) return '🍕';
+  if (n.includes('chinese') || n.includes('noodle') || n.includes('momo') || n.includes('manchurian') || n.includes('wok')) return '🥢';
+  if (n.includes('biryani') || n.includes('thali') || n.includes('curry') || n.includes('paneer') || n.includes('rice') || n.includes('dal') || n.includes('north indian')) return '🍛';
+  if (n.includes('south indian') || n.includes('dosa') || n.includes('idli') || n.includes('sambar') || n.includes('vada')) return '🥞';
+  if (n.includes('shake') || n.includes('drink') || n.includes('coffee') || n.includes('beverage') || n.includes('tea') || n.includes('brew') || n.includes('sod') || n.includes('chilled') || n.includes('sip')) return '🧋';
+  if (n.includes('dessert') || n.includes('ice cream') || n.includes('ice-cream') || n.includes('sweet') || n.includes('cake') || n.includes('muffin') || n.includes('gulab')) return '🍰';
+  if (n.includes('sandwich') || n.includes('toast') || n.includes('bombay')) return '🥪';
+  if (n.includes('roll') || n.includes('frankie') || n.includes('wrap') || n.includes('kathi')) return '🌯';
+  if (n.includes('pasta') || n.includes('italian')) return '🍝';
+  if (n.includes('snack') || n.includes('bite') || n.includes('samosa') || n.includes('patty') || n.includes('fries') || n.includes('munch')) return '🍟';
+  if (n.includes('fruit') || n.includes('veg')) return '🥦';
+  if (n.includes('milk') || n.includes('dairy') || n.includes('butter') || n.includes('cheese')) return '🥛';
+  if (n.includes('bread') || n.includes('bakery') || n.includes('biscuit') || n.includes('cookie')) return '🍞';
+  if (n.includes('soap') || n.includes('shampoo') || n.includes('clean') || n.includes('wash') || n.includes('care') || n.includes('hygiene') || n.includes('house')) return '🧴';
+  if (n.includes('restaurant') || n.includes('food') || n.includes('cafe')) return '🍱';
+  return '🍽️';
+}
+
+export function normalizeCategorySlug(slug: string | null | undefined): string {
+  if (!slug) return 'grocery-essential';
+  const s = slug.toLowerCase().trim();
+  if (s === 'atta-rice-dal' || s === 'staples' || s === 'staples-pulses' || s === 'groceries' || s === 'grocery-essentials' || s === 'atta-dal') {
+    return 'grocery-essential';
+  }
+  if (s === 'dairy' || s === 'milk-dairy' || s === 'breakfast' || s === 'milk') {
+    return 'dairy-breakfast';
+  }
+  if (s === 'snacks' || s === 'munchies' || s === 'biscuits' || s === 'biscuits-snacks' || s === 'munch') {
+    return 'snacks-biscuits';
+  }
+  if (s === 'drinks' || s === 'soft-drinks' || s === 'beverage' || s === 'coolers') {
+    return 'beverages';
+  }
+  if (s === 'icecream' || s === 'ice-creams' || s === 'desserts' || s === 'frozen') {
+    return 'ice-cream';
+  }
+  if (s === 'home-care' || s === 'cleaning' || s === 'cleaners' || s === 'house-hold' || s === 'home') {
+    return 'household';
+  }
+  if (s === 'personal' || s === 'hygiene' || s === 'beauty' || s === 'care') {
+    return 'personal-care';
+  }
+  if (s === 'fastkirana-cafe' || s === 'as-cafe' || s === 'café') {
+    return 'cafe';
+  }
+  return s;
 }

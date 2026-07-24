@@ -10,6 +10,7 @@ interface UserCoords {
 interface UIState {
   selectedLocation: string;
   userCoords: UserCoords | null;
+  isLocationConfirmed: boolean;
   shopName: string;
   shopPhone: string;
   groceryMartOpen: boolean;
@@ -36,6 +37,7 @@ interface UIState {
   cafeFreeDeliveryThreshold: number;
   setSelectedLocation: (location: string) => void;
   setUserCoords: (coords: UserCoords | null) => void;
+  setLocationConfirmed: (confirmed: boolean) => void;
   setShopDetails: (name: string, phone: string) => void;
   setStoreStatus: (
     groceryOpen: boolean, 
@@ -66,6 +68,7 @@ export const useUIStore = create<UIState>()(
     (set) => ({
       selectedLocation: 'Ghatampur Market, Kanpur',
       userCoords: { lat: 26.1534185, lng: 80.1714024 },
+      isLocationConfirmed: false,
       shopName: 'Ghatampur',
       shopPhone: '',
       groceryMartOpen: true,
@@ -92,6 +95,7 @@ export const useUIStore = create<UIState>()(
 
       setSelectedLocation: (location) => set({ selectedLocation: location }),
       setUserCoords: (coords) => set({ userCoords: coords }),
+      setLocationConfirmed: (confirmed) => set({ isLocationConfirmed: confirmed }),
       setShopDetails: (name, phone) => set({ shopName: name, shopPhone: phone }),
       setStoreStatus: (
         groceryOpen, 
@@ -174,6 +178,7 @@ export const useUIStore = create<UIState>()(
           shopName: mergedShopName,
           selectedLocation: mergedLocation,
           userCoords: mergedCoords,
+          isLocationConfirmed: typeof persistedState.isLocationConfirmed === 'boolean' ? persistedState.isLocationConfirmed : currentState.isLocationConfirmed,
           storeLat: typeof persistedState.storeLat === 'number' ? persistedState.storeLat : currentState.storeLat,
           storeLng: typeof persistedState.storeLng === 'number' ? persistedState.storeLng : currentState.storeLng,
           deliveryRadius: typeof persistedState.deliveryRadius === 'number' ? persistedState.deliveryRadius : currentState.deliveryRadius,

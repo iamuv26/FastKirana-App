@@ -13,6 +13,7 @@ import { API_BASE_URL } from '../lib/constants';
 import { useTheme } from './context/ThemeContext';
 import { triggerHaptic } from '../lib/haptic';
 import { THEME } from '../lib/theme';
+import { useUIStore } from '../stores/ui-store';
 
 let ExpoSpeechRecognitionModule: any = null;
 let ExpoWebSpeechRecognition: any = null;
@@ -40,6 +41,7 @@ const ALL_SEARCHABLE_PRODUCTS: Product[] = [];
 export default function SearchScreen() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const { categorySlug, categoryName } = useLocalSearchParams<{ categorySlug?: string; categoryName?: string }>();
   const [searchQueryVal, setSearchQuery] = useState('');
   const [debouncedQuery, setDebouncedQuery] = useState('');
@@ -70,11 +72,13 @@ export default function SearchScreen() {
     return () => clearInterval(interval);
   }, [searchQueryVal]);
 
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
   // Fetch all products from API for matching
   const { data: allProducts = [] } = useQuery<Product[]>({
-    queryKey: ['all-search-products-list'],
+    queryKey: ['all-search-products-list', validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?limit=500`);
+      const response = await fetch(`${API_BASE_URL}/products?limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -295,12 +299,12 @@ export default function SearchScreen() {
 
   // Query search endpoint
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['search-products', debouncedQuery, categorySlug],
+    queryKey: ['search-products', debouncedQuery, categorySlug, validStoreId],
     queryFn: async () => {
       if (!debouncedQuery || !debouncedQuery.trim()) return [];
       const url = categorySlug 
-        ? `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&category=${encodeURIComponent(categorySlug)}`
-        : `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}`;
+        ? `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&category=${encodeURIComponent(categorySlug)}&limit=100${validStoreId ? `&storeId=${validStoreId}` : ''}`
+        : `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&limit=100${validStoreId ? `&storeId=${validStoreId}` : ''}`;
       const response = await fetch(url);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();

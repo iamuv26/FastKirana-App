@@ -51,14 +51,16 @@ export const useCartStore = create<CartState>()(
       items: [],
 
       addItem: (product: CartProduct) => {
-        if (product.stock <= 0) return;
+        const isOOS = product.isAvailable === false || (product.isAvailable !== true && product.stock !== undefined && product.stock !== null && product.stock <= 0);
+        if (isOOS) return;
+        const effectiveStock = (product.isAvailable === true && (product.stock === undefined || product.stock === null || product.stock <= 0)) ? 999 : (product.stock ?? 999);
         set((state) => {
           const existing = state.items.find((item) => item.product.id === product.id);
           if (existing) {
             return {
               items: state.items.map((item) =>
                 item.product.id === product.id
-                  ? { ...item, quantity: Math.min(item.quantity + 1, item.product.stock) }
+                  ? { ...item, quantity: Math.min(item.quantity + 1, effectiveStock) }
                   : item
               ),
             };
@@ -79,11 +81,13 @@ export const useCartStore = create<CartState>()(
             return { items: state.items.filter((item) => item.product.id !== productId) };
           }
           return {
-            items: state.items.map((item) =>
-              item.product.id === productId
-                ? { ...item, quantity: Math.min(quantity, item.product.stock) }
-                : item
-            ),
+            items: state.items.map((item) => {
+              if (item.product.id === productId) {
+                const effectiveStock = (item.product.isAvailable === true && (item.product.stock === undefined || item.product.stock === null || item.product.stock <= 0)) ? 999 : (item.product.stock ?? 999);
+                return { ...item, quantity: Math.min(quantity, effectiveStock) };
+              }
+              return item;
+            }),
           };
         });
       },

@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { StyleSheet, Dimensions, View } from 'react-native';
+import { StyleSheet, useWindowDimensions, View } from 'react-native';
 import Animated, { 
   useSharedValue, 
   useAnimatedStyle, 
@@ -7,8 +7,6 @@ import Animated, {
   withTiming, 
   runOnJS 
 } from 'react-native-reanimated';
-
-const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = Dimensions.get('window');
 
 const COLORS = ['#FFC107', '#FF5722', '#E91E63', '#9C27B0', '#3F51B5', '#00BCD4', '#4CAF50', '#8BC34A'];
 
@@ -18,8 +16,11 @@ interface ConfettiParticleProps {
 }
 
 function ConfettiParticle({ index, onAnimationEnd }: ConfettiParticleProps) {
+  const { width: SCREEN_WIDTH, height: SCREEN_HEIGHT } = useWindowDimensions();
+  const validWidth = SCREEN_WIDTH > 0 ? SCREEN_WIDTH : 390;
+  const validHeight = SCREEN_HEIGHT > 0 ? SCREEN_HEIGHT : 844;
   const size = Math.random() * 8 + 6; // random size between 6 and 14
-  const startX = Math.random() * SCREEN_WIDTH;
+  const startX = Math.random() * validWidth;
   const endX = startX + (Math.random() * 100 - 50); // drift left/right
   const color = COLORS[Math.floor(Math.random() * COLORS.length)];
   
@@ -35,7 +36,7 @@ function ConfettiParticle({ index, onAnimationEnd }: ConfettiParticleProps) {
 
     y.value = withDelay(
       delay,
-      withTiming(SCREEN_HEIGHT + 20, { duration }, (finished) => {
+      withTiming(validHeight + 20, { duration }, (finished) => {
         if (finished && onAnimationEnd && index === 0) {
           runOnJS(onAnimationEnd)();
         }

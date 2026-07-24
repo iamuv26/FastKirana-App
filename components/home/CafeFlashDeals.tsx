@@ -6,10 +6,12 @@ import { formatPrice } from '../../lib/utils';
 import { useTheme } from '../../app/context/ThemeContext';
 import { THEME } from '../../lib/theme';
 import { triggerHaptic } from '../../lib/haptic';
+import { useUIStore } from '../../stores/ui-store';
 
 export default function CafeFlashDeals() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const cafeOpen = useUIStore((s) => s.cafeOpen);
   
   // Flash Deals Countdown (starts at 15m 00s for demo)
   const [timeLeft, setTimeLeft] = useState(900); // 15 minutes in seconds
@@ -142,8 +144,18 @@ export default function CafeFlashDeals() {
                   <Text style={{ fontSize: 12, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }}>{formatPrice(product.price)}</Text>
                   <Text style={{ fontSize: 9, fontWeight: '400', color: isDarkMode ? '#71717a' : '#94a3b8' }} className="line-through">{formatPrice(product.mrp)}</Text>
                 </View>
-                <Pressable style={{ backgroundColor: THEME.COLORS.brand.primary, borderRadius: THEME.RADIUS.xs, paddingHorizontal: 10, paddingVertical: 6 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: '700' }}>ADD</Text>
+                <Pressable 
+                  disabled={!cafeOpen}
+                  style={{ 
+                    backgroundColor: cafeOpen ? THEME.COLORS.brand.primary : (isDarkMode ? '#27272a' : '#e2e8f0'), 
+                    borderRadius: THEME.RADIUS.xs, 
+                    paddingHorizontal: 10, 
+                    paddingVertical: 6 
+                  }}
+                >
+                  <Text style={{ color: cafeOpen ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#64748b'), fontSize: 10, fontWeight: '700' }}>
+                    {cafeOpen ? 'ADD' : 'Closed'}
+                  </Text>
                 </Pressable>
               </View>
             </Pressable>

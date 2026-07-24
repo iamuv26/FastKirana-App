@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Dimensions, Pressable } from 'react-native';
+import { View, Text, ScrollView, useWindowDimensions, Pressable } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { ShoppingBag } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,9 +6,6 @@ import Animated, { FadeIn, useAnimatedStyle, withSpring } from 'react-native-rea
 import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
 import { THEME } from '../../lib/theme';
-
-const { width } = Dimensions.get('window');
-const bannerWidth = width;
 
 const BANNERS = [
   {
@@ -53,6 +50,8 @@ function PaginationDot({ isActive }: { isActive: boolean }) {
 }
 
 export default function HeroBanner() {
+  const { width } = useWindowDimensions();
+  const bannerWidth = width > 0 ? width : 390;
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 

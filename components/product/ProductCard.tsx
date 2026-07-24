@@ -1,5 +1,5 @@
 import { memo, useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, Alert, Dimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Alert, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { ShoppingBag, Sparkles, AlertTriangle, ChevronDown, Plus, Minus } from 'lucide-react-native';
@@ -10,7 +10,7 @@ import { useUIStore } from '../../stores/ui-store';
 import { useShallow } from 'zustand/react/shallow';
 import { useTheme } from '../../app/context/ThemeContext';
 import { API_BASE_URL } from '../../lib/constants';
-import { getOptimizedImageUrl, getAppImageSource } from '../../lib/utils';
+import { getOptimizedImageUrl, getAppImageSource, isCafeProduct } from '../../lib/utils';
 import { triggerHaptic } from '../../lib/haptic';
 import { playCartPop } from '../../lib/audio';
 import AlertModal from '../shared/AlertModal';
@@ -38,6 +38,8 @@ export interface Product {
   variants?: any[] | null;
   tags?: string[];
   minStock?: number;
+  sortOrder?: number;
+  createdAt?: string;
   category?: {
     id: string;
     name: string;
@@ -143,7 +145,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     return className.includes('w-') ? undefined : '47%';
   }, [className]);
 
-  const { width: SCREEN_WIDTH } = Dimensions.get('window');
+  const { width: SCREEN_WIDTH } = useWindowDimensions();
   const initialCardWidth = useMemo(() => {
     if (!resolvedWidth) return (SCREEN_WIDTH - 24) * 0.47;
     if (typeof resolvedWidth === 'number') {
@@ -214,12 +216,35 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
   }, [resolvedMrp, resolvedPrice]);
 
   const resolvedStock = useMemo(() => {
-    if (!hasVariants) return product.stock;
-    return variantsList.reduce((sum, v) => sum + (v.stock || 0), 0);
-  }, [hasVariants, variantsList, product.stock]);
+    if (!hasVariants) {
+      if (product.isAvailable === true && (product.stock === undefined || product.stock === null || product.stock <= 0)) {
+        return 999;
+      }
+      return product.stock ?? 999;
+    }
+    return variantsList.reduce((sum, v) => {
+      const vStock = (v.isAvailable === true || product.isAvailable === true) && (v.stock === undefined || v.stock === null || v.stock <= 0)
+        ? 999
+        : (v.stock ?? 999);
+      return sum + vStock;
+    }, 0);
+  }, [hasVariants, variantsList, product.stock, product.isAvailable]);
 
-  const resolvedIsAvailable = (product.isAvailable ?? true) || resolvedStock > 0;
-  const isCafe = product.category?.slug === 'cafe' || product.tags?.includes('cafe');
+  const resolvedIsAvailable = useMemo(() => {
+    if (product.isAvailable === false) return false;
+    if (product.isAvailable === true) return true;
+    if (!hasVariants) {
+      if (product.stock !== undefined && product.stock !== null && product.stock <= 0) return false;
+      return true;
+    }
+    const hasAvailableVariant = variantsList.some((v) => 
+      v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
+    );
+    const totalVariantStock = variantsList.reduce((sum, v) => sum + (v.stock ?? 999), 0);
+    return hasAvailableVariant || totalVariantStock > 0;
+  }, [product.isAvailable, product.stock, hasVariants, variantsList]);
+
+  const isCafe = isCafeStyle || isCafeProduct(product) || product.category?.slug === 'cafe' || product.category?.slug === 'fastkirana-cafe' || product.category?.slug === 'restaurant' || product.tags?.includes('cafe') || product.tags?.includes('restaurant');
   const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
   const resolvedIsFlash = isFlashDeal || product.isFlashDeal || product.tags?.includes('flash');
 
@@ -328,7 +353,6 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
 
 
   if (isCafeStyle) {
-    const mockRating = ['4.4', '4.5', '4.6', '4.7'][(product.id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0)) % 4];
     const isNonVeg = product.tags?.some((t: string) => t.toLowerCase() === 'non-veg') || false;
     const is3Column = !!className && (className.includes('31.5') || className.includes('31%') || className.includes('1/3'));
 
@@ -364,15 +388,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               animatedCardStyle
             ]}
           >
-            {/* Top row: Veg Indicator & Rating */}
+            {/* Top row: Veg Indicator */}
             <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', zIndex: 10 }}>
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 <VegIndicator isNonVeg={isNonVeg} isDark={isDark} />
-                {!is3Column && (
-                  <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#fffbeb', paddingHorizontal: 4, paddingVertical: 1, borderRadius: 4 }}>
-                    <Text style={{ fontSize: 9.5, fontWeight: '700', color: '#b45309' }}>★ {mockRating}</Text>
-                  </View>
-                )}
               </View>
             </View>
 
@@ -437,6 +456,23 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 }}>
                   <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '800', letterSpacing: 0.2 }}>
                     ★ BEST
+                  </Text>
+                </View>
+              )}
+
+              {/* Cafe Hot & Fresh Badge Overlay */}
+              {isCafe && (
+                <View style={{
+                  position: 'absolute',
+                  bottom: THEME.SPACING.xs,
+                  right: THEME.SPACING.xs,
+                  backgroundColor: 'rgba(234, 88, 12, 0.9)',
+                  paddingHorizontal: 5,
+                  paddingVertical: 2,
+                  borderRadius: THEME.RADIUS.xs,
+                }}>
+                  <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.2 }}>
+                    ♨️ Hot & Fresh
                   </Text>
                 </View>
               )}
@@ -759,7 +795,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               >
                 <Text style={{ color: isDark ? '#a1a1aa' : '#64748b', fontSize: 8.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.2 }}>Closed</Text>
               </View>
-            ) : (resolvedStock <= 0 || !resolvedIsAvailable) ? (
+            ) : (!resolvedIsAvailable) ? (
               <Pressable
                 onPress={() => { if (!notified) handleNotify(); }}
                 style={{
@@ -816,7 +852,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
           </View>
 
           {/* Stepper overlay — wider, shows when quantity > 0 */}
-          {quantity > 0 && !isStoreClosed && resolvedStock > 0 && resolvedIsAvailable && (
+          {quantity > 0 && !isStoreClosed && resolvedIsAvailable && (
             <Animated.View
               entering={FadeIn.duration(120)}
               exiting={FadeOut.duration(120)}

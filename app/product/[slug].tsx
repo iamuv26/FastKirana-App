@@ -67,11 +67,14 @@ export default function ProductDetailScreen() {
   const [storageOpen, setStorageOpen] = useState(false);
   const [sellerOpen, setSellerOpen] = useState(false);
 
+  const assignedStoreId = useUIStore((s) => s.assignedStoreId);
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
   // Fetch product detail from API
   const { data: product = DEFAULT_MOCK_DETAIL, isLoading } = useQuery<any>({
-    queryKey: ['product-details', slug],
+    queryKey: ['product-details', slug, validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products/${slug}`);
+      const response = await fetch(`${API_BASE_URL}/products/${slug}${validStoreId ? `?storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API failed');
       return await response.json();
     },
@@ -80,10 +83,10 @@ export default function ProductDetailScreen() {
   // Fetch related products dynamically by category
   const categorySlug = product.category?.slug;
   const { data: relatedProductsData } = useQuery<any>({
-    queryKey: ['related-products', categorySlug],
+    queryKey: ['related-products', categorySlug, validStoreId],
     queryFn: async () => {
       if (!categorySlug) return [];
-      const res = await fetch(`${API_BASE_URL}/products?category=${categorySlug}&limit=10`);
+      const res = await fetch(`${API_BASE_URL}/products?category=${categorySlug}&limit=10${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!res.ok) return [];
       const data = await res.json();
       return data.products || [];
@@ -143,6 +146,20 @@ export default function ProductDetailScreen() {
     unit: product.unit
   };
 
+  const isOutOfStock = useMemo(() => {
+    if (product.isAvailable === false) return true;
+    if (product.isAvailable === true) return false;
+    const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
+    if (hasVariants) {
+      const hasAvailableVariant = product.variants.some((v: any) => 
+        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
+      );
+      const totalVariantStock = product.variants.reduce((sum: number, v: any) => sum + (v.stock ?? 999), 0);
+      return !hasAvailableVariant && totalVariantStock <= 0;
+    }
+    return product.stock !== undefined && product.stock !== null && product.stock <= 0;
+  }, [product.isAvailable, product.stock, product.variants]);
+
   // Build temporary object representing selected variant for Cart Actions
   const cartProduct: Product = {
     id: `${product.id}-${selectedVariantId}`,
@@ -153,7 +170,8 @@ export default function ProductDetailScreen() {
     price: activeVariant.price,
     discount: (activeVariant.mrp ?? 0) - (activeVariant.price ?? 0),
     unit: activeVariant.unit,
-    stock: product.stock
+    stock: product.stock,
+    isAvailable: product.isAvailable ?? true
   };
 
   const quantity = getItemQuantity(cartProduct.id);
@@ -505,7 +523,7 @@ export default function ProductDetailScreen() {
               <View className="bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 py-3.5 rounded-xl items-center justify-center mb-6">
                 <Text className="font-black text-xs tracking-wider text-slate-400 dark:text-zinc-500 uppercase">STORE CLOSED</Text>
               </View>
-            ) : ((product.stock ?? 0) <= 0 || product.isAvailable === false) ? (
+            ) : isOutOfStock ? (
               <ScalePressable
                 onPress={() => {
                   if (!notified) handleNotify();

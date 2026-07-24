@@ -43,6 +43,7 @@ const queryClient = new QueryClient({
 import { registerForPushNotificationsAsync, addNotificationResponseListener } from '../lib/push-notifications';
 import VariantSelectorDrawer from '../components/product/VariantSelectorDrawer';
 import CartConflictDrawer from '../components/product/CartConflictDrawer';
+import LocationGateModal from '../components/shared/LocationGateModal';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
 import { isWithinOperatingHours, isHoliday } from '../lib/store-hours';
@@ -212,6 +213,7 @@ export default function RootLayout() {
   });
 
   const [showSplash, setShowSplash] = useState(true);
+  const currentPath = usePathname();
 
   // Hide the native static splash screen immediately on mount so only the dynamic animated one is seen!
   useEffect(() => {
@@ -302,9 +304,15 @@ export default function RootLayout() {
       }
     });
 
-    // Redirect staff members to their console
+    // First-time / Logged-out preference: redirect to login if not authenticated
     let redirectTimer: any = null;
-    if (isLoggedIn && user && user.role !== 'USER') {
+    if (!isLoggedIn) {
+      redirectTimer = setTimeout(() => {
+        if (currentPath && !currentPath.startsWith('/(auth)') && !currentPath.startsWith('/login')) {
+          router.replace('/(auth)/login');
+        }
+      }, 250);
+    } else if (isLoggedIn && user && user.role !== 'USER') {
       redirectTimer = setTimeout(() => {
         if (user.role === 'PICKER') router.replace('/picker');
         else if (user.role === 'CHEF') router.replace(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
@@ -360,7 +368,7 @@ export default function RootLayout() {
                 }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
                   <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'fade', animationDuration: 200 }} />
+                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'none' }} />
                   <Stack.Screen name="cafe-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
@@ -371,6 +379,7 @@ export default function RootLayout() {
                 </Stack>
                   <VariantSelectorDrawer />
                   <CartConflictDrawer />
+                  <LocationGateModal />
                   <CartSynchronizer />
                   {showSplash && <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />}
                </View>

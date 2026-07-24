@@ -1,11 +1,8 @@
 import React from 'react';
-import { View, StyleSheet, Dimensions } from 'react-native';
+import { View, StyleSheet, useWindowDimensions } from 'react-native';
 import { SkeletonShimmer } from '../shared/SkeletonShimmer';
 import { useTheme } from '../../app/context/ThemeContext';
 import { THEME } from '../../lib/theme';
-
-const { width: rawWidth } = Dimensions.get('window');
-const width = rawWidth > 768 ? 540 : rawWidth;
 
 interface ProductCardSkeletonProps {
   className?: string;
@@ -13,6 +10,8 @@ interface ProductCardSkeletonProps {
 }
 
 export default function ProductCardSkeleton({ className, style }: ProductCardSkeletonProps) {
+  const { width: rawWidth } = useWindowDimensions();
+  const width = rawWidth > 768 ? 540 : rawWidth;
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
 

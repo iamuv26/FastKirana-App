@@ -10,6 +10,7 @@ import { useTheme } from '../../app/context/ThemeContext';
 import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
 import { THEME } from '../../lib/theme';
+import { isCafeProduct, isRestaurantProduct } from '../../lib/utils';
 
 // ==========================================
 // --- PREMIUM INLINE VECTOR SVG COMPONENT DESIGN ---
@@ -173,38 +174,34 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
   const currentHour = new Date().getHours();
 
-  // Helper to identify if a product is a Cafe product
-  const isCafeProduct = (product: Product) => {
-    return (
-      product.category?.slug === 'cafe' || 
-      product.tags?.includes('cafe') || 
-      /^c\d+$/.test(product.id)
-    );
+  // Helper to identify if a product is a Cafe or Wedson Restaurant food product
+  const isCafeOrFoodProduct = (product: Product) => {
+    return isCafeProduct(product) || isRestaurantProduct(product);
   };
 
   // Filter Sub-lists
   const flashDeals = useMemo(() => {
-    return products.filter((p) => (p.isFlashDeal || p.discount > 0) && !isCafeProduct(p));
+    return products.filter((p) => (p.isFlashDeal || p.discount > 0) && !isCafeOrFoodProduct(p));
   }, [products]);
 
   const bestSellers = useMemo(() => {
-    const dbBestsellers = products.filter(p => !isCafeProduct(p) && (p.isBestSeller || p.tags?.includes('popular') || p.tags?.includes('essential')));
+    const dbBestsellers = products.filter(p => !isCafeOrFoodProduct(p) && (p.isBestSeller || p.tags?.includes('popular') || p.tags?.includes('essential')));
     if (dbBestsellers.length > 0) return dbBestsellers;
     // Fallback to static selection
     return products.filter(p => p.id === 'db1' || p.id === 'sm2' || p.id === 'fv1' || p.id === 'def2' || p.id === 'db3' || p.id === 'bv2');
   }, [products]);
 
   const topPicks = useMemo(() => {
-    const dbTopPicks = products.filter(p => !isCafeProduct(p) && (p.isTopPick || p.tags?.includes('trending')));
+    const dbTopPicks = products.filter(p => !isCafeOrFoodProduct(p) && (p.isTopPick || p.tags?.includes('trending')));
     if (dbTopPicks.length > 0) return dbTopPicks;
-    return products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'fruits-vegetables' || p.category?.slug === 'dairy-breakfast' || p.id === 'fv3' || p.id === 'db4' || p.id === 'db3'));
+    return products.filter(p => !isCafeOrFoodProduct(p) && (p.category?.slug === 'fruits-vegetables' || p.category?.slug === 'dairy-breakfast' || p.id === 'fv3' || p.id === 'db4' || p.id === 'db3'));
   }, [products]);
 
   // Dynamic Suggestion lists based on hour
   const dynamicCravingConfig = useMemo(() => {
     // 6 AM - 11 AM: Breakfast
     if (currentHour >= 6 && currentHour < 11) {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'dairy-breakfast' || p.category?.slug === 'bakery' || p.id.startsWith('db') || p.id.startsWith('bb') || p.tags?.includes('breakfast')));
+      const filtered = products.filter(p => !isCafeOrFoodProduct(p) && (p.category?.slug === 'dairy-breakfast' || p.category?.slug === 'bakery' || p.id.startsWith('db') || p.id.startsWith('bb') || p.tags?.includes('breakfast')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Breakfast',
@@ -215,7 +212,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 11 AM - 4 PM: Lunch
     else if (currentHour >= 11 && currentHour < 16) {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'grocery-essential' || p.category?.slug === 'fruits-vegetables' || p.id.startsWith('de') || p.id.startsWith('fv') || p.tags?.includes('lunch') || p.tags?.includes('staples')));
+      const filtered = products.filter(p => !isCafeOrFoodProduct(p) && (p.category?.slug === 'grocery-essential' || p.category?.slug === 'fruits-vegetables' || p.id.startsWith('de') || p.id.startsWith('fv') || p.tags?.includes('lunch') || p.tags?.includes('staples')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Lunch',
@@ -226,7 +223,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 4 PM - 8 PM: Snacks
     else if (currentHour >= 16 && currentHour < 20) {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'snacks-biscuits' || p.id.startsWith('sm') || p.tags?.includes('snacks')));
+      const filtered = products.filter(p => !isCafeOrFoodProduct(p) && (p.category?.slug === 'snacks-biscuits' || p.id.startsWith('sm') || p.tags?.includes('snacks')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Snacks',
@@ -237,7 +234,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
     }
     // 8 PM - 5 AM: Late Night
     else {
-      const filtered = products.filter(p => !isCafeProduct(p) && (p.category?.slug === 'beverages' || p.category?.slug === 'snacks-biscuits' || p.category?.slug === 'ice-cream' || p.id.startsWith('bv') || p.id.startsWith('sm') || p.tags?.includes('late-night') || p.tags?.includes('midnight')));
+      const filtered = products.filter(p => !isCafeOrFoodProduct(p) && (p.category?.slug === 'beverages' || p.category?.slug === 'snacks-biscuits' || p.category?.slug === 'ice-cream' || p.id.startsWith('bv') || p.id.startsWith('sm') || p.tags?.includes('late-night') || p.tags?.includes('midnight')));
       return {
         id: 'dynamic-craving' as const,
         title: 'Late Night',
@@ -250,7 +247,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
   // Combine products for "All" curation dynamically (load all grocery products)
   const allProducts = useMemo(() => {
-    return products.filter((p) => !isCafeProduct(p));
+    return products.filter((p) => !isCafeOrFoodProduct(p));
   }, [products]);
 
   const curations = useMemo(() => [

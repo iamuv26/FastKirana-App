@@ -1,6 +1,6 @@
 import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput, Platform } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import { router, usePathname, Stack, useFocusEffect } from 'expo-router';
@@ -35,6 +35,7 @@ interface Address {
 }
 
 export default function CheckoutScreen() {
+  const insets = useSafeAreaInsets();
   const pathname = usePathname();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -810,7 +811,8 @@ export default function CheckoutScreen() {
           borderTopWidth: 1, 
           borderTopColor: isDarkMode ? THEME.COLORS.dark.border : '#e2e8f0', 
           paddingHorizontal: 16, 
-          paddingVertical: 14 
+          paddingTop: 12,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 14
         }} 
         className="flex-row justify-between items-center shadow-lg"
       >

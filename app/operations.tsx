@@ -24,8 +24,6 @@ import Logo from '../components/shared/Logo';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { FadeInDown } from 'react-native-reanimated';
 
-const { width } = Dimensions.get('window');
-
 const DEFAULT_CAFE_MENU_SECTIONS = [
   {
     tag: 'hot-beverage',
@@ -251,6 +249,7 @@ export const mockOrdersList: Order[] = [
 ];
 
 export default function OperationsScreen() {
+  const { width } = useWindowDimensions();
   const { user, logout } = useAuthStore();
   const [activeTab, setActiveTab] = useState<'PICKER' | 'RIDER' | 'CHEF' | 'CHEF_RESTAURANT' | 'ANALYTICS' | 'SETTINGS' | 'INVENTORY' | 'NOTIFICATIONS' | 'COUPONS' | 'ORDERS' | 'BANNERS' | 'USERS' | 'REVIEWS' | 'HIGHLIGHTS' | 'LIVEOPS' | 'CATEGORIES' | 'ALERTS' | 'INWARD' | 'BULK_UPDATE' | 'REPORTS' | 'FORECAST' | null>(null);
   const [activeHub, setActiveHub] = useState<'BI' | 'OPS' | null>(null);
@@ -445,9 +444,12 @@ export default function OperationsScreen() {
   const [radiusState, setRadiusState] = useState<string>(String(localRadius));
   const [isSavingSettings, setIsSavingSettings] = useState<boolean>(false);
   const [isSettingsLoading, setIsSettingsLoading] = useState<boolean>(false);
-  const [settingsSubTab, setSettingsSubTab] = useState<'ops' | 'cosmetics' | 'finance' | 'greetings'>('ops');
+  const [settingsSubTab, setSettingsSubTab] = useState<'ops' | 'pricing' | 'cosmetics' | 'finance' | 'greetings'>('ops');
 
   // Extended settings state variables
+  const [deliveryFeeState, setDeliveryFeeState] = useState<string>('25');
+  const [groceryThresholdState, setGroceryThresholdState] = useState<string>('199');
+  const [cafeThresholdState, setCafeThresholdState] = useState<string>('199');
   const [deliveriesCount, setDeliveriesCount] = useState<string>('10,000+');
   const [ratingValue, setRatingValue] = useState<string>('4.8');
   const [happyFamilies, setHappyFamilies] = useState<string>('5,000+');
@@ -527,6 +529,8 @@ export default function OperationsScreen() {
   // Admin analytics states
   const [isAnalyticsLoading, setIsAnalyticsLoading] = useState<boolean>(false);
   const [analyticsStats, setAnalyticsStats] = useState({
+    todayRevenue: 0,
+    todayTotalOrders: 0,
     totalRevenue: 0,
     totalOrders: 0,
     activeOrders: 0,
@@ -703,7 +707,10 @@ export default function OperationsScreen() {
         if (data.cloudinary_cloud_name) setCloudinaryCloudName(data.cloudinary_cloud_name);
         if (data.cloudinary_upload_preset) setCloudinaryUploadPreset(data.cloudinary_upload_preset);
         
-        // Dynamic Operational Settings
+        // Dynamic Operational & Pricing Settings
+        if (data.delivery_fee !== undefined) setDeliveryFeeState(String(data.delivery_fee));
+        if (data.grocery_free_delivery_threshold !== undefined) setGroceryThresholdState(String(data.grocery_free_delivery_threshold));
+        if (data.cafe_free_delivery_threshold !== undefined) setCafeThresholdState(String(data.cafe_free_delivery_threshold));
         if (data.min_order_value !== undefined) setMinOrderValueState(String(data.min_order_value));
         if (data.store_open_hour !== undefined) setStoreOpenHourState(String(data.store_open_hour));
         if (data.store_close_hour !== undefined) setStoreCloseHourState(String(data.store_close_hour));
@@ -1571,8 +1578,19 @@ export default function OperationsScreen() {
       let restaurantDeliveredOrders = 0;
       let cafeDeliveredOrders = 0;
 
+      let todayRevenue = 0;
+      let todayTotalOrders = 0;
+      const todayDateStr = new Date().toDateString();
+
       if (Array.isArray(ordersList)) {
         ordersList.forEach((o) => {
+          const oDateStr = o.createdAt ? new Date(o.createdAt).toDateString() : '';
+          if (oDateStr === todayDateStr) {
+            todayTotalOrders++;
+            if (o.status === 'DELIVERED') {
+              todayRevenue += (o.total || 0);
+            }
+          }
           const isCafe = o.shopName === 'FastKirana Cafe Kitchen';
           const isRestaurant = o.shopName === 'FastKirana Restaurant Kitchen';
 
@@ -1683,6 +1701,8 @@ export default function OperationsScreen() {
       }
 
       setAnalyticsStats({
+        todayRevenue,
+        todayTotalOrders,
         totalRevenue: revenue,
         totalOrders: Array.isArray(ordersList) ? ordersList.length : 0,
         activeOrders: activeCount,
@@ -1821,6 +1841,8 @@ export default function OperationsScreen() {
       setCategoryShareData(formattedCategoryShare);
 
       setAnalyticsStats({
+        todayRevenue: 0,
+        todayTotalOrders: 0,
         totalRevenue: revenue,
         totalOrders: mockOrdersList.length,
         activeOrders: mockOrdersList.filter(o => o.status !== 'DELIVERED' && o.status !== 'CANCELLED').length,
@@ -2294,6 +2316,9 @@ export default function OperationsScreen() {
           avg_delivery_time: avgDeliveryTime.trim(),
           delivered_today: deliveredToday.trim(),
           fresh_stock_loaded: freshStockLoaded.trim(),
+          delivery_fee: deliveryFeeState.trim(),
+          grocery_free_delivery_threshold: groceryThresholdState.trim(),
+          cafe_free_delivery_threshold: cafeThresholdState.trim(),
           tax_rate: taxRate.trim(),
           misc_fee: miscFee.trim(),
           misc_fee_label: miscFeeLabel.trim(),
@@ -2346,7 +2371,10 @@ export default function OperationsScreen() {
           parseFloat(taxRate),
           onlyCod,
           parseFloat(miscFee),
-          miscFeeLabel
+          miscFeeLabel,
+          parseFloat(deliveryFeeState) || 25,
+          parseFloat(groceryThresholdState) || 199,
+          parseFloat(cafeThresholdState) || 199
         );
         toast.success('Settings saved successfully!');
       } else {
@@ -2388,15 +2416,18 @@ export default function OperationsScreen() {
           parseFloat(radiusState) || 5,
           parseFloat(storeLat),
           parseFloat(storeLng),
-          parseInt(minOrderValueState) || 99,
-          parseInt(storeOpenHourState) || 6,
-          parseInt(storeCloseHourState) || 24,
+          parseInt(minOrderValueState) || 0,
+          parseInt(storeOpenHourState) || 7,
+          parseInt(storeCloseHourState) || 23,
           holidaysState.split(',').map(h => h.trim()),
           parseFloat(surgeMultiplierState) || 1,
           parseFloat(taxRate) || 0,
           onlyCod,
           parseFloat(miscFee) || 0,
-          miscFeeLabel
+          miscFeeLabel,
+          parseFloat(deliveryFeeState) || 25,
+          parseFloat(groceryThresholdState) || 199,
+          parseFloat(cafeThresholdState) || 199
         );
         toast.success(`${type === 'grocery' ? 'Grocery' : 'Cafe'} status updated!`);
       } else {
@@ -3278,10 +3309,30 @@ export default function OperationsScreen() {
   const deliveredOrders = (analyticsStats.groceryDeliveredOrders || 0) + (analyticsStats.restaurantDeliveredOrders || 0) + (analyticsStats.cafeDeliveredOrders || 0);
 
   const statsList = [
-    { label: 'ACTIVE ORDERS', value: String(activeOrders), icon: RotateCcw, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)', subtext: undefined },
-    { label: 'DELIVERED ORDERS', value: String(deliveredOrders), icon: CheckCircle, color: '#10b981', bg: 'rgba(16, 185, 129, 0.08)', subtext: undefined },
-    { label: 'REGISTERED USERS', value: String(analyticsStats.userCount || 0), icon: Users, color: '#3b82f6', bg: 'rgba(59, 130, 246, 0.08)', subtext: undefined },
-    { label: 'LOW STOCK ALERT', value: String(analyticsStats.lowStockCount || 0), icon: AlertTriangle, color: '#f97316', bg: 'rgba(249, 115, 22, 0.08)', subtext: undefined }
+    { 
+      label: 'TODAY REVENUE', 
+      value: formatPrice(analyticsStats.todayRevenue || 0), 
+      icon: IndianRupee, 
+      color: '#10b981', 
+      bg: 'rgba(16, 185, 129, 0.08)', 
+      subtext: "Today's Earnings" 
+    },
+    { 
+      label: 'TODAY ORDERS', 
+      value: String(analyticsStats.todayTotalOrders || 0), 
+      icon: ShoppingBag, 
+      color: '#e11d48', 
+      bg: 'rgba(225, 29, 72, 0.08)', 
+      subtext: "Total Orders Placed Today" 
+    },
+    { 
+      label: 'ACTIVE ORDERS', 
+      value: String(activeOrders), 
+      icon: RotateCcw, 
+      color: '#f97316', 
+      bg: 'rgba(249, 115, 22, 0.08)', 
+      subtext: "New Placed & Live Queue" 
+    }
   ];
 
   const renderActiveTitle = () => {
@@ -3482,7 +3533,7 @@ export default function OperationsScreen() {
               </View>
             </View>
 
-            {/* 6 Stats Cards Grid */}
+            {/* 3 Stats Cards Grid */}
             <View className="flex-row flex-wrap gap-4 mb-8">
               {statsList.map((stat, idx) => {
                 const Icon = stat.icon;
@@ -3490,7 +3541,7 @@ export default function OperationsScreen() {
                   <View 
                     key={idx} 
                     className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 flex-row items-center gap-4 shadow-xs"
-                    style={{ width: isWeb ? 'calc(25% - 12px)' : '48%', minWidth: isWeb ? 140 : 'none' } as any}
+                    style={{ width: isWeb ? 'calc(33.333% - 11px)' : '31.5%', minWidth: isWeb ? 160 : 'none' } as any}
                   >
                     <View 
                       className="w-12 h-12 rounded-2xl items-center justify-center"
@@ -3714,16 +3765,16 @@ export default function OperationsScreen() {
               </View>
             </View>
 
-            {/* 6 Stats Cards Grid (2-column on mobile) */}
+            {/* 3 Stats Cards Grid */}
             <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 10, paddingHorizontal: 16, marginBottom: 24 }}>
               {statsList.map((stat, idx) => {
                 const Icon = stat.icon;
-                const cardWidth = (windowWidth - 42) / 2;
+                const cardWidth = windowWidth >= 768 ? (windowWidth - 52) / 3 : (windowWidth - 42) / 2;
                 return (
                   <Animated.View 
                     key={idx}
                     entering={FadeInDown.delay(idx * 40).duration(200)}
-                    style={{ width: cardWidth }}
+                    style={{ width: (windowWidth < 768 && idx === 2) ? '100%' : cardWidth }}
                   >
                     <View 
                       className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-4 flex-row items-center gap-3"
@@ -4342,6 +4393,24 @@ export default function OperationsScreen() {
 
                   <Pressable
                     onPress={() => {
+                      setSettingsSubTab('pricing');
+                      triggerHaptic('light');
+                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'pricing' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
+                  >
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'pricing' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
+                      💸 Pricing & Charges
+                    </Text>
+                  </Pressable>
+
+                  <Pressable
+                    onPress={() => {
                       setSettingsSubTab('cosmetics');
                       triggerHaptic('light');
                     }}
@@ -4645,6 +4714,148 @@ export default function OperationsScreen() {
                           </View>
                         </View>
                       )}
+                    </View>
+                  )}
+
+                  {/* SUB-TAB: PRICING & CHARGES CONTROL */}
+                  {settingsSubTab === 'pricing' && (
+                    <View className="gap-5">
+                      {/* Delivery Fee & Free Delivery Thresholds Card */}
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">🚚 Delivery Charges & Free Delivery Thresholds</Text>
+                        
+                        {/* Base Delivery Fee */}
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Standard Delivery Fee (₹) *</Text>
+                          <TextInput
+                            value={deliveryFeeState}
+                            onChangeText={setDeliveryFeeState}
+                            keyboardType="numeric"
+                            placeholder="25"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Standard delivery fee charged to customer when order is below free delivery threshold.</Text>
+                        </View>
+
+                        <View className="h-px bg-slate-200/10" />
+
+                        {/* Grocery Free Delivery Threshold */}
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Grocery Free Delivery Minimum (₹) *</Text>
+                          <TextInput
+                            value={groceryThresholdState}
+                            onChangeText={setGroceryThresholdState}
+                            keyboardType="numeric"
+                            placeholder="199"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Minimum Grocery cart subtotal required for customer to get FREE delivery.</Text>
+                        </View>
+
+                        <View className="h-px bg-slate-200/10" />
+
+                        {/* Cafe Free Delivery Threshold */}
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Cafe / Restaurant Free Delivery Minimum (₹) *</Text>
+                          <TextInput
+                            value={cafeThresholdState}
+                            onChangeText={setCafeThresholdState}
+                            keyboardType="numeric"
+                            placeholder="199"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Minimum Cafe cart subtotal required for customer to get FREE delivery.</Text>
+                        </View>
+                      </View>
+
+                      {/* Estimated Delivery Time Card */}
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">⏱️ Delivery Time & Speed Display</Text>
+                        
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Average Delivery Time String *</Text>
+                          <TextInput
+                            value={avgDeliveryTime}
+                            onChangeText={setAvgDeliveryTime}
+                            placeholder="e.g. 8 min or 10-15 mins"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Prominently displayed in customer app header, live ticker, cart footer, and checkout.</Text>
+                        </View>
+                      </View>
+
+                      {/* Handling Charges & Taxes Card */}
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">💳 Handling Charges & Taxes</Text>
+                        
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Handling / Packaging Charge (₹) *</Text>
+                          <TextInput
+                            value={miscFee}
+                            onChangeText={setMiscFee}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                        </View>
+
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Handling Fee Display Label *</Text>
+                          <TextInput
+                            value={miscFeeLabel}
+                            onChangeText={setMiscFeeLabel}
+                            placeholder="Packaging Charge"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                        </View>
+
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">GST / Tax Rate (%) *</Text>
+                          <TextInput
+                            value={taxRate}
+                            onChangeText={setTaxRate}
+                            keyboardType="numeric"
+                            placeholder="5"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                        </View>
+                      </View>
+
+                      {/* Dynamic Order Limits & Surges Card */}
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">⚡ Dynamic Order Limits & Surge Pricing</Text>
+                        
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Minimum Order Value (₹) *</Text>
+                          <TextInput
+                            value={minOrderValueState}
+                            onChangeText={setMinOrderValueState}
+                            keyboardType="numeric"
+                            placeholder="0"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                        </View>
+
+                        <View>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Surge Price Multiplier (e.g. 1.2 for 20% extra) *</Text>
+                          <TextInput
+                            value={surgeMultiplierState}
+                            onChangeText={setSurgeMultiplierState}
+                            keyboardType="numeric"
+                            placeholder="1.0"
+                            placeholderTextColor="#475569"
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
+                          />
+                        </View>
+                      </View>
                     </View>
                   )}
 

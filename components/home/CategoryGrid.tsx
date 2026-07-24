@@ -10,6 +10,7 @@ import { useTheme } from '../../app/context/ThemeContext';
 import { getAppImageSource } from '../../lib/utils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { THEME } from '../../lib/theme';
+import { LayoutGrid, ArrowRight } from 'lucide-react-native';
 
 
 interface LocalConfig {
@@ -20,15 +21,15 @@ interface LocalConfig {
 }
 
 const LOCAL_CONFIGS: Record<string, LocalConfig> = {
-  'fruits-vegetables': { name: 'Fruits & Veg', image: require('../../assets/fruits_vegetables_category.webp'), colors: ['#f0fdf4', '#dcfce7'], darkColors: ['#064e3b', '#022c22'] },
-  'dairy-breakfast': { name: 'Milk & Dairy', image: require('../../assets/dairy_breakfast_category.webp'), colors: ['#eff6ff', '#dbeafe'], darkColors: ['#1e3a8a', '#172554'] },
-  'grocery-essential': { name: 'Staples', image: require('../../assets/atta_rice_dal_category.webp'), colors: ['#fefce8', '#fef9c3'], darkColors: ['#713f12', '#451a03'] },
-  'snacks-biscuits': { name: 'Snacks', image: require('../../assets/snacks_munchies_category.webp'), colors: ['#fff7ed', '#ffedd5'], darkColors: ['#7c2d12', '#431407'] },
+  'fruits-vegetables': { name: 'Fruits &\nVegetables', image: require('../../assets/fruits_vegetables_category.webp'), colors: ['#f0fdf4', '#dcfce7'], darkColors: ['#064e3b', '#022c22'] },
+  'dairy-breakfast': { name: 'Dairy &\nBreakfast', image: require('../../assets/dairy_breakfast_category.webp'), colors: ['#eff6ff', '#dbeafe'], darkColors: ['#1e3a8a', '#172554'] },
+  'grocery-essential': { name: 'Atta, Rice\n& Dal', image: require('../../assets/atta_rice_dal_category.webp'), colors: ['#fefce8', '#fef9c3'], darkColors: ['#713f12', '#451a03'] },
+  'snacks-biscuits': { name: 'Snacks &\nBiscuits', image: require('../../assets/snacks_munchies_category.webp'), colors: ['#fff7ed', '#ffedd5'], darkColors: ['#7c2d12', '#431407'] },
   'beverages': { name: 'Beverages', image: require('../../assets/beverages_category.webp'), colors: ['#f0f9ff', '#e0f2fe'], darkColors: ['#0c4a6e', '#082f49'] },
-  'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.webp'), colors: ['#fafaf9', '#f5f5f4'], darkColors: ['#44403c', '#292524'] },
   'ice-cream': { name: 'Ice Cream', image: require('../../assets/ice_cream_category.webp'), colors: ['#f0fdfa', '#ccfbf1'], darkColors: ['#115e59', '#134e4a'] },
-  'personal-care': { name: 'Personal Care', image: require('../../assets/personal_care_category.webp'), colors: ['#fdf2f8', '#fce7f3'], darkColors: ['#831843', '#500724'] },
-  'household': { name: 'Home Care', image: require('../../assets/household_category.webp'), colors: ['#ecfeff', '#cffafe'], darkColors: ['#164e63', '#083344'] },
+  'bakery': { name: 'Bakery', image: require('../../assets/bakery_biscuits_category.webp'), colors: ['#fafaf9', '#f5f5f4'], darkColors: ['#44403c', '#292524'] },
+  'personal-care': { name: 'Personal\nCare', image: require('../../assets/personal_care_category.webp'), colors: ['#fdf2f8', '#fce7f3'], darkColors: ['#831843', '#500724'] },
+  'household': { name: 'Home\nCleaners', image: require('../../assets/household_category.webp'), colors: ['#ecfeff', '#cffafe'], darkColors: ['#164e63', '#083344'] },
 };
 
 function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category: any; index: number; isDarkMode: boolean; itemWidth?: any }) {
@@ -61,20 +62,21 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
           }}
           style={{
             width: '100%',
+            height: 126,
             backgroundColor: isDarkMode ? '#1e1e24' : '#ffffff',
-            borderRadius: 16,
+            borderRadius: 24,
             borderWidth: 1,
             borderColor: isDarkMode ? '#2d2d34' : '#f1f5f9',
-            paddingVertical: 12,
+            paddingVertical: 10,
             paddingHorizontal: 4,
             alignItems: 'center',
             justifyContent: 'center',
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
+                shadowOffset: { width: 0, height: 3 },
                 shadowOpacity: isDarkMode ? 0.35 : 0.04,
-                shadowRadius: 4,
+                shadowRadius: 6,
               },
               android: {
                 elevation: 2,
@@ -91,9 +93,9 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
           {/* Inner Circle Image Container */}
           <View 
             style={{
-              width: 58,
-              height: 58,
-              borderRadius: 29,
+              width: 62,
+              height: 62,
+              borderRadius: 31,
               overflow: 'hidden',
               alignItems: 'center',
               justifyContent: 'center',
@@ -128,11 +130,11 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
             allowFontScaling={false}
             style={{
               color: isDarkMode ? '#f4f4f5' : '#0f172a',
-              fontSize: 10,
-              fontWeight: '900',
-              marginTop: 10,
+              fontSize: 10.5,
+              fontWeight: '800',
+              marginTop: 8,
               letterSpacing: -0.2,
-              lineHeight: 12,
+              lineHeight: 13,
               textAlign: 'center',
               width: '100%',
               paddingHorizontal: 2,
@@ -167,7 +169,7 @@ export default function CategoryGrid() {
       
       const list = serverCategories.map(serverCat => {
         const local = LOCAL_CONFIGS[serverCat.slug] || {
-          name: serverCat.name.split(' & ')[0].split(' and ')[0].slice(0, 12),
+          name: serverCat.name,
           image: null,
           colors: ['#f0fdf4', '#dcfce7'] as [string, string],
           darkColors: ['#064e3b', '#022c22'] as [string, string]
@@ -232,36 +234,103 @@ export default function CategoryGrid() {
     });
   }, [serverCategories]);
 
-  // Exclude cafe from scroll strip since it has the prominent cover banner below it
-  const scrollCategories = useMemo(() => {
-    // Keep Cafe/Food category as requested by the user, do not filter it out
-    return displayCategories;
+  // Pair categories into 2-row vertical columns for horizontal sliding 2-row matrix layout
+  const categoryPairs = useMemo(() => {
+    const pairs: any[][] = [];
+    for (let i = 0; i < displayCategories.length; i += 2) {
+      pairs.push(displayCategories.slice(i, i + 2));
+    }
+    return pairs;
   }, [displayCategories]);
 
-  // Show top 8 categories in a grid (2 rows x 4 columns)
-  const gridCategories = useMemo(() => {
-    return scrollCategories.slice(0, 8);
-  }, [scrollCategories]);
-
   return (
-    <View style={{ 
-      flexDirection: 'row', 
-      flexWrap: 'wrap', 
-      justifyContent: 'space-between', 
-      paddingHorizontal: THEME.SPACING.lg, 
-      rowGap: 16, 
-      marginBottom: THEME.SPACING.lg 
-    }}>
-      {gridCategories.map((category, index) => (
-        <CategoryGridItem 
-          key={category.slug}
-          category={category}
-          index={index}
-          isDarkMode={isDarkMode}
-          itemWidth="23%"
-        />
+    <ScrollView
+      horizontal
+      showsHorizontalScrollIndicator={false}
+      contentContainerStyle={{
+        paddingHorizontal: THEME.SPACING.lg,
+        paddingBottom: 6,
+        gap: 12,
+      }}
+      style={{ marginBottom: THEME.SPACING.lg }}
+    >
+      {categoryPairs.map((pair, colIndex) => (
+        <View key={`col-${colIndex}`} style={{ width: 84, gap: 12 }}>
+          {pair.map((category, rowIndex) => (
+            <CategoryGridItem
+              key={`${category.slug}-${rowIndex}`}
+              category={category}
+              index={colIndex * 2 + rowIndex}
+              isDarkMode={isDarkMode}
+              itemWidth="100%"
+            />
+          ))}
+        </View>
       ))}
-    </View>
+
+      {/* "See All Categories" End Card */}
+      <View style={{ width: 84, justifyContent: 'center' }}>
+        <Pressable
+          onPress={() => {
+            triggerHaptic('light');
+            router.push('/(tabs)/categories');
+          }}
+          style={{
+            width: '100%',
+            height: 264, // Full 2-row height
+            backgroundColor: isDarkMode ? '#1e1e24' : '#fff1f2',
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#e20a22' : '#ffe4e6',
+            paddingVertical: 12,
+            paddingHorizontal: 4,
+            alignItems: 'center',
+            justifyContent: 'center',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: isDarkMode ? 0.35 : 0.04,
+                shadowRadius: 6,
+              },
+              android: {
+                elevation: 2,
+              },
+            })
+          }}
+        >
+          <View
+            style={{
+              width: 50,
+              height: 50,
+              borderRadius: 25,
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.2)' : '#ffe4e6',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 10,
+            }}
+          >
+            <LayoutGrid size={22} color="#e20a22" />
+          </View>
+          <Text
+            style={{
+              color: '#e20a22',
+              fontSize: 10,
+              fontWeight: '900',
+              textAlign: 'center',
+              textTransform: 'uppercase',
+              letterSpacing: -0.2,
+              lineHeight: 13,
+            }}
+          >
+            See All{'\n'}Categories
+          </Text>
+          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+            <ArrowRight size={14} color="#e20a22" />
+          </View>
+        </Pressable>
+      </View>
+    </ScrollView>
   );
 }
 

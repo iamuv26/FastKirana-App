@@ -8,7 +8,7 @@ import { ScalePressable } from './ScalePressable';
 
 export default function CafePromoCarousel() {
   const { width: windowWidth } = useWindowDimensions();
-  const screenWidth = windowWidth > 0 ? windowWidth : (Dimensions.get('window').width > 0 ? Dimensions.get('window').width : 390);
+  const screenWidth = windowWidth > 0 ? windowWidth : 390;
   const carouselWidth = screenWidth > 768 ? 540 - 24 : screenWidth - 24;
   const bannerWidth = carouselWidth - 12; // Accounts for marginHorizontal: 6 on both sides
   const bannerHeight = bannerWidth / 3.0; // Exact 3:1 aspect ratio (1024x341 pixels)

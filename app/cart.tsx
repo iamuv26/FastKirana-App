@@ -73,6 +73,7 @@ export default function CartScreen() {
   const insets = useSafeAreaInsets();
   const { user, isLoggedIn } = useAuthStore();
   const { theme } = useTheme();
+  const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const isDarkMode = theme === 'dark';
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
@@ -109,10 +110,12 @@ export default function CartScreen() {
     };
   };
 
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
   const { data: allProducts = [], isLoading: isSuggestionsLoading } = useQuery<any[]>({
-    queryKey: queryKeys.products.list(),
+    queryKey: ['cart-suggestions-products', validStoreId],
     queryFn: async () => {
-      const res = await fetch(`${API_BASE_URL}/products?limit=500`);
+      const res = await fetch(`${API_BASE_URL}/products?limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       const data = await res.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
@@ -139,7 +142,7 @@ export default function CartScreen() {
 
     // Filter compatible products first
     const compatible = allProducts.filter((p: any) => {
-      if (p.stock <= 0 || p.isAvailable === false) return false;
+      if (p.isAvailable === false) return false;
       if (cartSegment) {
         return areTypesCompatible(getProductType(p), cartSegment);
       }
@@ -312,7 +315,7 @@ export default function CartScreen() {
   }, []);
 
   const hasInventoryIssues = useMemo(() => items.some(
-    (item) => item.quantity > item.product.stock || item.product.stock <= 0 || item.product.isAvailable === false
+    (item) => item.product.isAvailable === false
   ), [items]);
 
   const hasClosedGroceryItems = groceryItems.length > 0 && !groceryMartOpen && !__DEV__;
@@ -322,11 +325,8 @@ export default function CartScreen() {
   const handleAutoAdjust = () => {
     let adjustedCount = 0;
     items.forEach((item) => {
-      if (item.product.isAvailable === false || item.product.stock <= 0) {
+      if (item.product.isAvailable === false) {
         removeItem(item.product.id, item.product.name);
-        adjustedCount++;
-      } else if (item.quantity > item.product.stock) {
-        updateQuantity(item.product.id, item.product.name, item.product.stock);
         adjustedCount++;
       }
     });
@@ -372,8 +372,9 @@ export default function CartScreen() {
   const renderItemRow = (item: typeof items[0]) => {
     const isCafe = isCafeProduct(item.product);
     const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
-    const isOOS = item.product.stock <= 0 || item.product.isAvailable === false;
-    const isExceeded = item.quantity > item.product.stock && !isOOS;
+    const isOOS = item.product.isAvailable === false || (item.product.isAvailable !== true && item.product.stock !== undefined && item.product.stock !== null && item.product.stock <= 0);
+    const effectiveStock = (item.product.isAvailable === true && (item.product.stock === undefined || item.product.stock === null || item.product.stock <= 0)) ? 999 : (item.product.stock ?? 999);
+    const isExceeded = item.quantity > effectiveStock && !isOOS;
     const activeColor = isCafe ? '#ea580c' : '#e20a22';
 
     return (

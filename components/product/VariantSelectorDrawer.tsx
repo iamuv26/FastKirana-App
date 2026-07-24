@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, Modal, StyleSheet, Dimensions } from 'react-native';
+import { View, Text, Pressable, ScrollView, Modal, StyleSheet, useWindowDimensions } from 'react-native';
 import { Image } from 'expo-image';
 import { useUIStore } from '../../stores/ui-store';
 import { useCart } from '../../hooks/use-cart';
@@ -358,7 +358,8 @@ const styles = StyleSheet.create({
   },
   drawerContent: {
     width: '100%',
-    height: Math.round(Dimensions.get('window').height * 0.72),
+    maxHeight: '75%',
+    height: '72%',
     borderTopLeftRadius: THEME.RADIUS.xl,
     borderTopRightRadius: THEME.RADIUS.xl,
     borderTopWidth: 1,

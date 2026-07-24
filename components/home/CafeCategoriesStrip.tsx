@@ -87,7 +87,7 @@ function CafeCategoryItem({ category, onPress, isDarkMode }: { category: typeof 
       
       {/* Label */}
       <Text 
-        numberOfLines={1} 
+        numberOfLines={2} 
         style={{
           color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
           fontSize: 11,

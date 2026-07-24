@@ -1,9 +1,9 @@
-import { View, Text, Pressable, ScrollView, Alert, Modal, ActivityIndicator, Image, Platform, Linking } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, Modal, ActivityIndicator, Image, Platform, Linking, TextInput } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import * as Location from 'expo-location';
-import { ArrowLeft, Truck, Phone, MapPin, Camera, QrCode, X, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, Truck, Phone, MapPin, Camera, QrCode, X, RefreshCw, ShieldCheck } from 'lucide-react-native';
 import { formatPrice } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
@@ -30,6 +30,15 @@ interface Order {
   address: { houseNo: string; street: string; area: string; city: string; pincode: string; lat?: number | null; lng?: number | null };
   items: OrderItem[];
 }
+
+const getDeliveryPin = (orderId: string) => {
+  let hash = 0;
+  for (let i = 0; i < orderId.length; i++) {
+    hash = orderId.charCodeAt(i) + ((hash << 5) - hash);
+  }
+  const pin = Math.abs(hash % 9000) + 1000;
+  return pin.toString();
+};
 
 const INITIAL_SIMULATION_ORDERS: Order[] = [
   {
@@ -63,6 +72,10 @@ export default function RiderScreen() {
   const [isUpiQrVisible, setIsUpiQrVisible] = useState(false);
   const [upiTargetOrder, setUpiTargetOrder] = useState<Order | null>(null);
   const [offlineSyncQueue, setOfflineSyncQueue] = useState<{ orderId: string, nextStatus: string, extraPayload: any }[]>([]);
+  const [pinTargetOrder, setPinTargetOrder] = useState<Order | null>(null);
+  const [isPinModalVisible, setIsPinModalVisible] = useState(false);
+  const [enteredPin, setEnteredPin] = useState('');
+  const [pinError, setPinError] = useState('');
 
   const getAuthHeaders = (): Record<string, string> => {
     const { token } = useAuthStore.getState();
@@ -303,6 +316,14 @@ export default function RiderScreen() {
   };
 
   const initiateConfirmDelivery = (order: Order) => {
+    setPinTargetOrder(order);
+    setIsPinModalVisible(true);
+    setEnteredPin('');
+    setPinError('');
+    triggerHaptic('light');
+  };
+
+  const proceedWithConfirmDelivery = (order: Order) => {
     if (order.paymentMethod === 'COD') {
       setUpiTargetOrder(order);
       setIsUpiQrVisible(true);
@@ -697,6 +718,108 @@ export default function RiderScreen() {
             >
               <View className="w-14 h-14 rounded-full bg-white" />
             </Pressable>
+          </View>
+        </Modal>
+      )}
+      {/* Delivery PIN Verification Modal */}
+      {isPinModalVisible && pinTargetOrder && (
+        <Modal
+          visible={true}
+          transparent={true}
+          animationType="fade"
+          onRequestClose={() => setIsPinModalVisible(false)}
+        >
+          <View style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' }}>
+            <View style={{
+              width: '85%',
+              maxWidth: 340,
+              backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+              borderRadius: 24,
+              padding: 24,
+              alignItems: 'center',
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
+            }}>
+              <View style={{ width: 48, height: 48, borderRadius: 24, backgroundColor: isDarkMode ? 'rgba(16,185,129,0.1)' : '#ecfdf5', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+                <ShieldCheck size={20} color="#10b981" />
+              </View>
+              <Text className="text-slate-800 dark:text-white font-black text-base text-center">Delivery PIN Verification</Text>
+              <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold text-center mt-1 uppercase tracking-wider">
+                Ask the customer for the 4-digit PIN
+              </Text>
+              
+              <TextInput
+                style={{
+                  width: '60%',
+                  height: 50,
+                  backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                  borderRadius: 12,
+                  marginTop: 20,
+                  fontSize: 22,
+                  fontWeight: '900',
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  textAlign: 'center',
+                  letterSpacing: 8,
+                  borderWidth: 1.5,
+                  borderColor: pinError ? '#ef4444' : (isDarkMode ? '#3f3f46' : '#cbd5e1')
+                }}
+                maxLength={4}
+                keyboardType="numeric"
+                secureTextEntry={false}
+                value={enteredPin}
+                onChangeText={(text) => {
+                  setEnteredPin(text);
+                  setPinError('');
+                }}
+                placeholder="0000"
+                placeholderTextColor={isDarkMode ? '#52525b' : '#a1a1aa'}
+                autoFocus
+              />
+
+              {pinError ? (
+                <Text style={{ color: '#ef4444', fontSize: 10, fontWeight: '700', textAlign: 'center', marginTop: 10, lineHeight: 14 }}>
+                  {pinError}
+                </Text>
+              ) : null}
+
+              <View style={{ flexDirection: 'row', width: '100%', gap: 10, marginTop: 24 }}>
+                <Pressable
+                  onPress={() => setIsPinModalVisible(false)}
+                  style={{
+                    flex: 1,
+                    borderWidth: 1,
+                    borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: 'center',
+                    backgroundColor: isDarkMode ? 'transparent' : '#f8fafc'
+                  }}
+                >
+                  <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontWeight: '800', fontSize: 11, textTransform: 'uppercase' }}>Cancel</Text>
+                </Pressable>
+                <Pressable
+                  onPress={() => {
+                    const expectedPin = getDeliveryPin(pinTargetOrder.id);
+                    if (enteredPin === expectedPin) {
+                      setIsPinModalVisible(false);
+                      proceedWithConfirmDelivery(pinTargetOrder);
+                    } else {
+                      setPinError('Invalid PIN! Please ask the customer for the PIN shown on their order tracking page.');
+                      triggerHaptic('warning');
+                    }
+                  }}
+                  style={{
+                    flex: 1,
+                    backgroundColor: '#10b981',
+                    paddingVertical: 12,
+                    borderRadius: 12,
+                    alignItems: 'center'
+                  }}
+                >
+                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 11, textTransform: 'uppercase' }}>Verify PIN</Text>
+                </Pressable>
+              </View>
+            </View>
           </View>
         </Modal>
       )}

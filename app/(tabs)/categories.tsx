@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, Image, Platform } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, Image, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { router } from 'expo-router';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeInDown } from 'react-native-reanimated';
@@ -64,10 +64,22 @@ const LOCAL_CATEGORY_CONFIGS: Record<string, { name: string; image: any; descrip
     color: '#db2777' // pink-600
   },
   'household': {
-    name: 'Household',
+    name: 'Household & Cleaning',
     image: require('../../assets/household_category.webp'),
     description: 'Detergents, Cleaners & Tools',
     color: '#4b5563' // grey-600
+  },
+  'home-cleaners': {
+    name: 'Home Cleaners',
+    image: require('../../assets/household_category.webp'),
+    description: 'Detergents, Cleaners & Dishwash',
+    color: '#0284c7' // sky-600
+  },
+  'fastkirana-cafe': {
+    name: 'FastKirana Cafe',
+    image: require('../../assets/cafe_category.webp'),
+    description: 'Hot Pizza, Rolls & Coffee',
+    color: '#e20a22' // primary brand red
   },
   'bakery': {
     name: 'Bakery & Biscuits',
@@ -84,6 +96,8 @@ const LOCAL_CATEGORY_CONFIGS: Record<string, { name: string; image: any; descrip
 };
 
 function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMode: boolean; index: number }) {
+  const { width: windowWidth } = useWindowDimensions();
+  const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
   const scale = useSharedValue(1);
 
   const animatedStyle = useAnimatedStyle(() => ({
@@ -98,7 +112,7 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
   return (
     <Animated.View 
       entering={undefined}
-      style={[{ width: '48%', marginBottom: 12 }, animatedStyle]}
+      style={[{ width: cardWidth as any, marginBottom: 12 }, animatedStyle]}
     >
       <Pressable
         onPress={() => {
@@ -183,19 +197,20 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
         {/* Info Area */}
         <View style={{ marginTop: 6, paddingHorizontal: 2 }}>
           <Text 
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ 
               color: category.color || (isDarkMode ? '#f4f4f5' : '#0f172a'), 
-              fontSize: 12.5, 
+              fontSize: 12, 
               fontWeight: '700',
-              letterSpacing: -0.2
+              letterSpacing: -0.2,
+              lineHeight: 14
             }}
           >
             {category.name}
           </Text>
           
           <Text 
-            numberOfLines={1}
+            numberOfLines={2}
             style={{ 
               color: isDarkMode ? '#a1a1aa' : '#64748b', 
               fontSize: THEME.TYPOGRAPHY.sizes.micro, 
@@ -233,8 +248,8 @@ export default function CategoriesScreen() {
   const { data: cafeProductsData } = useQuery<any>({
     queryKey: ['cafe-total-count-all'],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=1`);
-      if (!response.ok) return { pagination: { total: 79 } };
+      const response = await fetch(`${API_BASE_URL}/products?category=fastkirana-cafe&limit=1`);
+      if (!response.ok) return { pagination: { total: 81 } };
       return response.json();
     },
     staleTime: 1000 * 60 * 15, // 15 mins cache validity

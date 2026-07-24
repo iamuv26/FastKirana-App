@@ -40,6 +40,8 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
   const { items, getTotalItems, getSubtotal, getSavings } = useCart();
   const { theme } = useTheme();
   const minOrderValue = useUIStore((s) => typeof s.minOrderValue === 'number' ? s.minOrderValue : 99);
+  const groceryThreshold = useUIStore((s) => s.groceryFreeDeliveryThreshold || GROCERY_FREE_DELIVERY_THRESHOLD);
+  const cafeThreshold = useUIStore((s) => s.cafeFreeDeliveryThreshold || CAFE_FREE_DELIVERY_THRESHOLD);
   const isDarkMode = theme === 'dark';
   
   const cartItemCount = getTotalItems();
@@ -51,10 +53,10 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
 
   const threshold = useMemo(() => {
     if (cafeItems.length > 0) {
-      return CAFE_FREE_DELIVERY_THRESHOLD;
+      return cafeThreshold;
     }
-    return GROCERY_FREE_DELIVERY_THRESHOLD;
-  }, [cafeItems]);
+    return groceryThreshold;
+  }, [cafeItems, cafeThreshold, groceryThreshold]);
 
   // --- Animation shared values ---
   const badgeScale = useSharedValue(1);
@@ -139,28 +141,6 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
     width: (progressShared.value + '%') as any,
   }));
 
-  const truckAnimatedStyle = useAnimatedStyle(() => {
-    const translationX = (progressShared.value / 100) * trackWidth.value;
-    return {
-      transform: [
-        { translateX: translationX - 10 },
-        { scale: truckScale.value }
-      ]
-    };
-  });
-
-  const dynamicETA = useMemo(() => {
-    const time = new Date();
-    time.setMinutes(time.getMinutes() + 10);
-    let hours = time.getHours();
-    const minutes = time.getMinutes();
-    const ampm = hours >= 12 ? 'PM' : 'AM';
-    hours = hours % 12;
-    hours = hours ? hours : 12;
-    const minutesStr = minutes < 10 ? '0' + minutes : minutes;
-    return `${hours}:${minutesStr} ${ampm}`;
-  }, [cartItemCount]);
-
   const insets = useSafeAreaInsets();
 
   if (cartItemCount === 0) return null;
@@ -180,15 +160,23 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
   const progressColor = isFreeDelivery ? '#22c55e' : '#facc15';
 
   const gradientColors = (isDarkMode
-    ? ['rgba(39, 39, 42, 0.9)', 'rgba(24, 24, 27, 0.95)']
+    ? ['rgba(39, 39, 42, 0.95)', 'rgba(24, 24, 27, 0.98)']
     : isCafe
       ? ['#ea580c', '#f97316']
       : ['#e20a22', '#f43f5e']) as [string, string];
 
   return (
     <Animated.View 
-      className="absolute left-4 right-4 z-40" 
-      style={{ bottom: finalBottom }}
+      style={[{ 
+        position: 'absolute',
+        left: 16,
+        right: 16,
+        maxWidth: 440,
+        width: 'auto',
+        alignSelf: 'center',
+        zIndex: 40,
+        bottom: finalBottom 
+      }]} 
       entering={SlideInDown.duration(350).easing(Easing.out(Easing.quad))}
     >
       <ScalePressable 
@@ -199,12 +187,12 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
           styles.innerCard,
           {
             shadowColor: activeBrandColor,
-            shadowOffset: { width: 0, height: 8 },
-            shadowOpacity: isDarkMode ? 0.35 : 0.25,
-            shadowRadius: 16,
-            elevation: 8,
-            borderWidth: 1.5,
-            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.2)',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: isDarkMode ? 0.35 : 0.22,
+            shadowRadius: 12,
+            elevation: 6,
+            borderWidth: 1.2,
+            borderColor: isDarkMode ? 'rgba(255, 255, 255, 0.12)' : 'rgba(255, 255, 255, 0.25)',
           }
         ]}
       >
@@ -233,19 +221,19 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
             ]}
           />
         </View>
- 
+
         {/* Slender Single-Row Content */}
         <View style={styles.rowContent}>
           {/* Left: Items Count & Price */}
-          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 12 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
             <View style={styles.iconContainer}>
-              <ShoppingBag size={16} color="#ffffff" strokeWidth={2.4} />
+              <ShoppingBag size={15} color="#ffffff" strokeWidth={2.4} />
               {/* Slender item badge */}
               <View style={[styles.badge, { borderColor: isDarkMode ? '#27272a' : activeBrandColor }]}>
                 <Text allowFontScaling={false} style={styles.badgeText}>{cartItemCount}</Text>
               </View>
             </View>
-            <View style={{ marginLeft: 10, flex: 1 }}>
+            <View style={{ marginLeft: 9, flex: 1 }}>
               <Text allowFontScaling={false} style={styles.priceText} numberOfLines={1}>
                 {cartItemCount} {cartItemCount === 1 ? 'Item' : 'Items'}  •  {formatPrice(cartSubtotal)}
               </Text>
@@ -253,13 +241,13 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
                 {cartSubtotal < minOrderValue
                   ? `Add ₹${minOrderValue - cartSubtotal} for Min Order`
                   : isFreeDelivery
-                    ? '🎉 Free Delivery!'
-                    : `Add ₹${amountNeeded} for Free Del.`
+                    ? '🎉 FREE Delivery Unlocked!'
+                    : `Add ₹${amountNeeded} for FREE Delivery`
                 }
               </Text>
             </View>
           </View>
- 
+
           {/* Right: View Cart Button with Animated Pulsing Halo */}
           <View style={{ flexDirection: 'row', alignItems: 'center', position: 'relative' }}>
             <Animated.View
@@ -267,19 +255,19 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
                 glowAnimatedStyle,
                 {
                   position: 'absolute',
-                  top: -3.5,
-                  left: -3.5,
-                  right: -3.5,
-                  bottom: -3.5,
+                  top: -3,
+                  left: -3,
+                  right: -3,
+                  bottom: -3,
                   borderRadius: 99,
-                  borderWidth: 2,
+                  borderWidth: 1.5,
                   borderColor: isDarkMode ? '#fafafa' : 'rgba(255, 255, 255, 0.4)',
                 }
               ]}
             />
             <View style={styles.viewCartButton}>
               <Text allowFontScaling={false} style={[styles.viewCartText, { color: isDarkMode ? '#ffffff' : activeBrandColor }]}>View Cart</Text>
-              <ChevronRight size={12} color={isDarkMode ? '#ffffff' : activeBrandColor} strokeWidth={3} />
+              <ChevronRight size={11} color={isDarkMode ? '#ffffff' : activeBrandColor} strokeWidth={3} />
             </View>
           </View>
         </View>
@@ -290,9 +278,9 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
 
 const styles = StyleSheet.create({
   innerCard: {
-    borderRadius: 22,
+    borderRadius: 20,
     overflow: 'hidden',
-    height: 66, // Increased height for visual spacing
+    height: 52, // Compact, slender height
     justifyContent: 'center',
   },
   topProgressTrack: {
@@ -300,7 +288,7 @@ const styles = StyleSheet.create({
     top: 0,
     left: 0,
     right: 0,
-    height: 4.5,
+    height: 3.5,
     backgroundColor: 'rgba(255,255,255,0.15)',
     overflow: 'hidden',
   },
@@ -312,13 +300,13 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingTop: 4, // Offset for top progress line
+    paddingHorizontal: 14,
+    paddingTop: 2,
   },
   iconContainer: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 32,
+    height: 32,
+    borderRadius: 16,
     backgroundColor: 'rgba(255,255,255,0.18)',
     alignItems: 'center',
     justifyContent: 'center',
@@ -330,51 +318,51 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#fbbf24', // Amber/warning gold count badge
-    borderRadius: 10,
-    minWidth: 19,
-    height: 19,
+    backgroundColor: '#fbbf24',
+    borderRadius: 9,
+    minWidth: 17,
+    height: 17,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 4,
-    borderWidth: 1.5,
+    paddingHorizontal: 3,
+    borderWidth: 1.2,
   },
   badgeText: {
     color: '#1e293b',
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '900',
     textAlign: 'center',
   },
   priceText: {
     color: '#ffffff',
     fontWeight: '900',
-    fontSize: 14,
+    fontSize: 13,
     letterSpacing: -0.15,
   },
   subText: {
-    color: 'rgba(255,255,255,0.88)',
+    color: 'rgba(255,255,255,0.92)',
     fontWeight: '700',
-    fontSize: 10,
-    marginTop: 1,
+    fontSize: 9.5,
+    marginTop: 0.5,
   },
   viewCartButton: {
-    backgroundColor: '#ffffff', // Solid white pill button
-    paddingHorizontal: 14,
-    paddingVertical: 7,
+    backgroundColor: '#ffffff',
+    paddingHorizontal: 12,
+    paddingVertical: 5.5,
     borderRadius: 99,
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 4,
+    gap: 3,
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 3 },
+    shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 5,
+    shadowRadius: 4,
     elevation: 3,
   },
   viewCartText: {
     fontWeight: '900',
-    fontSize: 11,
+    fontSize: 10.5,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.4,
   },
 });

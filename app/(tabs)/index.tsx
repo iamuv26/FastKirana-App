@@ -1,16 +1,13 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Dimensions, Alert, StyleSheet, Platform, Image as RNImage, useWindowDimensions } from 'react-native';
-const { height: screenHeight } = Dimensions.get('window');
+import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Alert, StyleSheet, Platform, Image as RNImage, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useState, useEffect, useMemo, useRef, memo } from 'react';
-const { width: rawWidth } = Dimensions.get('window');
-const width = rawWidth > 768 ? 540 : rawWidth;
+import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Utensils, Bell, Sparkles } from 'lucide-react-native';
-import { router } from 'expo-router';
+import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import { BlurView } from 'expo-blur';
-import Animated, { useSharedValue, useAnimatedStyle, withSpring, withRepeat, withTiming, withSequence, withDelay, Easing, FadeIn, FadeInDown, FadeInUp, ZoomIn, interpolate, runOnJS, cancelAnimation } from 'react-native-reanimated';
+import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withSpring, withRepeat, withTiming, withSequence, withDelay, Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, ZoomIn, interpolate, runOnJS, cancelAnimation } from 'react-native-reanimated';
 import CategoryGrid from '../../components/home/CategoryGrid';
 import CafeFlashDeals from '../../components/home/CafeFlashDeals';
 import StoreSelectorHeader from '../../components/shared/StoreSelectorHeader';
@@ -22,17 +19,19 @@ import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useCartActions } from '../../hooks/use-cart';
 import DealsCurationHub from '../../components/home/DealsCurationHub';
+import WedsonRestaurantCard from '../../components/home/WedsonRestaurantCard';
 import DeliveryBanner from '../../components/home/DeliveryBanner';
 import TimeGreetingHero from '../../components/home/TimeGreetingHero';
 import CafeCategoriesStrip from '../../components/home/CafeCategoriesStrip';
 import GroceryPromoCarousel from '../../components/home/GroceryPromoCarousel';
 import AppFooter from '../../components/home/AppFooter';
+import AddressQuickSwitcherSheet from '../../components/shared/AddressQuickSwitcherSheet';
 import { useAuthStore } from '../../stores/auth-store';
 import { useUIStore } from '../../stores/ui-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { sendLocalNotification } from '../../lib/push-notifications';
 import { triggerHaptic } from '../../lib/haptic';
-import { formatPrice, formatHeaderAddress, getAppImageSource } from '../../lib/utils';
+import { formatPrice, formatHeaderAddress, getAppImageSource, isRestaurantProduct } from '../../lib/utils';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
@@ -574,7 +573,8 @@ function PulsingStatusDot() {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 140 : 144;
+  const width = windowWidth > 768 ? 540 : (windowWidth > 0 ? windowWidth : 390);
+  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 172 : 176;
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -598,6 +598,7 @@ export default function HomeScreen() {
   const cafeOpen = useUIStore((s) => s.cafeOpen);
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
+  const [showAddressSheet, setShowAddressSheet] = useState(false);
 
   // Home states and refs
   const { theme, toggleTheme } = useTheme();
@@ -606,20 +607,38 @@ export default function HomeScreen() {
   const horizontalTabsRef = useRef<ScrollView>(null);
   const lastScrollCheck = useRef(0);
 
-  // Tab segmented control animated values
   const [localActiveSegment, setLocalActiveSegment] = useState<'grocery' | 'food'>('grocery');
+  const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
+  const loaderTranslateY = useSharedValue(0);
+
+  useEffect(() => {
+    if (isSwitching !== 'none') {
+      loaderTranslateY.value = 0;
+      loaderTranslateY.value = withRepeat(
+        withTiming(-350, { duration: 2800, easing: Easing.linear }),
+        -1,
+        false
+      );
+    }
+  }, [isSwitching]);
+
   const tabIndicatorTranslateX = useSharedValue(0);
+  const [measuredPillWidth, setMeasuredPillWidth] = useState(width * 0.92);
 
   const slidingIndicatorStyle = useAnimatedStyle(() => {
     const translationX = interpolate(
       tabIndicatorTranslateX.value,
       [0, 1],
-      [0, (width - 36) / 2]
+      [0, 100]
     );
     return {
-      transform: [{ translateX: translationX }],
+      transform: [{ translateX: `${translationX}%` }],
     };
   });
+
+  const reelAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: loaderTranslateY.value }],
+  }));
 
   // Cafe UI conditional states
   const [activeCategory, setActiveCategory] = useState<string>('');
@@ -636,6 +655,15 @@ export default function HomeScreen() {
     return () => clearTimeout(timer);
   }, []);
 
+  useFocusEffect(
+    useCallback(() => {
+      setLocalActiveSegment('grocery');
+      tabIndicatorTranslateX.value = 0;
+      setIsReady(true);
+      setIsSwitching('none');
+    }, [])
+  );
+
   // Reanimated layout tracking for gliding tab indicator
   const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
   const indicatorLeft = useSharedValue(0);
@@ -645,6 +673,13 @@ export default function HomeScreen() {
   // Collapsible sticky header scroll tracking
   const scrollY = useSharedValue(0);
   const [isCollapsed, setIsCollapsed] = useState(false);
+
+  const scrollHandler = useAnimatedScrollHandler({
+    onScroll: (event) => {
+      'worklet';
+      scrollY.value = event.contentOffset.y;
+    },
+  });
 
   const headerAnimatedStyle = useAnimatedStyle(() => {
     const translateY = interpolate(
@@ -703,17 +738,19 @@ export default function HomeScreen() {
     opacity: hasLayouts.value,
   }));
 
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
   // Query Cafe Products from Server
-  // Fetch ALL cafe products from API (no hardcoded fallback)
+  // Fetch ALL fastkirana-cafe products from API
   const { data: cafeProducts = [] } = useQuery<any[]>({
-    queryKey: ['cafe-products', assignedStoreId],
+    queryKey: ['cafe-products-v3', validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?category=cafe&limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
+      const response = await fetch(`${API_BASE_URL}/products?category=fastkirana-cafe&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API Failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 1000 * 60 * 5, // 5 min cache
+    staleTime: 0,
   });
 
   const getIsNonVeg = (item: any) => {
@@ -754,10 +791,11 @@ export default function HomeScreen() {
     const assignedIds = new Set<string>();
 
     filteredCafeProducts.forEach((product) => {
+      const catSlug = product.category?.slug?.toLowerCase() || '';
       for (const cat of PREDEFINED_CATEGORIES) {
         const hasMatch = product.tags?.some((t: string) => 
           cat.matchTags.includes(t.toLowerCase())
-        ) || (cat.tag === 'bakery' && ['croissant-butter', 'muffin-chocolate'].includes(product.slug));
+        ) || cat.matchTags.some((mt: string) => catSlug === mt.toLowerCase()) || (cat.tag === 'bakery' && ['croissant-butter', 'muffin-chocolate'].includes(product.slug));
 
         if (hasMatch) {
           const sec = sectionsMap.get(cat.tag);
@@ -860,12 +898,14 @@ export default function HomeScreen() {
     if (activeCategory && horizontalTabsRef.current) {
       const activeIdx = menuCategories.findIndex((c) => c.tag === activeCategory);
       if (activeIdx !== -1) {
-        const tabWidth = 130;
-        const targetX = Math.max(0, (activeIdx * tabWidth) - (width / 2) + (tabWidth / 2));
+        const layout = tabLayouts[activeCategory];
+        const targetX = layout 
+          ? Math.max(0, layout.x - (width / 2) + (layout.width / 2))
+          : Math.max(0, (activeIdx * 130) - (width / 2) + 65);
         horizontalTabsRef.current.scrollTo({ x: targetX, animated: true });
       }
     }
-  }, [activeCategory, menuCategories]);
+  }, [activeCategory, menuCategories, tabLayouts, width]);
 
   const handleScroll = (event: any) => {
     const scrollYVal = event.nativeEvent.contentOffset.y;
@@ -968,6 +1008,7 @@ export default function HomeScreen() {
       return await response.json();
     },
     enabled: !!user,
+    refetchInterval: 5000,
   });
 
   const activeOrder = useMemo(() => {
@@ -1039,9 +1080,9 @@ export default function HomeScreen() {
 
   // Fetch ALL live products from Next.js backend (no hardcoded fallback)
   const { data: products = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['home-products', assignedStoreId],
+    queryKey: ['home-products', validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?limit=500${assignedStoreId ? `&storeId=${assignedStoreId}` : ''}`);
+      const response = await fetch(`${API_BASE_URL}/products?limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -1064,20 +1105,28 @@ export default function HomeScreen() {
   }, [products]);
 
   // Helper to identify if a product is a Cafe product
+  // Covers all categories fetched by the cafe page: cafe, ice-cream
+  // Beverages category is shared between grocery and cafe, so only tag-based checks apply
   const isCafeProduct = (product: Product) => {
-    return (
-      product.category?.slug === 'cafe' || 
-      product.tags?.includes('cafe') || 
-      /^c\d+$/.test(product.id)
-    );
+    const catSlug = product.category?.slug || '';
+    const cafeCategories = ['cafe', 'fastkirana-cafe'];
+    if (cafeCategories.includes(catSlug)) return true;
+    const tagsLower = product.tags?.map((t: string) => t.toLowerCase()) || [];
+    if (tagsLower.includes('cafe') || tagsLower.includes('restaurant')) return true;
+    if (/^c\d+$/.test(product.id)) return true;
+    return false;
   };
 
   const trendingProducts = useMemo(() => {
-    return products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.category?.slug === 'snacks-biscuits' || p.category?.slug === 'beverages' || p.id === 'sm1' || p.id === 'db2' || p.id === 'bv1')).slice(0, 6);
+    const list = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && !isRestaurantProduct(p));
+    if (list.length > 0) return list.slice(0, 8);
+    return [];
   }, [products]);
 
   const topPicksProducts = useMemo(() => {
-    return products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.category?.slug === 'fruits-vegetables' || p.category?.slug === 'dairy-breakfast' || p.id === 'fv3' || p.id === 'db4' || p.id === 'db3')).slice(0, 6);
+    const list = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && !isRestaurantProduct(p));
+    if (list.length > 0) return list.slice(4, 12);
+    return [];
   }, [products]);
 
   // Dynamic Hour-based suggestion filter (IST equivalent)
@@ -1134,7 +1183,7 @@ export default function HomeScreen() {
 
   // Best Sellers (overall top rated or explicitly flagged as bestseller)
   const bestSellers = useMemo(() => {
-    const dbBestsellers = products.filter(p => p.isAvailable && !isCafeProduct(p) && (p.tags?.includes('popular') || p.tags?.includes('essential')));
+    const dbBestsellers = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && (p.tags?.includes('popular') || p.tags?.includes('essential')));
     if (dbBestsellers.length > 0) return dbBestsellers.slice(0, 6);
 
     // Fallback to static selection for mock products
@@ -1232,7 +1281,8 @@ export default function HomeScreen() {
             {/* Right: Address Picker Capsule */}
             <ScalePressable 
               onPress={() => {
-                router.push('/location-picker');
+                triggerHaptic('light');
+                setShowAddressSheet(true);
               }}
               scaleValue={0.96}
               style={{
@@ -1264,65 +1314,92 @@ export default function HomeScreen() {
             </ScalePressable>
           </Animated.View>
 
-          {/* Store Switcher Tab Pills - Segmented Control */}
-          <View style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            width: '100%',
-            height: 38,
-            borderRadius: 19,
-            borderWidth: 1.5,
-            borderColor: isDarkMode ? '#27272a' : '#ffe4e6',
-            backgroundColor: isDarkMode ? '#18181b' : '#fffcfc',
-            padding: 3,
-            marginTop: 6,
-            marginBottom: 4,
-          }}>
+          {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control */}
+          <View 
+            onLayout={(e) => {
+              const w = e.nativeEvent.layout.width;
+              if (w > 0 && Math.abs(w - measuredPillWidth) > 0.5) {
+                setMeasuredPillWidth(w);
+              }
+            }}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              alignSelf: 'stretch',
+              width: '100%',
+              height: 44,
+              borderRadius: 22,
+              borderWidth: 1.5,
+              borderColor: isDarkMode ? '#27272a' : '#fecdd3',
+              backgroundColor: isDarkMode ? '#18181b' : '#fff5f5',
+              padding: 3,
+              marginTop: 6,
+              marginBottom: 6,
+              position: 'relative',
+            }}
+          >
+            {/* Sliding Active Pill Background */}
+            <Animated.View style={[{
+              position: 'absolute',
+              width: '48.8%',
+              top: 3,
+              bottom: 3,
+              left: 3,
+              borderRadius: 19,
+              backgroundColor: '#e20a22',
+              shadowColor: '#e20a22',
+              shadowOffset: { width: 0, height: 3 },
+              shadowOpacity: 0.35,
+              shadowRadius: 6,
+              elevation: 4,
+            }, slidingIndicatorStyle]} />
+
             {/* Grocery Segment */}
-            <ScalePressable
+            <Pressable
               onPress={() => {
                 triggerHaptic('light');
                 setLocalActiveSegment('grocery');
+                tabIndicatorTranslateX.value = withTiming(0, { duration: 130, easing: Easing.out(Easing.quad) });
               }}
-              scaleValue={0.97}
               style={{
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                borderRadius: 16,
-                backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : 'transparent',
+                zIndex: 2,
               }}
             >
-              <ShoppingBag size={14} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-              <Text allowFontScaling={false} style={{ fontSize: 12, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'), textTransform: 'uppercase' }}>
+              <ShoppingBag size={15} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
+              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
                 Grocery
               </Text>
-            </ScalePressable>
+            </Pressable>
 
             {/* Food Segment */}
-            <ScalePressable
+            <Pressable
               onPress={() => {
-                triggerHaptic('light');
-                router.push('/cafe');
+                triggerHaptic('medium');
+                setIsSwitching('food');
+                tabIndicatorTranslateX.value = withSpring(1, { damping: 18, stiffness: 140 });
+                setTimeout(() => {
+                  router.push('/cafe');
+                }, 450);
               }}
-              scaleValue={0.97}
               style={{
                 flex: 1,
                 flexDirection: 'row',
                 alignItems: 'center',
                 justifyContent: 'center',
                 height: '100%',
-                borderRadius: 16,
-                backgroundColor: localActiveSegment === 'food' ? '#e20a22' : 'transparent',
+                zIndex: 2,
               }}
             >
-              <Utensils size={14} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-              <Text allowFontScaling={false} style={{ fontSize: 12, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569'), textTransform: 'uppercase' }}>
+              <Utensils size={15} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
+              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
                 Food
               </Text>
-            </ScalePressable>
+            </Pressable>
           </View>
 
           {/* Bottom Row: Search Box Shortcut */}
@@ -1669,7 +1746,7 @@ export default function HomeScreen() {
       ) : true ? (
         // Grocery Storefront View (matching the screenshot exactly)
          <Animated.ScrollView 
-          onScroll={handleGroceryScroll}
+          onScroll={scrollHandler}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
           className="flex-1 bg-white dark:bg-zinc-950" 
@@ -1679,6 +1756,9 @@ export default function HomeScreen() {
         >
           {/* Top Promotional Carousel Banner */}
           <GroceryPromoCarousel />
+
+          {/* Wedson Restaurant Special Category Card */}
+          <WedsonRestaurantCard />
 
           {!groceryMartOpen && (
             <BlurView
@@ -1902,6 +1982,81 @@ export default function HomeScreen() {
 
       {/* Shared Sticky Bottom Cart Bar */}
       <FloatingCartBar bottomOffset={88} />
+      <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
+
+      {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
+      {isSwitching !== 'none' && (
+        <Animated.View
+          entering={FadeIn.duration(150)}
+          exiting={FadeOut.duration(150)}
+          style={[
+            {
+              position: 'absolute',
+              top: 0,
+              left: 0,
+              right: 0,
+              bottom: 0,
+              backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+              zIndex: 99999,
+              justifyContent: 'center',
+              alignItems: 'center',
+            }
+          ]}
+        >
+          <View style={{ alignItems: 'center', gap: 24 }}>
+            {/* Pulsing Outer Rings */}
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={{
+                width: 110,
+                height: 110,
+                borderRadius: 55,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+                justifyContent: 'center',
+                alignItems: 'center',
+                borderWidth: 1,
+                borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.1,
+                shadowRadius: 8,
+                overflow: 'hidden',
+              }}
+            >
+              <View style={{ height: 50, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
+                <Animated.View style={[{ alignItems: 'center' }, reelAnimatedStyle]}>
+                  {(isSwitching === 'food' 
+                    ? ['🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁']
+                    : ['🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌']
+                  ).map((emoji, idx) => (
+                    <View key={idx} style={{ height: 50, justifyContent: 'center', alignItems: 'center' }}>
+                      <Text style={{ fontSize: 40, lineHeight: 50 }}>{emoji}</Text>
+                    </View>
+                  ))}
+                </Animated.View>
+              </View>
+            </Animated.View>
+
+            {/* Doorstep Message matching user's splash screen typography */}
+            <View style={{ paddingHorizontal: 40, alignItems: 'center', marginTop: 12 }}>
+              <Text 
+                style={{
+                  fontSize: 14.5,
+                  fontWeight: '700',
+                  color: isDarkMode ? '#a1a1aa' : '#64748b',
+                  textAlign: 'center',
+                  lineHeight: 22,
+                  letterSpacing: -0.2,
+                }}
+              >
+                {isSwitching === 'food' 
+                  ? "Cooking fresh food, delivered at your doorstep" 
+                  : "Everything you need, delivered at your doorstep"}
+              </Text>
+            </View>
+          </View>
+        </Animated.View>
+      )}
     </View>
   );
 }

@@ -123,7 +123,7 @@ export default function LocationPickerScreen() {
           const city = geocode.city || '';
           const code = geocode.postalCode || '';
           const resolvedAddress = [name, area, city, code].filter(Boolean).join(', ');
-          setAddressText(resolvedAddress || `Lat: ${markerCoords.latitude.toFixed(4)}, Lng: ${markerCoords.longitude.toFixed(4)}`);
+          setAddressText(resolvedAddress || 'Current Location');
         }
       } catch (err) {
         console.warn('Marker reverse geocode failed:', err);
@@ -184,7 +184,7 @@ export default function LocationPickerScreen() {
         const resolvedAddress = [name, area, city, code].filter(Boolean).join(', ');
         setAddressText(resolvedAddress || 'Current Location');
       } else {
-        setAddressText(`Lat: ${latitude.toFixed(4)}, Lng: ${longitude.toFixed(4)}`);
+        setAddressText('Current Location');
       }
       triggerHaptic('success');
     } catch (err) {
@@ -261,6 +261,7 @@ export default function LocationPickerScreen() {
       useUIStore.setState({
         selectedLocation: addressText,
         userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
+        isLocationConfirmed: true,
         assignedStoreId: resolvedStoreId,
         shopName: resolvedStoreName,
         surgeCharge: store ? store.surgeCharge : 0.0,
@@ -278,6 +279,7 @@ export default function LocationPickerScreen() {
       useUIStore.setState({
         selectedLocation: addressText,
         userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
+        isLocationConfirmed: true,
         assignedStoreId: 'default-Ghatampur Market',
         shopName: 'Ghatampur',
         surgeCharge: 0.0,

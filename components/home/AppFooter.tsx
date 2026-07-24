@@ -201,7 +201,7 @@ export default function AppFooter() {
                   <Clock size={11} color="#9ca3af" />
                   <Text style={{ color: '#94a3b8', fontSize: 10 }} numberOfLines={1}>{contactTimings}</Text>
                 </View>
-                <View style={{ flexDirection: 'row', alignItems: 'start', gap: 6 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'flex-start', gap: 6 }}>
                   <MapPin size={11} color="#9ca3af" style={{ marginTop: 2 }} />
                   <Text style={{ color: '#94a3b8', fontSize: 10, lineHeight: 14 }} className="flex-1">{contactAddress}</Text>
                 </View>

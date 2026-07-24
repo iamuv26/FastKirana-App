@@ -165,11 +165,13 @@ export default function SearchScreen() {
     return () => clearTimeout(handler);
   }, [searchQuery]);
 
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
   // Fetch all products from API for matching
   const { data: allProducts = [] } = useQuery<Product[]>({
-    queryKey: ['all-search-products-list-tab'],
+    queryKey: ['all-search-products-list-tab', validStoreId],
     queryFn: async () => {
-      const response = await fetch(`${API_BASE_URL}/products?limit=500`);
+      const response = await fetch(`${API_BASE_URL}/products?limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API fetch failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -178,10 +180,10 @@ export default function SearchScreen() {
 
   // Query search endpoint with 5s Live Stock Poll Interval
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
-    queryKey: ['search-products-tab', debouncedQuery],
+    queryKey: ['search-products-tab', debouncedQuery, validStoreId],
     queryFn: async () => {
       if (!debouncedQuery || !debouncedQuery.trim()) return [];
-      const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}`);
+      const response = await fetch(`${API_BASE_URL}/products?search=${debouncedQuery}&limit=100${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('Search failed');
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
@@ -755,7 +757,7 @@ export default function SearchScreen() {
                             <Text style={{ fontSize: 24 }}>📦</Text>
                           )}
                         </View>
-                        <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
+                        <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black text-center w-full" numberOfLines={2} style={{ lineHeight: 12 }}>
                           {cat.name}
                         </Text>
                       </View>
@@ -817,7 +819,7 @@ export default function SearchScreen() {
                             <Text style={{ fontSize: 24 }}>📦</Text>
                           )}
                         </View>
-                        <Text className="text-slate-700 dark:text-zinc-300 text-[10.5px] font-black text-center w-full" numberOfLines={1}>
+                        <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black text-center w-full" numberOfLines={2} style={{ lineHeight: 12 }}>
                           {cat.name}
                         </Text>
                       </View>
