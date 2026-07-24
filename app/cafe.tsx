@@ -1288,8 +1288,8 @@ export default function CafeScreen() {
           showsVerticalScrollIndicator={false}
           style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafafa' }}
           contentContainerStyle={{ 
-            paddingTop: insets.top > 0 ? insets.top + 158 : 162, 
-            paddingBottom: 140 
+            paddingTop: insets.top > 0 ? insets.top + 195 : 198, 
+            paddingBottom: 220 
           }}
           nestedScrollEnabled={true}
           entering={FadeIn.duration(220)}
