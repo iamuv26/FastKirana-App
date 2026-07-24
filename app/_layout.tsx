@@ -196,6 +196,18 @@ function CartSynchronizer() {
 
 export default function RootLayout() {
   const { isLoggedIn, user } = useAuthStore();
+  const [hasAuthHydrated, setHasAuthHydrated] = useState(useAuthStore.persist.hasHydrated());
+
+  useEffect(() => {
+    const unsub = useAuthStore.persist.onFinishHydration(() => {
+      setHasAuthHydrated(true);
+    });
+    setHasAuthHydrated(useAuthStore.persist.hasHydrated());
+    return () => {
+      unsub();
+    };
+  }, []);
+
   const { width } = useWindowDimensions();
   const isWide = width > 768;
 
@@ -306,6 +318,13 @@ export default function RootLayout() {
 
     // First-time / Logged-out preference: redirect to login if not authenticated
     let redirectTimer: any = null;
+    if (!hasAuthHydrated) {
+      return () => {
+        clearInterval(settingsPoll);
+        responseSubscription.remove();
+      };
+    }
+
     if (!isLoggedIn) {
       redirectTimer = setTimeout(() => {
         if (currentPath && !currentPath.startsWith('/(auth)') && !currentPath.startsWith('/login')) {
@@ -326,7 +345,7 @@ export default function RootLayout() {
       if (redirectTimer) clearTimeout(redirectTimer);
       responseSubscription.remove();
     };
-  }, [isLoggedIn, user]);
+  }, [isLoggedIn, user, hasAuthHydrated]);
 
   const pathname = usePathname();
   const isStaffRoute = ['/operations', '/picker', '/chef', '/cafe-chef', '/restaurant-chef', '/rider'].some(path => pathname?.startsWith(path));

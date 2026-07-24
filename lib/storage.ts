@@ -2,44 +2,21 @@ import { StateStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Platform } from 'react-native';
 
-const memoryCache: Record<string, string> = {};
-let isHydrated = false;
-
-// Hydrate memory cache on mobile startup
-const hydrate = async () => {
-  if (Platform.OS === 'web') {
-    isHydrated = true;
-    return;
-  }
-  try {
-    const keys = await AsyncStorage.getAllKeys();
-    const pairs = await AsyncStorage.multiGet(keys);
-    pairs.forEach(([key, val]) => {
-      if (val !== null) {
-        memoryCache[key] = val;
-      }
-    });
-  } catch (e) {
-    console.warn('Failed to hydrate memory storage cache:', e);
-  } finally {
-    isHydrated = true;
-  }
-};
-
-hydrate().catch(() => {});
-
 const mmkvStorage: StateStorage = {
-  setItem: (name, value) => {
+  setItem: async (name, value) => {
     if (Platform.OS === 'web') {
       try {
         window.localStorage.setItem(name, value);
         return;
       } catch (e) {}
     }
-    memoryCache[name] = value;
-    AsyncStorage.setItem(name, value).catch(() => {});
+    try {
+      await AsyncStorage.setItem(name, value);
+    } catch (e) {
+      console.warn(`Failed to save ${name} to AsyncStorage:`, e);
+    }
   },
-  getItem: (name) => {
+  getItem: async (name) => {
     if (Platform.OS === 'web') {
       try {
         return window.localStorage.getItem(name) ?? null;
@@ -47,17 +24,25 @@ const mmkvStorage: StateStorage = {
         return null;
       }
     }
-    return memoryCache[name] ?? null;
+    try {
+      return await AsyncStorage.getItem(name);
+    } catch (e) {
+      console.warn(`Failed to read ${name} from AsyncStorage:`, e);
+      return null;
+    }
   },
-  removeItem: (name) => {
+  removeItem: async (name) => {
     if (Platform.OS === 'web') {
       try {
         window.localStorage.removeItem(name);
         return;
       } catch (e) {}
     }
-    delete memoryCache[name];
-    AsyncStorage.removeItem(name).catch(() => {});
+    try {
+      await AsyncStorage.removeItem(name);
+    } catch (e) {
+      console.warn(`Failed to remove ${name} from AsyncStorage:`, e);
+    }
   },
 };
 
