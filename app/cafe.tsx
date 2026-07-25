@@ -1059,15 +1059,11 @@ export default function CafeScreen() {
           <Pressable
             onPress={() => {
               triggerHaptic('medium');
-              setIsSwitching('grocery');
-              tabIndicatorTranslateX.value = withTiming(0, { duration: 130, easing: Easing.out(Easing.quad) });
-              setTimeout(() => {
-                if (router.canGoBack()) {
-                  router.back();
-                } else {
-                  router.replace('/(tabs)');
-                }
-              }, 450);
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)');
+              }
             }}
             style={{
               flex: 1,

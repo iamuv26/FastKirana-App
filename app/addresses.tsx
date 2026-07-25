@@ -209,22 +209,37 @@ export default function AddressesScreen() {
     try {
       const { mmkvStorage } = require('../lib/storage');
       const localData = mmkvStorage.getItem(`local_addresses_${user?.id || 'guest'}`);
-      if (localData && localData !== 'undefined') {
+      if (localData && localData !== 'undefined' && localData !== 'null' && localData.trim().startsWith('[')) {
         try {
           const parsed = JSON.parse(localData);
           if (Array.isArray(parsed)) {
             localList = parsed;
           }
         } catch (jsonErr) {
-          console.warn('Local addresses parse error:', jsonErr);
+          try {
+            mmkvStorage.removeItem(`local_addresses_${user?.id || 'guest'}`);
+          } catch (e) {}
         }
       }
     } catch (e) {
       console.warn('Failed to load local addresses:', e);
     }
 
+    let hiddenSet = new Set<string>();
+    try {
+      const { mmkvStorage } = require('../lib/storage');
+      const hideKey = `hidden_addresses_${user?.id || 'guest'}`;
+      const hiddenRaw = mmkvStorage.getItem(hideKey);
+      if (hiddenRaw) {
+        const parsed = JSON.parse(hiddenRaw);
+        if (Array.isArray(parsed)) hiddenSet = new Set(parsed);
+      }
+    } catch (e) {}
+
+    const filterActive = (list: Address[]) => list.filter(addr => addr && addr.id && !hiddenSet.has(addr.id));
+
     if (user?.id?.startsWith('mock-')) {
-      setAddresses(localList.filter(addr => addr && addr.id));
+      setAddresses(filterActive(localList));
       setIsLoading(false);
       return;
     }
@@ -247,10 +262,10 @@ export default function AddressesScreen() {
       }
       
       const mergedList = Array.from(mergedMap.values());
-      setAddresses(mergedList.filter(addr => addr && addr.id));
+      setAddresses(filterActive(mergedList));
     } catch (err: any) {
       console.warn('Error loading addresses, showing local only:', err);
-      setAddresses(localList.filter(addr => addr && addr.id));
+      setAddresses(filterActive(localList));
     } finally {
       setIsLoading(false);
     }
@@ -630,48 +645,50 @@ export default function AddressesScreen() {
     setAddressToDelete(null);
     triggerHaptic('medium');
     
-    if (user?.id?.startsWith('mock-') || id.startsWith('local-addr-')) {
+    const softDeleteLocal = () => {
       try {
         const { mmkvStorage } = require('../lib/storage');
+        const hideKey = `hidden_addresses_${user?.id || 'guest'}`;
+        const hiddenRaw = mmkvStorage.getItem(hideKey);
+        const hiddenList: string[] = hiddenRaw ? JSON.parse(hiddenRaw) : [];
+        if (!hiddenList.includes(id)) {
+          hiddenList.push(id);
+          mmkvStorage.setItem(hideKey, JSON.stringify(hiddenList));
+        }
+
         const localKey = `local_addresses_${user?.id || 'guest'}`;
         const localData = mmkvStorage.getItem(localKey);
         if (localData) {
           const list = JSON.parse(localData);
           const updatedList = list.filter((a: any) => a.id !== id);
           mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-          setAddresses(updatedList);
-          toast.success('Address deleted locally');
         }
+
+        setAddresses(prev => prev.filter(a => a.id !== id));
+        toast.success('Address removed');
       } catch (e) {
-        toast.error('Failed to delete local address');
+        setAddresses(prev => prev.filter(a => a.id !== id));
+        toast.success('Address removed');
       }
+    };
+
+    if (user?.id?.startsWith('mock-') || id.startsWith('local-addr-')) {
+      softDeleteLocal();
       return;
     }
 
     try {
-      await api.delete('/addresses', {
+      const res: any = await api.delete('/addresses', {
         body: JSON.stringify({ id }),
       });
+      if (res && res.error) {
+        throw new Error(res.error);
+      }
       toast.success('Address deleted');
       loadAddresses();
     } catch (err: any) {
-      console.warn('Error deleting address from backend, trying local:', err);
-      try {
-        const { mmkvStorage } = require('../lib/storage');
-        const localKey = `local_addresses_${user?.id || 'guest'}`;
-        const localData = mmkvStorage.getItem(localKey);
-        if (localData) {
-          const list = JSON.parse(localData);
-          const updatedList = list.filter((a: any) => a.id !== id);
-          mmkvStorage.setItem(localKey, JSON.stringify(updatedList));
-          setAddresses(updatedList);
-          toast.success('Address deleted locally');
-          return;
-        }
-      } catch (storageErr) {
-        console.warn('Failed to delete address locally:', storageErr);
-      }
-      toast.error(err.message || 'Error deleting address');
+      console.warn('Backend delete address error (e.g. linked to past orders), removing locally:', err);
+      softDeleteLocal();
     }
   };
 
@@ -1087,52 +1104,57 @@ export default function AddressesScreen() {
             </Text>
 
             {/* Buttons Row */}
-            <View style={{ flexDirection: 'row', gap: 12, width: '100%' }}>
-              <Pressable
-                onPress={() => {
-                  triggerHaptic('light');
-                  setDeleteModalVisible(false);
-                }}
-                style={{
-                  flex: 1,
-                  paddingVertical: 12,
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
-                }}
-              >
-                <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#d4d4d8' : '#71717a' }}>
-                  Cancel
-                </Text>
-              </Pressable>
-
-              <ScalePressable
-                onPress={confirmDeleteAddress}
-                scaleValue={0.96}
-                haptic="medium"
-                style={{
-                  flex: 1,
-                  borderRadius: 16,
-                  overflow: 'hidden',
-                }}
-              >
-                <LinearGradient
-                  colors={['#ef4444', '#dc2626']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', marginTop: 8 }}>
+              <View style={{ width: '48%', height: 48 }}>
+                <Pressable
+                  onPress={() => {
+                    triggerHaptic('light');
+                    setDeleteModalVisible(false);
+                  }}
                   style={{
-                    paddingVertical: 12,
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 14,
                     alignItems: 'center',
                     justifyContent: 'center',
-                    width: '100%',
+                    backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>
-                    Delete
+                  <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#d4d4d8' : '#71717a' }}>
+                    Cancel
                   </Text>
-                </LinearGradient>
-              </ScalePressable>
+                </Pressable>
+              </View>
+
+              <View style={{ width: '48%', height: 48 }}>
+                <ScalePressable
+                  onPress={confirmDeleteAddress}
+                  scaleValue={0.96}
+                  haptic="medium"
+                  style={{
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                  }}
+                >
+                  <LinearGradient
+                    colors={['#ef4444', '#dc2626']}
+                    start={{ x: 0, y: 0 }}
+                    end={{ x: 1, y: 0 }}
+                    style={{
+                      width: '100%',
+                      height: '100%',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>
+                      Delete
+                    </Text>
+                  </LinearGradient>
+                </ScalePressable>
+              </View>
             </View>
           </Pressable>
         </Pressable>

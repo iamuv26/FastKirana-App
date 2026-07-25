@@ -574,7 +574,7 @@ export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
   const width = windowWidth > 768 ? 540 : (windowWidth > 0 ? windowWidth : 390);
-  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 195 : 198;
+  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 215 : 220;
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -1380,11 +1380,7 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 triggerHaptic('medium');
-                setIsSwitching('food');
-                tabIndicatorTranslateX.value = withSpring(1, { damping: 18, stiffness: 140 });
-                setTimeout(() => {
-                  router.push('/cafe');
-                }, 450);
+                router.push('/cafe');
               }}
               style={{
                 flex: 1,
@@ -1750,7 +1746,7 @@ export default function HomeScreen() {
           scrollEventThrottle={16}
           style={{ flex: 1 }}
           className="flex-1 bg-white dark:bg-zinc-950" 
-          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 220 }} 
+          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 270 }} 
           showsVerticalScrollIndicator={false}
           entering={FadeIn.duration(220)}
         >

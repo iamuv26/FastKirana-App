@@ -28,8 +28,9 @@ export interface WedsonCategory {
 const WEDSON_CATEGORIES: WedsonCategory[] = [
   { id: 'all', name: "Chef's Specials", emoji: '🔥' },
   { id: 'biryani', name: 'Biryani & Thali', emoji: '🍛' },
-  { id: 'pizza', name: 'Pizzas & Pastas', emoji: '🍕' },
+  { id: 'rotis', name: 'North Indian & Rotis', emoji: '🫓' },
   { id: 'chinese', name: 'Chinese & Starters', emoji: '🥢' },
+  { id: 'pizza', name: 'Pizzas & Fast Food', emoji: '🍕' },
   { id: 'shakes', name: 'Shakes & Drinks', emoji: '🧋' },
 ];
 
@@ -71,14 +72,41 @@ export default function WedsonRestaurantCard() {
 
   const filteredProducts = useMemo(() => {
     if (activeCategory === 'all') return realProducts;
+
     return realProducts.filter((p) => {
       const catSlug = p.category?.slug?.toLowerCase() || '';
       const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
-      return catSlug.includes(activeCategory) || tags.includes(activeCategory);
+      const nameLower = p.name?.toLowerCase() || '';
+
+      const matches = (keywords: string[]) => {
+        return (
+          keywords.some((k) => catSlug.includes(k)) ||
+          keywords.some((k) => tags.some((t) => t.includes(k))) ||
+          keywords.some((k) => nameLower.includes(k))
+        );
+      };
+
+      if (activeCategory === 'biryani') {
+        return matches(['biryani', 'thali', 'rice', 'pulav', 'pulao', 'combo', 'meal']);
+      }
+      if (activeCategory === 'rotis') {
+        return matches(['roti', 'naan', 'paratha', 'paneer', 'curry', 'dal', 'makhani', 'sabzi', 'north-indian', 'butter', 'tandoori']);
+      }
+      if (activeCategory === 'chinese') {
+        return matches(['chinese', 'momo', 'noodles', 'noodle', 'manchurian', 'chilli', 'spring-roll', 'chowmein']);
+      }
+      if (activeCategory === 'pizza') {
+        return matches(['pizza', 'pasta', 'burger', 'sandwich', 'italian', 'garlic-bread', 'fries', 'snack']);
+      }
+      if (activeCategory === 'shakes') {
+        return matches(['shake', 'drink', 'beverage', 'cooler', 'mocktail', 'coffee', 'iced-coffee', 'tea', 'lassi', 'cold-drink']);
+      }
+
+      return matches([activeCategory]);
     });
   }, [realProducts, activeCategory]);
 
-  const displayProducts = filteredProducts.length > 0 ? filteredProducts : realProducts;
+  const displayProducts = filteredProducts;
 
   const handleSeeAll = () => {
     triggerHaptic('medium');
