@@ -610,6 +610,7 @@ export default function HomeScreen() {
   const [localActiveSegment, setLocalActiveSegment] = useState<'grocery' | 'food'>('grocery');
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
   const loaderTranslateX = useSharedValue(-150);
+  const loaderTranslateY = useSharedValue(0);
 
   useEffect(() => {
     if (isSwitching !== 'none') {

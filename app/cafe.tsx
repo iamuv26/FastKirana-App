@@ -263,6 +263,7 @@ export default function CafeScreen() {
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
   const loaderTranslateX = useSharedValue(-150);
+  const loaderTranslateY = useSharedValue(0);
 
   useEffect(() => {
     if (isSwitching !== 'none') {
