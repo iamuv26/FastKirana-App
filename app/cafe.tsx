@@ -262,18 +262,32 @@ export default function CafeScreen() {
   const [searchVal, setSearchVal] = useState<string>('');
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
-  const loaderTranslateY = useSharedValue(0);
+  const loaderTranslateX = useSharedValue(-150);
 
   useEffect(() => {
     if (isSwitching !== 'none') {
-      loaderTranslateY.value = 0;
-      loaderTranslateY.value = withRepeat(
-        withTiming(-350, { duration: 2800, easing: Easing.linear }),
+      loaderTranslateX.value = -150;
+      loaderTranslateX.value = withRepeat(
+        withTiming(width > 0 ? width : 400, { duration: 650, easing: Easing.inOut(Easing.quad) }),
         -1,
-        false
+        true
       );
+    } else {
+      loaderTranslateX.value = -150;
     }
-  }, [isSwitching]);
+  }, [isSwitching, width]);
+
+  const loaderAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: loaderTranslateX.value }]
+  }));
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsSwitching('none');
+      setLocalActiveSegment('food');
+      tabIndicatorTranslateX.value = withTiming(1, { duration: 120 });
+    }, [])
+  );
 
   useEffect(() => {
     const handler = setTimeout(() => {
@@ -1059,6 +1073,9 @@ export default function CafeScreen() {
           <Pressable
             onPress={() => {
               triggerHaptic('medium');
+              setLocalActiveSegment('grocery');
+              tabIndicatorTranslateX.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) });
+              setIsSwitching('grocery');
               if (router.canGoBack()) {
                 router.back();
               } else {
@@ -1162,16 +1179,24 @@ export default function CafeScreen() {
           <Mic size={16} color="#e20a22" />
         </View>
 
-        {/* Glassmorphic border underline line */}
-        <LinearGradient
-          colors={isDarkMode 
-            ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
-            : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ height: 1.2, width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }}
-        />
+        {/* Glassmorphic border underline line & Top Loading Progress Bar */}
+        {isSwitching !== 'none' ? (
+          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? '#27272a' : '#fecdd3', overflow: 'hidden', position: 'absolute', bottom: 0, left: 0, right: 0 }}>
+            <Animated.View 
+              style={[{ height: '100%', width: '45%', backgroundColor: '#e20a22', borderRadius: 2 }, loaderAnimatedStyle]} 
+            />
+          </View>
+        ) : (
+          <LinearGradient
+            colors={isDarkMode 
+              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
+              : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 1.2, width: '100%', position: 'absolute', bottom: 0, left: 0, right: 0 }}
+          />
+        )}
       </Animated.View>
 
       {/* Sticky Categories Selector (fades in when scrolling past carousel) */}

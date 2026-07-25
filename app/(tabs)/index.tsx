@@ -609,18 +609,32 @@ export default function HomeScreen() {
 
   const [localActiveSegment, setLocalActiveSegment] = useState<'grocery' | 'food'>('grocery');
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
-  const loaderTranslateY = useSharedValue(0);
+  const loaderTranslateX = useSharedValue(-150);
 
   useEffect(() => {
     if (isSwitching !== 'none') {
-      loaderTranslateY.value = 0;
-      loaderTranslateY.value = withRepeat(
-        withTiming(-350, { duration: 2800, easing: Easing.linear }),
+      loaderTranslateX.value = -150;
+      loaderTranslateX.value = withRepeat(
+        withTiming(width > 0 ? width : 400, { duration: 650, easing: Easing.inOut(Easing.quad) }),
         -1,
-        false
+        true
       );
+    } else {
+      loaderTranslateX.value = -150;
     }
-  }, [isSwitching]);
+  }, [isSwitching, width]);
+
+  const loaderAnimatedStyle = useAnimatedStyle(() => ({
+    transform: [{ translateX: loaderTranslateX.value }]
+  }));
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsSwitching('none');
+      setLocalActiveSegment('grocery');
+      tabIndicatorTranslateX.value = withTiming(0, { duration: 120 });
+    }, [])
+  );
 
   const tabIndicatorTranslateX = useSharedValue(0);
   const [measuredPillWidth, setMeasuredPillWidth] = useState(width * 0.92);
@@ -1380,6 +1394,9 @@ export default function HomeScreen() {
             <Pressable
               onPress={() => {
                 triggerHaptic('medium');
+                setLocalActiveSegment('food');
+                tabIndicatorTranslateX.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
+                setIsSwitching('food');
                 router.push('/cafe');
               }}
               style={{
@@ -1439,16 +1456,24 @@ export default function HomeScreen() {
             <Mic size={16} color="#16a34a" />
           </ScalePressable>
         </BlurView>
-        {/* Glassmorphic border underline line */}
-        <LinearGradient
-          colors={isDarkMode 
-            ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
-            : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
-          }
-          start={{ x: 0, y: 0 }}
-          end={{ x: 1, y: 0 }}
-          style={{ height: 1.2, width: '100%' }}
-        />
+        {/* Glassmorphic border underline line & Top Loading Progress Bar */}
+        {isSwitching !== 'none' ? (
+          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? '#27272a' : '#fecdd3', overflow: 'hidden' }}>
+            <Animated.View 
+              style={[{ height: '100%', width: '45%', backgroundColor: '#e20a22', borderRadius: 2 }, loaderAnimatedStyle]} 
+            />
+          </View>
+        ) : (
+          <LinearGradient
+            colors={isDarkMode 
+              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
+              : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
+            }
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ height: 1.2, width: '100%' }}
+          />
+        )}
       </Animated.View>
 
       {/* Scrollable Content */}
