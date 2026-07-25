@@ -264,6 +264,8 @@ export default function CafeScreen() {
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
   const loaderTranslateX = useSharedValue(-150);
   const loaderTranslateY = useSharedValue(0);
+  const pulseScale = useSharedValue(1);
+
 
   useEffect(() => {
     if (isSwitching !== 'none') {
@@ -284,9 +286,15 @@ export default function CafeScreen() {
 
   useFocusEffect(
     useCallback(() => {
-      setIsSwitching('none');
+      setIsSwitching('food');
       setLocalActiveSegment('food');
       tabIndicatorTranslateX.value = withTiming(1, { duration: 120 });
+      setIsScreenTransitioning(false);
+      
+      const timer = setTimeout(() => {
+        setIsSwitching('none');
+      }, 400); // Minimum 400ms transition display
+      return () => clearTimeout(timer);
     }, [])
   );
 
@@ -390,15 +398,6 @@ export default function CafeScreen() {
   const [showStickyBar, setShowStickyBar] = useState(false);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
 
-  useFocusEffect(
-    useCallback(() => {
-      setLocalActiveSegment('food');
-      tabIndicatorTranslateX.value = 1;
-      setIsScreenTransitioning(false);
-      setIsSwitching('none');
-    }, [])
-  );
-
   const scrollHandler = useAnimatedScrollHandler({
     onScroll: (event) => {
       'worklet';
@@ -489,6 +488,43 @@ export default function CafeScreen() {
     },
     staleTime: 0, // Fresh fetch on every mount
   });
+
+  const [showModeSwitchLoader, setShowModeSwitchLoader] = useState(true);
+
+  // We should hide the loader only when products are loaded AND we are not transitioning
+  useEffect(() => {
+    if (!isLoading && isSwitching === 'none') {
+      const timer = setTimeout(() => {
+        setShowModeSwitchLoader(false);
+      }, 500); // 500ms minimum display duration for premium feeling
+      return () => clearTimeout(timer);
+    } else {
+      setShowModeSwitchLoader(true);
+    }
+  }, [isLoading, isSwitching]);
+
+  useEffect(() => {
+    if (showModeSwitchLoader) {
+      loaderTranslateY.value = 0;
+      loaderTranslateY.value = withRepeat(
+        withTiming(-350, { duration: 1500, easing: Easing.linear }),
+        -1,
+        false
+      );
+      pulseScale.value = withRepeat(
+        withTiming(1.08, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    } else {
+      loaderTranslateY.value = 0;
+      pulseScale.value = 1;
+    }
+  }, [showModeSwitchLoader]);
+
+  const pulsingRingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
 
   // Prefetch cafe products images in the background to speed up image loading
   useEffect(() => {
@@ -1798,7 +1834,7 @@ export default function CafeScreen() {
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
 
       {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
-      {isSwitching !== 'none' && (
+      {showModeSwitchLoader && (
         <Animated.View
           entering={FadeIn.duration(150)}
           exiting={FadeOut.duration(150)}
@@ -1820,25 +1856,28 @@ export default function CafeScreen() {
             {/* Pulsing Outer Rings */}
             <Animated.View
               entering={FadeIn.duration(200)}
-              style={{
-                width: 110,
-                height: 110,
-                borderRadius: 55,
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                overflow: 'hidden',
-              }}
+              style={[
+                {
+                  width: 110,
+                  height: 110,
+                  borderRadius: 55,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  overflow: 'hidden',
+                },
+                pulsingRingStyle
+              ]}
             >
               <View style={{ height: 50, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
                 <Animated.View style={[{ alignItems: 'center' }, reelAnimatedStyle]}>
-                  {(isSwitching === 'food' 
+                  {(isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
                     ? ['🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁']
                     : ['🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌']
                   ).map((emoji, idx) => (
@@ -1862,7 +1901,7 @@ export default function CafeScreen() {
                   letterSpacing: -0.2,
                 }}
               >
-                {isSwitching === 'food' 
+                {isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
                   ? "Cooking fresh food, delivered at your doorstep" 
                   : "Everything you need, delivered at your doorstep"}
               </Text>

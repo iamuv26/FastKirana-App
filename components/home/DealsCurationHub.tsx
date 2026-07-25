@@ -645,7 +645,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                           scaleValue={0.96}
                           style={{
                             width: 144,
-                            height: 244, // Match ProductCard actual height (244px)
+                            height: 270, // Match ProductCard wrapper height
                             borderRadius: THEME.RADIUS.md,
                             backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : THEME.COLORS.light.surface,
                             borderWidth: 1,

@@ -207,7 +207,7 @@ export default function WedsonRestaurantCard() {
             contentContainerStyle={styles.productScrollContainer}
           >
             {displayProducts.slice(0, 12).map((prod, idx) => (
-              <View key={prod.id || idx} style={{ width: 144, height: 244 }}>
+              <View key={prod.id || idx} style={{ width: 144, height: 270 }}>
                 <ProductCard 
                   product={prod} 
                   index={idx} 
@@ -362,10 +362,10 @@ const styles = StyleSheet.create({
   productScrollContainer: {
     paddingHorizontal: 16,
     gap: 10,
-    paddingBottom: 6,
+    paddingBottom: 12,
   },
   footerWrap: {
     paddingHorizontal: 18,
-    marginTop: 6,
+    marginTop: 10,
   },
 });

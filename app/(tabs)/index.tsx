@@ -611,6 +611,7 @@ export default function HomeScreen() {
   const [isSwitching, setIsSwitching] = useState<'none' | 'grocery' | 'food'>('none');
   const loaderTranslateX = useSharedValue(-150);
   const loaderTranslateY = useSharedValue(0);
+  const pulseScale = useSharedValue(1);
 
   useEffect(() => {
     if (isSwitching !== 'none') {
@@ -629,16 +630,22 @@ export default function HomeScreen() {
     transform: [{ translateX: loaderTranslateX.value }]
   }));
 
-  useFocusEffect(
-    useCallback(() => {
-      setIsSwitching('none');
-      setLocalActiveSegment('grocery');
-      tabIndicatorTranslateX.value = withTiming(0, { duration: 120 });
-    }, [])
-  );
-
   const tabIndicatorTranslateX = useSharedValue(0);
   const [measuredPillWidth, setMeasuredPillWidth] = useState(width * 0.92);
+
+  useFocusEffect(
+    useCallback(() => {
+      setIsSwitching('grocery');
+      setLocalActiveSegment('grocery');
+      tabIndicatorTranslateX.value = withTiming(0, { duration: 120 });
+      setIsReady(true);
+
+      const timer = setTimeout(() => {
+        setIsSwitching('none');
+      }, 400); // Hold for 400ms for a smooth transition!
+      return () => clearTimeout(timer);
+    }, [])
+  );
 
   const slidingIndicatorStyle = useAnimatedStyle(() => {
     const translationX = interpolate(
@@ -669,15 +676,6 @@ export default function HomeScreen() {
     }, 200);
     return () => clearTimeout(timer);
   }, []);
-
-  useFocusEffect(
-    useCallback(() => {
-      setLocalActiveSegment('grocery');
-      tabIndicatorTranslateX.value = 0;
-      setIsReady(true);
-      setIsSwitching('none');
-    }, [])
-  );
 
   // Reanimated layout tracking for gliding tab indicator
   const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
@@ -1105,6 +1103,43 @@ export default function HomeScreen() {
     staleTime: 10000, // 10s short cache
     refetchInterval: 10000, // Auto-refetch every 10s for real-time stock sync
   });
+
+  const [showModeSwitchLoader, setShowModeSwitchLoader] = useState(true);
+
+  // We should hide the loader only when products are loaded AND we are not transitioning
+  useEffect(() => {
+    if (!isLoading && isSwitching === 'none') {
+      const timer = setTimeout(() => {
+        setShowModeSwitchLoader(false);
+      }, 500); // 500ms minimum display duration for premium feeling
+      return () => clearTimeout(timer);
+    } else {
+      setShowModeSwitchLoader(true);
+    }
+  }, [isLoading, isSwitching]);
+
+  useEffect(() => {
+    if (showModeSwitchLoader) {
+      loaderTranslateY.value = 0;
+      loaderTranslateY.value = withRepeat(
+        withTiming(-350, { duration: 1500, easing: Easing.linear }),
+        -1,
+        false
+      );
+      pulseScale.value = withRepeat(
+        withTiming(1.08, { duration: 800, easing: Easing.inOut(Easing.ease) }),
+        -1,
+        true
+      );
+    } else {
+      loaderTranslateY.value = 0;
+      pulseScale.value = 1;
+    }
+  }, [showModeSwitchLoader]);
+
+  const pulsingRingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+  }));
 
   // Prefetch top products and categories images in the background to speed up image loading
   useEffect(() => {
@@ -2007,7 +2042,7 @@ export default function HomeScreen() {
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
 
       {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
-      {isSwitching !== 'none' && (
+      {showModeSwitchLoader && (
         <Animated.View
           entering={FadeIn.duration(150)}
           exiting={FadeOut.duration(150)}
@@ -2029,25 +2064,28 @@ export default function HomeScreen() {
             {/* Pulsing Outer Rings */}
             <Animated.View
               entering={FadeIn.duration(200)}
-              style={{
-                width: 110,
-                height: 110,
-                borderRadius: 55,
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.1,
-                shadowRadius: 8,
-                overflow: 'hidden',
-              }}
+              style={[
+                {
+                  width: 110,
+                  height: 110,
+                  borderRadius: 55,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(0,0,0,0.015)',
+                  justifyContent: 'center',
+                  alignItems: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
+                  shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.1,
+                  shadowRadius: 8,
+                  overflow: 'hidden',
+                },
+                pulsingRingStyle
+              ]}
             >
               <View style={{ height: 50, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
                 <Animated.View style={[{ alignItems: 'center' }, reelAnimatedStyle]}>
-                  {(isSwitching === 'food' 
+                  {(isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
                     ? ['🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁']
                     : ['🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌']
                   ).map((emoji, idx) => (
@@ -2071,7 +2109,7 @@ export default function HomeScreen() {
                   letterSpacing: -0.2,
                 }}
               >
-                {isSwitching === 'food' 
+                {isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
                   ? "Cooking fresh food, delivered at your doorstep" 
                   : "Everything you need, delivered at your doorstep"}
               </Text>
