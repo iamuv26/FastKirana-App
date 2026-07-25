@@ -507,7 +507,7 @@ export default function CafeScreen() {
     if (showModeSwitchLoader) {
       loaderTranslateY.value = 0;
       loaderTranslateY.value = withRepeat(
-        withTiming(-350, { duration: 1500, easing: Easing.linear }),
+        withTiming(-400, { duration: 3000, easing: Easing.linear }),
         -1,
         false
       );
@@ -1878,8 +1878,8 @@ export default function CafeScreen() {
               <View style={{ height: 50, overflow: 'hidden', justifyContent: 'center', alignItems: 'center' }}>
                 <Animated.View style={[{ alignItems: 'center' }, reelAnimatedStyle]}>
                   {(isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
-                    ? ['🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁']
-                    : ['🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌']
+                    ? ['🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁', '🍕', '🍔', '🥪', '🥢', '🧋', '🍟', '🍜', '🧁']
+                    : ['🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌', '🛍️', '🍎', '🥦', '🥑', '🥛', '🍳', '🧀', '🍌']
                   ).map((emoji, idx) => (
                     <View key={idx} style={{ height: 50, justifyContent: 'center', alignItems: 'center' }}>
                       <Text style={{ fontSize: 40, lineHeight: 50 }}>{emoji}</Text>
