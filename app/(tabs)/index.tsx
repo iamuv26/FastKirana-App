@@ -1241,7 +1241,7 @@ export default function HomeScreen() {
             paddingHorizontal: 16,
             paddingTop: insets.top > 0 ? insets.top + 5 : 8,
             paddingBottom: 8,
-            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.72)' : 'rgba(255, 255, 255, 0.75)',
+            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.95)' : 'rgba(255, 255, 255, 0.97)',
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
