@@ -35,6 +35,8 @@ interface UIState {
   deliveryFeeBase: number;
   groceryFreeDeliveryThreshold: number;
   cafeFreeDeliveryThreshold: number;
+  isTabBarVisible: boolean;
+  setTabBarVisible: (visible: boolean) => void;
   setSelectedLocation: (location: string) => void;
   setUserCoords: (coords: UserCoords | null) => void;
   setLocationConfirmed: (confirmed: boolean) => void;
@@ -92,7 +94,9 @@ export const useUIStore = create<UIState>()(
       deliveryFeeBase: 25,
       groceryFreeDeliveryThreshold: 199,
       cafeFreeDeliveryThreshold: 199,
+      isTabBarVisible: true,
 
+      setTabBarVisible: (visible) => set({ isTabBarVisible: visible }),
       setSelectedLocation: (location) => set({ selectedLocation: location }),
       setUserCoords: (coords) => set({ userCoords: coords }),
       setLocationConfirmed: (confirmed) => set({ isLocationConfirmed: confirmed }),

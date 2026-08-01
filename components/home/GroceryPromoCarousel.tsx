@@ -8,7 +8,7 @@ import { router } from 'expo-router';
 import { triggerHaptic } from '../../lib/haptic';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../../lib/constants';
-import { getAppImageSource } from '../../lib/utils';
+import { getAppImageSource, normalizeCategorySlug } from '../../lib/utils';
 import { THEME } from '../../lib/theme';
 import { useTheme } from '../../app/context/ThemeContext';
 
@@ -134,7 +134,10 @@ export default function GroceryPromoCarousel() {
             route = '/cafe';
             slug = 'cafe';
           } else if (b.linkUrl.includes('/category/')) {
-            slug = b.linkUrl.split('/category/')[1] || 'grocery-essential';
+            const rawSlug = b.linkUrl.split('/category/')[1] || 'grocery-essential';
+            slug = normalizeCategorySlug(rawSlug);
+          } else {
+            slug = normalizeCategorySlug(b.linkUrl);
           }
         }
 

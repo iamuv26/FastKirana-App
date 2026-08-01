@@ -34,9 +34,10 @@ const AnimatedPressable = Animated.createAnimatedComponent(Pressable);
 
 interface FloatingCartBarProps {
   bottomOffset?: number;
+  onTap?: () => void;
 }
 
-export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarProps) {
+export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCartBarProps) {
   const { items, getTotalItems, getSubtotal, getSavings } = useCart();
   const { theme } = useTheme();
   const minOrderValue = useUIStore((s) => typeof s.minOrderValue === 'number' ? s.minOrderValue : 99);
@@ -147,13 +148,30 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
 
   const handlePress = () => {
     triggerHaptic('light');
-    router.push('/cart');
+    if (onTap) {
+      onTap();
+    } else {
+      router.push('/cart');
+    }
   };
 
+  const isTabBarVisible = useUIStore((s) => s.isTabBarVisible);
   const isFreeDelivery = cartSubtotal >= threshold;
   const amountNeeded = threshold - cartSubtotal;
 
-  const finalBottom = bottomOffset + (insets.bottom > 0 ? insets.bottom - 8 : 0);
+  const bottomAnimShared = useSharedValue(bottomOffset);
+
+  useEffect(() => {
+    const targetBottom = isTabBarVisible ? bottomOffset : 16;
+    bottomAnimShared.value = withTiming(targetBottom, {
+      duration: 280,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+    });
+  }, [isTabBarVisible, bottomOffset]);
+
+  const animatedBottomStyle = useAnimatedStyle(() => ({
+    bottom: bottomAnimShared.value + (insets.bottom > 0 ? insets.bottom - 8 : 0),
+  }));
 
   const isCafe = cafeItems.length > 0;
   const activeBrandColor = isCafe ? '#ea580c' : '#e20a22';
@@ -167,16 +185,18 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
 
   return (
     <Animated.View 
-      style={[{ 
-        position: 'absolute',
-        left: 16,
-        right: 16,
-        maxWidth: 440,
-        width: 'auto',
-        alignSelf: 'center',
-        zIndex: 40,
-        bottom: finalBottom 
-      }]} 
+      style={[
+        { 
+          position: 'absolute',
+          left: 16,
+          right: 16,
+          maxWidth: 440,
+          width: 'auto',
+          alignSelf: 'center',
+          zIndex: 40,
+        },
+        animatedBottomStyle,
+      ]} 
       entering={SlideInDown.duration(350).easing(Easing.out(Easing.quad))}
     >
       <ScalePressable 
@@ -229,9 +249,9 @@ export default function FloatingCartBar({ bottomOffset = 16 }: FloatingCartBarPr
             <View style={styles.iconContainer}>
               <ShoppingBag size={15} color="#ffffff" strokeWidth={2.4} />
               {/* Slender item badge */}
-              <View style={[styles.badge, { borderColor: isDarkMode ? '#27272a' : activeBrandColor }]}>
+              <Animated.View style={[styles.badge, { borderColor: isDarkMode ? '#27272a' : activeBrandColor }, badgeAnimatedStyle]}>
                 <Text allowFontScaling={false} style={styles.badgeText}>{cartItemCount}</Text>
-              </View>
+              </Animated.View>
             </View>
             <View style={{ marginLeft: 9, flex: 1 }}>
               <Text allowFontScaling={false} style={styles.priceText} numberOfLines={1}>

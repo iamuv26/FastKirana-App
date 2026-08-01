@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, Modal } from 'react-native';
+import { View, Text, ScrollView, Pressable, TextInput, ActivityIndicator, Alert, Platform, StyleSheet, TouchableOpacity, Modal, Linking } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { User, LogIn, LogOut, ShoppingBag, MapPin, Settings, HelpCircle, PhoneCall, ShieldCheck, Edit3, Save, X, Moon, Sun, ChevronRight, ChevronDown, Search, Package, ChefHat, Truck, Coffee } from 'lucide-react-native';
@@ -9,17 +9,21 @@ import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
-import { API_BASE_URL } from '../../lib/constants';
+import { API_BASE_URL, SUPPORT_PHONE } from '../../lib/constants';
 import { triggerHaptic } from '../../lib/haptic';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatHeaderAddress } from '../../lib/utils';
 import { THEME } from '../../lib/theme';
 
 
+import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
+
 export default function AccountScreen() {
   const { isLoggedIn, user, token, setAuth, logout } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const selectedLocation = useUIStore((s) => s.selectedLocation);
 
   // Profile Edit State
@@ -28,6 +32,47 @@ export default function AccountScreen() {
   const [editPhone, setEditPhone] = useState(user?.phone || '');
   const [isSaving, setIsSaving] = useState(false);
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
+  const [focusedInput, setFocusedInput] = useState<'name' | 'phone' | null>(null);
+  const [showFaqModal, setShowFaqModal] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
+
+  const FAQ_ITEMS = [
+    {
+      q: 'How fast is delivery?',
+      a: 'FastKirana delivers in 10-15 minutes across Ghatampur Dark Store areas for both fresh groceries and food items.',
+      icon: '⚡'
+    },
+    {
+      q: 'What are the customer support details?',
+      a: 'You can call our instant support helpline at +91 70544 70303 or email help@fastkirana.com. Operating hours are 6:00 AM - 12:00 AM daily.',
+      icon: '📞'
+    },
+    {
+      q: 'What payment methods are supported?',
+      a: 'We accept UPI (PhonePe, Google Pay, Paytm), Cash on Delivery (COD), and Net Banking.',
+      icon: '💳'
+    },
+    {
+      q: 'What if an item is missing or damaged?',
+      a: 'Please call customer support at +91 70544 70303 immediately. We provide instant replacement or refund.',
+      icon: '📦'
+    },
+    {
+      q: 'What are the store operating hours?',
+      a: 'FastKirana Dark Store & Cafe operate every day from 6:00 AM to 12:00 AM (Midnight).',
+      icon: '🕒'
+    },
+    {
+      q: 'Are there any delivery charges?',
+      a: 'Delivery is 100% FREE for orders above ₹199. A nominal fee of ₹25 applies for smaller orders.',
+      icon: '🚚'
+    },
+    {
+      q: 'Can I order food & groceries together?',
+      a: 'Yes! You can add dark store grocery items and hot Wedson Restaurant meals in a single cart order.',
+      icon: '🍱'
+    }
+  ];
 
   const getAuthHeaders = (): Record<string, string> => {
     if (!token || !user) return {};
@@ -132,72 +177,8 @@ export default function AccountScreen() {
         }}
       >
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
-          {/* Top Row: Location & Theme */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            {/* Left: Brand Logo & Text */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                width: 32,
-                height: 32,
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={22} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
-
-            {/* Right: Location Capsule Picker */}
-            <ScalePressable 
-              onPress={() => {
-                router.push('/location-picker');
-              }}
-              scaleValue={0.96}
-              style={{
-                maxWidth: '60%'
-              }}
-            >
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-                borderRadius: 20, 
-                paddingHorizontal: 8, 
-                paddingVertical: 5,
-                justifyContent: 'center',
-              }}>
-                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
-                <Text 
-                  numberOfLines={1} 
-                  style={{ 
-                    fontSize: 10, 
-                    fontWeight: 'bold', 
-                    color: isDarkMode ? '#fafafa' : '#0f172a',
-                    flexShrink: 1,
-                    marginRight: 3
-                  }}
-                >
-                  {formatHeaderAddress(selectedLocation)}
-                </Text>
-                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-              </View>
-            </ScalePressable>
-          </View>
+          {/* Top Row: Standardized Branded Header & Location */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
 
           {/* Bottom Row: Search Box Shortcut */}
           <Pressable 
@@ -223,7 +204,14 @@ export default function AccountScreen() {
         </View>
       </View>
 
-      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ paddingBottom: 120 }} 
+        showsVerticalScrollIndicator={false}
+        onScroll={onTabBarScroll}
+        onTouchStart={onTabBarTouchStart}
+        scrollEventThrottle={16}
+      >
         {/* Profile Card Header with Gradient */}
         {/* Profile Card Header - Premium Minimal Design */}
         <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
@@ -250,155 +238,71 @@ export default function AccountScreen() {
             <View style={{ padding: 24, zIndex: 10 }}>
               {isLoggedIn && user ? (
                 <View>
-                  {!isEditing ? (
-                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 }}>
-                        {/* Premium Sleek Avatar */}
-                        <View style={{
-                          width: 60,
-                          height: 60,
-                          borderRadius: 30,
-                          backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
-                          borderWidth: 1,
-                          borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }}>
-                          <User size={24} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
-                        </View>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 }}>
+                      {/* Premium Sleek Avatar */}
+                      <View style={{
+                        width: 60,
+                        height: 60,
+                        borderRadius: 30,
+                        backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }}>
+                        <User size={24} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
+                      </View>
 
-                        <View style={{ flex: 1 }}>
-                          <Pressable onPress={handleEditToggle}>
-                            <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 18, fontWeight: '900', letterSpacing: -0.4 }}>
-                              {user.name || 'FastKirana User'}
-                            </Text>
-                          </Pressable>
-                          <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
-                            {formatEmailForDisplay(user.email || '')}
+                      <View style={{ flex: 1 }}>
+                        <Pressable onPress={handleEditToggle}>
+                          <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 18, fontWeight: '900', letterSpacing: -0.4 }}>
+                            {user?.name || 'FastKirana User'}
                           </Text>
-                          
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
-                            <View style={{
-                              flexDirection: 'row',
-                              alignItems: 'center',
-                              gap: 4.5,
-                              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.1)' : 'rgba(226,10,34,0.05)',
-                              borderWidth: 1,
-                              borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : 'rgba(226,10,34,0.12)',
-                              paddingHorizontal: 10,
-                              paddingVertical: 4,
-                              borderRadius: 99,
-                              alignSelf: 'flex-start'
-                            }}>
-                              <ShieldCheck size={11} color={isDarkMode ? '#ef4444' : '#e20a22'} />
-                              <Text style={{ color: isDarkMode ? '#ef4444' : '#e20a22', fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
-                                {user.role} Member
-                              </Text>
-                            </View>
+                        </Pressable>
+                        <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
+                          {formatEmailForDisplay(user?.email || '')}
+                        </Text>
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
+                          <View style={{
+                            flexDirection: 'row',
+                            alignItems: 'center',
+                            gap: 4.5,
+                            backgroundColor: isDarkMode ? 'rgba(239,68,68,0.1)' : 'rgba(226,10,34,0.05)',
+                            borderWidth: 1,
+                            borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : 'rgba(226,10,34,0.12)',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 99,
+                            alignSelf: 'flex-start'
+                          }}>
+                            <ShieldCheck size={11} color={isDarkMode ? '#ef4444' : '#e20a22'} />
+                            <Text style={{ color: isDarkMode ? '#ef4444' : '#e20a22', fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                              {user?.role || 'user'} Member
+                            </Text>
                           </View>
                         </View>
                       </View>
-
-                      <Pressable
-                        onPress={handleEditToggle}
-                        style={({ pressed }) => [{
-                          transform: [{ scale: pressed ? 0.92 : 1 }],
-                          width: 38,
-                          height: 38,
-                          borderRadius: 19,
-                          backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
-                          borderWidth: 1,
-                          borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-                          justifyContent: 'center',
-                          alignItems: 'center'
-                        }]}
-                      >
-                        <Edit3 size={15} color={isDarkMode ? '#d4d4d8' : '#64748b'} />
-                      </Pressable>
                     </View>
-                  ) : (
-                    <View style={{ flexDirection: 'column', gap: 12 }}>
-                      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderColor: isDarkMode ? '#27272a' : '#f1f5f9', paddingBottom: 10 }}>
-                        <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 14, fontWeight: '800', letterSpacing: -0.2 }}>Edit Profile</Text>
-                        <Pressable onPress={handleEditToggle} style={{ padding: 4 }}>
-                          <X size={18} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
-                        </Pressable>
-                      </View>
 
-                      <View style={{ gap: 6 }}>
-                        <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Full Name</Text>
-                        <TextInput
-                          value={editName}
-                          onChangeText={setEditName}
-                          placeholder="Enter your name"
-                          placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
-                          style={{
-                            backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
-                            borderWidth: 1,
-                            borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-                            borderRadius: 14,
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
-                            color: isDarkMode ? '#ffffff' : '#0f172a',
-                            fontSize: 13,
-                            fontWeight: '600'
-                          }}
-                        />
-                      </View>
-
-                      <View style={{ gap: 6 }}>
-                        <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>Phone Number</Text>
-                        <TextInput
-                          value={editPhone}
-                          onChangeText={setEditPhone}
-                          keyboardType="phone-pad"
-                          placeholder="Enter 10-digit mobile"
-                          placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
-                          style={{
-                            backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
-                            borderWidth: 1,
-                            borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-                            borderRadius: 14,
-                            paddingHorizontal: 16,
-                            paddingVertical: 10,
-                            color: isDarkMode ? '#ffffff' : '#0f172a',
-                            fontSize: 13,
-                            fontWeight: '600'
-                          }}
-                        />
-                      </View>
-
-                      <Pressable
-                        onPress={handleSaveProfile}
-                        disabled={isSaving}
-                        style={({ pressed }) => [{
-                          backgroundColor: '#e20a22',
-                          paddingVertical: 14,
-                          borderRadius: 14,
-                          justifyContent: 'center',
-                          alignItems: 'center',
-                          flexDirection: 'row',
-                          gap: 6,
-                          marginTop: 6,
-                          opacity: pressed ? 0.9 : 1,
-                          shadowColor: '#e20a22',
-                          shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: 0.2,
-                          shadowRadius: 8,
-                          elevation: 3
-                        }]}
-                      >
-                        {isSaving ? (
-                          <ActivityIndicator size="small" color="#ffffff" />
-                        ) : (
-                          <>
-                            <Save size={15} color="#ffffff" strokeWidth={2.5} />
-                            <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: 12, textTransform: 'uppercase', letterSpacing: 0.5 }}>Save Changes</Text>
-                          </>
-                        )}
-                      </Pressable>
-                    </View>
-                  )}
+                    <Pressable
+                      onPress={handleEditToggle}
+                      style={({ pressed }) => [{
+                        transform: [{ scale: pressed ? 0.92 : 1 }],
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
+                        backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+                        borderWidth: 1,
+                        borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                        justifyContent: 'center',
+                        alignItems: 'center'
+                      }]}
+                    >
+                      <Edit3 size={15} color={isDarkMode ? '#d4d4d8' : '#64748b'} />
+                    </Pressable>
+                  </View>
                 </View>
               ) : (
                 <View style={{ flexDirection: 'column', width: '100%', gap: 16 }}>
@@ -561,7 +465,7 @@ export default function AccountScreen() {
 
             {/* Contact Support */}
             <Pressable 
-              onPress={() => router.push('tel:1800123456')}
+              onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert('Support', `Call us at ${SUPPORT_PHONE}`)) }
               className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
               style={{
                 borderRadius: THEME.RADIUS.lg,
@@ -883,7 +787,10 @@ export default function AccountScreen() {
 
             {/* Help & FAQs */}
             <Pressable 
-              onPress={() => Alert.alert('Support', 'Please call our support at 1800-123-456.')}
+              onPress={() => {
+                triggerHaptic('light');
+                setShowFaqModal(true);
+              }}
               className={`flex-row items-center justify-between p-4 active:bg-slate-50 dark:active:bg-zinc-800 ${isLoggedIn ? 'border-b border-slate-100 dark:border-zinc-800' : ''}`}
             >
               <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
@@ -904,7 +811,7 @@ export default function AccountScreen() {
                     Help & FAQs
                   </Text>
                   <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
-                    Find answers to common issues
+                    Instant answers & support helpline
                   </Text>
                 </View>
               </View>
@@ -1091,6 +998,304 @@ export default function AccountScreen() {
                   Logout
                 </Text>
               </ScalePressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Premium Custom Edit Profile Modal */}
+      <Modal
+        visible={isEditing}
+        transparent={true}
+        animationType="fade"
+        onRequestClose={handleEditToggle}
+      >
+        <View style={{
+          flex: 1,
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: 20
+        }}>
+          <View style={{
+            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#2c2c2e' : '#ffe4e6',
+            borderRadius: 28,
+            width: '100%',
+            maxWidth: 340,
+            padding: 24,
+            shadowColor: '#e20a22',
+            shadowOffset: { width: 0, height: 12 },
+            shadowOpacity: isDarkMode ? 0.35 : 0.08,
+            shadowRadius: 24,
+            elevation: 8,
+          }}>
+            {/* Header Icon */}
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
+              <LinearGradient
+                colors={isDarkMode ? ['#3e1619', '#1a0d0e'] : ['#fff1f2', '#ffe4e6']}
+                style={{
+                  width: 56,
+                  height: 56,
+                  borderRadius: 28,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? 'rgba(226,10,34,0.15)' : '#fecdd3'
+                }}
+              >
+                <User size={24} color="#e20a22" strokeWidth={2.5} />
+              </LinearGradient>
+            </View>
+
+            {/* Title */}
+            <Text style={{
+              color: isDarkMode ? '#ffffff' : '#0f172a',
+              fontWeight: '900',
+              fontSize: 18,
+              textAlign: 'center',
+              marginBottom: 20,
+              letterSpacing: -0.3
+            }}>
+              Edit Profile
+            </Text>
+
+            {/* Full Name Input */}
+            <View style={{ gap: 6, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Full Name
+              </Text>
+              <TextInput
+                value={editName}
+                onChangeText={setEditName}
+                onFocus={() => setFocusedInput('name')}
+                onBlur={() => setFocusedInput(null)}
+                placeholder="Enter your name"
+                placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+                style={{
+                  backgroundColor: isDarkMode ? '#2c2c2e' : '#f8fafc',
+                  borderWidth: 1.5,
+                  borderColor: focusedInput === 'name' 
+                    ? '#e20a22' 
+                    : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  fontSize: 13,
+                  fontWeight: '600'
+                }}
+              />
+            </View>
+
+            {/* Phone Number Input */}
+            <View style={{ gap: 6, marginBottom: 20 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                Phone Number
+              </Text>
+              <TextInput
+                value={editPhone}
+                onChangeText={setEditPhone}
+                onFocus={() => setFocusedInput('phone')}
+                onBlur={() => setFocusedInput(null)}
+                keyboardType="phone-pad"
+                placeholder="Enter 10-digit mobile"
+                placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+                style={{
+                  backgroundColor: isDarkMode ? '#2c2c2e' : '#f8fafc',
+                  borderWidth: 1.5,
+                  borderColor: focusedInput === 'phone' 
+                    ? '#e20a22' 
+                    : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  fontSize: 13,
+                  fontWeight: '600'
+                }}
+              />
+            </View>
+
+            {/* Actions Row */}
+            <View style={{ 
+              flexDirection: 'row', 
+              width: '100%',
+              justifyContent: 'space-between',
+              alignItems: 'center'
+            }}>
+              {/* Cancel Button */}
+              <ScalePressable
+                onPress={handleEditToggle}
+                scaleValue={0.96}
+                haptic="light"
+                style={{
+                  width: '48%',
+                  height: 46,
+                  borderWidth: 1.5,
+                  borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                }}
+              >
+                <Text style={{
+                  color: isDarkMode ? '#cbd5e1' : '#475569',
+                  fontWeight: '800',
+                  fontSize: 13,
+                  textTransform: 'uppercase',
+                  letterSpacing: 0.5
+                }}>
+                  Cancel
+                </Text>
+              </ScalePressable>
+
+              {/* Save Button */}
+              <ScalePressable
+                onPress={handleSaveProfile}
+                disabled={isSaving}
+                scaleValue={0.96}
+                haptic="medium"
+                style={{
+                  width: '48%',
+                  height: 46,
+                  borderRadius: 16,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  backgroundColor: '#e20a22',
+                  flexDirection: 'row',
+                  gap: 6
+                }}
+              >
+                {isSaving ? (
+                  <ActivityIndicator size="small" color="#ffffff" />
+                ) : (
+                  <>
+                    <Save size={15} color="#ffffff" strokeWidth={2.5} />
+                    <Text style={{
+                      color: '#ffffff',
+                      fontWeight: '900',
+                      fontSize: 13,
+                      textTransform: 'uppercase',
+                      letterSpacing: 0.5
+                    }}>
+                      Save
+                    </Text>
+                  </>
+                )}
+              </ScalePressable>
+            </View>
+          </View>
+        </View>
+      </Modal>
+
+      {/* Help & FAQs Interactive Modal */}
+      <Modal
+        visible={showFaqModal}
+        transparent
+        animationType="slide"
+        onRequestClose={() => setShowFaqModal(false)}
+      >
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
+          <View style={{
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
+            maxHeight: '85%',
+            padding: 20,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+          }}>
+            {/* Header */}
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#f1f5f9', paddingBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDarkMode ? 'rgba(14,165,233,0.2)' : '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
+                  <HelpCircle size={20} color="#0ea5e9" />
+                </View>
+                <View>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Help & FAQs</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8' }}>FastKirana Support Center</Text>
+                </View>
+              </View>
+              <Pressable 
+                onPress={() => setShowFaqModal(false)}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
+              >
+                <X size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+              </Pressable>
+            </View>
+
+            {/* FAQs List */}
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: 16 }}>
+              {FAQ_ITEMS.map((faq, idx) => {
+                const isExpanded = expandedFaq === idx;
+                return (
+                  <View 
+                    key={idx}
+                    style={{
+                      backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+                      borderRadius: 16,
+                      borderWidth: 1,
+                      borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                      marginBottom: 10,
+                      overflow: 'hidden',
+                    }}
+                  >
+                    <Pressable
+                      onPress={() => {
+                        triggerHaptic('light');
+                        setExpandedFaq(isExpanded ? null : idx);
+                      }}
+                      style={{
+                        padding: 14,
+                        flexDirection: 'row',
+                        justifyContent: 'space-between',
+                        alignItems: 'center',
+                      }}
+                    >
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingRight: 10 }}>
+                        <Text style={{ fontSize: 16 }}>{faq.icon}</Text>
+                        <Text style={{ fontSize: 12.5, fontWeight: '800', color: isDarkMode ? '#ffffff' : '#0f172a', flex: 1 }}>{faq.q}</Text>
+                      </View>
+                      <ChevronDown size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }} />
+                    </Pressable>
+
+                    {isExpanded && (
+                      <View style={{ paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4, borderTopWidth: 1, borderTopColor: isDarkMode ? '#3f3f46' : '#edf2f7' }}>
+                        <Text style={{ fontSize: 11.5, fontWeight: '600', color: isDarkMode ? '#d4d4d8' : '#475569', lineHeight: 18, marginTop: 4 }}>
+                          {faq.a}
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+                );
+              })}
+            </ScrollView>
+
+            {/* Direct Support Call Footer */}
+            <View style={{ gap: 8 }}>
+              <Pressable
+                onPress={() => {
+                  setShowFaqModal(false);
+                  Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => {});
+                }}
+                style={{
+                  backgroundColor: '#e20a22',
+                  borderRadius: 16,
+                  paddingVertical: 14,
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  flexDirection: 'row',
+                  gap: 8,
+                }}
+              >
+                <PhoneCall size={16} color="#ffffff" strokeWidth={2.5} />
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                  Call Customer Support ({SUPPORT_PHONE})
+                </Text>
+              </Pressable>
             </View>
           </View>
         </View>

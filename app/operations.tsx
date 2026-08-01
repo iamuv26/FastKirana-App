@@ -656,7 +656,9 @@ export default function OperationsScreen() {
     onEvent: (event) => {
       // Refresh data on any incoming SSE event or poll fallback tick
       fetchLiveopsData();
-      fetchAnalyticsData();
+      if (activeTab === 'ANALYTICS') {
+        fetchAnalyticsData();
+      }
     }
   });
 
@@ -2807,11 +2809,15 @@ export default function OperationsScreen() {
   };
 
   useEffect(() => {
-    fetchServerOrders(true);
+    if (activeTab && ['PICKER', 'RIDER', 'CHEF', 'CHEF_RESTAURANT'].includes(activeTab)) {
+      fetchServerOrders(true);
+    }
     fetchSettings();
     
     const intervalId = setInterval(() => {
-      fetchServerOrders(false);
+      if (activeTab && ['PICKER', 'RIDER', 'CHEF', 'CHEF_RESTAURANT'].includes(activeTab)) {
+        fetchServerOrders(false);
+      }
     }, 5000);
     
     return () => clearInterval(intervalId);

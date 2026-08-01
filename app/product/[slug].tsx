@@ -1,13 +1,16 @@
 import { View, Text, Pressable, ScrollView, Dimensions, ActivityIndicator, Alert, Platform, Image as RNImage } from 'react-native';
+import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ArrowLeft, ShoppingBag, Share2, ShieldCheck, Heart, Truck, ChevronDown, ChevronRight, Search, Star, MapPin, Sun, Moon, Mic, Clock } from 'lucide-react-native';
+import { queryKeys } from '../../lib/query-keys';
+import { ArrowLeft, ShoppingBag, Share2, ShieldCheck, Heart, Truck, ChevronDown, ChevronRight, Search, Star, MapPin, Sun, Moon, Mic, Clock, Minus, Plus } from 'lucide-react-native';
+import { LinearGradient } from 'expo-linear-gradient';
 import { useCart } from '../../hooks/use-cart';
-import { formatPrice, getAppImageSource, formatHeaderAddress } from '../../lib/utils';
+import { formatPrice, getAppImageSource, formatHeaderAddress, isCafeProduct, isRestaurantProduct } from '../../lib/utils';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import { triggerHaptic } from '../../lib/haptic';
 import { playCartPop } from '../../lib/audio';
@@ -19,6 +22,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { ScalePressable } from '../../components/shared/ScalePressable';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 
 const CATEGORY_IMAGES: Record<string, any> = {
   'fruits-vegetables': require('../../assets/fruits_vegetables_category.webp'),
@@ -148,14 +152,12 @@ export default function ProductDetailScreen() {
 
   const isOutOfStock = useMemo(() => {
     if (product.isAvailable === false) return true;
-    if (product.isAvailable === true) return false;
     const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
     if (hasVariants) {
       const hasAvailableVariant = product.variants.some((v: any) => 
-        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
+        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0)
       );
-      const totalVariantStock = product.variants.reduce((sum: number, v: any) => sum + (v.stock ?? 999), 0);
-      return !hasAvailableVariant && totalVariantStock <= 0;
+      return !hasAvailableVariant;
     }
     return product.stock !== undefined && product.stock !== null && product.stock <= 0;
   }, [product.isAvailable, product.stock, product.variants]);
@@ -179,7 +181,7 @@ export default function ProductDetailScreen() {
     ? Math.round(((activeVariant.mrp - activeVariant.price) / activeVariant.mrp) * 100)
     : 0;
 
-  const isCafe = product.category?.slug === 'cafe' || product.tags?.includes('cafe') || product.id?.startsWith('c');
+  const isCafe = isCafeProduct(product) || isRestaurantProduct(product) || /^c\d+$/.test(product.id || '');
   const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
 
   const getProductImage = () => {
@@ -223,76 +225,8 @@ export default function ProductDetailScreen() {
         backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
         zIndex: 20
       }}>
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          {/* Left: Brand Logo & Text (Matched with Landing Page) */}
-          <ScalePressable 
-            onPress={() => {
-              router.replace('/(tabs)');
-            }} 
-            scaleValue={0.97}
-            style={{}}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                padding: 4, 
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={24} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
-          </ScalePressable>
-          
-          {/* Right: Location Capsule Picker (Matched with Landing Page) */}
-          <ScalePressable 
-            onPress={() => {
-              router.push('/location-picker');
-            }} 
-            scaleValue={0.96}
-            style={{
-              maxWidth: '60%'
-            }}
-          >
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-              borderWidth: 1, 
-              borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-              borderRadius: 20, 
-              paddingHorizontal: 8, 
-              paddingVertical: 5,
-              justifyContent: 'center',
-            }}>
-              <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
-              <Text 
-                numberOfLines={1} 
-                style={{ 
-                  fontSize: 10, 
-                  fontWeight: 'bold', 
-                  color: isDarkMode ? '#fafafa' : '#0f172a',
-                  flexShrink: 1,
-                  marginRight: 3
-                }}
-              >
-                {formatHeaderAddress(selectedLocation)}
-              </Text>
-              <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-            </View>
-          </ScalePressable>
-        </View>
+        {/* Standardized Branded Header & Location */}
+        <BrandedTopHeader showBack={true} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
 
         <ScalePressable 
           onPress={() => {
@@ -405,26 +339,27 @@ export default function ProductDetailScreen() {
             >
               
               {/* Product Image */}
-              {imageSource ? (
-                Platform.OS === 'web' ? (
-                  <RNImage 
-                    source={imageSource} 
-                    resizeMode="contain" 
+              <Animated.View
+                style={{ width: '90%', height: '90%' }}
+                sharedTransitionTag={`product-image-${product.id}`}
+              >
+                {Platform.OS === 'web' ? (
+                  <RNImage
+                    source={imageSource}
+                    resizeMode="contain"
                     style={{ width: '90%', height: '90%' }}
                   />
                 ) : (
-                  <ExpoImage 
-                    source={imageSource} 
-                    contentFit="contain" 
+                  <ExpoImage
+                    source={imageSource}
+                    contentFit="contain"
                     style={{ width: '90%', height: '90%' }}
                     transition={250}
                     cachePolicy="memory-disk"
                     placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
                   />
-                )
-              ) : (
-                <Text className="text-8xl">📦</Text>
-              )}
+                )}
+              </Animated.View>
 
               {/* Discount flat tag top-left */}
               {discountPercent > 0 && (
@@ -520,7 +455,7 @@ export default function ProductDetailScreen() {
 
             {/* Add to Cart Actions */}
             {isStoreClosed ? (
-              <View className="bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 py-3.5 rounded-xl items-center justify-center mb-6">
+              <View className="bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 py-3.5 rounded-xl items-center justify-center mb-6 w-full">
                 <Text className="font-black text-xs tracking-wider text-slate-400 dark:text-zinc-500 uppercase">STORE CLOSED</Text>
               </View>
             ) : isOutOfStock ? (
@@ -544,49 +479,107 @@ export default function ProductDetailScreen() {
                 </View>
               </ScalePressable>
             ) : quantity === 0 ? (
-              <ScalePressable
-                onPress={() => {
-                  playCartPop();
-                  addItem(cartProduct);
-                }}
-                scaleValue={0.96}
-                haptic="success"
-                style={{ width: '100%' }}
-              >
-                <View className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-xl items-center justify-center flex-row gap-2 mb-6 w-full">
-                  <Text className="text-white font-black text-sm uppercase tracking-wider">Add to Cart</Text>
-                  <ShoppingBag size={15} color="#ffffff" strokeWidth={3} />
-                </View>
-              </ScalePressable>
+              <View style={{ width: '100%', marginBottom: 24 }}>
+                <ScalePressable
+                  onPress={() => {
+                    playCartPop();
+                    addItem(cartProduct);
+                  }}
+                  scaleValue={0.96}
+                  haptic="success"
+                  style={{ width: '100%' }}
+                >
+                  <View style={{
+                    width: '100%',
+                    borderRadius: 16,
+                    backgroundColor: '#047857',
+                    paddingBottom: 4,
+                    shadowColor: '#10b981',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 5,
+                  }}>
+                    <LinearGradient
+                      colors={['#10b981', '#059669']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        width: '100%',
+                        height: 52,
+                        borderRadius: 16,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        paddingHorizontal: 20,
+                      }}
+                    >
+                      <ShoppingBag size={20} color="#ffffff" strokeWidth={2.8} />
+                      <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 15, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                        ADD TO CART
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                </ScalePressable>
+              </View>
             ) : (
-              <View className="flex-row items-center border border-emerald-650 dark:border-emerald-500 bg-emerald-50 dark:bg-zinc-950 rounded-xl p-0.5 mb-6 w-full">
-                <ScalePressable
-                  onPress={() => {
-                    playCartPop();
-                    updateQuantity(cartProduct.id, cartProduct.name, quantity - 1);
-                  }}
-                  scaleValue={0.88}
-                  haptic="light"
-                  style={{ flex: 1 }}
-                >
-                  <View className="py-3 items-center w-full">
-                    <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">-</Text>
+              <View style={{ width: '100%', marginBottom: 24 }}>
+                <View style={{
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4',
+                  borderWidth: 2,
+                  borderColor: '#10b981',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 6,
+                  width: '100%',
+                }}>
+                  <Pressable
+                    onPress={() => {
+                      playCartPop();
+                      updateQuantity(cartProduct.id, cartProduct.name, quantity - 1);
+                    }}
+                    style={({ pressed }) => ({
+                      width: 48,
+                      height: 42,
+                      borderRadius: 12,
+                      backgroundColor: pressed ? (isDarkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.15)') : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    })}
+                  >
+                    <Minus size={22} color={isDarkMode ? '#34d399' : '#059669'} strokeWidth={3} />
+                  </Pressable>
+
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '900', color: isDarkMode ? '#34d399' : '#047857' }}>
+                      {quantity}
+                    </Text>
+                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isDarkMode ? '#a7f3d0' : '#15803d', textTransform: 'uppercase', marginTop: -2 }}>
+                      in cart
+                    </Text>
                   </View>
-                </ScalePressable>
-                <Text className="px-6 text-emerald-805 dark:text-zinc-100 font-black text-sm">{quantity}</Text>
-                <ScalePressable
-                  onPress={() => {
-                    playCartPop();
-                    updateQuantity(cartProduct.id, cartProduct.name, quantity + 1);
-                  }}
-                  scaleValue={0.88}
-                  haptic="light"
-                  style={{ flex: 1 }}
-                >
-                  <View className="py-3 items-center w-full">
-                    <Text className="text-emerald-700 dark:text-emerald-400 font-black text-lg">+</Text>
-                  </View>
-                </ScalePressable>
+
+                  <Pressable
+                    onPress={() => {
+                      playCartPop();
+                      updateQuantity(cartProduct.id, cartProduct.name, quantity + 1);
+                    }}
+                    style={({ pressed }) => ({
+                      width: 48,
+                      height: 42,
+                      borderRadius: 12,
+                      backgroundColor: pressed ? (isDarkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.15)') : 'transparent',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    })}
+                  >
+                    <Plus size={22} color={isDarkMode ? '#34d399' : '#059669'} strokeWidth={3} />
+                  </Pressable>
+                </View>
               </View>
             )}
 

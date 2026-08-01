@@ -22,6 +22,7 @@ import { SkeletonShimmer } from '../components/shared/SkeletonShimmer';
 import { useTheme } from './context/ThemeContext';
 import { ScalePressable } from '../components/shared/ScalePressable';
 import Logo from '../components/shared/Logo';
+import BrandedTopHeader from '../components/shared/BrandedTopHeader';
 import StoreSelectorHeader from '../components/shared/StoreSelectorHeader';
 import AddressQuickSwitcherSheet from '../components/shared/AddressQuickSwitcherSheet';
 import CafePromoCarousel from '../components/shared/CafePromoCarousel';
@@ -480,11 +481,53 @@ export default function CafeScreen() {
   const { data: products = [], isLoading } = useQuery<any[]>({
     queryKey: ['cafe-products', validStoreId, displayMode],
     queryFn: async () => {
+      let list: any[] = [];
       const categoryQuery = displayMode === 'restaurant' ? 'restaurant' : 'fastkirana-cafe';
-      const response = await fetch(`${API_BASE_URL}/products?category=${categoryQuery}&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
-      if (!response.ok) throw new Error('API Failed');
-      const data = await response.json();
-      return Array.isArray(data) ? data : (data.products || []);
+
+      // Tier 1: Query by specific category + storeId if valid
+      try {
+        const response = await fetch(`${API_BASE_URL}/products?category=${categoryQuery}&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
+        if (response.ok) {
+          const data = await response.json();
+          list = Array.isArray(data) ? data : (data.products || []);
+        }
+      } catch (e) {
+        console.warn('Cafe Tier 1 fetch failed:', e);
+      }
+
+      // Tier 2: Query by category without storeId
+      if (!list.length && validStoreId) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/products?category=${categoryQuery}&limit=500`);
+          if (response.ok) {
+            const data = await response.json();
+            list = Array.isArray(data) ? data : (data.products || []);
+          }
+        } catch (e) {
+          console.warn('Cafe Tier 2 fetch failed:', e);
+        }
+      }
+
+      // Tier 3: Query all products limit 500 and filter locally
+      if (!list.length) {
+        try {
+          const response = await fetch(`${API_BASE_URL}/products?limit=500`);
+          if (response.ok) {
+            const data = await response.json();
+            const all = Array.isArray(data) ? data : (data.products || []);
+            list = all.filter((p: any) => {
+              const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
+              const tags = (p.tags || []).map((t: string) => String(t).toLowerCase());
+              return catSlug.includes('restaurant') || catSlug.includes('cafe') || tags.includes('restaurant') || tags.includes('cafe') || tags.includes('wedson') || tags.includes('food');
+            });
+            if (!list.length) list = all;
+          }
+        } catch (e) {
+          console.warn('Cafe Tier 3 fetch failed:', e);
+        }
+      }
+
+      return list;
     },
     staleTime: 0, // Fresh fetch on every mount
   });
@@ -584,13 +627,33 @@ export default function CafeScreen() {
     return { bg: 'bg-rose-50/70', emoji: '🥪' };
   };
 
+  const isRestaurantProduct = (p: any) => {
+    const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
+    const tags = (p.tags || []).map((t: string) => String(t).toLowerCase());
+    const nameLower = (p.name || '').toLowerCase();
+
+    if (catSlug === 'restaurant' || tags.includes('restaurant') || tags.includes('wedson') || tags.includes('main-course')) {
+      return true;
+    }
+
+    const restaurantKeywords = [
+      'main-course', 'roti', 'naan', 'kulcha', 'biryani', 'dal', 'paneer', 'thali', 
+      'curry', 'starter', 'tandoori', 'chole', 'bhature', 'sabji', 'gravy', 'shahi', 
+      'kadhai', 'handi', 'malai', 'chaap', 'kofta', 'pulao', 'pulav'
+    ];
+
+    return restaurantKeywords.some(k => catSlug.includes(k) || tags.some((t: string) => t.includes(k)) || nameLower.includes(k));
+  };
+
   // Filter products based on Veg-Only toggle & Search query & Display Mode (Cafe vs Restaurant)
   const filteredProducts = useMemo(() => {
     return products.filter((p) => {
-      // 1. Mode separation by category slug
+      // 1. Mode separation by category slug & tags
       const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
-      if (displayMode === 'cafe' && catSlug === 'restaurant') return false;
-      if (displayMode === 'restaurant' && catSlug !== 'restaurant') return false;
+      const isResto = isRestaurantProduct(p);
+      
+      if (displayMode === 'cafe' && isResto && !p.tags?.includes('cafe')) return false;
+      if (displayMode === 'restaurant' && !isResto && catSlug !== 'restaurant') return false;
 
       // 2. Veg filter
       if (vegOnly && getIsNonVeg(p)) return false;
@@ -996,168 +1059,11 @@ export default function CafeScreen() {
             { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%' }
           ]}
         >
-          {/* Left: Brand Logo & Text */}
-          <ScalePressable 
-            onPress={() => {
-              router.back();
-            }} 
-            scaleValue={0.97}
-            style={{}}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                width: 32,
-                height: 32,
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={22} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
-          </ScalePressable>
- 
-          {/* Right: Location Capsule Picker */}
-          <ScalePressable 
-            onPress={() => {
-              triggerHaptic('light');
-              setShowAddressSheet(true);
-            }} 
-            scaleValue={0.96}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.08)' : '#fff5f5',
-              borderColor: isDarkMode ? 'rgba(225, 29, 72, 0.3)' : '#fecdd3',
-              borderWidth: 1,
-              borderRadius: 99,
-              paddingHorizontal: 10,
-              paddingVertical: 5,
-              maxWidth: '62%',
-            }}
-          >
-            <MapPin size={12} color="#e20a22" style={{ marginRight: 4, flexShrink: 0 }} />
-            <Text 
-              numberOfLines={1} 
-              style={{ 
-                fontSize: 11, 
-                fontWeight: '800', 
-                color: isDarkMode ? '#f4f4f5' : '#0f172a',
-                marginRight: 3,
-                flexShrink: 1,
-              }}
-            >
-              {formatHeaderAddress(selectedLocation)}
-            </Text>
-            <ChevronDown size={11} color={isDarkMode ? '#fda4af' : '#64748b'} style={{ flexShrink: 0 }} />
-          </ScalePressable>
+          {/* Standardized Branded Header & Location */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} onLocationPress={() => setShowAddressSheet(true)} />
         </Animated.View>
  
-        {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control */}
-        <View 
-          onLayout={(e) => {
-            const w = e.nativeEvent.layout.width;
-            if (w > 0 && Math.abs(w - measuredPillWidth) > 0.5) {
-              setMeasuredPillWidth(w);
-            }
-          }}
-          style={{
-            flexDirection: 'row',
-            alignItems: 'center',
-            alignSelf: 'stretch',
-            width: '100%',
-            height: 44,
-            borderRadius: 22,
-            borderWidth: 1.5,
-            borderColor: isDarkMode ? '#27272a' : '#fecdd3',
-            backgroundColor: isDarkMode ? '#18181b' : '#fff5f5',
-            padding: 3,
-            marginTop: 6,
-            marginBottom: 6,
-            position: 'relative',
-          }}
-        >
-          {/* Sliding highlight indicator pill */}
-          <Animated.View style={[{
-            position: 'absolute',
-            width: '48.8%',
-            top: 3,
-            bottom: 3,
-            left: 3,
-            borderRadius: 19,
-            backgroundColor: '#e20a22',
-            shadowColor: '#e20a22',
-            shadowOffset: { width: 0, height: 3 },
-            shadowOpacity: 0.35,
-            shadowRadius: 6,
-            elevation: 4,
-          }, slidingIndicatorStyle]} />
-
-          {/* Grocery Segment */}
-          <Pressable
-            onPress={() => {
-              triggerHaptic('medium');
-              setLocalActiveSegment('grocery');
-              tabIndicatorTranslateX.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) });
-              setIsSwitching('grocery');
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/(tabs)');
-              }
-            }}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              zIndex: 2,
-            }}
-          >
-            <ShoppingBag size={15} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
-              Grocery
-            </Text>
-          </Pressable>
-
-          {/* Food Segment */}
-          <Pressable
-            onPress={() => {
-              triggerHaptic('light');
-              setLocalActiveSegment('food');
-              tabIndicatorTranslateX.value = withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) });
-            }}
-            style={{
-              flex: 1,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              height: '100%',
-              zIndex: 2,
-            }}
-          >
-            <Utensils size={15} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
-              Food
-            </Text>
-          </Pressable>
-        </View>
-
-        {/* Row 3: Real Search Box */}
+        {/* Row 2: Search Box right under Branding */}
         <View
           style={{
             flexDirection: 'row',
@@ -1165,10 +1071,12 @@ export default function CafeScreen() {
             backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
             borderWidth: 1,
             borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-            borderRadius: 19,
+            borderRadius: 22,
             paddingHorizontal: 16,
-            height: 38,
+            height: 42,
             width: '100%',
+            marginTop: 4,
+            marginBottom: 6,
             ...Platform.select({
               ios: {
                 shadowColor: '#000',
@@ -1182,10 +1090,10 @@ export default function CafeScreen() {
             }),
           }}
         >
-          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+          <Search size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ marginRight: 10 }} />
           <TextInput
-            placeholder="Search Food Menu..."
-            placeholderTextColor="#94a3b8"
+            placeholder='Search "paneer", "momo", "biryani"...'
+            placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
             value={searchVal}
             onChangeText={setSearchVal}
             style={{
@@ -1214,6 +1122,120 @@ export default function CafeScreen() {
           <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginHorizontal: 10 }} />
           
           <Mic size={16} color="#e20a22" />
+        </View>
+
+        {/* Row 3: Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control matching media__1785285067014.png */}
+        <View 
+          onLayout={(e) => {
+            const w = e.nativeEvent.layout.width;
+            if (w > 0 && Math.abs(w - measuredPillWidth) > 0.5) {
+              setMeasuredPillWidth(w);
+            }
+          }}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            alignSelf: 'stretch',
+            width: '100%',
+            height: 48,
+            borderRadius: 24,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : 'rgba(0,0,0,0.06)',
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            padding: 3,
+            marginTop: 2,
+            marginBottom: 6,
+            position: 'relative',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 3 },
+                shadowOpacity: 0.05,
+                shadowRadius: 8,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}
+        >
+          {/* Sliding highlight indicator pill */}
+          <Animated.View style={[{
+            position: 'absolute',
+            width: '48.8%',
+            top: 3,
+            bottom: 3,
+            left: 3,
+            borderRadius: 21,
+            backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
+            shadowColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
+            shadowOffset: { width: 0, height: 3 },
+            shadowOpacity: 0.35,
+            shadowRadius: 6,
+            elevation: 4,
+          }, slidingIndicatorStyle]} />
+
+          {/* Grocery Segment */}
+          <Pressable
+            onPress={() => {
+              triggerHaptic('medium');
+              setLocalActiveSegment('grocery');
+              tabIndicatorTranslateX.value = withTiming(0, { duration: 150, easing: Easing.out(Easing.quad) });
+              setIsSwitching('grocery');
+              if (router.canGoBack()) {
+                router.back();
+              } else {
+                router.replace('/(tabs)');
+              }
+            }}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              zIndex: 2,
+              gap: 8,
+            }}
+          >
+            <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+            <View>
+              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                Grocery
+              </Text>
+              <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : '#64748b', textTransform: 'uppercase' }}>
+                FAST DELIVERY
+              </Text>
+            </View>
+          </Pressable>
+
+          {/* Food Segment */}
+          <Pressable
+            onPress={() => {
+              triggerHaptic('light');
+              setLocalActiveSegment('food');
+              tabIndicatorTranslateX.value = withTiming(1, { duration: 130, easing: Easing.out(Easing.quad) });
+            }}
+            style={{
+              flex: 1,
+              flexDirection: 'row',
+              alignItems: 'center',
+              justifyContent: 'center',
+              height: '100%',
+              zIndex: 2,
+              gap: 8,
+            }}
+          >
+            <Utensils size={18} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+            <View>
+              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                Food
+              </Text>
+              <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#fde047' : '#ea580c', textTransform: 'uppercase' }}>
+                CAFE & RESTAURANT
+              </Text>
+            </View>
+          </Pressable>
         </View>
 
         {/* Glassmorphic border underline line & Top Loading Progress Bar */}
@@ -1346,13 +1368,13 @@ export default function CafeScreen() {
           showsVerticalScrollIndicator={false}
           style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafafa' }}
           contentContainerStyle={{ 
-            paddingTop: insets.top > 0 ? insets.top + 195 : 198, 
+            paddingTop: insets.top > 0 ? insets.top + 145 : 148, 
             paddingBottom: 220 
           }}
           nestedScrollEnabled={true}
           entering={FadeIn.duration(220)}
         >
-          <CafePromoCarousel />
+          <CafePromoCarousel mode={displayMode} />
 
           {/* Sub-selector (A.S Cafe vs Wedson Restaurant) */}
           <View style={{

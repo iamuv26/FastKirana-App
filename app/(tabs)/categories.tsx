@@ -226,9 +226,13 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
   );
 }
 
+import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
+
 export default function CategoriesScreen() {
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const [searchQuery, setSearchQuery] = useState('');
   const scrollViewRef = useRef<ScrollView>(null);
@@ -298,26 +302,6 @@ export default function CategoriesScreen() {
         };
       });
 
-      // Also append any local config categories that are NOT present on the server
-      Object.keys(LOCAL_CATEGORY_CONFIGS).forEach(slug => {
-        if (!serverSlugs.has(slug)) {
-          const local = LOCAL_CATEGORY_CONFIGS[slug];
-          let itemCount = 0;
-          if (slug === 'cafe') itemCount = cafeCount;
-
-          list.push({
-            name: local.name,
-            slug: slug,
-            image: local.image,
-            serverImage: null,
-            emoji: null,
-            itemCount: itemCount,
-            description: local.description,
-            color: local.color
-          });
-        }
-      });
-
       return list;
     }
 
@@ -361,79 +345,8 @@ export default function CategoriesScreen() {
         }}
       >
         <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
-          {/* Top Row: Location & Theme */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
-            {/* Left: Brand Logo & Text (Interactive scroll-to-top) */}
-            <ScalePressable 
-              onPress={() => {
-                scrollViewRef.current?.scrollTo({ y: 0, animated: true });
-              }}
-              scaleValue={0.97}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ 
-                  backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                  width: 32,
-                  height: 32,
-                  justifyContent: 'center',
-                  alignItems: 'center',
-                  borderRadius: 8, 
-                  borderWidth: 1, 
-                  borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                  flexShrink: 0
-                }}>
-                  <Logo size={22} />
-                </View>
-                <View style={{ marginLeft: 6 }}>
-                  <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                    <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                    <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                  </Text>
-                  <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                    DELIVERY APP
-                  </Text>
-                </View>
-              </View>
-            </ScalePressable>
-
-            {/* Right: Location Capsule Picker */}
-            <ScalePressable 
-              onPress={() => {
-                router.push('/location-picker');
-              }}
-              scaleValue={0.96}
-              style={{
-                maxWidth: '60%'
-              }}
-            >
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-                borderRadius: 20, 
-                paddingHorizontal: 8, 
-                paddingVertical: 5,
-                justifyContent: 'center',
-              }}>
-                <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
-                <Text 
-                  numberOfLines={1} 
-                  style={{ 
-                    fontSize: 10, 
-                    fontWeight: 'bold', 
-                    color: isDarkMode ? '#fafafa' : '#0f172a',
-                    flexShrink: 1,
-                    marginRight: 3
-                  }}
-                >
-                  {formatHeaderAddress(selectedLocation)}
-                </Text>
-                <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-              </View>
-              </ScalePressable>
-          </View>
+          {/* Top Row: Standardized Branded Header & Location */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} />
         </View>
       </View>
 
@@ -442,6 +355,9 @@ export default function CategoriesScreen() {
         style={{ flex: 1 }} 
         contentContainerStyle={{ paddingBottom: 160, paddingTop: 16 }}
         showsVerticalScrollIndicator={false}
+        onScroll={onTabBarScroll}
+        onTouchStart={onTabBarTouchStart}
+        scrollEventThrottle={16}
       >
         {/* Title Header Section */}
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 16, marginBottom: 16 }}>

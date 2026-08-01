@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput, Platform, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -7,7 +7,8 @@ import { router, usePathname, Stack, useFocusEffect } from 'expo-router';
 import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase, ArrowLeft, Coins, QrCode } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useCart } from '../hooks/use-cart';
-import { formatPrice, isCafeProduct } from '../lib/utils';
+import { formatPrice, isCafeProduct, formatDisplayOrderId } from '../lib/utils';
+import { useResponsive, getCenteredContainerStyle } from '../lib/responsive';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, TAX_RATE } from '../lib/constants';
@@ -36,6 +37,7 @@ interface Address {
 
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
+  const responsive = useResponsive();
   const pathname = usePathname();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -153,14 +155,14 @@ export default function CheckoutScreen() {
       confettiProgress.setValue(0);
       Animated.timing(confettiProgress, {
         toValue: 1,
-        duration: 1500,
+        duration: 900,
         useNativeDriver: true,
       }).start();
 
       const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6'];
-      const newParticles = Array.from({ length: 45 }).map((_, i) => {
+      const newParticles = Array.from({ length: 30 }).map((_, i) => {
         const angle = Math.random() * Math.PI * 2;
-        const distance = Math.random() * 160 + 60;
+        const distance = Math.random() * 100 + 40;
         return {
           id: i,
           x: Math.cos(angle) * distance,
@@ -432,7 +434,7 @@ export default function CheckoutScreen() {
       clearCart();
 
       if (paymentMethod === 'UPI') {
-        const upiUrl = `upi://pay?pa=iamuv26@ptyes&pn=FastKirana&am=${total}&cu=INR&tn=Order_${orderData.id.slice(-6).toUpperCase()}`;
+        const upiUrl = `upi://pay?pa=iamuv26@ptyes&pn=FastKirana&am=${total}&cu=INR&tn=Order_${formatDisplayOrderId(orderData.id, orderData.readableId)}`;
         const canOpen = await Linking.canOpenURL(upiUrl);
         if (canOpen) {
           await Linking.openURL(upiUrl);
@@ -452,7 +454,7 @@ export default function CheckoutScreen() {
       setShowSuccessOverlay(true);
       setTimeout(() => {
         router.replace(`/order/${orderData.id}?celebrate=true`);
-      }, 2800);
+      }, 1600);
     } catch (err: any) {
       triggerHaptic('warning');
       Alert.alert('Order Placement Failed', err.message || 'Something went wrong while placing your order.');
@@ -492,7 +494,18 @@ export default function CheckoutScreen() {
         </Text>
       </View>
 
-      <ScrollView className="flex-1 px-4 py-4" contentContainerStyle={{ paddingBottom: 120 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        style={{
+          paddingHorizontal: responsive.spacing.page,
+          paddingVertical: responsive.spacing.card,
+        }}
+        contentContainerStyle={{
+          paddingBottom: 120,
+          ...getCenteredContainerStyle(responsive),
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Fulfillment Option */}
         <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
           <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-3">Fulfillment Options</Text>
@@ -836,7 +849,7 @@ export default function CheckoutScreen() {
       {/* Success Overlay Sheet */}
       {showSuccessOverlay && (
         <View className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 z-50 items-center justify-center px-6">
-          <Confetti count={80} />
+          <Confetti count={50} />
           <View className="items-center">
             {/* Animated Checkmark Circle with Glow */}
             <View style={{ 
@@ -844,7 +857,7 @@ export default function CheckoutScreen() {
               backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.08)' : '#ecfdf5',
               alignItems: 'center', justifyContent: 'center',
               shadowColor: '#10b981', shadowOffset: { width: 0, height: 0 },
-              shadowOpacity: 0.4, shadowRadius: 30, elevation: 10,
+              shadowOpacity: 0.4, shadowRadius: 18, elevation: 6,
               marginBottom: 28,
             }}>
               {/* Inner glow ring */}
@@ -992,8 +1005,8 @@ function SlideToPlaceOrderButton({
             ios: {
               shadowColor: isCafe ? '#ea580c' : '#e20a22',
               shadowOffset: { width: 0, height: 4 },
-              shadowOpacity: disabled ? 0 : 0.22,
-              shadowRadius: 8,
+              shadowOpacity: disabled ? 0 : 0.15,
+              shadowRadius: 6,
             },
             android: {
               elevation: disabled ? 0 : 4,

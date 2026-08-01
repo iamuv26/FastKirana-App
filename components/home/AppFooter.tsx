@@ -42,7 +42,7 @@ export default function AppFooter() {
   const trustedText = selectedLocation && selectedLocation !== 'Select Location'
     ? `🎉 Proudly Serve in ${selectedLocation}`
     : '🎉 Proudly Serve in Ghatampur';
-  const contactPhone = shopPhone || '+918112849854';
+  const contactPhone = shopPhone || '+917054470303';
   const contactEmail = 'help@fastkirana.com';
   const contactTimings = '6 AM - 12 AM';
   const contactAddress = 'NH34, Ghatampur, Kanpur Nagar';
@@ -75,7 +75,7 @@ export default function AppFooter() {
   };
 
   return (
-    <View style={{ backgroundColor: '#0a0a0f', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)' }}>
+    <View style={{ backgroundColor: '#0a0a0f', borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', paddingBottom: 120 }}>
       {/* ── Social Proof Strip ── */}
       <View style={{ 
         backgroundColor: '#10b981', 
@@ -211,7 +211,7 @@ export default function AppFooter() {
         </View>
 
         {/* ── Bottom Bar (matches web: copyright | payments | legal) ── */}
-        <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', marginTop: 40, paddingTop: 20, paddingBottom: 64 }}>
+        <View style={{ borderTopWidth: 1, borderTopColor: 'rgba(255,255,255,0.06)', marginTop: 40, paddingTop: 20 }}>
           {/* Row: Copyright + Payments + Legal Links */}
           <View className="flex-row flex-wrap items-center justify-between gap-3">
             <Text style={{ color: '#64748b', fontSize: 11 }}>

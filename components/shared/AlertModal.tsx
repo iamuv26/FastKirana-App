@@ -1,7 +1,7 @@
 import React from 'react';
-import { Modal, View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { Modal, View, Text, StyleSheet, Platform, Pressable } from 'react-native';
 import { ScalePressable } from './ScalePressable';
-import { Bell } from 'lucide-react-native';
+import { Bell, Check, X, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useTheme } from '../../app/context/ThemeContext';
 import { THEME } from '../../lib/theme';
@@ -17,36 +17,64 @@ export default function AlertModal({ visible, onClose, title, message }: AlertMo
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
 
+  if (!visible) return null;
+
+  // Clean title if emoji was passed in title prop
+  const cleanTitle = title.replace(/[🔔🎉✨]/g, '').trim();
+
   return (
     <Modal
       visible={visible}
       transparent={true}
       animationType="fade"
       onRequestClose={onClose}
+      statusBarTranslucent={true}
     >
       <View style={styles.overlay}>
         <View style={[
           styles.alertContainer,
           { 
-            backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : THEME.COLORS.light.surface, 
-            borderColor: isDarkMode ? THEME.COLORS.dark.border : '#ffe4e6' 
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff', 
+            borderColor: isDarkMode ? '#27272a' : '#f1f5f9' 
           }
         ]}>
-          {/* Glowing Icon Circle */}
-          <LinearGradient
-            colors={isDarkMode ? ['#423812', '#2f270a'] : ['#fef08a', '#fde047']}
-            style={styles.iconCircle}
+          {/* Top Right Close X Button */}
+          <Pressable 
+            onPress={onClose}
+            style={{
+              position: 'absolute',
+              top: 14,
+              right: 14,
+              width: 30,
+              height: 30,
+              borderRadius: 15,
+              backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
           >
-            <Bell size={28} color={isDarkMode ? '#eab308' : '#854d0e'} strokeWidth={2.5} />
-          </LinearGradient>
+            <X size={15} color={isDarkMode ? '#a1a1aa' : '#64748b'} strokeWidth={2.5} />
+          </Pressable>
+
+          {/* Glowing Bell Badge Circle */}
+          <View style={styles.iconCircleOuter}>
+            <LinearGradient
+              colors={isDarkMode ? ['#451a03', '#291002'] : ['#fff7ed', '#ffedd5']}
+              style={styles.iconCircle}
+            >
+              <Bell size={30} color="#ea580c" strokeWidth={2.5} />
+            </LinearGradient>
+          </View>
 
           {/* Title */}
-          <Text style={[styles.title, { color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }]}>
-            {title}
+          <Text style={[styles.title, { color: isDarkMode ? '#fafafa' : '#0f172a' }]}>
+            {cleanTitle}
           </Text>
 
           {/* Message */}
-          <Text style={[styles.message, { color: isDarkMode ? THEME.COLORS.dark.textSecondary : THEME.COLORS.light.textSecondary }]}>
+          <Text style={[styles.message, { color: isDarkMode ? '#a1a1aa' : '#64748b' }]}>
             {message}
           </Text>
 
@@ -55,16 +83,28 @@ export default function AlertModal({ visible, onClose, title, message }: AlertMo
             onPress={onClose}
             scaleValue={0.96}
             haptic="medium"
-            style={styles.button}
+            style={styles.buttonWrapper}
           >
-            <LinearGradient
-              colors={THEME.COLORS.gradients.primary as any}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={styles.gradientButton}
-            >
-              <Text style={styles.buttonText}>Got It</Text>
-            </LinearGradient>
+            <View style={{
+              borderRadius: 16,
+              backgroundColor: '#9f1239',
+              paddingBottom: 3,
+              shadowColor: '#e20a22',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.3,
+              shadowRadius: 8,
+              elevation: 4,
+            }}>
+              <LinearGradient
+                colors={['#e20a22', '#be123c', '#9f1239']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={styles.gradientButton}
+              >
+                <Check size={16} color="#ffffff" strokeWidth={3} />
+                <Text style={styles.buttonText}>GOT IT</Text>
+              </LinearGradient>
+            </View>
           </ScalePressable>
         </View>
       </View>
@@ -82,56 +122,75 @@ const styles = StyleSheet.create({
   },
   alertContainer: {
     borderWidth: 1,
-    borderRadius: THEME.RADIUS.xl,
+    borderRadius: 24,
     width: '100%',
     maxWidth: 320,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 28,
+    paddingBottom: 22,
     alignItems: 'center',
-    ...THEME.SHADOWS.lg,
+    position: 'relative',
+    ...Platform.select({
+      ios: {
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 8 },
+        shadowOpacity: 0.15,
+        shadowRadius: 16,
+      },
+      android: {
+        elevation: 8,
+      }
+    })
+  },
+  iconCircleOuter: {
+    padding: 4,
+    borderRadius: 40,
+    backgroundColor: 'rgba(234, 88, 12, 0.1)',
+    marginBottom: 16,
   },
   iconCircle: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
+    width: 68,
+    height: 68,
+    borderRadius: 34,
     alignItems: 'center',
     justifyContent: 'center',
-    marginBottom: 18,
-    shadowColor: '#eab308',
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.25,
-    shadowRadius: 8,
-    elevation: 3,
+    borderWidth: 1.5,
+    borderColor: 'rgba(234, 88, 12, 0.25)',
   },
   title: {
-    fontWeight: '700',
-    fontSize: 16.5,
+    fontWeight: '900',
+    fontSize: 18,
     textAlign: 'center',
-    marginBottom: 10,
-    letterSpacing: -0.2,
+    marginBottom: 8,
+    letterSpacing: -0.3,
   },
   message: {
     fontSize: 13,
-    fontWeight: '500',
+    fontWeight: '600',
     textAlign: 'center',
     lineHeight: 19,
-    marginBottom: 24,
+    marginBottom: 22,
+    paddingHorizontal: 6,
   },
-  button: {
+  buttonWrapper: {
     width: '100%',
-    height: 46,
-    borderRadius: THEME.RADIUS.xs,
-    overflow: 'hidden',
   },
   gradientButton: {
-    flex: 1,
+    borderRadius: 16,
+    paddingVertical: 13,
+    paddingHorizontal: 20,
+    flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
+    gap: 8,
+    borderWidth: 1,
+    borderColor: 'rgba(255, 255, 255, 0.25)',
   },
   buttonText: {
     color: '#ffffff',
-    fontWeight: '700',
+    fontWeight: '900',
     fontSize: 13,
     textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.8,
   },
 });

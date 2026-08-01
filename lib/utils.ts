@@ -6,8 +6,11 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-export function formatPrice(price: number): string {
-  return `₹${price.toLocaleString('en-IN')}`;
+export function formatPrice(price?: number | string | null): string {
+  if (price === null || price === undefined) return '₹0';
+  const num = typeof price === 'number' ? price : parseFloat(String(price));
+  const validNum = isNaN(num) ? 0 : num;
+  return `₹${validNum.toLocaleString('en-IN')}`;
 }
 
 export function isRestaurantProduct(p: any): boolean {
@@ -130,4 +133,42 @@ export function normalizeCategorySlug(slug: string | null | undefined): string {
     return 'cafe';
   }
   return s;
+}
+
+export function formatDisplayOrderId(id: string | number | null | undefined, readableId?: number | null): string {
+  if (readableId !== undefined && readableId !== null && typeof readableId === 'number' && readableId > 0) {
+    return `${600000 + (readableId % 100000)}`;
+  }
+
+  if (!id) return '600101';
+
+  if (typeof id === 'number') {
+    return `${600000 + (id % 100000)}`;
+  }
+
+  const str = String(id).trim();
+
+  // If already a 6-digit number starting with 600xxx
+  if (/^\d{6}$/.test(str)) {
+    return str;
+  }
+
+  // Extract any 3-6 digit number inside string (e.g. FK-600408 or ord-408)
+  const matchNum = str.match(/\d{3,6}/);
+  if (matchNum) {
+    const extracted = parseInt(matchNum[0], 10);
+    if (extracted >= 600000 && extracted <= 699999) {
+      return `${extracted}`;
+    }
+    return `${600000 + (extracted % 100000)}`;
+  }
+
+  // Fallback for short numeric string
+  if (/^\d{1,5}$/.test(str)) {
+    const num = parseInt(str, 10);
+    return `${600000 + num}`;
+  }
+
+  // Fallback for alpha-numeric IDs
+  return str.slice(-6).toUpperCase();
 }

@@ -4,7 +4,7 @@ import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
 import { ArrowLeft, CheckCircle, Package, Play, Barcode, RefreshCw } from 'lucide-react-native';
-import { formatPrice } from '../lib/utils';
+import { formatPrice, formatDisplayOrderId } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
 import { useAuthStore } from '../stores/auth-store';
@@ -744,7 +744,7 @@ export default function PickerScreen() {
           <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-sm mb-4">
             <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3">
               <View>
-                <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Picking Order #{activePickingOrder.id.slice(-6).toUpperCase()}</Text>
+                <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Picking Order #{formatDisplayOrderId(activePickingOrder.id, (activePickingOrder as any).readableId)}</Text>
                 <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-semibold">Customer: {activePickingOrder.user.name}</Text>
               </View>
               <Pressable 
@@ -881,7 +881,7 @@ export default function PickerScreen() {
                           }`}>
                             {isSelected && <Text className="text-[8px] font-black text-white">✓</Text>}
                           </View>
-                          <Text className="text-white font-black text-xs uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-white font-black text-xs uppercase">Order #{formatDisplayOrderId(ord.id, (ord as any).readableId)}</Text>
                         </View>
                         <View className="bg-amber-950/20 border border-amber-900/30 px-1.5 py-0.5 rounded-full">
                           <Text className="text-amber-400 font-extrabold text-[7px] uppercase tracking-wider">{ord.status}</Text>

@@ -1,12 +1,12 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet, Modal, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, StyleSheet, Modal, Platform, useWindowDimensions } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { router, Stack } from 'expo-router';
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, memo } from 'react';
 import { Image } from 'expo-image';
 import { ArrowLeft, ShoppingCart, Tag, Trash2, ArrowRight, Clock, ShieldCheck, RefreshCw, Sparkles, CheckCircle2, KeyRound } from 'lucide-react-native';
 import { useCart } from '../hooks/use-cart';
-import { formatPrice, getAppImageSource } from '../lib/utils';
+import { formatPrice, getAppImageSource, getCategoryEmoji } from '../lib/utils';
 import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, TAX_RATE, API_BASE_URL } from '../lib/constants';
 import { useUIStore } from '../stores/ui-store';
 import { useAuthStore } from '../stores/auth-store';
@@ -19,8 +19,9 @@ import { queryKeys } from '../lib/query-keys';
 import { LinearGradient } from 'expo-linear-gradient';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
-import Animated, { FadeInRight } from 'react-native-reanimated';
 import { BlurView } from 'expo-blur';
+import Animated, { FadeInRight } from 'react-native-reanimated';
+import { useResponsive, getCenteredContainerStyle } from '../lib/responsive';
 
 const MOCK_CHEAP_PRODUCTS: any[] = [];
 
@@ -58,13 +59,17 @@ const RECOMMENDATION_MAP: Record<string, string[]> = {
 };
 
 export default function CartScreen() {
-  const { 
-    items, 
-    updateQuantity, 
-    removeItem, 
+  const responsive = useResponsive();
+  const { width: windowWidth } = useWindowDimensions();
+  const isWideLayout = responsive.isLargeScreen;
+  const {
+    items,
+    updateQuantity,
+    removeItem,
     addItem,
-    getSubtotal, 
-    getMrpTotal, 
+    getItemQuantity,
+    getSubtotal,
+    getMrpTotal,
     getSavings,
     updateItemNotes,
     updateCartProduct
@@ -369,11 +374,15 @@ export default function CartScreen() {
 
   const showSuggestions = deliveryFee > 0;
 
-  const renderItemRow = (item: typeof items[0]) => {
+  const CartItemRow = memo(function CartItemRow({ item, isDarkMode }: { item: any; isDarkMode: boolean }) {
     const isCafe = isCafeProduct(item.product);
     const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
-    const isOOS = item.product.isAvailable === false || (item.product.isAvailable !== true && item.product.stock !== undefined && item.product.stock !== null && item.product.stock <= 0);
-    const effectiveStock = (item.product.isAvailable === true && (item.product.stock === undefined || item.product.stock === null || item.product.stock <= 0)) ? 999 : (item.product.stock ?? 999);
+    const isOOS = item.product.isAvailable === false || (item.product.stock !== undefined && item.product.stock !== null && item.product.stock <= 0);
+    const effectiveStock = item.product.isAvailable === false 
+      ? 0 
+      : (item.product.stock !== undefined && item.product.stock !== null 
+          ? Math.max(0, item.product.stock) 
+          : 999);
     const isExceeded = item.quantity > effectiveStock && !isOOS;
     const activeColor = isCafe ? '#ea580c' : '#e20a22';
 
@@ -440,18 +449,19 @@ export default function CartScreen() {
           <View style={{
             flexDirection: 'row',
             alignItems: 'center',
-            borderWidth: 1.2,
-            borderColor: isDarkMode ? '#3f3f46' : '#cbd5e1',
-            borderRadius: 10,
-            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-            height: 32,
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+            borderRadius: 12,
+            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+            height: 34,
+            padding: 2, // Slight padding so buttons look inset
             shadowColor: '#000',
-            shadowOffset: { width: 0, height: 1 },
-            shadowOpacity: 0.05,
-            shadowRadius: 2,
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: isDarkMode ? 0.2 : 0.04,
+            shadowRadius: 3,
             elevation: 1,
           }}>
-            <Pressable 
+            <ScalePressable 
               onPress={() => { 
                 triggerHaptic('light'); 
                 if (item.quantity === 1) {
@@ -460,33 +470,53 @@ export default function CartScreen() {
                   updateQuantity(item.product.id, item.product.name, item.quantity - 1);
                 }
               }}
-              style={{ paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'center', alignItems: 'center' }}
+              scaleValue={0.9}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 10,
+                backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               {item.quantity === 1 ? (
-                <Trash2 size={13} color="#ef4444" strokeWidth={2.2} />
+                <Trash2 size={13} color="#ef4444" strokeWidth={2.5} />
               ) : (
-                <Text style={{ color: activeColor, fontWeight: '900', fontSize: 15 }}>-</Text>
+                <Text style={{ color: activeColor, fontWeight: '900', fontSize: 16, lineHeight: 18, marginTop: -2 }}>-</Text>
               )}
-            </Pressable>
-            <Text style={{ width: 22, textAlign: 'center', color: isDarkMode ? '#fafafa' : '#0f172a', fontWeight: '900', fontSize: 13 }}>
+            </ScalePressable>
+            <Text style={{ width: 26, textAlign: 'center', color: isDarkMode ? '#fafafa' : '#0f172a', fontWeight: '900', fontSize: 13 }}>
               {item.quantity}
             </Text>
-            <Pressable 
+            <ScalePressable 
               onPress={() => { 
                 triggerHaptic('light'); 
                 updateQuantity(item.product.id, item.product.name, item.quantity + 1); 
               }}
               disabled={isStoreClosed || item.quantity >= item.product.stock}
-              style={{ paddingHorizontal: 10, paddingVertical: 6, justifyContent: 'center', alignItems: 'center' }}
+              scaleValue={0.9}
+              style={{
+                width: 30,
+                height: 30,
+                borderRadius: 10,
+                backgroundColor: isStoreClosed || item.quantity >= item.product.stock
+                  ? (isDarkMode ? '#27272a' : '#f1f5f9')
+                  : activeColor,
+                justifyContent: 'center',
+                alignItems: 'center',
+              }}
             >
               <Text style={{ 
                 color: isStoreClosed || item.quantity >= item.product.stock 
-                  ? (isDarkMode ? '#3f3f46' : '#e2e8f0') 
-                  : activeColor, 
+                  ? (isDarkMode ? '#52525b' : '#94a3b8') 
+                  : '#ffffff', 
                 fontWeight: '900', 
-                fontSize: 15 
+                fontSize: 15,
+                lineHeight: 18,
+                marginTop: -1
               }}>+</Text>
-            </Pressable>
+            </ScalePressable>
           </View>
         </View>
 
@@ -520,7 +550,7 @@ export default function CartScreen() {
         )}
       </View>
     );
-  };
+  });
 
   if (items.length === 0) {
     return (
@@ -587,20 +617,15 @@ export default function CartScreen() {
         style={{
           paddingHorizontal: 16,
           paddingVertical: 12,
-          borderBottomWidth: 1,
-          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
-          backgroundColor: 'transparent',
+          borderBottomWidth: StyleSheet.hairlineWidth,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
           flexDirection: 'row',
           alignItems: 'center',
           gap: 12,
           overflow: 'hidden'
         }}
       >
-        <BlurView 
-          intensity={95}
-          tint={isDarkMode ? 'dark' : 'light'}
-          style={StyleSheet.absoluteFill}
-        />
         <Pressable 
           onPress={() => {
             triggerHaptic('light');
@@ -633,7 +658,18 @@ export default function CartScreen() {
         )}
       </View>
 
-      <ScrollView className="flex-1 px-4 py-3" contentContainerStyle={{ paddingBottom: 110 }} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        className="flex-1"
+        style={{
+          paddingHorizontal: responsive.spacing.page,
+          paddingVertical: responsive.spacing.card,
+        }}
+        contentContainerStyle={{
+          paddingBottom: 110,
+          ...getCenteredContainerStyle(responsive),
+        }}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Closed store alerts */}
         {hasClosedGroceryItems && (
           <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl mb-3 flex-row gap-3 items-start">
@@ -714,7 +750,7 @@ export default function CartScreen() {
               <Text className="text-slate-400 dark:text-zinc-400 text-[9px] font-bold mt-0.5">Delivered from Dark Store</Text>
             </View>
 
-            <View>{groceryItems.map(renderItemRow)}</View>
+            <View>{groceryItems.map((item) => <CartItemRow key={item.product.id} item={item} isDarkMode={isDarkMode} />)}</View>
           </View>
         )}
 
@@ -726,7 +762,7 @@ export default function CartScreen() {
               <Text className="text-slate-400 dark:text-zinc-400 text-[9px] font-bold mt-0.5">Piping hot food & drinks from Food Kitchen</Text>
             </View>
 
-            <View>{cafeItems.map(renderItemRow)}</View>
+            <View>{cafeItems.map((item) => <CartItemRow key={item.product.id} item={item} isDarkMode={isDarkMode} />)}</View>
           </View>
         )}
 
@@ -765,12 +801,24 @@ export default function CartScreen() {
                     <View>
                       {/* Image Container with Discount Badge */}
                       <View style={{ width: '100%', height: 80, borderRadius: 10, overflow: 'hidden', backgroundColor: isDarkMode ? '#2c2c2e' : '#ffffff', position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
-                        <Image
-                          source={getAppImageSource(product.image, product.name)}
-                          style={{ width: '85%', height: '85%' }}
-                          contentFit="contain"
-                          cachePolicy="memory-disk"
-                        />
+                        {(() => {
+                          const imgSrc = getAppImageSource(product.imageUrl || (product as any).image, 250);
+                          if (imgSrc) {
+                            return (
+                              <Image
+                                source={imgSrc}
+                                style={{ width: '85%', height: '85%' }}
+                                contentFit="contain"
+                                cachePolicy="memory-disk"
+                              />
+                            );
+                          }
+                          return (
+                            <Text style={{ fontSize: 28 }}>
+                              {getCategoryEmoji(product.category?.slug || product.name)}
+                            </Text>
+                          );
+                        })()}
                         {discount > 0 && (
                           <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: '#e20a22', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
                             <Text style={{ color: '#ffffff', fontSize: 7, fontWeight: '900' }}>{discount}% OFF</Text>
@@ -803,23 +851,72 @@ export default function CartScreen() {
                         )}
                       </View>
 
-                      <Pressable
-                        onPress={() => {
-                          triggerHaptic('medium');
-                          addItem(product);
-                          toast.success(`Added ${product.name} to cart!`);
-                        }}
-                        style={{
-                          backgroundColor: '#e20a22',
-                          borderRadius: 8,
-                          paddingHorizontal: 8,
-                          paddingVertical: 4.5,
-                          alignItems: 'center',
-                          justifyContent: 'center'
-                        }}
-                      >
-                        <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900' }}>ADD</Text>
-                      </Pressable>
+                      {(() => {
+                        const qty = getItemQuantity(product.id);
+                        if (qty > 0) {
+                          return (
+                            <View style={{
+                              flexDirection: 'row',
+                              alignItems: 'center',
+                              backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4',
+                              borderWidth: 1.5,
+                              borderColor: '#10b981',
+                              borderRadius: 10,
+                              height: 30,
+                              paddingHorizontal: 2,
+                            }}>
+                              <Pressable
+                                onPress={() => {
+                                  updateQuantity(product.id, product.name, qty - 1);
+                                }}
+                                style={{
+                                  paddingHorizontal: 7,
+                                  height: '100%',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ color: isDarkMode ? '#34d399' : '#059669', fontSize: 14, fontWeight: '900' }}>-</Text>
+                              </Pressable>
+                              <Text style={{ color: isDarkMode ? '#34d399' : '#047857', fontSize: 11, fontWeight: '900', paddingHorizontal: 3 }}>
+                                {qty}
+                              </Text>
+                              <Pressable
+                                onPress={() => {
+                                  updateQuantity(product.id, product.name, qty + 1);
+                                }}
+                                style={{
+                                  paddingHorizontal: 7,
+                                  height: '100%',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                }}
+                              >
+                                <Text style={{ color: isDarkMode ? '#34d399' : '#059669', fontSize: 14, fontWeight: '900' }}>+</Text>
+                              </Pressable>
+                            </View>
+                          );
+                        }
+
+                        return (
+                          <Pressable
+                            onPress={() => {
+                              triggerHaptic('medium');
+                              addItem(product);
+                            }}
+                            style={{
+                              backgroundColor: '#e20a22',
+                              borderRadius: 8,
+                              paddingHorizontal: 12,
+                              paddingVertical: 5,
+                              alignItems: 'center',
+                              justifyContent: 'center'
+                            }}
+                          >
+                            <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>ADD</Text>
+                          </Pressable>
+                        );
+                      })()}
                     </View>
                   </View>
                 );

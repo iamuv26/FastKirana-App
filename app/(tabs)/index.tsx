@@ -1,12 +1,12 @@
-import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Alert, StyleSheet, Platform, Image as RNImage, useWindowDimensions } from 'react-native';
+import { View, Text, ScrollView, Pressable, ActivityIndicator, TextInput, Alert, StyleSheet, Platform, Image as RNImage, useWindowDimensions, RefreshControl } from 'react-native';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
 import { useState, useEffect, useMemo, useRef, useCallback, memo } from 'react';
 import { ShoppingBag, ChevronDown, ChevronRight, MapPin, Search, Zap, Clock, ShieldCheck, RefreshCw, Moon, Sun, Package, Heart, Menu, X, Check, Mic, Coffee, Utensils, Bell, Sparkles } from 'lucide-react-native';
 import { router, useFocusEffect } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
 import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
-import { BlurView } from 'expo-blur';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withSpring, withRepeat, withTiming, withSequence, withDelay, Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, ZoomIn, interpolate, runOnJS, cancelAnimation } from 'react-native-reanimated';
 import CategoryGrid from '../../components/home/CategoryGrid';
 import CafeFlashDeals from '../../components/home/CafeFlashDeals';
@@ -15,6 +15,7 @@ import Logo from '../../components/shared/Logo';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
+import CartQuickPreviewSheet from '../../components/shared/CartQuickPreviewSheet';
 import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useCartActions } from '../../hooks/use-cart';
@@ -26,12 +27,16 @@ import CafeCategoriesStrip from '../../components/home/CafeCategoriesStrip';
 import GroceryPromoCarousel from '../../components/home/GroceryPromoCarousel';
 import AppFooter from '../../components/home/AppFooter';
 import AddressQuickSwitcherSheet from '../../components/shared/AddressQuickSwitcherSheet';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 import { useAuthStore } from '../../stores/auth-store';
 import { useUIStore } from '../../stores/ui-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { sendLocalNotification } from '../../lib/push-notifications';
 import { triggerHaptic } from '../../lib/haptic';
-import { formatPrice, formatHeaderAddress, getAppImageSource, isRestaurantProduct } from '../../lib/utils';
+import { toast } from '../../lib/toast';
+import { useResponsive, getCenteredContainerStyle } from '../../lib/responsive';
+import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
+import { formatPrice, formatHeaderAddress, getAppImageSource, isRestaurantProduct, formatDisplayOrderId } from '../../lib/utils';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
@@ -89,6 +94,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
   const storeOpenHour = useUIStore((s) => s.storeOpenHour);
   const storeCloseHour = useUIStore((s) => s.storeCloseHour);
+  const responsive = useResponsive();
 
   useEffect(() => {
     // Clock pulse animation
@@ -205,23 +211,24 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
   return (
     <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe' }}>
+      {/* Background blobs - full width */}
       {/* Gradient mesh background blobs */}
       <Animated.View
         style={[blob1Style, {
           position: 'absolute',
-          top: '15%',
-          left: -40,
-          width: 280,
-          height: 280,
-          borderRadius: 140,
-          opacity: isDarkMode ? 0.16 : 0.13,
+          top: '8%',
+          left: -60,
+          width: 320,
+          height: 320,
+          borderRadius: 160,
+          opacity: isDarkMode ? 0.12 : 0.1,
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? ['#e20a22', '#ff8787', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']}
-          style={{ width: 280, height: 280, borderRadius: 140 }}
+          colors={(isDarkMode ? ['#e20a22', '#ff8787', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']) as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
+          style={{ width: '100%', height: '100%', borderRadius: 160 }}
         />
       </Animated.View>
       <Animated.View
@@ -236,20 +243,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? ['#7c3aed', '#c084fc', '#7c3aed'] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']}
+          colors={(isDarkMode ? ['#7c3aed', '#c084fc', '#7c3aed'] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']) as any}
           style={{ width: 240, height: 240, borderRadius: 120 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
         />
       </Animated.View>
 
+      {/* Responsive content wrapper */}
+      <View style={{ flex: 1, ...getCenteredContainerStyle(responsive) }}>
       {/* Scrollable Container */}
       <ScrollView
         style={{ flex: 1 }}
         contentContainerStyle={{
           paddingTop: paddingTop + 12,
-          paddingHorizontal: 24,
-          paddingBottom: 180, // Safe padding above bottom tabs and floating cart bar
+          paddingHorizontal: responsive.spacing.page,
+          paddingBottom: 180,
           alignItems: 'center',
         }}
         showsVerticalScrollIndicator={false}
@@ -322,7 +331,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               textTransform: 'uppercase',
             }}
           >
-            We'll be back at
+            {"We'll be back at"}
           </Text>
           
           {/* Elegant Time Capsule */}
@@ -504,7 +513,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 <>
                   <Check size={16} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
                   <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d', letterSpacing: 0.5 }}>
-                    You'll be Notified!
+                    {"You'll be Notified!"}
                   </Text>
                 </>
               ) : (
@@ -526,6 +535,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           </Text>
         </Animated.View>
       </ScrollView>
+      </View>
     </View>
   );
 }
@@ -573,8 +583,13 @@ function PulsingStatusDot() {
 export default function HomeScreen() {
   const insets = useSafeAreaInsets();
   const { width: windowWidth } = useWindowDimensions();
-  const width = windowWidth > 768 ? 540 : (windowWidth > 0 ? windowWidth : 390);
-  const scrollViewPaddingTop = insets.top > 0 ? insets.top + 215 : 220;
+  const responsive = useResponsive();
+  const width = responsive.isLargeScreen
+    ? Math.min(responsive.contentMaxWidth, windowWidth > 0 ? windowWidth : 1024)
+    : (windowWidth > 0 ? windowWidth : 390);
+  const scrollViewPaddingTop = insets.top > 0
+    ? insets.top + (responsive.isTablet ? 180 : responsive.isLargeScreen ? 200 : 155)
+    : (responsive.isLargeScreen ? 200 : 160);
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -599,10 +614,12 @@ export default function HomeScreen() {
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const [showAddressSheet, setShowAddressSheet] = useState(false);
+  const [showCartSheet, setShowCartSheet] = useState(false);
 
   // Home states and refs
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const scrollViewRef = useRef<any>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
   const lastScrollCheck = useRef(0);
@@ -617,7 +634,7 @@ export default function HomeScreen() {
     if (isSwitching !== 'none') {
       loaderTranslateX.value = -150;
       loaderTranslateX.value = withRepeat(
-        withTiming(width > 0 ? width : 400, { duration: 650, easing: Easing.inOut(Easing.quad) }),
+        withTiming(width > 0 ? width : 400, { duration: 480, easing: Easing.inOut(Easing.quad) }),
         -1,
         true
       );
@@ -646,6 +663,13 @@ export default function HomeScreen() {
       return () => clearTimeout(timer);
     }, [])
   );
+
+  // ── Stable renderItem for both FlashLists (prevents scroll jitter) ──
+  const renderProductCard = useCallback(({ item, index }: any) => (
+    <ProductCard product={item} className="w-full" index={index} />
+  ), []);
+  const productKeyExtractor = useCallback((item: any) => item.id, []);
+  const ItemSeparator = useMemo(() => () => <View style={{ height: 16 }} />, []);
 
   const slidingIndicatorStyle = useAnimatedStyle(() => {
     const translationX = interpolate(
@@ -755,7 +779,7 @@ export default function HomeScreen() {
 
   // Query Cafe Products from Server
   // Fetch ALL fastkirana-cafe products from API
-  const { data: cafeProducts = [] } = useQuery<any[]>({
+  const { data: cafeProducts = [], refetch: refetchCafe } = useQuery<any[]>({
     queryKey: ['cafe-products-v3', validStoreId],
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/products?category=fastkirana-cafe&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
@@ -1057,21 +1081,12 @@ export default function HomeScreen() {
       });
     });
 
-    Alert.alert(
-      "Reordered! 🛒",
-      "All items from your previous order have been added to your cart."
-    );
+    toast.success("Reordered! 🛍️ All items from your previous order have been added to your cart.");
   };
 
 
 
-  useEffect(() => {
-    if (!activeOrder) return;
-    const interval = setInterval(() => {
-      refetchOrders();
-    }, 8000);
-    return () => clearInterval(interval);
-  }, [activeOrder]);
+  // Redundant 8s refetch interval removed as useQuery('active-orders') already polls every 5 seconds.
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -1085,14 +1100,14 @@ export default function HomeScreen() {
       const statusLabel = ORDER_STATUS_LABELS[activeOrder.status] || activeOrder.status;
       sendLocalNotification(
         `⚡ Order Status: ${statusLabel}`,
-        `Your order #${activeOrder.id.slice(-6).toUpperCase()} is now ${statusLabel.toLowerCase()}!`
+        `Your order #${formatDisplayOrderId(activeOrder.id, activeOrder.readableId)} is now ${statusLabel.toLowerCase()}!`
       );
     }
     prevStatusRef.current = activeOrder.status;
   }, [activeOrder]);
 
   // Fetch ALL live products from Next.js backend (no hardcoded fallback)
-  const { data: products = [], isLoading } = useQuery<Product[]>({
+  const { data: products = [], isLoading, refetch: refetchAllProducts } = useQuery<Product[]>({
     queryKey: ['home-products', validStoreId],
     queryFn: async () => {
       const response = await fetch(`${API_BASE_URL}/products?limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
@@ -1100,9 +1115,27 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 10000, // 10s short cache
-    refetchInterval: 10000, // Auto-refetch every 10s for real-time stock sync
+    staleTime: 60000, // 60s cache validity
+    refetchInterval: 90000, // Auto-refetch every 90s for stock sync
   });
+
+  // Pull-to-refresh implementation
+  const [isRefreshing, setIsRefreshing] = useState(false);
+  const onRefresh = async () => {
+    setIsRefreshing(true);
+    triggerHaptic('medium');
+    try {
+      await Promise.all([
+        refetchOrders(),
+        refetchCafe(),
+        refetchAllProducts(),
+      ]);
+    } catch (e) {
+      console.warn('Pull-to-refresh failed:', e);
+    } finally {
+      setIsRefreshing(false);
+    }
+  };
 
   const [showModeSwitchLoader, setShowModeSwitchLoader] = useState(true);
 
@@ -1147,7 +1180,7 @@ export default function HomeScreen() {
       const urls = products
         .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
         .filter((url): url is string => !!url)
-        .slice(0, 40); // Prefetch first 40 product images in the background
+        .slice(0, 24); // Prefetch first 24 product images (was 40; reduce RAM/IO during scrolling)
       if (urls.length > 0) {
         ExpoImage.prefetch(urls);
       }
@@ -1269,102 +1302,69 @@ export default function HomeScreen() {
 
       {/* Header Container */}
       <Animated.View style={[headerAnimatedStyle, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
-        <BlurView
-          intensity={isDarkMode ? 45 : 65}
-          tint={isDarkMode ? 'dark' : 'light'}
-          style={{
-            paddingHorizontal: 16,
-            paddingTop: insets.top > 0 ? insets.top + 5 : 8,
-            paddingBottom: 8,
-            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.95)' : 'rgba(255, 255, 255, 0.97)',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: isDarkMode ? 0.2 : 0.03,
-                shadowRadius: 8,
-              },
-              android: {
-                elevation: 2,
-              },
-              web: {
-                // @ts-ignore
-                boxShadow: '0 2px 10px rgba(0,0,0,0.02)',
-              },
-            }),
-          }}
-        >
-          {/* Top Row: Left-Aligned Brand Logo/Text & Right-Aligned Address Capsule */}
-          <Animated.View 
-            pointerEvents={isCollapsed ? 'none' : 'auto'}
-            style={[
-              topRowAnimatedStyle,
-              { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 8, width: '100%' }
-            ]}
+        <View style={{
+          paddingHorizontal: 16,
+          paddingTop: insets.top > 0 ? insets.top + 5 : 8,
+          paddingBottom: 8,
+          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode ? 0.15 : 0.02,
+              shadowRadius: 6,
+            },
+            android: {
+              elevation: 1,
+            },
+          }),
+        }}>
+          {/* Top Row: Branded Header & Location Capsule */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} onLocationPress={() => setShowAddressSheet(true)} />
+
+          {/* Search Box Shortcut right under Branding */}
+          <ScalePressable 
+            onPress={() => {
+              router.push('/search');
+            }}
+            scaleValue={0.99}
+            style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+              borderRadius: 22,
+              paddingHorizontal: 16,
+              height: 42,
+              width: '100%',
+              marginTop: 4,
+              marginBottom: 6,
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 2 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 6,
+                },
+                android: {
+                  elevation: 2,
+                },
+              }),
+            }}
           >
-            {/* Left: Brand Logo & Text */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                width: 32,
-                height: 32,
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={22} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
+            <Search size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ marginRight: 10 }} />
+            <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '600', flex: 1 }, placeholderStyle]}>
+              {currentSuggestion}
+            </Animated.Text>
+            
+            {/* Vertical Divider */}
+            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginHorizontal: 10 }} />
+            
+            <Mic size={16} color="#e20a22" />
+          </ScalePressable>
 
-            {/* Right: Address Picker Capsule */}
-            <ScalePressable 
-              onPress={() => {
-                triggerHaptic('light');
-                setShowAddressSheet(true);
-              }}
-              scaleValue={0.96}
-              style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.08)' : '#fff5f5',
-                borderColor: isDarkMode ? 'rgba(225, 29, 72, 0.3)' : '#fecdd3',
-                borderWidth: 1,
-                borderRadius: 99,
-                paddingHorizontal: 10,
-                paddingVertical: 5,
-                maxWidth: '62%',
-              }}
-            >
-              <MapPin size={12} color="#e20a22" style={{ marginRight: 4, flexShrink: 0 }} />
-              <Text 
-                numberOfLines={1} 
-                style={{ 
-                  fontSize: 11, 
-                  fontWeight: '800', 
-                  color: isDarkMode ? '#f4f4f5' : '#0f172a',
-                  marginRight: 3,
-                  flexShrink: 1,
-                }}
-              >
-                {formatHeaderAddress(selectedLocation)}
-              </Text>
-              <ChevronDown size={11} color={isDarkMode ? '#fda4af' : '#64748b'} style={{ flexShrink: 0 }} />
-            </ScalePressable>
-          </Animated.View>
-
-          {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control */}
+          {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control matching media__1785285067014.png */}
           <View 
             onLayout={(e) => {
               const w = e.nativeEvent.layout.width;
@@ -1377,15 +1377,26 @@ export default function HomeScreen() {
               alignItems: 'center',
               alignSelf: 'stretch',
               width: '100%',
-              height: 44,
-              borderRadius: 22,
-              borderWidth: 1.5,
-              borderColor: isDarkMode ? '#27272a' : '#fecdd3',
-              backgroundColor: isDarkMode ? '#18181b' : '#fff5f5',
+              height: 48,
+              borderRadius: 24,
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#27272a' : 'rgba(0,0,0,0.06)',
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
               padding: 3,
-              marginTop: 6,
+              marginTop: 2,
               marginBottom: 6,
               position: 'relative',
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.05,
+                  shadowRadius: 8,
+                },
+                android: {
+                  elevation: 2,
+                },
+              }),
             }}
           >
             {/* Sliding Active Pill Background */}
@@ -1395,9 +1406,9 @@ export default function HomeScreen() {
               top: 3,
               bottom: 3,
               left: 3,
-              borderRadius: 19,
-              backgroundColor: '#e20a22',
-              shadowColor: '#e20a22',
+              borderRadius: 21,
+              backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
+              shadowColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.35,
               shadowRadius: 6,
@@ -1418,12 +1429,18 @@ export default function HomeScreen() {
                 justifyContent: 'center',
                 height: '100%',
                 zIndex: 2,
+                gap: 8,
               }}
             >
-              <ShoppingBag size={15} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
-                Grocery
-              </Text>
+              <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+              <View>
+                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                  Grocery
+                </Text>
+                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : '#64748b', textTransform: 'uppercase' }}>
+                  FAST DELIVERY
+                </Text>
+              </View>
             </Pressable>
 
             {/* Food Segment */}
@@ -1433,7 +1450,7 @@ export default function HomeScreen() {
                 setLocalActiveSegment('food');
                 tabIndicatorTranslateX.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
                 setIsSwitching('food');
-                router.push('/cafe');
+                router.push('/restaurants');
               }}
               style={{
                 flex: 1,
@@ -1442,57 +1459,22 @@ export default function HomeScreen() {
                 justifyContent: 'center',
                 height: '100%',
                 zIndex: 2,
+                gap: 8,
               }}
             >
-              <Utensils size={15} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a')} strokeWidth={2.5} style={{ marginRight: 6 }} />
-              <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', letterSpacing: 0.6, color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#d4d4d8' : '#0f172a'), textTransform: 'uppercase' }}>
-                Food
-              </Text>
+              <Utensils size={18} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+              <View>
+                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                  Food
+                </Text>
+                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#fde047' : '#ea580c', textTransform: 'uppercase' }}>
+                  CAFE & RESTAURANT
+                </Text>
+              </View>
             </Pressable>
           </View>
-
-          {/* Bottom Row: Search Box Shortcut */}
-          <ScalePressable 
-            onPress={() => {
-              router.push('/search');
-            }}
-            scaleValue={0.99}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-              borderWidth: 1,
-              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-              borderRadius: 18,
-              paddingHorizontal: 16,
-              height: 36,
-              width: '100%',
-              marginTop: 6,
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.04,
-                  shadowRadius: 6,
-                },
-                android: {
-                  elevation: 2,
-                },
-              }),
-            }}
-          >
-            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
-            <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }, placeholderStyle]}>
-              {currentSuggestion}
-            </Animated.Text>
-            
-            {/* Vertical Divider */}
-            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
-            
-            <Mic size={16} color="#16a34a" />
-          </ScalePressable>
-        </BlurView>
-        {/* Glassmorphic border underline line & Top Loading Progress Bar */}
+        </View>
+        {/* Hairline underline & Top Loading Progress Bar */}
         {isSwitching !== 'none' ? (
           <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? '#27272a' : '#fecdd3', overflow: 'hidden' }}>
             <Animated.View 
@@ -1513,7 +1495,7 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Scrollable Content */}
-      {false ? (
+      {false && (
         // Cafe Storefront View when Grocery is Closed
         <>
           {/* Warning Banner: Grocery is closed, Cafe is open */}
@@ -1594,6 +1576,14 @@ export default function HomeScreen() {
             className="flex-1 bg-white dark:bg-zinc-950"
             contentContainerStyle={{ paddingTop: scrollViewPaddingTop, paddingBottom: 160 }}
             entering={FadeIn.duration(220)}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor={isDarkMode ? "#ffffff" : "#e20a22"}
+                colors={["#e20a22"]}
+              />
+            }
           >
 
             {/* Food Visual Cover Banner */}
@@ -1640,23 +1630,24 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {/* Food Product Grid */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
-                  {section.products.map((product: any, idx: number) => {
-                    const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
-                    return (
-                      <View key={product.id} style={{ width: cardWidth, marginBottom: 16 }}>
-                        <ProductCard product={product} className="w-full" index={idx} />
-                      </View>
-                    );
-                  })}
+                {/* Food Product Grid — FlashList for performance */}
+                <View style={{ marginTop: 8, minHeight: 280 }}>
+                  <FlashList
+                    data={section.products}
+                    numColumns={responsive.gridColumns}
+                    keyExtractor={productKeyExtractor}
+                    renderItem={renderProductCard}
+                    ItemSeparatorComponent={ItemSeparator}
+                    scrollEnabled={false} // parent ScrollView owns scroll
+                    removeClippedSubviews
+                  />
                 </View>
               </View>
             ))}
 
             {/* Catch-all More Specials */}
             {categorySections.moreItems.length > 0 && (
-              <View 
+              <View
                 onLayout={(e) => {
                   const y = e.nativeEvent.layout.y;
                   setSectionOffsets(prev => ({ ...prev, more: y }));
@@ -1671,16 +1662,17 @@ export default function HomeScreen() {
                   </View>
                 </View>
 
-                {/* Food Product Grid */}
-                <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', marginTop: 8 }}>
-                  {categorySections.moreItems.map((product: any, idx: number) => {
-                    const cardWidth = windowWidth >= 900 ? '23.5%' : (windowWidth >= 600 ? '31.5%' : '48%');
-                    return (
-                      <View key={product.id} style={{ width: cardWidth, marginBottom: 16 }}>
-                        <ProductCard product={product} className="w-full" index={idx} />
-                      </View>
-                    );
-                  })}
+                {/* Food Product Grid — FlashList */}
+                <View style={{ marginTop: 8, minHeight: 280 }}>
+                  <FlashList
+                    data={categorySections.moreItems}
+                    numColumns={responsive.gridColumns}
+                    keyExtractor={productKeyExtractor}
+                    renderItem={renderProductCard}
+                    ItemSeparatorComponent={ItemSeparator}
+                    scrollEnabled={false}
+                    removeClippedSubviews
+                  />
                 </View>
               </View>
             )}
@@ -1800,67 +1792,35 @@ export default function HomeScreen() {
             </>
           )}
         </>
-      ) : true ? (
-        // Grocery Storefront View (matching the screenshot exactly)
+      )}
+
+      {/* Grocery Storefront View (matching the screenshot exactly) */}
          <Animated.ScrollView 
-          onScroll={scrollHandler}
+          onScroll={(e) => {
+            scrollY.value = e.nativeEvent.contentOffset.y;
+            onTabBarScroll(e);
+          }}
+          onTouchStart={onTabBarTouchStart}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
           className="flex-1 bg-white dark:bg-zinc-950" 
-          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 270 }} 
+          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 0 }} 
           showsVerticalScrollIndicator={false}
           entering={FadeIn.duration(220)}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefreshing}
+              onRefresh={onRefresh}
+              tintColor={isDarkMode ? "#ffffff" : "#e20a22"}
+              colors={["#e20a22"]}
+            />
+          }
         >
           {/* Top Promotional Carousel Banner */}
           <GroceryPromoCarousel />
 
-          {/* Wedson Restaurant Special Category Card */}
-          <WedsonRestaurantCard />
-
-          {!groceryMartOpen && (
-            <BlurView
-              intensity={isDarkMode ? 45 : 75}
-              tint={isDarkMode ? 'dark' : 'light'}
-              style={{
-                marginHorizontal: 16,
-                marginTop: 12,
-                borderRadius: 14,
-                borderWidth: 1.5,
-                borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.2)' : 'rgba(226, 10, 34, 0.12)',
-                backgroundColor: isDarkMode ? 'rgba(28, 28, 30, 0.85)' : 'rgba(255, 241, 242, 0.85)',
-                overflow: 'hidden',
-                paddingVertical: 10,
-                paddingHorizontal: 14,
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 10,
-                ...Platform.select({
-                  ios: {
-                    shadowColor: '#e20a22',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                  },
-                  android: {
-                    elevation: 1,
-                  }
-                })
-              }}
-            >
-              <Text style={{ fontSize: 16 }}>🌙</Text>
-              <View style={{ flex: 1 }}>
-                <Text allowFontScaling={false} style={{ color: '#e20a22', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.4 }}>
-                  Mart is currently closed
-                </Text>
-                <Text allowFontScaling={false} style={{ color: isDarkMode ? '#a1a1aa' : '#475569', fontSize: 9.5, fontWeight: '700', marginTop: 1 }}>
-                  Pre-orders are open! Explore items and build your cart. We reopen at 7:00 AM.
-                </Text>
-              </View>
-            </BlurView>
-          )}
-
           {/* Category Grid Section Title */}
-          <View className="px-4 flex-row justify-between items-center mb-3">
+          <View className="px-4 flex-row justify-between items-center mb-3 mt-1">
             <Text className="text-base font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>Trending Categories</Text>
             <ScalePressable 
               onPress={() => {
@@ -1887,6 +1847,9 @@ export default function HomeScreen() {
           {/* Category Grid (2 rows x 4 icons) */}
           <CategoryGrid />
 
+          {/* Wedson Restaurant Special Category Card */}
+          <WedsonRestaurantCard />
+
           {/* Active Order Tracker */}
           {activeOrder && (
             <ScalePressable 
@@ -1895,6 +1858,7 @@ export default function HomeScreen() {
               }}
               scaleValue={0.98}
               style={{
+                alignSelf: 'stretch',
                 marginHorizontal: 16,
                 marginBottom: 16,
                 borderRadius: 16,
@@ -1905,7 +1869,7 @@ export default function HomeScreen() {
                 colors={['#10b981', '#047857']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: 16 }}
+                style={{ width: '100%', padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: 16 }}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2 flex-1 pr-2">
@@ -1945,7 +1909,7 @@ export default function HomeScreen() {
               </LinearGradient>
             </ScalePressable>
           )}
-
+ 
           {/* Reorder Last Order Banner */}
           {!activeOrder && lastCompletedOrder && (
             <ScalePressable 
@@ -1953,6 +1917,7 @@ export default function HomeScreen() {
               scaleValue={0.97}
               haptic="medium"
               style={{
+                alignSelf: 'stretch',
                 marginHorizontal: 16,
                 marginBottom: 18,
                 borderRadius: 18,
@@ -1969,6 +1934,7 @@ export default function HomeScreen() {
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
+                  width: '100%',
                   paddingHorizontal: 18,
                   paddingVertical: 15,
                   borderWidth: 1.2,
@@ -2032,14 +1998,11 @@ export default function HomeScreen() {
             </View>
           )}
           </Animated.ScrollView>
-      ) : (
-        // Store Completely Closed View (both Grocery and Cafe closed)
-        <StoreClosedPremiumView isDarkMode={isDarkMode} paddingTop={scrollViewPaddingTop} />
-      )}
 
       {/* Shared Sticky Bottom Cart Bar */}
-      <FloatingCartBar bottomOffset={88} />
+      <FloatingCartBar bottomOffset={88} onTap={() => setShowCartSheet(true)} />
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
+      <CartQuickPreviewSheet visible={showCartSheet} onClose={() => setShowCartSheet(false)} />
 
       {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
       {showModeSwitchLoader && (

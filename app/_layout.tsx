@@ -36,6 +36,8 @@ const queryClient = new QueryClient({
     queries: {
       retry: 2,
       refetchOnWindowFocus: false,
+      staleTime: 1000 * 60 * 1.5, // 90s — balance freshness vs refetch cost
+      gcTime: 1000 * 60 * 10, // 10 minutes - keep cache alive longer
     },
   },
 });
@@ -46,9 +48,11 @@ import CartConflictDrawer from '../components/product/CartConflictDrawer';
 import LocationGateModal from '../components/shared/LocationGateModal';
 import { useUIStore } from '../stores/ui-store';
 import { API_BASE_URL } from '../lib/constants';
+import { useSmartAutoSync, useForegroundRefresh } from '../lib/smart-sync';
 import { isWithinOperatingHours, isHoliday } from '../lib/store-hours';
 import { usePushSync } from '../hooks/use-push-sync';
 import ErrorBoundary from '../components/shared/ErrorBoundary';
+import NetworkBanner from '../components/shared/NetworkBanner';
 console.log('🚀 API_BASE_URL being used by Web App:', API_BASE_URL);
 
 
@@ -247,7 +251,7 @@ export default function RootLayout() {
           const radius = parseFloat(settings.delivery_radius) || 5;
           const storeLat = settings.store_lat ? parseFloat(settings.store_lat) : undefined;
           const storeLng = settings.store_lng ? parseFloat(settings.store_lng) : undefined;
-          
+
           // Operational Controls
           const minOrderValue = settings.min_order_value ? parseInt(settings.min_order_value) : 0;
           const storeOpenHour = settings.store_open_hour ? parseInt(settings.store_open_hour) : 7;
@@ -265,35 +269,58 @@ export default function RootLayout() {
           // Check store hours auto-close and holiday calendar
           const inHours = isWithinOperatingHours(storeOpenHour, storeCloseHour);
           const onHoliday = isHoliday(holidays);
-          
+
           let finalGroceryOpen = groceryOpen;
           let finalCafeOpen = cafeOpen;
-          
+
           // Bypassed midnight auto-close to allow testing 24/7. Stores close only when manually toggled off.
           if (onHoliday) {
             finalGroceryOpen = false;
             finalCafeOpen = false;
           }
 
-          useUIStore.getState().setStoreStatus(
-            finalGroceryOpen, 
-            finalCafeOpen, 
-            radius, 
-            storeLat, 
-            storeLng,
-            minOrderValue,
-            storeOpenHour,
-            storeCloseHour,
-            holidays,
-            surgeMultiplier,
-            taxRateSetting,
-            onlyCodSetting,
-            miscFeeSetting,
-            miscFeeLabelSetting,
-            deliveryFeeBaseSetting,
-            groceryThresholdSetting,
-            cafeThresholdSetting
-          );
+          // Only call setState if at least one value changed — avoids unnecessary
+          // re-renders of every subscriber across the app on every poll tick.
+          const ui = useUIStore.getState();
+          if (
+            ui.groceryMartOpen !== finalGroceryOpen ||
+            ui.cafeOpen !== finalCafeOpen ||
+            ui.deliveryRadius !== radius ||
+            ui.storeLat !== storeLat ||
+            ui.storeLng !== storeLng ||
+            ui.minOrderValue !== minOrderValue ||
+            ui.storeOpenHour !== storeOpenHour ||
+            ui.storeCloseHour !== storeCloseHour ||
+            JSON.stringify(ui.holidays) !== JSON.stringify(holidays) ||
+            ui.surgeMultiplier !== surgeMultiplier ||
+            ui.taxRate !== taxRateSetting ||
+            ui.onlyCod !== onlyCodSetting ||
+            ui.miscFee !== miscFeeSetting ||
+            ui.miscFeeLabel !== miscFeeLabelSetting ||
+            ui.deliveryFeeBase !== deliveryFeeBaseSetting ||
+            ui.groceryFreeDeliveryThreshold !== groceryThresholdSetting ||
+            ui.cafeFreeDeliveryThreshold !== cafeThresholdSetting
+          ) {
+            useUIStore.getState().setStoreStatus(
+              finalGroceryOpen,
+              finalCafeOpen,
+              radius,
+              storeLat,
+              storeLng,
+              minOrderValue,
+              storeOpenHour,
+              storeCloseHour,
+              holidays,
+              surgeMultiplier,
+              taxRateSetting,
+              onlyCodSetting,
+              miscFeeSetting,
+              miscFeeLabelSetting,
+              deliveryFeeBaseSetting,
+              groceryThresholdSetting,
+              cafeThresholdSetting
+            );
+          }
         }
       } catch (err) {
         console.warn('Failed to sync store settings from server:', err);
@@ -301,7 +328,7 @@ export default function RootLayout() {
     };
     
     syncStoreSettings();
-    const settingsPoll = setInterval(syncStoreSettings, 60000);
+    const settingsPoll = setInterval(syncStoreSettings, 120000);
 
     // Listen for notification responses (user tapping on a notification)
     const responseSubscription = addNotificationResponseListener(response => {
@@ -356,10 +383,17 @@ export default function RootLayout() {
     return null;
   }
 
+function AppQuerySync() {
+  useForegroundRefresh();
+  useSmartAutoSync({ interval: 30_000 });
+  return null;
+}
+
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <QueryClientProvider client={queryClient}>
+          <AppQuerySync />
           <StatusBar style="auto" />
           <RootThemeWrapper>
             <ErrorBoundary>
@@ -370,19 +404,15 @@ export default function RootLayout() {
                   height: '100%',
                   alignSelf: 'center',
                   backgroundColor: 'transparent',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.1,
-                  shadowRadius: 8,
-                  elevation: 5,
+    
                 } : { width: '100%', height: '100%' }}
               >
                 <Stack screenOptions={{ 
                   headerShown: false, 
                   gestureEnabled: true, 
                   gestureDirection: 'horizontal', 
-                  animation: 'slide_from_right', 
-                  animationDuration: 220,
+                  animation: 'slide_from_right',
+                  animationDuration: 160,
                   headerBackVisible: false 
                 }}>
                   <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -392,9 +422,10 @@ export default function RootLayout() {
                   <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
                   <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
-                  <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom' }} />
+                  <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 180 }} />
                   <Stack.Screen name="checkout" options={{ headerShown: false }} />
                   <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="restaurants" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                 </Stack>
                   <VariantSelectorDrawer />
                   <CartConflictDrawer />
@@ -402,6 +433,7 @@ export default function RootLayout() {
                   <CartSynchronizer />
                   {showSplash && <AnimatedSplashScreen onFinish={() => setShowSplash(false)} />}
                </View>
+              <NetworkBanner />
             </ErrorBoundary>
           </RootThemeWrapper>
         </QueryClientProvider>

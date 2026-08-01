@@ -64,7 +64,7 @@ export const ScalePressable: React.FC<ScalePressableProps> = ({
   const isStretch = flattenedStyle.alignSelf === 'stretch';
 
   const shouldFillWidth = hasWidth || isFlex || isStretch;
-  const shouldFillHeight = hasHeight || isFlex || isStretch;
+  const shouldFillHeight = hasHeight || isFlex;
 
   return (
     <Animated.View

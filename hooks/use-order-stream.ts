@@ -12,7 +12,9 @@ interface UseOrderStreamProps {
 export function useOrderStream({ orderId, role, onEvent, enabled = true }: UseOrderStreamProps = {}) {
   const [isConnected, setIsConnected] = useState(false);
   const [isPollingActive, setIsPollingActive] = useState(false);
-  const { token, user } = useAuthStore();
+  const token = useAuthStore(state => state.token);
+  const userId = useAuthStore(state => state.user?.id);
+  const userRole = useAuthStore(state => state.user?.role);
   const onEventRef = useRef(onEvent);
   onEventRef.current = onEvent;
 
@@ -36,9 +38,11 @@ export function useOrderStream({ orderId, role, onEvent, enabled = true }: UseOr
             'Content-Type': 'application/json',
           };
           if (token) headers['Authorization'] = `Bearer ${token}`;
-          if (user) {
-            headers['x-user-id'] = user.id;
-            headers['x-user-role'] = user.role;
+          if (userId) {
+            headers['x-user-id'] = userId;
+          }
+          if (userRole) {
+            headers['x-user-role'] = userRole;
           }
 
           const url = orderId 
@@ -76,15 +80,14 @@ export function useOrderStream({ orderId, role, onEvent, enabled = true }: UseOr
       if (abortController) abortController.abort();
       stopPolling();
 
-      const { user } = useAuthStore.getState();
-      if (!user) {
+      if (!userId) {
         startPolling();
         return;
       }
 
       try {
         abortController = new AbortController();
-        const url = `${API_BASE_URL}/sse/orders?userId=${user.id}${orderId ? `&orderId=${orderId}` : ''}${role ? `&role=${role}` : ''}`;
+        const url = `${API_BASE_URL}/sse/orders?userId=${userId}${orderId ? `&orderId=${orderId}` : ''}${role ? `&role=${role}` : ''}`;
         
         const headers: Record<string, string> = {
           'Accept': 'text/event-stream',
@@ -165,7 +168,7 @@ export function useOrderStream({ orderId, role, onEvent, enabled = true }: UseOr
       if (reconnectTimeoutId) clearTimeout(reconnectTimeoutId);
       stopPolling();
     };
-  }, [orderId, role, enabled, token, user]);
+  }, [orderId, role, enabled, token, userId, userRole]);
 
   return {
     isConnected,

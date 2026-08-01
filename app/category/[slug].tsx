@@ -18,6 +18,7 @@ import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { ScalePressable } from '../../components/shared/ScalePressable';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 import { BlurView } from 'expo-blur';
 import { formatHeaderAddress, getAppImageSource, getCategoryEmoji, normalizeCategorySlug, isRestaurantProduct } from '../../lib/utils';
 
@@ -354,14 +355,14 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
 
     const isProductOutOfStock = (p: Product) => {
       if (p.isAvailable === false) return true;
-      if (p.isAvailable === true) return false;
       const hasVariants = p.variants && Array.isArray(p.variants) && p.variants.length > 0;
-      if (!hasVariants) return p.stock !== undefined && p.stock !== null && p.stock <= 0;
+      if (!hasVariants) {
+        return p.stock !== undefined && p.stock !== null && p.stock <= 0;
+      }
       const hasAvailableVariant = (p.variants as any[]).some((v: any) => 
-        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
+        v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0)
       );
-      const totalStock = (p.variants as any[]).reduce((sum, v) => sum + (v.stock ?? 999), 0);
-      return !hasAvailableVariant && totalStock <= 0;
+      return !hasAvailableVariant;
     };
 
     let list = products.filter(p => p.isAvailable !== false);
@@ -663,6 +664,17 @@ export default function CategoryDetailScreen() {
   const [initialRenderDone, setInitialRenderDone] = useState(false);
   const normalizedSlug = useMemo(() => normalizeCategorySlug(slug), [slug]);
 
+  // Fetch live categories from database
+  const { data: serverCategories = [] } = useQuery<any[]>({
+    queryKey: ['categories-list-all'],
+    queryFn: async () => {
+      const res = await fetch(`${API_BASE_URL}/categories`);
+      if (!res.ok) throw new Error('API failed');
+      return res.json();
+    },
+    staleTime: 1000 * 60 * 15, // 15 mins cache validity
+  });
+
   // If slug is main cafe (e.g. /category/cafe or /category/fastkirana-cafe), redirect to /cafe page
   useEffect(() => {
     const s = slug?.toLowerCase().trim();
@@ -695,8 +707,22 @@ export default function CategoryDetailScreen() {
         emoji: c.emoji
       }));
     }
+    
+    if (serverCategories && serverCategories.length > 0) {
+      const groceryServerCategories = serverCategories.filter(c => c.slug !== 'cafe' && c.slug !== 'fastkirana-cafe' && c.slug !== 'restaurant');
+      return groceryServerCategories.map(c => {
+        const localMapped = GROCERY_CATEGORIES.find(gc => gc.slug === c.slug);
+        const emoji = localMapped ? localMapped.emoji : '📦';
+        return {
+          name: c.name,
+          slug: c.slug,
+          emoji: emoji
+        };
+      });
+    }
+
     return GROCERY_CATEGORIES;
-  }, [isCafe]);
+  }, [isCafe, serverCategories]);
 
   const initialIndex = useMemo(() => {
     const idx = categoriesList.findIndex(c => c.slug === slug);
@@ -815,79 +841,8 @@ export default function CategoryDetailScreen() {
         ) : (
           <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)' }]} />
         )}
-        <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-          {/* Left: Brand Logo & Text (Matched with Landing Page) */}
-          <ScalePressable 
-            onPress={() => {
-              router.replace('/(tabs)');
-            }} 
-            scaleValue={0.97}
-            style={{}}
-          >
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9', 
-                width: 32,
-                height: 32,
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={22} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
-          </ScalePressable>
-          
-          {/* Right: Location Capsule Picker (Matched with Landing Page) */}
-          <ScalePressable 
-            onPress={() => {
-              router.push('/location-picker');
-            }} 
-            scaleValue={0.96}
-            style={{
-              maxWidth: '60%'
-            }}
-          >
-            <View style={{ 
-              flexDirection: 'row', 
-              alignItems: 'center', 
-              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-              borderWidth: 1, 
-              borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-              borderRadius: 20, 
-              paddingHorizontal: 8, 
-              paddingVertical: 5,
-              justifyContent: 'center',
-            }}>
-              <MapPin size={11} color="#e20a22" style={{ flexShrink: 0, marginRight: 3 }} />
-              <Text 
-                numberOfLines={1} 
-                style={{ 
-                  fontSize: 10, 
-                  fontWeight: 'bold', 
-                  color: isDarkMode ? '#fafafa' : '#0f172a',
-                  flexShrink: 1,
-                  marginRight: 3
-                }}
-              >
-                {formatHeaderAddress(selectedLocation)}
-              </Text>
-              <ChevronDown size={8} color={isDarkMode ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-            </View>
-          </ScalePressable>
-        </View>
+        {/* Standardized Branded Header & Location */}
+        <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
 
         {/* Row 2: Search input placeholder (Matched with Landing Page) */}
         <ScalePressable 

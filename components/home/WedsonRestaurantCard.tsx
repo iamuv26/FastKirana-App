@@ -26,9 +26,10 @@ export interface WedsonCategory {
 }
 
 const WEDSON_CATEGORIES: WedsonCategory[] = [
-  { id: 'all', name: "Chef's Specials", emoji: '🔥' },
+  { id: 'all', name: "Chef's Specials", emoji: '👨‍🍳' },
+  { id: 'main-course', name: 'Main Course & Paneer', emoji: '🥘' },
   { id: 'biryani', name: 'Biryani & Thali', emoji: '🍛' },
-  { id: 'rotis', name: 'North Indian & Rotis', emoji: '🫓' },
+  { id: 'rotis', name: 'Rotis & Breads', emoji: '🫓' },
   { id: 'chinese', name: 'Chinese & Starters', emoji: '🥢' },
   { id: 'pizza', name: 'Pizzas & Fast Food', emoji: '🍕' },
   { id: 'shakes', name: 'Shakes & Drinks', emoji: '🧋' },
@@ -59,7 +60,8 @@ export default function WedsonRestaurantCard() {
           return catSlug.includes('cafe') || 
                  catSlug.includes('food') || 
                  catSlug.includes('restaurant') ||
-                 tags.some((t: string) => ['cafe', 'restaurant', 'chinese', 'sandwich', 'pizza', 'shake', 'biryani', 'meal'].includes(t));
+                 catSlug.includes('main-course') ||
+                 tags.some((t: string) => ['cafe', 'restaurant', 'chinese', 'sandwich', 'pizza', 'shake', 'biryani', 'meal', 'main-course', 'paneer', 'curry'].includes(t));
         });
 
         return cafeList.length > 0 ? cafeList : list.slice(0, 10);
@@ -71,7 +73,32 @@ export default function WedsonRestaurantCard() {
   });
 
   const filteredProducts = useMemo(() => {
-    if (activeCategory === 'all') return realProducts;
+    if (activeCategory === 'all') {
+      // Show & prioritize Main Course, Paneer Specialties & Gravies under Chef's Specials
+      const mainCourseKeywords = ['main-course', 'curry', 'paneer', 'butter-masala', 'kadhai', 'dal-makhani', 'sabzi', 'gravy', 'shahi', 'matar-paneer', 'thali', 'handi', 'biryani'];
+      
+      const mainCourseProducts = realProducts.filter((p) => {
+        const catSlug = p.category?.slug?.toLowerCase() || '';
+        const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+        const nameLower = p.name?.toLowerCase() || '';
+
+        return (
+          mainCourseKeywords.some((k) => catSlug.includes(k)) ||
+          mainCourseKeywords.some((k) => tags.some((t) => t.includes(k))) ||
+          mainCourseKeywords.some((k) => nameLower.includes(k))
+        );
+      });
+
+      if (mainCourseProducts.length > 0) {
+        return mainCourseProducts;
+      }
+
+      return [...realProducts].sort((a, b) => {
+        const aSpecial = a.tags?.some((t: string) => ['special', 'chef', 'bestseller', 'popular', 'main-course', 'paneer'].includes(t.toLowerCase())) ? 1 : 0;
+        const bSpecial = b.tags?.some((t: string) => ['special', 'chef', 'bestseller', 'popular', 'main-course', 'paneer'].includes(t.toLowerCase())) ? 1 : 0;
+        return bSpecial - aSpecial;
+      });
+    }
 
     return realProducts.filter((p) => {
       const catSlug = p.category?.slug?.toLowerCase() || '';
@@ -86,11 +113,14 @@ export default function WedsonRestaurantCard() {
         );
       };
 
+      if (activeCategory === 'main-course') {
+        return matches(['main-course', 'curry', 'paneer', 'butter-masala', 'kadhai', 'dal-makhani', 'sabzi', 'gravy', 'shahi', 'matar-paneer']);
+      }
       if (activeCategory === 'biryani') {
-        return matches(['biryani', 'thali', 'rice', 'pulav', 'pulao', 'combo', 'meal']);
+        return matches(['biryani', 'thali', 'rice', 'pulav', 'pulao', 'combo', 'meal', 'jeera-rice']);
       }
       if (activeCategory === 'rotis') {
-        return matches(['roti', 'naan', 'paratha', 'paneer', 'curry', 'dal', 'makhani', 'sabzi', 'north-indian', 'butter', 'tandoori']);
+        return matches(['roti', 'naan', 'paratha', 'kulcha', 'tandoori', 'bread']);
       }
       if (activeCategory === 'chinese') {
         return matches(['chinese', 'momo', 'noodles', 'noodle', 'manchurian', 'chilli', 'spring-roll', 'chowmein']);
@@ -158,35 +188,72 @@ export default function WedsonRestaurantCard() {
               <ScalePressable
                 key={cat.id}
                 onPress={() => {
-                  triggerHaptic('light');
+                  triggerHaptic('medium');
                   setActiveCategory(cat.id);
                 }}
-                scaleValue={0.96}
+                scaleValue={0.95}
                 style={{
-                  paddingHorizontal: 14,
-                  paddingVertical: 7,
                   borderRadius: 18,
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 5,
-                  backgroundColor: isActive ? '#ea580c' : (isDarkMode ? '#27272a' : '#ffffff'),
-                  borderWidth: 1.2,
-                  borderColor: isActive ? '#ea580c' : (isDarkMode ? '#3f3f46' : '#fed7aa'),
-                  shadowColor: isActive ? '#ea580c' : '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: isActive ? 0.3 : 0.04,
-                  shadowRadius: 4,
-                  elevation: isActive ? 3 : 1,
+                  marginBottom: 2,
                 }}
               >
-                <Text style={{ fontSize: 12.5 }}>{cat.emoji}</Text>
-                <Text style={{
-                  fontSize: 12,
-                  fontWeight: '900',
-                  color: isActive ? '#ffffff' : (isDarkMode ? '#f4f4f5' : '#1e293b'),
-                }}>
-                  {cat.name}
-                </Text>
+                {isActive ? (
+                  <View style={{
+                    borderRadius: 18,
+                    backgroundColor: '#9a3412',
+                    paddingBottom: 3,
+                    shadowColor: '#ea580c',
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: 0.35,
+                    shadowRadius: 6,
+                    elevation: 4,
+                  }}>
+                    <LinearGradient
+                      colors={['#f97316', '#c2410c']}
+                      start={{ x: 0, y: 0 }}
+                      end={{ x: 1, y: 1 }}
+                      style={{
+                        paddingHorizontal: 15,
+                        paddingVertical: 8,
+                        borderRadius: 18,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                      }}
+                    >
+                      <Text style={{ fontSize: 13 }}>{cat.emoji}</Text>
+                      <Text style={{ fontSize: 12.5, fontWeight: '900', color: '#ffffff', letterSpacing: 0.2 }}>
+                        {cat.name}
+                      </Text>
+                    </LinearGradient>
+                  </View>
+                ) : (
+                  <View style={{
+                    paddingHorizontal: 14,
+                    paddingVertical: 8,
+                    borderRadius: 18,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 6,
+                    backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
+                    borderWidth: 1.2,
+                    borderColor: isDarkMode ? '#3f3f46' : '#fed7aa',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 1 },
+                    shadowOpacity: 0.04,
+                    shadowRadius: 3,
+                    elevation: 1,
+                  }}>
+                    <Text style={{ fontSize: 12.5 }}>{cat.emoji}</Text>
+                    <Text style={{
+                      fontSize: 12,
+                      fontWeight: '800',
+                      color: isDarkMode ? '#f4f4f5' : '#334155',
+                    }}>
+                      {cat.name}
+                    </Text>
+                  </View>
+                )}
               </ScalePressable>
             );
           })}
@@ -219,40 +286,46 @@ export default function WedsonRestaurantCard() {
           </ScrollView>
         )}
 
-        {/* Premium Footer Action Button */}
+        {/* Premium 3D Glossy Footer Action Button */}
         <View style={styles.footerWrap}>
           <ScalePressable
             onPress={handleSeeAll}
-            scaleValue={0.97}
-            style={{
-              width: '100%',
-              height: 46,
-              borderRadius: 16,
-              borderWidth: 1.5,
-              borderColor: isDarkMode ? '#ea580c' : '#fed7aa',
-              backgroundColor: isDarkMode ? 'rgba(234, 88, 12, 0.15)' : '#fff7ed',
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 8,
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#ea580c',
-                  shadowOffset: { width: 0, height: 3 },
-                  shadowOpacity: 0.12,
-                  shadowRadius: 6,
-                },
-                android: {
-                  elevation: 2,
-                }
-              })
-            }}
+            scaleValue={0.96}
+            haptic="medium"
+            style={{ width: '100%' }}
           >
-            <Utensils size={15} color="#ea580c" />
-            <Text style={{ color: '#ea580c', fontSize: 13.5, fontWeight: '900', letterSpacing: 0.2 }}>
-              Explore Full Wedson Restaurant Menu
-            </Text>
-            <ChevronRight size={15} color="#ea580c" strokeWidth={3} />
+            <View style={{
+              width: '100%',
+              borderRadius: 18,
+              backgroundColor: '#9a3412',
+              paddingBottom: 4,
+              shadowColor: '#ea580c',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: 0.35,
+              shadowRadius: 8,
+              elevation: 5,
+            }}>
+              <LinearGradient
+                colors={['#ea580c', '#c2410c']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{
+                  height: 50,
+                  borderRadius: 18,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 8,
+                  paddingHorizontal: 16,
+                }}
+              >
+                <Utensils size={18} color="#ffffff" strokeWidth={2.5} />
+                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                  EXPLORE WEDSON MENU
+                </Text>
+                <ChevronRight size={18} color="#ffffff" strokeWidth={3} />
+              </LinearGradient>
+            </View>
           </ScalePressable>
         </View>
 

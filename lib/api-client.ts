@@ -46,8 +46,11 @@ class ApiClient {
 
     let attempt = 0;
     while (attempt < retries) {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 15000); // 15s timeout
       try {
-        const response = await fetch(url, mergedOptions);
+        const response = await fetch(url, { ...mergedOptions, signal: controller.signal });
+        clearTimeout(timeoutId);
 
         if (response.status === 401 || response.status === 403) {
           // Session expired or unauthorized
@@ -63,9 +66,16 @@ class ApiClient {
 
         return await response.json() as T;
       } catch (error: any) {
+        clearTimeout(timeoutId);
         attempt++;
-        const isNetworkErr = error.message?.includes('Network request failed') || error.message?.includes('Failed to fetch');
+        const isNetworkErr = error.message?.includes('Network request failed') 
+          || error.message?.includes('Failed to fetch')
+          || error.name === 'AbortError';
         
+        if (error.name === 'AbortError') {
+          console.warn(`API request timed out after 15s: ${url}`);
+        }
+
         if (isNetworkErr && attempt < retries) {
           const delay = backoffMs * Math.pow(2, attempt - 1);
           console.warn(`API network failure, retrying attempt ${attempt}/${retries} in ${delay}ms...`, url);
@@ -73,6 +83,9 @@ class ApiClient {
           continue;
         }
 
+        if (error.name === 'AbortError') {
+          throw new Error('Request timed out. Please check your internet connection and try again.');
+        }
         throw error;
       }
     }

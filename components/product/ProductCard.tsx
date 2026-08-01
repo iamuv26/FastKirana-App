@@ -2,7 +2,7 @@ import { memo, useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, Alert, useWindowDimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
-import { ShoppingBag, Sparkles, AlertTriangle, ChevronDown, Plus, Minus } from 'lucide-react-native';
+import { ShoppingBag, ChevronDown, Plus, Minus, Bell, Check } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeIn, FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useCartStore } from '../../stores/cart-store';
 import { useCartActions } from '../../hooks/use-cart';
@@ -163,10 +163,34 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
   }, [resolvedWidth, SCREEN_WIDTH]);
 
   const [cardWidth, setCardWidth] = useState(initialCardWidth);
+
+  // Responsive font sizing — scale text based on actual card width
+  // Baseline: phone 2-col grid = ~175px card → 1.0 multiplier
+  const fontScale = useMemo(() => {
+    if (cardWidth <= 0) return 1;
+    if (cardWidth < 150) return 0.85;
+    if (cardWidth < 200) return 1.0;
+    if (cardWidth < 260) return 1.15;
+    if (cardWidth < 340) return 1.3;
+    return 1.45;
+  }, [cardWidth]);
+
+  const fontSize = (size: number) => Math.round(size * fontScale);
+  const cardHeight = useMemo(() => {
+    if (cardWidth < 150) return 220;
+    if (cardWidth < 200) return 290;
+    if (cardWidth < 260) return 360;
+    if (cardWidth < 340) return 420;
+    return 480;
+  }, [cardWidth]);
   const resolvedStyle = useMemo(() => {
     const styleObj: any = {
       width: resolvedWidth as any,
     };
+    // Apply responsive height when no explicit height is requested
+    if (!className || (!className.includes('h-') && !className.includes('h['))) {
+      styleObj.height = cardHeight;
+    }
     if (className) {
       if (className.includes('mb-4')) {
         styleObj.marginBottom = 16;
@@ -216,33 +240,38 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
   }, [resolvedMrp, resolvedPrice]);
 
   const resolvedStock = useMemo(() => {
+    if (product.isAvailable === false || (product as any).inStock === false || (product as any).outOfStock === true) return 0;
     if (!hasVariants) {
-      if (product.isAvailable === true && (product.stock === undefined || product.stock === null || product.stock <= 0)) {
-        return 999;
+      if (product.stock !== undefined && product.stock !== null) {
+        const numStock = Number(product.stock);
+        return isNaN(numStock) ? 0 : Math.max(0, numStock);
       }
-      return product.stock ?? 999;
+      return 999;
     }
     return variantsList.reduce((sum, v) => {
-      const vStock = (v.isAvailable === true || product.isAvailable === true) && (v.stock === undefined || v.stock === null || v.stock <= 0)
-        ? 999
-        : (v.stock ?? 999);
+      if (v.isAvailable === false || v.inStock === false) return sum;
+      const vStock = (v.stock !== undefined && v.stock !== null)
+        ? Math.max(0, Number(v.stock) || 0)
+        : 999;
       return sum + vStock;
     }, 0);
-  }, [hasVariants, variantsList, product.stock, product.isAvailable]);
+  }, [hasVariants, variantsList, product.stock, product.isAvailable, (product as any).inStock, (product as any).outOfStock]);
 
   const resolvedIsAvailable = useMemo(() => {
-    if (product.isAvailable === false) return false;
-    if (product.isAvailable === true) return true;
+    if (product.isAvailable === false || (product as any).inStock === false || (product as any).outOfStock === true) return false;
     if (!hasVariants) {
-      if (product.stock !== undefined && product.stock !== null && product.stock <= 0) return false;
+      if (product.stock !== undefined && product.stock !== null && Number(product.stock) <= 0) {
+        return false;
+      }
       return true;
     }
-    const hasAvailableVariant = variantsList.some((v) => 
-      v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0 || v.isAvailable === true)
-    );
-    const totalVariantStock = variantsList.reduce((sum, v) => sum + (v.stock ?? 999), 0);
-    return hasAvailableVariant || totalVariantStock > 0;
-  }, [product.isAvailable, product.stock, hasVariants, variantsList]);
+    const hasAvailableVariant = variantsList.some((v) => {
+      if (v.isAvailable === false || v.inStock === false) return false;
+      if (v.stock !== undefined && v.stock !== null && Number(v.stock) <= 0) return false;
+      return true;
+    });
+    return hasAvailableVariant;
+  }, [product.isAvailable, product.stock, (product as any).inStock, (product as any).outOfStock, hasVariants, variantsList]);
 
   const isCafe = isCafeStyle || isCafeProduct(product) || product.category?.slug === 'cafe' || product.category?.slug === 'fastkirana-cafe' || product.category?.slug === 'restaurant' || product.tags?.includes('cafe') || product.tags?.includes('restaurant');
   const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
@@ -357,284 +386,206 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     const is3Column = !!className && (className.includes('31.5') || className.includes('31%') || className.includes('1/3'));
 
     return (
-      <View 
-        style={resolvedStyle}
-      >
-        <Animated.View entering={undefined} style={{ width: '100%' }}>
-          <Animated.View 
-            style={[
+      <View style={resolvedStyle}>
+        <Animated.View entering={FadeInDown.delay(Math.min(index, 6) * 50).springify().damping(15).stiffness(120)} style={{ width: '100%' }}>
+          <Pressable
+            onPress={() => router.push(`/product/${product.slug}`)}
+            onPressIn={() => { cardScale.value = withSpring(0.97, { damping: 20, stiffness: 300 }); }}
+            onPressOut={() => { cardScale.value = withSpring(1, { damping: 20, stiffness: 300 }); }}
+          >
+            <Animated.View style={[
               {
                 width: '100%',
-                minHeight: is3Column ? 220 : 260,
-                borderRadius: THEME.RADIUS.md,
+                borderRadius: THEME.RADIUS.md + 4,
                 borderWidth: 1,
-                borderColor: isDark ? THEME.COLORS.dark.border : THEME.COLORS.light.border,
-                backgroundColor: isDark ? THEME.COLORS.dark.surface : THEME.COLORS.light.surface,
-                padding: THEME.SPACING.sm,
-                justifyContent: 'space-between',
-                position: 'relative',
+                borderColor: isDark ? 'rgba(39,39,42,0.6)' : '#f1f5f9',
+                backgroundColor: isDark ? THEME.COLORS.dark.surface : '#ffffff',
+                overflow: 'hidden',
                 ...Platform.select<any>({
                   ios: {
                     shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: isDark ? 0.2 : 0.06,
-                    shadowRadius: 8,
+                    shadowOffset: { width: 0, height: 3 },
+                    shadowOpacity: isDark ? 0.15 : 0.05,
+                    shadowRadius: 10,
                   },
-                  android: {
-                    elevation: 3,
-                  },
+                  android: { elevation: 2 },
                 })
               },
               animatedCardStyle
-            ]}
-          >
-            {/* Top row: Veg Indicator */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', width: '100%', zIndex: 10 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                <VegIndicator isNonVeg={isNonVeg} isDark={isDark} />
-              </View>
-            </View>
-
-            {/* Middle: Product Image */}
-            <Pressable 
-              onPress={() => router.push(`/product/${product.slug}`)}
-              style={{ 
-                width: '100%', 
-                aspectRatio: is3Column ? 1.2 : 1,
-                borderRadius: THEME.RADIUS.sm, 
-                overflow: 'hidden', 
-                marginVertical: THEME.SPACING.xs,
-                backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : THEME.COLORS.light.borderLight,
-                position: 'relative',
-                alignItems: 'center',
-                justifyContent: 'center',
-              }}
-            >
-              {imageSource ? (
-                <ExpoImage
-                  source={imageSource}
-                  contentFit="cover"
-                  style={{ width: '100%', height: '100%' }}
-                  transition={250}
-                  cachePolicy="memory-disk"
-                  placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
-                  recyclingKey={product.id}
-                />
-              ) : (
-                <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                  <ShoppingBag size={24} color={isDark ? '#71717a' : '#cbd5e1'} strokeWidth={1.5} />
-                </View>
-              )}
-
-              {/* Discount / Flash Badge Overlay */}
-              {resolvedDiscount > 0 && (
+            ]}>
+              {/* Image */}
+              <View style={{ position: 'relative' }}>
                 <View style={{
-                  position: 'absolute',
-                  top: THEME.SPACING.xs,
-                  left: THEME.SPACING.xs,
-                  backgroundColor: resolvedIsFlash ? THEME.COLORS.brand.accent : THEME.COLORS.brand.primary,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  borderRadius: THEME.RADIUS.xs,
+                  width: '100%',
+                  aspectRatio: is3Column ? 1.1 : 1.05,
+                  backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : '#f8fafc',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  overflow: 'hidden',
                 }}>
-                  <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '800', letterSpacing: 0.2 }}>
-                    {resolvedIsFlash ? '⚡ ' : ''}{resolvedDiscount}% OFF
-                  </Text>
-                </View>
-              )}
-
-              {/* Bestseller Badge Overlay */}
-              {isBestseller && (
-                <View style={{
-                  position: 'absolute',
-                  bottom: THEME.SPACING.xs,
-                  left: THEME.SPACING.xs,
-                  backgroundColor: THEME.COLORS.brand.warning,
-                  paddingHorizontal: 6,
-                  paddingVertical: 2,
-                  borderRadius: THEME.RADIUS.xs,
-                }}>
-                  <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '800', letterSpacing: 0.2 }}>
-                    ★ BEST
-                  </Text>
-                </View>
-              )}
-
-              {/* Cafe Hot & Fresh Badge Overlay */}
-              {isCafe && (
-                <View style={{
-                  position: 'absolute',
-                  bottom: THEME.SPACING.xs,
-                  right: THEME.SPACING.xs,
-                  backgroundColor: 'rgba(234, 88, 12, 0.9)',
-                  paddingHorizontal: 5,
-                  paddingVertical: 2,
-                  borderRadius: THEME.RADIUS.xs,
-                }}>
-                  <Text style={{ color: '#ffffff', fontSize: 8.5, fontWeight: '900', letterSpacing: 0.2 }}>
-                    ♨️ Hot & Fresh
-                  </Text>
-                </View>
-              )}
-            </Pressable>
-
-            {/* Product Name */}
-            <View style={{ width: '100%', paddingHorizontal: 1, marginBottom: THEME.SPACING.xs }}>
-              <Text 
-                style={{
-                  fontSize: THEME.TYPOGRAPHY.sizes.caption,
-                  fontWeight: THEME.TYPOGRAPHY.weights.semibold as any,
-                  color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
-                  lineHeight: 15,
-                  minHeight: 30,
-                }}
-                numberOfLines={2}
-              >
-                {product.name}
-              </Text>
-            </View>
-
-            {/* Bottom Row: Price left, ADD button right */}
-            <View 
-              onLayout={(e) => {
-                const { width } = e.nativeEvent.layout;
-                if (width !== cardWidth) {
-                  setCardWidth(width);
-                }
-              }}
-              style={{ 
-                flexDirection: (cardWidth > 0 && cardWidth < 180) ? 'column' : 'row', 
-                alignItems: (cardWidth > 0 && cardWidth < 180) ? 'stretch' : 'center', 
-                justifyContent: 'space-between', 
-                width: '100%',
-                gap: (cardWidth > 0 && cardWidth < 180) ? 6 : 2,
-              }}
-            >
-              <View style={{ 
-                flexDirection: (cardWidth > 0 && cardWidth < 180) ? 'row' : 'column',
-                alignItems: (cardWidth > 0 && cardWidth < 180) ? 'baseline' : 'flex-start',
-                gap: (cardWidth > 0 && cardWidth < 180) ? 4 : 0,
-                flex: (cardWidth > 0 && cardWidth < 180) ? 0 : 1, 
-                paddingRight: (cardWidth > 0 && cardWidth < 180) ? 0 : 4,
-                marginBottom: (cardWidth > 0 && cardWidth < 180) ? 4 : 0
-              }}>
-                {startingMrp > startingPrice && (
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, textDecorationLine: 'line-through', color: THEME.COLORS.light.textMuted, fontWeight: '500', marginBottom: 1 }}>
-                    ₹{startingMrp}
-                  </Text>
-                )}
-                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold as any, color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }}>
-                  ₹{startingPrice}
-                </Text>
-              </View>
-
-              {/* Orange Square ADD Button / Stepper */}
-              <View style={{ width: is3Column ? 68 : ((cardWidth > 0 && cardWidth < 180) ? '100%' : 78), height: 30, justifyContent: 'center', alignItems: 'center' }}>
-                {isStoreClosed ? (
-                  <View 
-                    style={{
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: THEME.RADIUS.xs,
-                      backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : THEME.COLORS.light.borderLight,
-                      borderWidth: 1,
-                      borderColor: isDark ? THEME.COLORS.dark.border : THEME.COLORS.light.border,
-                      justifyContent: 'center',
-                      alignItems: 'center',
-                    }}
-                  >
-                    <Text style={{ color: isDark ? THEME.COLORS.dark.textMuted : THEME.COLORS.light.textMuted, fontSize: 9.5, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.2 }}>Closed</Text>
-                  </View>
-                ) : quantity === 0 ? (
-                  <AnimatedPressable
-                    onPress={handleAdd}
-                    onPressIn={() => {
-                      addScale.value = withSpring(SCALE.addButton, SPRING.snappy);
-                    }}
-                    onPressOut={() => {
-                      addScale.value = withSpring(1, SPRING.snappy);
-                    }}
-                    style={[
-                      {
-                        width: '100%',
-                        height: '100%',
-                        borderRadius: THEME.RADIUS.xs,
-                        backgroundColor: THEME.COLORS.brand.accent,
-                        justifyContent: 'center',
-                        alignItems: 'center',
-                        flexDirection: 'row',
-                        gap: 4,
-                        ...Platform.select<any>({
-                          ios: THEME.SHADOWS.sm,
-                          android: { elevation: 1 }
-                        })
-                      },
-                      animatedAddStyle
-                    ]}
-                  >
-                    <Text style={{ color: '#ffffff', fontSize: 11.5, fontWeight: '700' }}>ADD</Text>
-                    <Plus size={10} color="#ffffff" strokeWidth={3} />
-                  </AnimatedPressable>
-                ) : (
                   <Animated.View
-                    entering={FadeIn.duration(120)}
-                    exiting={FadeOut.duration(120)}
-                    style={{
-                      position: 'absolute',
-                      right: 0,
-                      bottom: 0,
-                      width: '100%',
-                      height: '100%',
-                      borderRadius: THEME.RADIUS.pill,
-                      borderWidth: 1.5,
-                      borderColor: THEME.COLORS.brand.accent,
-                      backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : THEME.COLORS.brand.accentLight,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-evenly',
-                      overflow: 'hidden',
-                      zIndex: 20
-                    }}
+                    style={{ width: '100%', height: '100%' }}
+                    sharedTransitionTag={`product-image-${product.id}`}
                   >
-                    {/* Decrement */}
-                    <Pressable 
-                      onPress={handleDecrement} 
-                      hitSlop={{ top: 10, bottom: 10, left: 10, right: 5 }}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: 6,
-                        height: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: pressed ? 0.6 : 1
-                      })}
-                    >
-                      <Minus size={11} color={THEME.COLORS.brand.accent} strokeWidth={4} />
-                    </Pressable>
+                    {imageSource ? (
+                      <ExpoImage
+                        source={imageSource}
+                        contentFit="cover"
+                        style={{ width: '100%', height: '100%' }}
+                        transition={200}
+                        cachePolicy="memory-disk"
+                        recyclingKey={product.id}
+                      />
+                    ) : (
+                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                      <ShoppingBag size={28} color={isDark ? '#52525b' : '#cbd5e1'} strokeWidth={1.5} />
+                    </View>
+                  )}
+                </Animated.View>
+                </View>
 
-                    {/* Quantity */}
-                    <Text style={{ color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 12.5, fontWeight: '700' }}>{quantity}</Text>
+                {/* Discount badge — top-left */}
+                {resolvedDiscount > 0 && (
+                  <View style={{
+                    position: 'absolute',
+                    top: 8,
+                    left: 8,
+                    zIndex: 10,
+                    backgroundColor: '#ea580c',
+                    paddingHorizontal: 7,
+                    paddingVertical: 3,
+                    borderRadius: 6,
+                  }}>
+                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '800', letterSpacing: 0.2 }}>
+                      {resolvedIsFlash ? '⚡ ' : ''}{resolvedDiscount}% OFF
+                    </Text>
+                  </View>
+                )}
 
-                    {/* Increment */}
-                    <Pressable
-                      onPress={handleIncrement}
-                      disabled={quantity >= resolvedStock}
-                      hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
-                      style={({ pressed }) => ({
-                        paddingHorizontal: 6,
-                        height: '100%',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        opacity: quantity >= resolvedStock ? 0.4 : (pressed ? 0.6 : 1)
-                      })}
-                    >
-                      <Plus size={11} color={THEME.COLORS.brand.accent} strokeWidth={4} />
-                    </Pressable>
-                  </Animated.View>
+                {/* Veg/Non-Veg indicator — top-right */}
+                <View style={{ position: 'absolute', top: 8, right: 8, zIndex: 10 }}>
+                  <VegIndicator isNonVeg={isNonVeg} isDark={isDark} />
+                </View>
+
+                {/* Closed overlay */}
+                {isStoreClosed && (
+                  <View style={{
+                    position: 'absolute', inset: 0,
+                    backgroundColor: 'rgba(0,0,0,0.5)',
+                    justifyContent: 'center', alignItems: 'center',
+                  }}>
+                    <View style={{ backgroundColor: '#fff', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 8 }}>
+                      <Text style={{ color: '#0f172a', fontSize: 10, fontWeight: '900', letterSpacing: 0.3 }}>Currently Closed</Text>
+                    </View>
+                  </View>
                 )}
               </View>
 
-            </View>
-          </Animated.View>
+              {/* Info */}
+              <View style={{ padding: 10, gap: 6 }}>
+                {/* Name */}
+                <Text
+                  numberOfLines={2}
+                  style={{
+                    fontSize: 12.5,
+                    fontWeight: '700',
+                    color: isDark ? '#fafafa' : '#0f172a',
+                    lineHeight: 16,
+                    minHeight: 32,
+                  }}
+                >
+                  {product.name}
+                </Text>
+
+                {/* Price + Action */}
+                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 8 }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, flex: 1 }}>
+                    {startingMrp > startingPrice && (
+                      <Text style={{ fontSize: 10.5, textDecorationLine: 'line-through', color: '#94a3b8', fontWeight: '500' }}>
+                        ₹{startingMrp}
+                      </Text>
+                    )}
+                    <Text style={{ fontSize: 14, fontWeight: '800', color: isDark ? '#fafafa' : '#0f172a' }}>
+                      ₹{startingPrice}
+                    </Text>
+                  </View>
+
+                  {/* ADD / Stepper */}
+                  <View style={{ width: is3Column ? 60 : 72, height: 28, justifyContent: 'center', alignItems: 'center' }}>
+                    {isStoreClosed ? (
+                      <View style={{
+                        width: '100%', height: '100%', borderRadius: 7,
+                        backgroundColor: isDark ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                        borderWidth: 1, borderColor: isDark ? 'rgba(255,255,255,0.1)' : '#e2e8f0',
+                        justifyContent: 'center', alignItems: 'center',
+                      }}>
+                        <Text style={{ color: isDark ? '#71717a' : '#64748b', fontSize: 9, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.3 }}>Closed</Text>
+                      </View>
+                    ) : (!resolvedIsAvailable || resolvedStock <= 0) ? (
+                      <Pressable
+                        onPress={() => { if (!notified) handleNotify(); }}
+                        style={({ pressed }) => ({
+                          width: '100%', height: '100%', borderRadius: 7,
+                          backgroundColor: notified ? (isDark ? 'rgba(16,185,129,0.12)' : '#ecfdf5') : (isDark ? THEME.COLORS.dark.surface : '#ffffff'),
+                          borderWidth: 1.5,
+                          borderColor: notified ? '#10b981' : THEME.COLORS.brand.accent,
+                          justifyContent: 'center', alignItems: 'center',
+                          opacity: pressed ? 0.7 : 1,
+                        })}
+                      >
+                        {notified ? (
+                          <Check size={14} color="#10b981" strokeWidth={3} />
+                        ) : (
+                          <Bell size={14} color={THEME.COLORS.brand.accent} strokeWidth={2.5} />
+                        )}
+                      </Pressable>
+                    ) : quantity === 0 ? (
+                      <AnimatedPressable
+                        onPress={handleAdd}
+                        onPressIn={() => { addScale.value = withSpring(0.9, { damping: 15, stiffness: 400 }); }}
+                        onPressOut={() => { addScale.value = withSpring(1, { damping: 15, stiffness: 400 }); }}
+                        style={[
+                          {
+                            width: '100%', height: '100%', borderRadius: 7,
+                            backgroundColor: THEME.COLORS.brand.accent,
+                            justifyContent: 'center', alignItems: 'center',
+                            flexDirection: 'row', gap: 3,
+                            ...Platform.select({ ios: { shadowColor: '#e20a22', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 5 }, android: { elevation: 2 } }),
+                          },
+                          animatedAddStyle,
+                        ]}
+                      >
+                        <Text style={{ color: '#ffffff', fontSize: 10.5, fontWeight: '800', letterSpacing: 0.3 }}>ADD</Text>
+                        <Plus size={10} color="#ffffff" strokeWidth={3} />
+                      </AnimatedPressable>
+                    ) : (
+                      <Animated.View
+                        entering={FadeIn.duration(100)}
+                        style={{
+                          width: '100%', height: '100%', borderRadius: 8,
+                          borderWidth: 1.5, borderColor: THEME.COLORS.brand.accent,
+                          backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : '#fef2f2',
+                          flexDirection: 'row', alignItems: 'center', justifyContent: 'space-evenly',
+                        }}
+                      >
+                        <Pressable onPress={handleDecrement} hitSlop={{ top: 8, bottom: 8, left: 8, right: 4 }} style={({ pressed }) => ({
+                          flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: pressed ? 0.5 : 1,
+                        })}>
+                          <Minus size={11} color={THEME.COLORS.brand.accent} strokeWidth={4} />
+                        </Pressable>
+                        <Text style={{ color: isDark ? '#fafafa' : '#0f172a', fontSize: 12, fontWeight: '800' }}>{quantity}</Text>
+                        <Pressable onPress={handleIncrement} disabled={quantity >= resolvedStock} hitSlop={{ top: 8, bottom: 8, left: 4, right: 8 }} style={({ pressed }) => ({
+                          flex: 1, height: '100%', alignItems: 'center', justifyContent: 'center', opacity: quantity >= resolvedStock ? 0.3 : (pressed ? 0.5 : 1),
+                        })}>
+                          <Plus size={11} color={THEME.COLORS.brand.accent} strokeWidth={4} />
+                        </Pressable>
+                      </Animated.View>
+                    )}
+                  </View>
+                </View>
+              </View>
+            </Animated.View>
+          </Pressable>
         </Animated.View>
       </View>
     );
@@ -644,10 +595,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
   // ── GROCERY CARD — Swiggy / Blinkit Style ──────
   // ═══════════════════════════════════════════════════
   return (
-    <View 
+    <View
       style={resolvedStyle}
     >
-      <Animated.View entering={undefined} style={{ width: '100%' }}>
+      <Animated.View entering={FadeInDown.delay(Math.min(index, 6) * 50).springify().damping(15).stiffness(120)} style={{ width: '100%' }}>
         <Animated.View 
           style={[
           { 
@@ -695,12 +646,16 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
             padding: THEME.SPACING.sm,
           }}
         >
+          <Animated.View
+            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: THEME.SPACING.sm }}
+            sharedTransitionTag={`product-image-${product.id}`}
+          >
           {/* Product Image */}
           {imageSource ? (
             <ExpoImage
               source={imageSource}
               contentFit="contain"
-              style={{ width: '100%', height: '100%' }}
+              style={{ width: '100%', height: '100%', opacity: !resolvedIsAvailable ? 0.45 : 1 }}
               transition={250}
               cachePolicy="memory-disk"
               placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
@@ -712,6 +667,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               <Text style={{ fontSize: 9, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.3 }}>No Image</Text>
             </View>
           )}
+          </Animated.View>
 
           {/* Discount Badge — top-left */}
           {resolvedDiscount > 0 && (
@@ -779,7 +735,17 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
           )}
 
           {/* ── ADD / Stepper button overlaid at bottom-right of image ── */}
-          <View style={{ position: 'absolute', right: 8, bottom: 8, zIndex: 20, width: isStoreClosed ? 56 : 36, height: isStoreClosed ? 25 : 36 }}>
+          <Animated.View 
+            layout={LinearTransition.springify().damping(15).stiffness(150)}
+            style={{ 
+              position: 'absolute', 
+              right: 8, 
+              bottom: 8, 
+              zIndex: 20, 
+              width: isStoreClosed ? 56 : (!resolvedIsAvailable ? 36 : (quantity > 0 ? 90 : 36)), 
+              height: isStoreClosed ? 25 : 36,
+            }}
+          >
             {isStoreClosed ? (
               <View 
                 style={{
@@ -795,22 +761,46 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               >
                 <Text style={{ color: isDark ? '#a1a1aa' : '#64748b', fontSize: 8.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.2 }}>Closed</Text>
               </View>
-            ) : (!resolvedIsAvailable) ? (
-              <Pressable
+            ) : (!resolvedIsAvailable || resolvedStock <= 0) ? (
+              <AnimatedPressable
                 onPress={() => { if (!notified) handleNotify(); }}
-                style={{
-                  width: '100%',
-                  height: '100%',
-                  borderRadius: 10,
-                  backgroundColor: isDark ? THEME.COLORS.dark.surfaceElevated : '#fffbeb',
-                  borderWidth: 1.5,
-                  borderColor: THEME.COLORS.brand.warning,
-                  justifyContent: 'center',
-                  alignItems: 'center',
+                onPressIn={() => {
+                  addScale.value = withSpring(SCALE.addButton, SPRING.snappy);
                 }}
+                onPressOut={() => {
+                  addScale.value = withSpring(1, SPRING.snappy);
+                }}
+                style={[
+                  {
+                    width: '100%',
+                    height: '100%',
+                    borderRadius: 10,
+                    backgroundColor: notified 
+                      ? (isDark ? 'rgba(16,185,129,0.15)' : '#ecfdf5')
+                      : (isDark ? THEME.COLORS.dark.surface : '#ffffff'),
+                    borderWidth: 1.5,
+                    borderColor: notified ? '#10b981' : THEME.COLORS.brand.primary,
+                    justifyContent: 'center',
+                    alignItems: 'center',
+                    ...Platform.select<any>({
+                      ios: {
+                        shadowColor: notified ? '#10b981' : THEME.COLORS.brand.primary,
+                        shadowOffset: { width: 0, height: 2 },
+                        shadowOpacity: 0.15,
+                        shadowRadius: 4,
+                      },
+                      android: { elevation: 2 }
+                    })
+                  },
+                  animatedAddStyle
+                ]}
               >
-                <Text style={{ fontSize: 14 }}>{notified ? '✓' : '🔔'}</Text>
-              </Pressable>
+                {notified ? (
+                  <Check size={18} color="#10b981" strokeWidth={3} />
+                ) : (
+                  <Bell size={18} color={THEME.COLORS.brand.primary} strokeWidth={2.5} />
+                )}
+              </AnimatedPressable>
             ) : quantity === 0 ? (
               <AnimatedPressable
                 onPress={handleAdd}
@@ -846,79 +836,68 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 <Plus size={18} color={THEME.COLORS.brand.primary} strokeWidth={3} />
               </AnimatedPressable>
             ) : (
-              /* Stepper overlay renders separately below */
-              null
+              <Animated.View
+                entering={FadeIn.duration(120)}
+                exiting={FadeOut.duration(120)}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  borderRadius: 10,
+                  borderWidth: 1.5,
+                  borderColor: THEME.COLORS.brand.primary,
+                  backgroundColor: isDark ? THEME.COLORS.dark.surface : '#ffffff',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-evenly',
+                  ...Platform.select<any>({
+                    ios: {
+                      shadowColor: THEME.COLORS.brand.primary,
+                      shadowOffset: { width: 0, height: 2 },
+                      shadowOpacity: 0.12,
+                      shadowRadius: 4,
+                    },
+                    android: { elevation: 3 }
+                  })
+                }}
+              >
+                {/* Decrement */}
+                <Pressable 
+                  onPress={handleDecrement} 
+                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 5 }}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    height: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: pressed ? 0.5 : 1
+                  })}
+                >
+                  <Minus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
+                </Pressable>
+
+                {/* Quantity */}
+                <View style={{ paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 14, fontWeight: '700' }}>{quantity}</Text>
+                </View>
+
+                {/* Increment */}
+                <Pressable
+                  onPress={handleIncrement}
+                  disabled={quantity >= resolvedStock}
+                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
+                  style={({ pressed }) => ({
+                    flex: 1,
+                    height: '100%',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    opacity: quantity >= resolvedStock ? 0.3 : (pressed ? 0.5 : 1)
+                  })}
+                >
+                  <Plus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
+                </Pressable>
+              </Animated.View>
             )}
-          </View>
-
-          {/* Stepper overlay — wider, shows when quantity > 0 */}
-          {quantity > 0 && !isStoreClosed && resolvedIsAvailable && (
-            <Animated.View
-              entering={FadeIn.duration(120)}
-              exiting={FadeOut.duration(120)}
-              style={{
-                position: 'absolute',
-                right: 6,
-                bottom: 6,
-                zIndex: 25,
-                width: 90,
-                height: 34,
-                borderRadius: 10,
-                borderWidth: 1.5,
-                borderColor: THEME.COLORS.brand.primary,
-                backgroundColor: isDark ? THEME.COLORS.dark.surface : '#ffffff',
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-evenly',
-                overflow: 'hidden',
-                ...Platform.select<any>({
-                  ios: {
-                    shadowColor: THEME.COLORS.brand.primary,
-                    shadowOffset: { width: 0, height: 2 },
-                    shadowOpacity: 0.12,
-                    shadowRadius: 4,
-                  },
-                  android: { elevation: 3 }
-                })
-              }}
-            >
-              {/* Decrement */}
-              <Pressable 
-                onPress={handleDecrement} 
-                hitSlop={{ top: 10, bottom: 10, left: 10, right: 5 }}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: pressed ? 0.5 : 1
-                })}
-              >
-                <Minus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
-              </Pressable>
-
-              {/* Quantity */}
-              <View style={{ paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' }}>
-                <Text style={{ color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 14, fontWeight: '700' }}>{quantity}</Text>
-              </View>
-
-              {/* Increment */}
-              <Pressable
-                onPress={handleIncrement}
-                disabled={quantity >= resolvedStock}
-                hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
-                style={({ pressed }) => ({
-                  flex: 1,
-                  height: '100%',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  opacity: quantity >= resolvedStock ? 0.3 : (pressed ? 0.5 : 1)
-                })}
-              >
-                <Plus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
-              </Pressable>
-            </Animated.View>
-          )}
+          </Animated.View>
         </Pressable>
 
         {/* ── Product Info below image ── */}
@@ -940,22 +919,29 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
           {/* Unit or Variant pill */}
           <View style={{ marginTop: 4 }}>
             {hasVariants ? (
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                alignSelf: 'flex-start',
-                backgroundColor: isDark ? 'rgba(226,10,34,0.08)' : '#fff1f2', 
-                paddingHorizontal: 8, 
-                paddingVertical: 3, 
-                borderRadius: 6, 
-                borderWidth: 1, 
-                borderColor: isDark ? 'rgba(226,10,34,0.2)' : '#fecdd3',
-              }}>
+              <ScalePressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  setActiveVariantProduct(product);
+                }}
+                scaleValue={0.96}
+                style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  alignSelf: 'flex-start',
+                  backgroundColor: isDark ? 'rgba(226,10,34,0.08)' : '#fff1f2', 
+                  paddingHorizontal: 8, 
+                  paddingVertical: 3, 
+                  borderRadius: 6, 
+                  borderWidth: 1, 
+                  borderColor: isDark ? 'rgba(226,10,34,0.2)' : '#fecdd3',
+                }}
+              >
                 <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 10, fontWeight: '700' }}>
                   {variantsList.length} Option{variantsList.length > 1 ? 's' : ''}
                 </Text>
                 <ChevronDown size={8} color={THEME.COLORS.brand.primary} style={{ marginLeft: 2 }} />
-              </View>
+              </ScalePressable>
             ) : (
               <View style={{ 
                 alignSelf: 'flex-start',

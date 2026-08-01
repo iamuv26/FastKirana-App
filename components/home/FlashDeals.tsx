@@ -5,6 +5,7 @@ import { ChevronRight } from 'lucide-react-native';
 import { triggerHaptic } from '../../lib/haptic';
 import { useTheme } from '../../app/context/ThemeContext';
 import { THEME } from '../../lib/theme';
+import { isCafeProduct, isRestaurantProduct } from '../../lib/utils';
 
 interface FlashDealsProps {
   products: Product[];
@@ -44,7 +45,7 @@ export default function FlashDeals({ products }: FlashDealsProps) {
   // Filter products that have discounts for deals
   const dealProducts = useMemo(() => {
     return products
-      .filter((p) => p.isAvailable !== false && p.discount > 0 && !(p.category?.slug === 'cafe' || p.tags?.includes('cafe') || p.id.startsWith('c')))
+      .filter((p) => p.isAvailable !== false && p.discount > 0 && !(isCafeProduct(p) || isRestaurantProduct(p) || /^c\d+$/.test(p.id)))
       .slice(0, 8);
   }, [products]);
 

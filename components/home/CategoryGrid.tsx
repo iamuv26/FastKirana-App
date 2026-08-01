@@ -2,6 +2,7 @@ import { View, Text, Pressable, Platform, ScrollView, StyleSheet, Image as RNIma
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { useQuery } from '@tanstack/react-query';
+import { queryKeys } from '../../lib/query-keys';
 import { useMemo } from 'react';
 import { API_BASE_URL } from '../../lib/constants';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
@@ -31,6 +32,27 @@ const LOCAL_CONFIGS: Record<string, LocalConfig> = {
   'personal-care': { name: 'Personal\nCare', image: require('../../assets/personal_care_category.webp'), colors: ['#fdf2f8', '#fce7f3'], darkColors: ['#831843', '#500724'] },
   'household': { name: 'Home\nCleaners', image: require('../../assets/household_category.webp'), colors: ['#ecfeff', '#cffafe'], darkColors: ['#164e63', '#083344'] },
 };
+
+// Server→slug mapper used only for edge-case names the backend might send
+const SERVER_SLUG_MAP: Record<string, string> = {
+  'fruits': 'fruits-vegetables',
+  'vegetables': 'fruits-vegetables',
+  'dairy': 'dairy-breakfast',
+  'atta': 'grocery-essential',
+  'rice': 'grocery-essential',
+  'dal': 'grocery-essential',
+  'snacks': 'snacks-biscuits',
+  'biscuits': 'snacks-biscuits',
+  'drinks': 'beverages',
+  'icecream': 'ice-cream',
+};
+
+function resolveSlug(name: string, slug: string): string {
+  const lower = slug.toLowerCase();
+  if (LOCAL_CONFIGS[lower]) return lower;
+  if (SERVER_SLUG_MAP[lower]) return SERVER_SLUG_MAP[lower];
+  return lower;
+}
 
 function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category: any; index: number; isDarkMode: boolean; itemWidth?: any }) {
   const scale = useSharedValue(1);
@@ -153,71 +175,86 @@ export default function CategoryGrid() {
   const isDarkMode = theme === 'dark';
 
   const { data: serverCategories = [] } = useQuery<any[]>({
-    queryKey: ['categories-list'],
+    queryKey: queryKeys.categories.trending(),
     queryFn: async () => {
+      // Try /categories?trending=true first (preferred)
+      try {
+        const res = await fetch(`${API_BASE_URL}/categories?trending=true`);
+        if (res.ok) {
+          const data = await res.json();
+          if (Array.isArray(data) && data.length > 0) return data;
+        }
+      } catch {
+        // fall through to fallback
+      }
+      // Fallback: fetch all categories and filter by isTrending flag
       const res = await fetch(`${API_BASE_URL}/categories`);
       if (!res.ok) throw new Error('API failed');
-      return res.json();
+      const data = await res.json();
+      if (!Array.isArray(data)) return [];
+      return data.filter((c: any) => c.isTrending !== false);
     },
     initialData: [],
     staleTime: 1000 * 60 * 15, // 15 mins cache validity
   });
 
   const displayCategories = useMemo(() => {
-    if (serverCategories && serverCategories.length > 0) {
-      const serverSlugs = new Set(serverCategories.map(c => c.slug));
-      
-      const list = serverCategories.map(serverCat => {
-        const local = LOCAL_CONFIGS[serverCat.slug] || {
-          name: serverCat.name,
-          image: null,
-          colors: ['#f0fdf4', '#dcfce7'] as [string, string],
-          darkColors: ['#064e3b', '#022c22'] as [string, string]
-        };
+    if (serverCategories && Array.isArray(serverCategories) && serverCategories.length > 0) {
+      try {
+        // Filter: trending = true (or undefined, meaning we already got only trending via query param)
+        const trending = serverCategories.filter(
+          (c: any) => c && c.slug && (c.isTrending === true || c.isTrending === undefined)
+        );
 
-        const source = serverCat.imageUrl 
-          ? getAppImageSource(serverCat.imageUrl) 
-          : local.image;
+        // Sort by displayOrder / sortOrder (lowest first)
+        const sorted = [...trending].sort((a: any, b: any) => {
+          const ao = typeof a.displayOrder === 'number' ? a.displayOrder :
+                     typeof a.sortOrder === 'number' ? a.sortOrder : 999;
+          const bo = typeof b.displayOrder === 'number' ? b.displayOrder :
+                     typeof b.sortOrder === 'number' ? b.sortOrder : 999;
+          return ao - bo;
+        });
 
-        // Check if imageUrl is actually an emoji
-        const isEmoji = serverCat.imageUrl && 
-                        serverCat.imageUrl.length < 5 && 
-                        !serverCat.imageUrl.startsWith('http') && 
-                        !serverCat.imageUrl.startsWith('/');
-        const emoji = isEmoji ? serverCat.imageUrl : null;
+        const list = sorted.map((serverCat: any) => {
+          const normalizedSlug = resolveSlug(serverCat.name || '', serverCat.slug);
+          const local = LOCAL_CONFIGS[normalizedSlug] || {
+            name: serverCat.name,
+            image: null,
+            colors: ['#f0fdf4', '#dcfce7'] as [string, string],
+            darkColors: ['#064e3b', '#022c22'] as [string, string]
+          };
 
-        const rawName = serverCat.name || local.name;
-        const isCafe = serverCat.slug.toLowerCase().includes('cafe') || 
-                       serverCat.slug.toLowerCase().includes('café') ||
-                       rawName.toLowerCase().includes('cafe') || 
-                       rawName.toLowerCase().includes('café');
+          const source = serverCat.imageUrl
+            ? getAppImageSource(serverCat.imageUrl)
+            : local.image;
 
-        return {
-          name: isCafe ? 'Food' : rawName,
-          slug: serverCat.slug,
-          colors: isCafe ? ['#fff7ed', '#ffedd5'] as [string, string] : local.colors,
-          darkColors: isCafe ? ['#7c2d12', '#431407'] as [string, string] : local.darkColors,
-          source: isCafe ? null : (emoji ? null : source),
-          emoji: isCafe ? '🍔' : emoji
-        };
-      });
+          // Check if imageUrl is actually an emoji
+          const isEmoji = serverCat.imageUrl &&
+                          serverCat.imageUrl.length < 5 &&
+                          !serverCat.imageUrl.startsWith('http') &&
+                          !serverCat.imageUrl.startsWith('/');
+          const emoji = isEmoji ? serverCat.imageUrl : null;
 
-      // Append local configs not in server list
-      Object.keys(LOCAL_CONFIGS).forEach(slug => {
-        if (!serverSlugs.has(slug)) {
-          const local = LOCAL_CONFIGS[slug];
-          list.push({
-            name: local.name,
-            slug: slug,
-            colors: local.colors,
-            darkColors: local.darkColors,
-            source: local.image,
-            emoji: null
-          });
-        }
-      });
+          const rawName = serverCat.name || local.name || '';
+          const isCafe = normalizedSlug.toLowerCase().includes('cafe') ||
+                         normalizedSlug.toLowerCase().includes('café') ||
+                         rawName.toLowerCase().includes('cafe') ||
+                         rawName.toLowerCase().includes('café');
 
-      return list;
+          return {
+            name: isCafe ? 'Food' : rawName,
+            slug: normalizedSlug,
+            colors: isCafe ? ['#fff7ed', '#ffedd5'] as [string, string] : local.colors,
+            darkColors: isCafe ? ['#7c2d12', '#431407'] as [string, string] : local.darkColors,
+            source: isCafe ? null : (emoji ? null : source),
+            emoji: isCafe ? '🍔' : emoji
+          };
+        });
+
+        if (list.length > 0) return list;
+      } catch (err) {
+        console.warn('Failed to parse server categories, falling back:', err);
+      }
     }
 
     // Fallback: If empty, show hardcoded

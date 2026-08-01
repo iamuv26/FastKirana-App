@@ -34,7 +34,8 @@ import { useAuthStore } from '../stores/auth-store';
 import { useCartActions } from '../hooks/use-cart';
 import { API_BASE_URL, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../lib/constants';
 import { api } from '../lib/api-client';
-import { formatPrice } from '../lib/utils';
+import { formatPrice, formatDisplayOrderId } from '../lib/utils';
+import { useResponsive, getCenteredContainerStyle } from '../lib/responsive';
 import { toast } from '../lib/toast';
 import { triggerHaptic } from '../lib/haptic';
 import { useTheme } from './context/ThemeContext';
@@ -55,6 +56,7 @@ interface OrderItem {
 
 interface Order {
   id: string;
+  readableId?: number | null;
   status: string;
   total: number;
   createdAt: string;
@@ -67,6 +69,7 @@ export default function OrdersScreen() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
   const { width } = useWindowDimensions();
+  const responsive = useResponsive();
 
   const [orders, setOrders] = useState<Order[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -184,7 +187,7 @@ export default function OrdersScreen() {
         category: null,
       });
     });
-    toast.success(`Readded items from Order #${order.id.slice(-6).toUpperCase()} 🛍️`);
+    toast.success(`Readded items from Order #${formatDisplayOrderId(order.id, order.readableId)} 🛍️`);
     router.push('/(tabs)');
   };
 
@@ -231,7 +234,7 @@ export default function OrdersScreen() {
           <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
         </ScalePressable>
         
-        <Text style={[styles.headerTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+        <Text style={[styles.headerTitle, isDarkMode ? styles.textDark : styles.textLight]}>
           My Orders
         </Text>
 
@@ -286,9 +289,14 @@ export default function OrdersScreen() {
       </View>
 
       {/* Main Content Area */}
-      <ScrollView 
-        style={styles.scrollView} 
-        contentContainerStyle={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 100 }}
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={{
+          paddingHorizontal: responsive.spacing.page,
+          paddingTop: responsive.spacing.card,
+          paddingBottom: 100,
+          ...getCenteredContainerStyle(responsive),
+        }}
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
@@ -303,7 +311,7 @@ export default function OrdersScreen() {
           liveOrders.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 44 }}>🛵</Text>
-              <Text style={[styles.emptyTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+              <Text style={[styles.emptyTitle, isDarkMode ? styles.textDark : styles.textLight]}>
                 No Active Orders
               </Text>
               <Text style={[styles.emptySub, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
@@ -328,11 +336,11 @@ export default function OrdersScreen() {
                   style={[styles.orderCard, isDarkMode ? styles.orderCardDark : styles.orderCardLight]}
                 >
                   {/* Top Live Bar Header */}
-                  <View style={styles.cardHeaderRow}>
-                    <View>
+                  <View style={[styles.cardHeaderRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
                       <Text style={styles.orderIdLabel}>ACTIVE ORDER</Text>
-                      <Text style={[styles.orderIdValue, isDarkMode ? styles.textLight : styles.textDark]}>
-                        #{order.id.slice(-8).toUpperCase()}
+                      <Text style={[styles.orderIdValue, isDarkMode ? styles.textDark : styles.textLight]}>
+                        #{formatDisplayOrderId(order.id, order.readableId)}
                       </Text>
                     </View>
 
@@ -342,44 +350,60 @@ export default function OrdersScreen() {
                   {/* Items List */}
                   <View style={styles.cardItemsWrap}>
                     <Text numberOfLines={2} style={[styles.itemSummaryText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
-                      {order.items.map(it => `${it.name} (${it.quantity}x)`).join(', ')}
+                      {order.items.map(it => `${it.name} (${it.quantity}x)`).join('  •  ')}
                     </Text>
                   </View>
 
                   {/* Stage Progress Visual */}
-                  <View style={styles.progressRow}>
+                  <View style={[styles.progressRow, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(16, 185, 129, 0.04)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(16, 185, 129, 0.08)' }]}>
                     <View style={styles.progressStep}>
                       <View style={[styles.stepIconCircle, { backgroundColor: '#dcfce7' }]}>
                         <CheckCircle2 size={13} color="#16a34a" />
                       </View>
-                      <Text style={styles.stepText}>Confirmed</Text>
+                      <Text style={[styles.stepText, { color: isDarkMode ? '#e4e4e7' : '#0f172a' }]}>Confirmed</Text>
                     </View>
-                    <View style={styles.progressLine} />
+                    <View style={[
+                      styles.progressLine, 
+                      { backgroundColor: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#16a34a' : (isDarkMode ? '#27272a' : '#e2e8f0') }
+                    ]} />
                     
                     <View style={styles.progressStep}>
                       <View style={[
                         styles.stepIconCircle, 
-                        { backgroundColor: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#dcfce7' : '#f1f5f9' }
+                        { backgroundColor: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#dcfce7' : (isDarkMode ? '#27272a' : '#f1f5f9') }
                       ]}>
                         <Package size={13} color={['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#16a34a' : '#94a3b8'} />
                       </View>
-                      <Text style={styles.stepText}>Packed</Text>
+                      <Text style={[
+                        styles.stepText, 
+                        { color: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) 
+                            ? (isDarkMode ? '#e4e4e7' : '#0f172a') 
+                            : (isDarkMode ? '#52525b' : '#94a3b8') }
+                      ]}>Packed</Text>
                     </View>
-                    <View style={styles.progressLine} />
+                    <View style={[
+                      styles.progressLine, 
+                      { backgroundColor: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#2563eb' : (isDarkMode ? '#27272a' : '#e2e8f0') }
+                    ]} />
 
                     <View style={styles.progressStep}>
                       <View style={[
                         styles.stepIconCircle, 
-                        { backgroundColor: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#eff6ff' : '#f1f5f9' }
+                        { backgroundColor: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#eff6ff' : (isDarkMode ? '#27272a' : '#f1f5f9') }
                       ]}>
                         <Truck size={13} color={['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#2563eb' : '#94a3b8'} />
                       </View>
-                      <Text style={styles.stepText}>On the way</Text>
+                      <Text style={[
+                        styles.stepText, 
+                        { color: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) 
+                            ? (isDarkMode ? '#e4e4e7' : '#0f172a') 
+                            : (isDarkMode ? '#52525b' : '#94a3b8') }
+                      ]}>On the way</Text>
                     </View>
                   </View>
 
                   {/* Footer Row */}
-                  <View style={styles.cardFooterRow}>
+                  <View style={[styles.cardFooterRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                       <Clock size={12} color={isDarkMode ? '#71717a' : '#94a3b8'} />
                       <Text style={[styles.timestampText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
@@ -388,11 +412,11 @@ export default function OrdersScreen() {
                     </View>
 
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={[styles.totalAmount, isDarkMode ? styles.textLight : styles.textDark]}>
+                      <Text style={[styles.totalAmount, isDarkMode ? styles.textDark : styles.textLight]}>
                         {formatPrice(order.total)}
                       </Text>
                       <View style={styles.trackBtn}>
-                        <Text style={styles.trackBtnText}>Track Order</Text>
+                        <Text style={styles.trackBtnText}>Track</Text>
                         <ChevronRight size={13} color="#ffffff" />
                       </View>
                     </View>
@@ -406,7 +430,7 @@ export default function OrdersScreen() {
           historyOrders.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 44 }}>📜</Text>
-              <Text style={[styles.emptyTitle, isDarkMode ? styles.textLight : styles.textDark]}>
+              <Text style={[styles.emptyTitle, isDarkMode ? styles.textDark : styles.textLight]}>
                 No Past Orders
               </Text>
               <Text style={[styles.emptySub, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
@@ -423,10 +447,10 @@ export default function OrdersScreen() {
                   style={[styles.orderCard, isDarkMode ? styles.orderCardDark : styles.orderCardLight]}
                 >
                   {/* Top Bar Header */}
-                  <View style={styles.cardHeaderRow}>
-                    <View>
-                      <Text style={styles.orderIdLabel}>ORDER #{order.id.slice(-8).toUpperCase()}</Text>
-                      <Text style={[styles.timestampText, isDarkMode ? styles.subtextDark : styles.subtextLight, { marginTop: 2 }]}>
+                  <View style={[styles.cardHeaderRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                    <View style={{ flex: 1, marginRight: 12 }}>
+                      <Text style={styles.orderIdLabel}>ORDER #{formatDisplayOrderId(order.id, order.readableId)}</Text>
+                      <Text style={[styles.timestampText, isDarkMode ? styles.subtextDark : styles.subtextLight, { marginTop: 4 }]}>
                         {new Date(order.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -443,13 +467,13 @@ export default function OrdersScreen() {
                   {/* Items List */}
                   <View style={styles.cardItemsWrap}>
                     <Text numberOfLines={2} style={[styles.itemSummaryText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
-                      {order.items.map(it => `${it.name} (${it.quantity}x)`).join(', ')}
+                      {order.items.map(it => `${it.name} (${it.quantity}x)`).join('  •  ')}
                     </Text>
                   </View>
 
                   {/* Footer Row */}
-                  <View style={styles.cardFooterRow}>
-                    <Text style={[styles.totalAmount, isDarkMode ? styles.textLight : styles.textDark]}>
+                  <View style={[styles.cardFooterRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                    <Text style={[styles.totalAmount, isDarkMode ? styles.textDark : styles.textLight]}>
                       {formatPrice(order.total)}
                     </Text>
 
@@ -467,7 +491,7 @@ export default function OrdersScreen() {
 
               {/* Buy Again Section */}
               <View style={{ marginTop: 8 }}>
-                <BuyAgainSection />
+                <BuyAgainSection orders={orders} />
               </View>
             </View>
           )
@@ -641,7 +665,10 @@ const styles = StyleSheet.create({
   orderCard: {
     borderRadius: 20,
     borderWidth: 1.2,
-    padding: 14,
+    padding: 16,
+    flexDirection: 'column',
+    alignItems: 'stretch',
+    justifyContent: 'flex-start',
     ...Platform.select({
       ios: {
         shadowColor: '#000',

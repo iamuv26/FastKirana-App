@@ -17,6 +17,8 @@ import { useCart } from '../../hooks/use-cart';
 import { API_BASE_URL } from '../../lib/constants';
 import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
+import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 import { THEME } from '../../lib/theme';
 
 import { triggerHaptic } from '../../lib/haptic';
@@ -38,6 +40,11 @@ import Animated, {
   withTiming,
   withSequence,
   cancelAnimation,
+  FadeIn,
+  FadeOut,
+  ZoomIn,
+  ZoomOut,
+  FadeInDown,
 } from 'react-native-reanimated';
 
 const TypedFlashList = FlashList as any;
@@ -124,6 +131,7 @@ function VoicePulse() {
 export default function SearchScreen() {
   const { theme, toggleTheme } = useTheme();
   const isDark = theme === 'dark';
+  const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
 
@@ -178,7 +186,7 @@ export default function SearchScreen() {
     },
   });
 
-  // Query search endpoint with 5s Live Stock Poll Interval
+  // Query search endpoint with 30s Cache (No aggressive polling to prevent typing and scroll lag)
   const { data: serverResults = [], isLoading } = useQuery<Product[]>({
     queryKey: ['search-products-tab', debouncedQuery, validStoreId],
     queryFn: async () => {
@@ -189,7 +197,7 @@ export default function SearchScreen() {
       return Array.isArray(data) ? data : (data.products || []);
     },
     enabled: !!debouncedQuery && debouncedQuery.trim().length > 0,
-    refetchInterval: 5000, // Real-time stock counts polling
+    staleTime: 30000, // 30s cache
   });
 
   const saveToHistory = (query: string) => {
@@ -348,7 +356,9 @@ export default function SearchScreen() {
     return combined;
   };
 
-  const resultsList = getSearchResults();
+  const resultsList = useMemo(() => {
+    return getSearchResults();
+  }, [searchQuery, allProducts, serverResults]);
   const cartItemCount = getTotalItems();
   const cartSubtotal = getSubtotal();
 
@@ -388,72 +398,8 @@ export default function SearchScreen() {
         }}
       >
         <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: 12, paddingBottom: 12 }}>
-          {/* Top Row: Location & Theme */}
-          <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 }}>
-            {/* Left: Brand Logo & Text */}
-            <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-              <View style={{ 
-                backgroundColor: isDark ? '#18181b' : '#f1f5f9', 
-                width: 32,
-                height: 32,
-                justifyContent: 'center',
-                alignItems: 'center',
-                borderRadius: 8, 
-                borderWidth: 1, 
-                borderColor: isDark ? '#27272a' : '#e2e8f0',
-                flexShrink: 0
-              }}>
-                <Logo size={22} />
-              </View>
-              <View style={{ marginLeft: 6 }}>
-                <Text style={{ fontSize: 16, fontWeight: '900', letterSpacing: -0.5, lineHeight: 18 }}>
-                  <Text style={{ color: isDark ? '#fafafa' : '#0f172a' }}>Fast</Text>
-                  <Text style={{ color: '#e20a22' }}>Kirana</Text>
-                </Text>
-                <Text style={{ fontSize: 7, fontWeight: '900', color: '#16a34a', letterSpacing: 0.3, marginTop: 0 }}>
-                  DELIVERY APP
-                </Text>
-              </View>
-            </View>
-
-            {/* Right: Location Capsule Picker */}
-            <ScalePressable 
-              onPress={() => {
-                router.push('/location-picker');
-              }}
-              scaleValue={0.96}
-              style={{
-                maxWidth: '60%'
-              }}
-            >
-              <View style={{ 
-                flexDirection: 'row', 
-                alignItems: 'center', 
-                backgroundColor: isDark ? 'rgba(226,10,34,0.1)' : '#fff5f5', 
-                borderWidth: 1, 
-                borderColor: isDark ? 'rgba(226,10,34,0.25)' : '#fecdd3', 
-                borderRadius: THEME.RADIUS.pill, 
-                paddingHorizontal: 8, 
-                paddingVertical: 5,
-                justifyContent: 'center',
-              }}>
-                <MapPin size={11} color={THEME.COLORS.brand.primary} style={{ flexShrink: 0, marginRight: 3 }} />
-                <Text 
-                  numberOfLines={1} 
-                  style={{ 
-                    fontSize: 10, 
-                    fontWeight: '700', 
-                    color: isDark ? '#fafafa' : '#0f172a',
-                    flexShrink: 1,
-                    marginRight: 3
-                  }}
-                >
-                  {formatHeaderAddress(selectedLocation)}
-                </Text>
-                <ChevronDown size={8} color={isDark ? '#cbd5e1' : '#64748b'} style={{ flexShrink: 0 }} />
-              </View>
-            </ScalePressable>
-          </View>
+          {/* Top Row: Standardized Branded Header & Location */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 10 }} />
 
           {/* Bottom Row: Search Box Input */}
           <View 
@@ -598,6 +544,9 @@ export default function SearchScreen() {
             className="bg-white dark:bg-zinc-900 flex-1"
             contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
+            onScroll={onTabBarScroll}
+            onTouchStart={onTabBarTouchStart}
+            scrollEventThrottle={16}
           >
             {recentSearches.length > 0 && (
               <View className="mb-6">
@@ -886,8 +835,16 @@ export default function SearchScreen() {
 
       {/* Voice Search Pulse overlay modal */}
       {isListening && (
-        <View className="absolute inset-0 bg-zinc-950/90 z-50 items-center justify-center px-6">
-          <View className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl items-center w-80 shadow-2xl">
+        <Animated.View 
+          entering={FadeIn.duration(200)}
+          exiting={FadeOut.duration(200)}
+          className="absolute inset-0 bg-zinc-950/90 z-50 items-center justify-center px-6"
+        >
+          <Animated.View 
+            entering={ZoomIn.duration(250).springify().damping(15)}
+            exiting={ZoomOut.duration(200)}
+            className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl items-center w-80 shadow-2xl"
+          >
             <View className="w-20 h-20 rounded-full bg-rose-600/10 border-2 border-rose-500 items-center justify-center mb-6 relative">
               <VoicePulse />
               <Mic size={32} color="#f43f5e" />
@@ -914,8 +871,8 @@ export default function SearchScreen() {
             >
               <Text className="text-zinc-300 font-black text-xs uppercase">Cancel</Text>
             </ScalePressable>
-          </View>
-        </View>
+          </Animated.View>
+        </Animated.View>
       )}
 
       {/* Sticky Bottom Cart Bar */}

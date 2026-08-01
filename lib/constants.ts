@@ -2,35 +2,44 @@ import { Platform } from 'react-native';
 
 export const APP_NAME = 'FastKirana';
 export const APP_DESCRIPTION = 'Fast grocery delivery at your doorstep';
+export const SUPPORT_PHONE = '+917054470303';
 
-const getDevApiUrl = () => {
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      return `http://${hostname}:3000/api`;
-    }
-    return 'http://localhost:3000/api';
-  }
-  return 'http://192.168.31.206:3000/api';
-};
+// Single source of truth for the production API URL.
+// On Vercel: set EXPO_PUBLIC_API_BASE_URL in the project's Environment Variables.
+// Locally (web): when hostname is localhost/127.0.0.1, fall back to LAN dev server.
+const PRODUCTION_API_URL = 'https://www.fastkirana.in/api';
+const DEV_LAN_API_URL = (host: string) => `http://${host}:3000/api`;
 
-const getApiUrl = () => {
+const getApiUrl = (): string => {
+  // 1. Environment variable wins (set this on Vercel)
   try {
     if (typeof process !== 'undefined' && process.env && process.env.EXPO_PUBLIC_API_BASE_URL) {
-      return process.env.EXPO_PUBLIC_API_BASE_URL;
+      const url = process.env.EXPO_PUBLIC_API_BASE_URL.trim();
+      if (url) return url;
     }
-  } catch (e) {
-    console.warn('Failed to read process.env:', e);
+  } catch {
+    // ignore — process.env may throw in some runtimes
   }
-  if (Platform.OS === 'web') {
-    if (typeof window !== 'undefined' && window.location) {
-      const hostname = window.location.hostname;
-      if (hostname === 'localhost' || hostname === '127.0.0.1') {
-        return 'https://www.fastkirana.in/api';
-      }
+
+  // 2. Web platform: localhost → dev server, otherwise production
+  if (Platform.OS === 'web' && typeof window !== 'undefined' && window.location) {
+    const hostname = window.location.hostname || '';
+    if (hostname === 'localhost' || hostname === '127.0.0.1' || hostname === '') {
+      return DEV_LAN_API_URL(hostname || 'localhost');
     }
+    // Non-localhost web (i.e. *.vercel.app or fastkirana.in) → production API
+    return PRODUCTION_API_URL;
   }
-  return 'https://www.fastkirana.in/api';
+
+  // 3. Native (iOS / Android): always production in app store builds,
+  //    dev server when running locally via Expo.
+  if (typeof __DEV__ !== 'undefined' && __DEV__) {
+    if (Platform.OS === 'web') return DEV_LAN_API_URL('localhost');
+    if (Platform.OS === 'android') return 'http://10.0.2.2:3000/api';
+    return 'http://localhost:3000/api';
+  }
+
+  return PRODUCTION_API_URL;
 };
 
 export const API_BASE_URL = getApiUrl();

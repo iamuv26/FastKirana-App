@@ -251,7 +251,7 @@ export default function VariantSelectorDrawer() {
             { 
               backgroundColor: isDarkMode ? '#1e1e24' : '#ffffff',
               borderColor: isDarkMode ? '#2d2d34' : '#e2e8f0',
-              paddingBottom: Math.max(insets.bottom, 16) + 84,
+              paddingBottom: Math.max(insets.bottom, 16) + 20,
             }
           ]}
         >
@@ -292,19 +292,26 @@ export default function VariantSelectorDrawer() {
                 </Pressable>
               </View>
 
-              {/* Title label */}
-              <Text style={styles.sectionTitle}>
-                Select Option / Quantity
-              </Text>
+              {/* Title label with option count badge */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                <Text style={styles.sectionTitle}>
+                  Select Option / Quantity
+                </Text>
+                <View style={{ backgroundColor: isDarkMode ? 'rgba(226,10,34,0.15)' : '#fff1f2', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? 'rgba(226,10,34,0.3)' : '#fecdd3' }}>
+                  <Text style={{ color: '#e11d48', fontSize: 10, fontWeight: '800' }}>
+                    {variantsList.length} {variantsList.length === 1 ? 'OPTION AVAILABLE' : 'OPTIONS AVAILABLE'}
+                  </Text>
+                </View>
+              </View>
 
               {/* Variants Scroll view */}
               <ScrollView 
                 showsVerticalScrollIndicator={false}
                 style={styles.variantsScroll}
               >
-                {variantsList.map((v: any) => (
+                {variantsList.map((v: any, index: number) => (
                   <VariantRow
-                    key={v.name}
+                    key={v.name || index}
                     variant={v}
                     product={activeProduct}
                     cafeOpen={cafeOpen}
@@ -313,12 +320,24 @@ export default function VariantSelectorDrawer() {
                 ))}
               </ScrollView>
 
-              {/* Security Trust badge */}
+              {/* Continue Shopping Button */}
+              <Pressable
+                onPress={() => {
+                  triggerHaptic('light');
+                  setActiveProduct(null);
+                }}
+                className="mt-3 bg-[#e20a22] py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-sm active:opacity-90"
+              >
+                <Text className="text-white font-black text-xs tracking-widest uppercase">Continue Shopping</Text>
+              </Pressable>
+
+              {/* Security Trust badge - MOVED BELOW CONTINUE SHOPPING BUTTON */}
               <View style={[
                 styles.trustBadge,
                 { 
-                  borderColor: isDarkMode ? 'rgba(16,185,129,0.1)' : 'rgba(16,185,129,0.15)',
-                  backgroundColor: isDarkMode ? 'rgba(16,185,129,0.03)' : 'rgba(16,185,129,0.05)'
+                  marginTop: 14,
+                  borderColor: isDarkMode ? 'rgba(16,185,129,0.15)' : 'rgba(16,185,129,0.2)',
+                  backgroundColor: isDarkMode ? 'rgba(16,185,129,0.04)' : 'rgba(16,185,129,0.06)'
                 }
               ]}>
                 <ShieldCheck size={18} color="#10b981" style={{ marginTop: 2 }} />
@@ -331,17 +350,6 @@ export default function VariantSelectorDrawer() {
                   </Text>
                 </View>
               </View>
-
-              {/* Continue Shopping Button */}
-              <Pressable
-                onPress={() => {
-                  triggerHaptic('light');
-                  setActiveProduct(null);
-                }}
-                className="mt-5 bg-[#e20a22] py-3.5 rounded-2xl items-center justify-center flex-row gap-2 shadow-sm active:opacity-90"
-              >
-                <Text className="text-white font-black text-xs tracking-widest uppercase">Continue Shopping</Text>
-              </Pressable>
             </View>
           )}
         </View>
@@ -405,11 +413,11 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.5,
     color: '#94a3b8',
-    marginBottom: 12,
+    marginBottom: 0,
   },
   variantsScroll: {
-    maxHeight: 180,
-    marginBottom: 16,
+    maxHeight: 260,
+    marginBottom: 12,
   },
   variantRowContainer: {
     flexDirection: 'row',

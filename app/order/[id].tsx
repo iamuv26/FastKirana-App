@@ -3,13 +3,13 @@ import * as Clipboard from 'expo-clipboard';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect } from 'react';
-import { ArrowLeft, Check, Phone, ShieldCheck, MapPin, Truck, UserCheck, RefreshCw, ShoppingCart, Package, Copy, Star, Sparkles, X } from 'lucide-react-native';
+import { ArrowLeft, Check, Phone, ShieldCheck, MapPin, Truck, UserCheck, RefreshCw, ShoppingCart, Package, Copy, Star, Sparkles, X, Receipt, Clock } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { toast } from '../../lib/toast';
 import { useAuthStore } from '../../stores/auth-store';
 import { API_BASE_URL, ORDER_STATUS_LABELS } from '../../lib/constants';
 import { api } from '../../lib/api-client';
-import { formatPrice } from '../../lib/utils';
+import { formatPrice, formatDisplayOrderId } from '../../lib/utils';
 import { triggerHaptic } from '../../lib/haptic';
 import Confetti from '../../components/shared/Confetti';
 import { useTheme } from '../context/ThemeContext';
@@ -26,6 +26,7 @@ import Animated, {
   withSequence,
   interpolate,
   cancelAnimation,
+  Easing,
 } from 'react-native-reanimated';
 
 function OrderStatusSkeleton() {
@@ -180,41 +181,34 @@ const MAP_DARK_STYLE = [
   { "featureType": "water", "elementType": "geometry", "stylers": [{ "color": "#0c4a6e" }] }
 ];
 
+
+
 function TimelineDot({ completed, isActive, stepIndex, isCancelled }: { completed: boolean; isActive: boolean; stepIndex: number; isCancelled?: boolean }) {
-  const pulse = useSharedValue(0);
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
+  const scale = useSharedValue(1);
+  const opacity = useSharedValue(0.6);
 
   useEffect(() => {
     if (isActive) {
-      pulse.value = withRepeat(
-        withTiming(1, { duration: 1500 }),
-        -1,
-        false
-      );
-    } else {
-      pulse.value = 0;
+      scale.value = withRepeat(withTiming(2.2, { duration: 1400 }), -1, false);
+      opacity.value = withRepeat(withTiming(0, { duration: 1400 }), -1, false);
     }
-    return () => {
-      cancelAnimation(pulse);
-    };
   }, [isActive]);
 
-  const pulseStyle = useAnimatedStyle(() => {
-    return {
-      transform: [{ scale: interpolate(pulse.value, [0, 1], [1, 2.4]) }],
-      opacity: interpolate(pulse.value, [0, 0.1, 0.8, 1], [0, 0.5, 0.25, 0]),
-    };
-  });
+  const pulseStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+    opacity: opacity.value,
+  }));
 
-  const isDarkMode = useTheme().theme === 'dark';
-
+  const iconSize = 14;
   const renderIcon = () => {
-    const iconSize = 12;
     if (isCancelled) {
-      return <X size={iconSize} color="#ef4444" strokeWidth={2.8} />;
+      return <X size={iconSize} color="#ef4444" strokeWidth={3} />;
     }
     const iconColor = completed 
-      ? (isDarkMode ? '#34d399' : '#059669') 
-      : (isDarkMode ? '#71717a' : '#94a3b8');
+      ? '#ffffff' 
+      : (isActive ? '#ffffff' : (isDarkMode ? '#52525b' : '#94a3b8'));
 
     switch (stepIndex) {
       case 0:
@@ -233,31 +227,267 @@ function TimelineDot({ completed, isActive, stepIndex, isCancelled }: { complete
   };
 
   return (
-    <View style={{ width: 28, height: 28, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
+    <View style={{ width: 34, height: 34, alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
       {isActive && (
         <Animated.View
           style={[
             {
               position: 'absolute',
-              width: 28,
-              height: 28,
-              borderRadius: 14,
-              backgroundColor: isCancelled ? '#ef4444' : '#10b981',
+              width: 34,
+              height: 34,
+              borderRadius: 17,
+              backgroundColor: isCancelled ? 'rgba(239,68,68,0.3)' : 'rgba(16,185,129,0.3)',
             },
             pulseStyle,
           ]}
         />
       )}
       <View 
-        className={`w-7 h-7 rounded-full items-center justify-center z-10 border ${
-          isCancelled
-            ? 'bg-red-50 dark:bg-red-950/20 border-red-200 dark:border-red-900/35'
+        style={{
+          width: 32,
+          height: 32,
+          borderRadius: 16,
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 10,
+          backgroundColor: isCancelled 
+            ? (isDarkMode ? '#450a0a' : '#fef2f2')
             : completed 
-            ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-250 dark:border-emerald-900/35' 
-            : 'bg-slate-50 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'
-        }`}
+            ? '#10b981' 
+            : isActive 
+            ? '#059669' 
+            : (isDarkMode ? '#27272a' : '#f1f5f9'),
+          borderWidth: 2,
+          borderColor: isCancelled
+            ? '#ef4444'
+            : completed || isActive
+            ? '#ffffff'
+            : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+          shadowColor: completed || isActive ? '#10b981' : '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: completed || isActive ? 0.25 : 0.05,
+          shadowRadius: 4,
+          elevation: completed || isActive ? 3 : 1,
+        }}
       >
         {renderIcon()}
+      </View>
+    </View>
+  );
+}
+
+function AnimatedDeliveryRouteMap({ isDarkMode, shopName, destinationLabel }: { isDarkMode: boolean; shopName?: string; destinationLabel?: string }) {
+  const progress = useSharedValue(0.12);
+  const pulseScale = useSharedValue(1);
+  const pulseOpacity = useSharedValue(0.8);
+
+  useEffect(() => {
+    progress.value = withRepeat(
+      withTiming(0.88, { duration: 4500, easing: Easing.linear }),
+      -1,
+      false
+    );
+
+    pulseScale.value = withRepeat(
+      withTiming(2.2, { duration: 1200, easing: Easing.out(Easing.ease) }),
+      -1,
+      false
+    );
+
+    pulseOpacity.value = withRepeat(
+      withTiming(0, { duration: 1200, easing: Easing.out(Easing.ease) }),
+      -1,
+      false
+    );
+  }, []);
+
+  const riderAnimatedStyle = useAnimatedStyle(() => ({
+    left: `${progress.value * 100}%`,
+  }));
+
+  const pulseRingStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: pulseScale.value }],
+    opacity: pulseOpacity.value,
+  }));
+
+  return (
+    <View style={{
+      width: '100%',
+      height: 190,
+      borderRadius: 20,
+      overflow: 'hidden',
+      marginBottom: 16,
+      backgroundColor: isDarkMode ? '#18181b' : '#f8fafc',
+      borderWidth: 1,
+      borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+      position: 'relative',
+      ...Platform.select({
+        ios: {
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.08,
+          shadowRadius: 10,
+        },
+        android: { elevation: 3 }
+      })
+    }}>
+      {/* Map Street Grid Lines Background */}
+      <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0 }}>
+        <View style={{ position: 'absolute', top: 45, left: 0, right: 0, height: 14, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', opacity: 0.7 }} />
+        <View style={{ position: 'absolute', top: 125, left: 0, right: 0, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', opacity: 0.7 }} />
+        <View style={{ position: 'absolute', left: '32%', top: 0, bottom: 0, width: 14, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', opacity: 0.5 }} />
+        <View style={{ position: 'absolute', left: '68%', top: 0, bottom: 0, width: 14, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', opacity: 0.5 }} />
+      </View>
+
+      {/* Main Delivery Route Track Line */}
+      <View style={{
+        position: 'absolute',
+        top: 85,
+        left: 45,
+        right: 45,
+        height: 6,
+        borderRadius: 3,
+        backgroundColor: isDarkMode ? '#3f3f46' : '#cbd5e1',
+      }} />
+
+      {/* Origin Store Pin (Left) */}
+      <View style={{
+        position: 'absolute',
+        top: 60,
+        left: 16,
+        alignItems: 'center',
+        zIndex: 10,
+      }}>
+        <View style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: '#10b981',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          shadowColor: '#10b981',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
+          elevation: 4,
+        }}>
+          <Text style={{ fontSize: 20 }}>🏬</Text>
+        </View>
+        <View style={{
+          backgroundColor: isDarkMode ? 'rgba(39,39,42,0.95)' : '#ffffff',
+          borderRadius: 8,
+          paddingHorizontal: 7,
+          paddingVertical: 2.5,
+          marginTop: 4,
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+        }}>
+          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#e4e4e7' : '#1e293b' }}>
+            {shopName || 'Dark Store'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Destination Home Pin (Right) */}
+      <View style={{
+        position: 'absolute',
+        top: 60,
+        right: 16,
+        alignItems: 'center',
+        zIndex: 10,
+      }}>
+        <View style={{
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: '#e20a22',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          shadowColor: '#e20a22',
+          shadowOffset: { width: 0, height: 4 },
+          shadowOpacity: 0.3,
+          shadowRadius: 6,
+          elevation: 4,
+        }}>
+          <Text style={{ fontSize: 20 }}>🏠</Text>
+        </View>
+        <View style={{
+          backgroundColor: isDarkMode ? 'rgba(39,39,42,0.95)' : '#ffffff',
+          borderRadius: 8,
+          paddingHorizontal: 7,
+          paddingVertical: 2.5,
+          marginTop: 4,
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+        }}>
+          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#e4e4e7' : '#1e293b' }}>
+            {destinationLabel || 'Home'}
+          </Text>
+        </View>
+      </View>
+
+      {/* Moving Live Rider Marker */}
+      <Animated.View style={[{
+        position: 'absolute',
+        top: 61,
+        marginLeft: -22,
+        alignItems: 'center',
+        justifyContent: 'center',
+        zIndex: 20,
+      }, riderAnimatedStyle]}>
+        {/* Pulsing Outer Ring */}
+        <Animated.View style={[{
+          position: 'absolute',
+          width: 44,
+          height: 44,
+          borderRadius: 22,
+          backgroundColor: 'rgba(16, 185, 129, 0.4)',
+        }, pulseRingStyle]} />
+
+        {/* Rider Badge */}
+        <View style={{
+          width: 42,
+          height: 42,
+          borderRadius: 21,
+          backgroundColor: '#059669',
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 3,
+          borderColor: '#ffffff',
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 3 },
+          shadowOpacity: 0.25,
+          shadowRadius: 5,
+          elevation: 5,
+        }}>
+          <Text style={{ fontSize: 20 }}>🛵</Text>
+        </View>
+      </Animated.View>
+
+      {/* Top Left Live Status Pill */}
+      <View style={{
+        position: 'absolute',
+        top: 10,
+        left: 12,
+        backgroundColor: isDarkMode ? 'rgba(24, 24, 27, 0.9)' : 'rgba(255, 255, 255, 0.95)',
+        borderRadius: 12,
+        paddingHorizontal: 10,
+        paddingVertical: 4.5,
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 6,
+        borderWidth: 1,
+        borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+        zIndex: 30,
+      }}>
+        <View style={{ width: 7, height: 7, borderRadius: 3.5, backgroundColor: '#10b981' }} />
+        <Text style={{ fontSize: 10, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#0f172a' }}>
+          Live Rider Movement
+        </Text>
       </View>
     </View>
   );
@@ -429,7 +659,7 @@ export default function OrderTrackingScreen() {
         isAvailable: true,
       });
     });
-    Alert.alert("Reordered! 🛒", "Items from this order have been added to your cart.");
+    toast.success("Reordered! 🛍️ All items from your previous order have been added to your cart.");
   };
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -720,7 +950,31 @@ export default function OrderTrackingScreen() {
       )}
       {/* Header */}
       <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row justify-between items-center shadow-xs">
-        <View style={{ width: 36 }} />
+        <ScalePressable
+          onPress={() => {
+            triggerHaptic('light');
+            if (router.canGoBack()) {
+              router.back();
+            } else {
+              router.replace('/(tabs)');
+            }
+          }}
+          scaleValue={0.9}
+          haptic="light"
+          style={{
+            width: 36,
+            height: 36,
+            borderRadius: 18,
+            backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+          }}
+        >
+          <ArrowLeft size={18} color={isDarkMode ? '#fafafa' : '#0f172a'} strokeWidth={2.5} />
+        </ScalePressable>
+
         <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-base">Track Order</Text>
         <View style={{ width: 36 }} />
       </View>
@@ -801,143 +1055,15 @@ export default function OrderTrackingScreen() {
            </Text>
           </LinearGradient>
 
-          {/* Delivery PIN Card (Only visible before delivery is complete) */}
-          {order.deliveryMethod === 'DELIVERY' && 
-           (order.status === 'PACKED' || order.status === 'SHIPPED' || order.status === 'CONFIRMED' || order.status === 'PENDING') && (
-            <View style={{
-              backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-              borderRadius: 20,
-              borderWidth: 1.5,
-              borderColor: isDarkMode ? 'rgba(16,185,129,0.25)' : '#d1fae5',
-              padding: 16,
-              marginBottom: 16,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'space-between',
-              ...Platform.select({
-                ios: {
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 2 },
-                  shadowOpacity: 0.03,
-                  shadowRadius: 4,
-                },
-                android: {
-                  elevation: 1,
-                }
-              })
-            }}>
-              <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={{ fontSize: 10, fontWeight: '900', color: '#10b981', letterSpacing: 0.5, textTransform: 'uppercase' }}>
-                  Share PIN on delivery
-                </Text>
-                <Text style={{ fontSize: 9.5, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2, lineHeight: 14 }}>
-                  Give this 4-digit PIN to the delivery partner when they arrive to verify your order.
-                </Text>
-              </View>
-              
-              <View style={{
-                backgroundColor: isDarkMode ? 'rgba(16,185,129,0.1)' : '#f0fdf4',
-                borderWidth: 1.2,
-                borderColor: '#10b981',
-                borderRadius: 14,
-                paddingHorizontal: 16,
-                paddingVertical: 10,
-                alignItems: 'center',
-                justifyContent: 'center'
-              }}>
-                <Text style={{ fontSize: 8, fontWeight: '800', color: '#10b981', textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                  DELIVERY PIN
-                </Text>
-                <Text style={{ fontSize: 18, fontWeight: '900', color: isDarkMode ? '#34d399' : '#059669', marginTop: 2, letterSpacing: 0.5 }}>
-                  {getDeliveryPin(order.id)}
-                </Text>
-              </View>
-            </View>
-          )}
 
-        {/* Live Tracking / Pickup Location Map */}
-        {!['DELIVERED', 'CANCELLED'].includes(order.status) && MapView && Marker && (
-          <View style={{ width: '100%', height: 180, borderRadius: 16, overflow: 'hidden', marginBottom: 16 }}>
-            {(() => {
-              const isRestaurant = order.shopName === 'FastKirana Restaurant Kitchen';
-              const pickupCoords = order.deliveryMethod === 'PICKUP'
-                ? (isRestaurant ? { latitude: 26.160167, longitude: 80.1691234 } : { latitude: 26.1534185, longitude: 80.1714024 })
-                : { latitude: order.address?.lat || 26.1542, longitude: order.address?.lng || 80.1724 };
 
-              const deliveryLat = order.deliveryLat || 26.1534185;
-              const deliveryLng = order.deliveryLng || 80.1714024;
-
-              const mapLat = order.deliveryMethod === 'PICKUP' ? pickupCoords.latitude : (deliveryLat + pickupCoords.latitude) / 2;
-              const mapLng = order.deliveryMethod === 'PICKUP' ? pickupCoords.longitude : (deliveryLng + pickupCoords.longitude) / 2;
-              
-              const latDelta = order.deliveryMethod === 'PICKUP' ? 0.008 : Math.abs(deliveryLat - pickupCoords.latitude) * 1.5 || 0.015;
-              const lngDelta = order.deliveryMethod === 'PICKUP' ? 0.008 : Math.abs(deliveryLng - pickupCoords.longitude) * 1.5 || 0.015;
-
-              const mapQueryLat = order.deliveryMethod === 'PICKUP' ? pickupCoords.latitude : deliveryLat;
-              const mapQueryLng = order.deliveryMethod === 'PICKUP' ? pickupCoords.longitude : deliveryLng;
-
-              return Platform.OS === 'web' ? (
-                <iframe
-                  title="Pickup Location Map"
-                  src={`https://maps.google.com/maps?q=${mapQueryLat},${mapQueryLng}&z=15&output=embed`}
-                  style={{ width: '100%', height: '100%', border: 'none' }}
-                />
-              ) : (
-                <MapView
-                  style={{ width: '105%', height: '105%' }}
-                  customMapStyle={isDarkMode ? MAP_DARK_STYLE : MAP_LIGHT_STYLE}
-                  initialRegion={{
-                    latitude: mapLat,
-                    longitude: mapLng,
-                    latitudeDelta: latDelta,
-                    longitudeDelta: lngDelta,
-                  }}
-                >
-                  {order.deliveryMethod === 'PICKUP' ? (
-                    <Marker
-                      coordinate={{ latitude: pickupCoords.latitude, longitude: pickupCoords.longitude }}
-                      title={isRestaurant ? "A.S Restaurant" : "Vikas Medical Store"}
-                      description={isRestaurant ? "Pickup Restaurant Kitchen" : "Pickup FastKirana Store"}
-                      tracksViewChanges={false}
-                    >
-                      <Text style={{ fontSize: 24 }}>📍</Text>
-                    </Marker>
-                  ) : (
-                    <>
-                      {/* Rider Marker with Pulse Ring */}
-                      <RiderPulseMarker latitude={deliveryLat} longitude={deliveryLng} />
-
-                      {/* Destination Marker */}
-                      {order.address?.lat && order.address?.lng && (
-                        <>
-                          <Marker
-                            coordinate={{ latitude: order.address.lat, longitude: order.address.lng }}
-                            title="Your Home"
-                            description="Delivery destination"
-                            tracksViewChanges={false}
-                          >
-                            <Text style={{ fontSize: 24 }}>🏠</Text>
-                          </Marker>
-
-                          {Polyline && (
-                            <Polyline
-                              coordinates={[
-                                { latitude: deliveryLat, longitude: deliveryLng },
-                                { latitude: order.address.lat, longitude: order.address.lng }
-                              ]}
-                              strokeWidth={3.5}
-                              strokeColor="#e20a22"
-                              lineDashPattern={[6, 4]}
-                            />
-                          )}
-                        </>
-                      )}
-                    </>
-                  )}
-                </MapView>
-              );
-            })()}
-          </View>
+        {/* Live Tracking / Pickup Location Animated Route Map */}
+        {!['DELIVERED', 'CANCELLED'].includes(order.status) && (
+          <AnimatedDeliveryRouteMap
+            isDarkMode={isDarkMode}
+            shopName={order.shopName || undefined}
+            destinationLabel={order.address?.label || 'Home'}
+          />
         )}
 
         {/* Order Details Header */}
@@ -954,7 +1080,7 @@ export default function OrderTrackingScreen() {
                    marginTop: 2
                  }}
                >
-                 #{order.id.slice(-8).toUpperCase()}
+                 #{formatDisplayOrderId(order.id, (order as any).readableId)}
                </Text>
              </View>
              
@@ -984,117 +1110,195 @@ export default function OrderTrackingScreen() {
            </Text>
          </View>
 
-        {/* Live Timeline Tracker */}
-         <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
-           <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm uppercase tracking-wider mb-4 border-b border-slate-50 dark:border-zinc-800 pb-2">Status Timeline</Text>
-           
-           <View className="pl-2">
-             {statusSteps.map((status, index) => (
-               <View key={index} className="flex-row mb-5 last:mb-0 relative">
-                 {/* Timeline vertical bar connector */}
-                 {index < statusSteps.length - 1 && (
-                   <View 
-                     className="absolute left-3.5 top-7 w-[2px]"
-                     style={{
-                       height: 34,
-                       backgroundColor: status.completed && statusSteps[index+1].isCancelled 
+        {/* Live Status Timeline Tracker */}
+        <View style={{
+          backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+          borderRadius: 20,
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+          padding: 16,
+          marginBottom: 16,
+          ...Platform.select({
+            ios: { shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.04, shadowRadius: 6 },
+            android: { elevation: 2 }
+          })
+        }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#f1f5f9', paddingBottom: 10, marginBottom: 14 }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Clock size={16} color={isDarkMode ? '#34d399' : '#059669'} strokeWidth={2.5} />
+              <Text style={{ fontSize: 13.5, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', letterSpacing: -0.2 }}>
+                Live Status Timeline
+              </Text>
+            </View>
+            <View style={{ backgroundColor: isDarkMode ? 'rgba(16,185,129,0.15)' : '#f0fdf4', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? 'rgba(16,185,129,0.3)' : '#d1fae5' }}>
+              <Text style={{ fontSize: 9, fontWeight: '900', color: '#10b981', textTransform: 'uppercase' }}>
+                {ORDER_STATUS_LABELS[order.status] || order.status}
+              </Text>
+            </View>
+          </View>
+
+          <View style={{ paddingLeft: 4 }}>
+            {statusSteps.map((status, index) => {
+              const isCurrent = index === activeStepIndex;
+              const isLast = index === statusSteps.length - 1;
+
+              return (
+                <View key={index} style={{ flexDirection: 'row', position: 'relative', marginBottom: isLast ? 0 : 16 }}>
+                  {/* Vertical Connector Line */}
+                  {!isLast && (
+                    <View 
+                      style={{
+                        position: 'absolute',
+                        left: 15,
+                        top: 32,
+                        bottom: -16,
+                        width: 2.5,
+                        borderRadius: 1.25,
+                        backgroundColor: status.completed && statusSteps[index + 1].isCancelled 
                           ? '#ef4444' 
-                          : (status.completed && statusSteps[index+1].completed ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0')),
-                     }}
-                   />
-                 )}
-                 
-                 {/* Status Dot */}
-                 <TimelineDot completed={status.completed} isActive={index === activeStepIndex} stepIndex={index} isCancelled={status.isCancelled} />
- 
-                 {/* Status details */}
-                 <View className="ml-4 flex-1">
-                   <Text className={`font-extrabold text-sm ${
-                     index === activeStepIndex 
-                       ? 'text-emerald-600 dark:text-emerald-400 font-black' 
-                       : status.completed 
-                       ? 'text-slate-800 dark:text-zinc-200' 
-                       : 'text-slate-400 dark:text-zinc-500'
-                   }`}>
-                     {status.label}
-                   </Text>
-                   <Text className={`text-[10px] mt-0.5 leading-4 ${
-                     index === activeStepIndex 
-                       ? 'text-emerald-500 dark:text-emerald-400 font-semibold' 
-                       : 'text-slate-455 dark:text-zinc-500'
-                   }`}>
-                     {status.desc}
-                   </Text>
-                 </View>
-               </View>
-             ))}
-           </View>
-         </View>
+                          : (status.completed && statusSteps[index + 1].completed ? '#10b981' : (isDarkMode ? '#27272a' : '#e2e8f0')),
+                        zIndex: 1,
+                      }}
+                    />
+                  )}
+
+                  {/* Status Dot */}
+                  <TimelineDot completed={status.completed} isActive={isCurrent} stepIndex={index} isCancelled={status.isCancelled} />
+
+                  {/* Details Card */}
+                  <View style={{
+                    marginLeft: 14,
+                    flex: 1,
+                    backgroundColor: isCurrent 
+                      ? (isDarkMode ? 'rgba(16,185,129,0.12)' : '#f0fdf4') 
+                      : 'transparent',
+                    borderRadius: 12,
+                    paddingHorizontal: isCurrent ? 12 : 0,
+                    paddingVertical: isCurrent ? 8 : 2,
+                    borderWidth: isCurrent ? 1 : 0,
+                    borderColor: isCurrent ? (isDarkMode ? 'rgba(16,185,129,0.3)' : '#bbf7d0') : 'transparent',
+                  }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                      <Text style={{
+                        fontSize: 13,
+                        fontWeight: '900',
+                        color: isCurrent 
+                          ? (isDarkMode ? '#34d399' : '#059669') 
+                          : status.completed 
+                          ? (isDarkMode ? '#f4f4f5' : '#0f172a') 
+                          : (isDarkMode ? '#52525b' : '#94a3b8'),
+                      }}>
+                        {status.label}
+                      </Text>
+                      {isCurrent && (
+                        <View style={{ backgroundColor: '#10b981', paddingHorizontal: 6, paddingVertical: 1.5, borderRadius: 6 }}>
+                          <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: '900', textTransform: 'uppercase' }}>
+                            LIVE
+                          </Text>
+                        </View>
+                      )}
+                    </View>
+                    <Text style={{
+                      fontSize: 10.5,
+                      fontWeight: '600',
+                      color: isCurrent 
+                        ? (isDarkMode ? '#a7f3d0' : '#166534') 
+                        : (isDarkMode ? '#71717a' : '#64748b'),
+                      marginTop: 2,
+                      lineHeight: 15,
+                    }}>
+                      {status.desc}
+                    </Text>
+                  </View>
+                </View>
+              );
+            })}
+          </View>
+        </View>
 
         {/* Rider Partner card */}
-        {['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) && (
-          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 flex-row justify-between items-center shadow-xs">
-            <View className="flex-row items-center gap-3">
-              <View className="w-12 h-12 rounded-full bg-emerald-50 dark:bg-emerald-950/20 items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
-                <Truck size={22} color="#10b981" />
+        {['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY', 'ARRIVED'].includes(order.status) && (
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-3.5 mb-4 flex-row justify-between items-center shadow-xs">
+            <View className="flex-row items-center gap-3 flex-1 pr-2">
+              <View className="w-10 h-10 rounded-full bg-emerald-50 dark:bg-emerald-950/20 items-center justify-center border border-emerald-100 dark:border-emerald-900/30">
+                <Truck size={20} color="#10b981" />
               </View>
-              <View className="flex-1 pr-2">
-                <Text className="text-slate-450 dark:text-zinc-500 font-extrabold text-[8px] uppercase tracking-wider">Delivery Executive</Text>
-                <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm mt-0.5">{order.deliveryUser?.name || 'Sonu Kumar'}</Text>
-                <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold">FastKirana Delivery Executive</Text>
+              <View className="flex-1 pr-1">
+                <Text className="text-slate-400 dark:text-zinc-500 font-extrabold text-[8px] uppercase tracking-wider">Delivery Executive</Text>
+                <Text numberOfLines={1} className="text-slate-800 dark:text-zinc-100 font-black text-sm mt-0.5">
+                  {(order as any).deliveryUser?.name || (order as any).deliveryExecutive?.name || (order as any).rider?.name || (order as any).assignedRider?.name || (order as any).riderName || (order as any).driverName || 'FastKirana Delivery Executive'}
+                </Text>
+                <Text numberOfLines={1} className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold mt-0.5">
+                  {(order as any).deliveryUser?.phone || (order as any).deliveryExecutive?.phone || (order as any).rider?.phone || (order as any).assignedRider?.phone || (order as any).riderPhone || (order as any).driverPhone || (order as any).deliveryPhone || '+91 81128 49854'}
+                </Text>
               </View>
             </View>
             
-            <ScalePressable 
-              onPress={() => Linking.openURL(`tel:${order.deliveryUser?.phone || '+919876543210'}`)}
-              scaleValue={0.9}
-              haptic="light"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-              }}
-            >
-              <Phone size={16} color={isDarkMode ? '#e4e4e7' : '#475569'} />
-            </ScalePressable>
+            <View style={{ width: 40, height: 40 }}>
+              <ScalePressable 
+                onPress={() => {
+                  const phoneToCall = (order as any).deliveryUser?.phone 
+                    || (order as any).deliveryExecutive?.phone 
+                    || (order as any).rider?.phone 
+                    || (order as any).assignedRider?.phone 
+                    || (order as any).riderPhone 
+                    || (order as any).driverPhone 
+                    || (order as any).deliveryPhone 
+                    || order.shopPhone 
+                    || '+918112849854';
+                  Linking.openURL(`tel:${phoneToCall}`);
+                }}
+                scaleValue={0.9}
+                haptic="light"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                }}
+              >
+                <Phone size={16} color={isDarkMode ? '#e4e4e7' : '#475569'} />
+              </ScalePressable>
+            </View>
           </View>
         )}
 
         {/* Delivery Partner detail */}
         {order.shopPhone && (
-          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 flex-row justify-between items-center shadow-xs">
-            <View className="flex-row items-center gap-3">
-              <View className="w-12 h-12 rounded-full bg-rose-50 dark:bg-rose-950/20 items-center justify-center border border-rose-100 dark:border-rose-900/30">
-                <ShieldCheck size={24} color="#e11d48" />
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-3.5 mb-4 flex-row justify-between items-center shadow-xs">
+            <View className="flex-row items-center gap-3 flex-1 pr-2">
+              <View className="w-10 h-10 rounded-full bg-rose-50 dark:bg-rose-950/20 items-center justify-center border border-rose-100 dark:border-rose-900/30">
+                <ShieldCheck size={22} color="#e11d48" />
               </View>
-              <View className="flex-1 pr-2">
+              <View className="flex-1 pr-1">
                 <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Fulfillment Store</Text>
-                <Text className="text-slate-400 dark:text-zinc-450 text-[10px] mt-0.5">{order.shopName || 'FastKirana Dark Store'}</Text>
+                <Text numberOfLines={1} className="text-slate-400 dark:text-zinc-450 text-[10px] mt-0.5">{order.shopName || 'FastKirana Dark Store'}</Text>
               </View>
             </View>
             
-            <ScalePressable 
-              onPress={() => Linking.openURL(`tel:${order.shopPhone}`)}
-              scaleValue={0.9}
-              haptic="light"
-              style={{
-                width: 40,
-                height: 40,
-                borderRadius: 20,
-                backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
-                alignItems: 'center',
-                justifyContent: 'center',
-                borderWidth: 1,
-                borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
-              }}
-            >
-              <Phone size={18} color="#475569" />
-            </ScalePressable>
+            <View style={{ width: 40, height: 40 }}>
+              <ScalePressable 
+                onPress={() => Linking.openURL(`tel:${order.shopPhone}`)}
+                scaleValue={0.9}
+                haptic="light"
+                style={{
+                  width: 40,
+                  height: 40,
+                  borderRadius: 20,
+                  backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                }}
+              >
+                <Phone size={16} color={isDarkMode ? '#e4e4e7' : '#475569'} />
+              </ScalePressable>
+            </View>
           </View>
         )}
 
@@ -1285,66 +1489,206 @@ export default function OrderTrackingScreen() {
            <View className="h-px bg-slate-100 dark:bg-zinc-800 my-1" />
 
            <View className="flex-row items-center justify-between">
-             <View className="flex-row items-center gap-1.5">
-               <Text style={{ fontSize: 11 }}>💳</Text>
-               <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase">Payment:</Text>
-               <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black uppercase">
-                 {order.paymentMethod === 'COD' ? '💵 Cash on Delivery' : '⚡ UPI Transaction'}
-               </Text>
-             </View>
-             {order.paymentMethod === 'UPI' && (
-               <View className={`px-2 py-0.5 rounded-md border ${
-                 order.status === 'PENDING' 
-                   ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30' 
-                   : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
-               }`}>
-                 <Text className={`font-extrabold text-[8.5px] uppercase ${
-                   order.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
-                 }`}>
-                   {order.status === 'PENDING' ? 'Pending Verification' : 'PAID'}
-                 </Text>
-               </View>
-             )}
-           </View>
+              <View className="flex-row items-center gap-1.5">
+                <Text style={{ fontSize: 11 }}>💳</Text>
+                <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-black uppercase">Payment:</Text>
+                <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black uppercase">
+                  {order.paymentMethod === 'COD' ? '💵 Cash on Delivery' : '⚡ UPI Transaction'}
+                </Text>
+              </View>
+              {order.paymentMethod === 'UPI' && (
+                <View className={`px-2 py-0.5 rounded-md border ${
+                  order.status === 'PENDING' 
+                    ? 'bg-amber-50 dark:bg-amber-950/20 border-amber-200 dark:border-amber-900/30' 
+                    : 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-900/30'
+                }`}>
+                  <Text className={`font-extrabold text-[8.5px] uppercase ${
+                    order.status === 'PENDING' ? 'text-amber-600 dark:text-amber-400' : 'text-emerald-600 dark:text-emerald-400'
+                  }`}>
+                    {order.status === 'PENDING' ? 'Pending Verification' : 'PAID'}
+                  </Text>
+                </View>
+              )}
+            </View>
 
-           {(order.deliverySlot || order.deliveryInstructions) && (
-             <View className="bg-slate-50 dark:bg-zinc-950 p-3 rounded-xl border border-slate-100 dark:border-zinc-850 gap-2 mt-1">
-               {order.deliverySlot && (
-                 <View className="flex-row items-center gap-1.5">
-                   <Text style={{ fontSize: 11 }}>🕒</Text>
-                   <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black uppercase">Slot: {order.deliverySlot}</Text>
-                 </View>
-               )}
-               {order.deliveryInstructions && (
-                 <View className="flex-row items-start gap-1.5">
-                   <Text style={{ fontSize: 11, marginTop: 1 }}>📝</Text>
-                   <View className="flex-1">
-                     <Text className="text-slate-400 dark:text-zinc-550 text-[8px] font-black uppercase tracking-wider">Rider Notes</Text>
-                     <Text className="text-slate-650 dark:text-zinc-300 text-[10.5px] font-bold mt-0.5">{order.deliveryInstructions}</Text>
-                   </View>
-                 </View>
-               )}
-             </View>
-           )}
-         </View>
+            {(order.deliverySlot || order.deliveryInstructions) && (
+              <View className="bg-slate-50 dark:bg-zinc-950 p-3 rounded-xl border border-slate-100 dark:border-zinc-850 gap-2 mt-1">
+                {order.deliverySlot && (
+                  <View className="flex-row items-center gap-1.5">
+                    <Text style={{ fontSize: 11 }}>🕒</Text>
+                    <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black uppercase">Slot: {order.deliverySlot}</Text>
+                  </View>
+                )}
+                {order.deliveryInstructions && (
+                  <View className="flex-row items-start gap-1.5">
+                    <Text style={{ fontSize: 11, marginTop: 1 }}>📝</Text>
+                    <View className="flex-1">
+                      <Text className="text-slate-400 dark:text-zinc-550 text-[8px] font-black uppercase tracking-wider">Rider Notes</Text>
+                      <Text className="text-slate-650 dark:text-zinc-300 text-[10.5px] font-bold mt-0.5">{order.deliveryInstructions}</Text>
+                    </View>
+                  </View>
+                )}
+              </View>
+            )}
+          </View>
+        
+        {/* Payment Receipt & Bill Summary Card */}
+        {(() => {
+          const itemSubtotal = order.items?.reduce((acc, it) => acc + (it.price * it.quantity), 0) || order.total;
+          const isPickup = order.deliveryMethod === 'PICKUP';
+          const backendDeliveryFee = (order as any).deliveryFee !== undefined ? (order as any).deliveryFee : null;
+          const isFreeDelivery = isPickup || itemSubtotal >= 199 || backendDeliveryFee === 0;
+          const effectiveDeliveryFee = isFreeDelivery ? 0 : (backendDeliveryFee !== null ? backendDeliveryFee : 15);
+          const handlingFee = (order as any).handlingFee ?? (order as any).miscFee ?? (order as any).packagingFee ?? 2;
+
+          return (
+            <View style={{
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              borderRadius: 20,
+              borderWidth: 1,
+              borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+              padding: 16,
+              marginBottom: 16,
+              ...Platform.select({
+                ios: {
+                  shadowColor: '#000',
+                  shadowOffset: { width: 0, height: 3 },
+                  shadowOpacity: 0.04,
+                  shadowRadius: 6,
+                },
+                android: { elevation: 2 }
+              })
+            }}>
+              {/* Header */}
+              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#f1f5f9', paddingBottom: 10, marginBottom: 12 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+                  <View style={{ width: 32, height: 32, borderRadius: 10, backgroundColor: isDarkMode ? 'rgba(16,185,129,0.15)' : '#f0fdf4', alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: isDarkMode ? 'rgba(16,185,129,0.3)' : '#d1fae5' }}>
+                    <Receipt size={16} color="#10b981" strokeWidth={2.5} />
+                  </View>
+                  <View>
+                    <Text style={{ fontSize: 13.5, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', letterSpacing: -0.2 }}>
+                      Bill Summary & Receipt
+                    </Text>
+                    <Text style={{ fontSize: 10, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+                      {order.items?.length || 0} Items • Paid via {order.paymentMethod === 'COD' ? 'Cash on Delivery' : 'UPI'}
+                    </Text>
+                  </View>
+                </View>
+                <View style={{ backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', paddingHorizontal: 8, paddingVertical: 3, borderRadius: 8, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0' }}>
+                  <Text style={{ fontSize: 9, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#64748b', textTransform: 'uppercase' }}>
+                    {order.paymentMethod === 'COD' ? '💵 COD' : '⚡ UPI'}
+                  </Text>
+                </View>
+              </View>
+
+              {/* Individual Items List */}
+              <View style={{ gap: 8, marginBottom: 12 }}>
+                {order.items?.map((item, idx) => (
+                  <View key={idx} style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1, paddingRight: 10 }}>
+                      <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+                        {item.quantity}x
+                      </Text>
+                      <Text numberOfLines={1} style={{ fontSize: 11.5, fontWeight: '700', color: isDarkMode ? '#f4f4f5' : '#1e293b', flex: 1 }}>
+                        {item.name}
+                      </Text>
+                    </View>
+                    <Text style={{ fontSize: 12, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#0f172a' }}>
+                      {formatPrice(item.price * item.quantity)}
+                    </Text>
+                  </View>
+                ))}
+              </View>
+
+              <View style={{ height: 1, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginVertical: 8 }} />
+
+              {/* Charges Breakdown */}
+              <View style={{ gap: 6, marginBottom: 10 }}>
+                {/* Item Total */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Item Total</Text>
+                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: isDarkMode ? '#e4e4e7' : '#334155' }}>
+                    {formatPrice(itemSubtotal)}
+                  </Text>
+                </View>
+
+                {/* Delivery Charge */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                    <Text style={{ fontSize: 11.5, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Delivery Charge</Text>
+                    {isFreeDelivery && (
+                      <View style={{ backgroundColor: '#dcfce7', paddingHorizontal: 5, paddingVertical: 1, borderRadius: 6 }}>
+                        <Text style={{ fontSize: 8.5, fontWeight: '900', color: '#15803d', textTransform: 'uppercase' }}>FREE</Text>
+                      </View>
+                    )}
+                  </View>
+                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: isFreeDelivery ? '#10b981' : (isDarkMode ? '#e4e4e7' : '#334155') }}>
+                    {isFreeDelivery ? 'FREE' : formatPrice(effectiveDeliveryFee)}
+                  </Text>
+                </View>
+
+                {/* Handling & Packaging Fee */}
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <Text style={{ fontSize: 11.5, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Handling & Packaging</Text>
+                  <Text style={{ fontSize: 11.5, fontWeight: '700', color: isDarkMode ? '#e4e4e7' : '#334155' }}>
+                    {formatPrice(handlingFee)}
+                  </Text>
+                </View>
+              </View>
+
+              <View style={{ height: 1.5, backgroundColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginVertical: 8 }} />
+
+              {/* Final Total Paid */}
+              <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 2 }}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a' }}>
+                  Grand Total
+                </Text>
+                <Text style={{ fontSize: 16, fontWeight: '900', color: '#e20a22' }}>
+                  {formatPrice(order.total)}
+                </Text>
+              </View>
+            </View>
+          );
+        })()}
  
-         {/* Reorder Button */}
-          <ScalePressable
-            onPress={handleReorder}
-            scaleValue={0.96}
-            haptic="success"
-            style={{ marginBottom: 40 }}
-          >
+        {/* Reorder Button */}
+        <ScalePressable
+          onPress={handleReorder}
+          scaleValue={0.96}
+          haptic="success"
+          style={{ width: '100%', marginBottom: 40 }}
+        >
+          <View style={{
+            borderRadius: 16,
+            backgroundColor: '#047857',
+            paddingBottom: 4,
+            shadowColor: '#10b981',
+            shadowOffset: { width: 0, height: 6 },
+            shadowOpacity: 0.35,
+            shadowRadius: 10,
+            elevation: 6,
+          }}>
             <LinearGradient
-             colors={['#10b981', '#059669']}
-             start={{ x: 0, y: 0 }}
-             end={{ x: 1, y: 0 }}
-             style={{ borderRadius: 12, paddingVertical: 12, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8, shadowColor: '#10b981', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.2, shadowRadius: 8, elevation: 4 }}
-           >
-             <RefreshCw size={16} color="#ffffff" strokeWidth={2.5} />
-             <Text className="text-white font-black text-xs uppercase tracking-wider">Reorder These Items</Text>
-           </LinearGradient>
-          </ScalePressable>
+              colors={['#10b981', '#059669', '#047857']}
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              style={{
+                borderRadius: 16,
+                paddingVertical: 14,
+                paddingHorizontal: 16,
+                flexDirection: 'row',
+                alignItems: 'center',
+                justifyContent: 'center',
+                gap: 8,
+              }}
+            >
+              <RefreshCw size={17} color="#ffffff" strokeWidth={2.5} />
+              <Text numberOfLines={1} style={{ color: '#ffffff', fontWeight: '900', fontSize: 13, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                REORDER THESE ITEMS ({order.items?.length || 0})
+              </Text>
+            </LinearGradient>
+          </View>
+        </ScalePressable>
       </ScrollView>
     </SafeAreaView>
   );
