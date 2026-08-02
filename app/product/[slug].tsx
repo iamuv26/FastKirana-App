@@ -226,7 +226,7 @@ export default function ProductDetailScreen() {
         zIndex: 20
       }}>
         {/* Standardized Branded Header & Location */}
-        <BrandedTopHeader showBack={true} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
+        <BrandedTopHeader showBack={true} title={product?.name || "Product Details"} subtitle={product?.category?.name || "FastKirana"} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 8 }} />
 
         <ScalePressable 
           onPress={() => {

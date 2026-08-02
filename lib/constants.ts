@@ -7,7 +7,7 @@ export const SUPPORT_PHONE = '+917054470303';
 // Single source of truth for the production API URL.
 // On Vercel: set EXPO_PUBLIC_API_BASE_URL in the project's Environment Variables.
 // Locally (web): when hostname is localhost/127.0.0.1, fall back to LAN dev server.
-const PRODUCTION_API_URL = 'https://www.fastkirana.in/api';
+const PRODUCTION_API_URL = 'https://fast-kirana-0ezx.onrender.com/api';
 const DEV_LAN_API_URL = (host: string) => `http://${host}:3000/api`;
 
 const getApiUrl = (): string => {

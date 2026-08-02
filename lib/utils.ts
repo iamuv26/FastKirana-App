@@ -33,16 +33,16 @@ export function isCafeProduct(p: any): boolean {
 
 export function getOptimizedImageUrl(url: string | null | undefined, width = 300): string | null {
   if (!url) return null;
-  if (url.includes('cloudinary.com') && url.includes('/image/upload/')) {
-    // Force WebP format to dramatically reduce image sizes and load times on mobile
-    return url.replace('/image/upload/', `/image/upload/f_webp,q_auto,w_${width},c_limit/`);
-  }
-  return url;
+  const cleanUrl = url.trim();
+  return cleanUrl || null;
 }
 
 export function getAppImageSource(imgUrl: string | null | undefined, width = 250): { uri: string } | null {
   if (!imgUrl) return null;
-  const optimizedUrl = getOptimizedImageUrl(imgUrl, width);
+  const rawUrl = imgUrl.trim();
+  if (!rawUrl) return null;
+
+  const optimizedUrl = getOptimizedImageUrl(rawUrl, width);
   if (!optimizedUrl) return null;
 
   if (optimizedUrl.startsWith('http') || optimizedUrl.startsWith('data:')) {
@@ -54,10 +54,11 @@ export function getAppImageSource(imgUrl: string | null | undefined, width = 250
     }
     return { uri: url };
   }
+
   if (optimizedUrl.startsWith('/')) {
-    const baseDomain = API_BASE_URL.replace('/api', '');
-    return { uri: `${baseDomain}${optimizedUrl}` };
+    return { uri: `https://www.fastkirana.in${optimizedUrl}` };
   }
+
   return null;
 }
 

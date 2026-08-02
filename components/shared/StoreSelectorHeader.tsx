@@ -21,7 +21,7 @@ export default function StoreSelectorHeader({ activeStore }: StoreSelectorHeader
     if (store === 'grocery') {
       router.back();
     } else {
-      router.push('/cafe');
+      router.push('/restaurants');
     }
   };
 

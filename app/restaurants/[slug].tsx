@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useCallback, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useCallback, useEffect, memo } from 'react';
 import {
   View,
   Text,
@@ -184,7 +184,7 @@ export default function RestaurantDetailScreen() {
   }, [slug, restaurant]);
 
   // ── Fetch Products ──
-  const { data: products = [], isLoading: productsLoading } = useQuery<any[]>({
+  const { data: products = [], isLoading: productsLoading, isFetching: productsFetching } = useQuery<any[]>({
     queryKey: queryKeys.menu.byRestaurant(slug!),
     queryFn: async () => {
       let list: any[] = [];
@@ -471,7 +471,7 @@ export default function RestaurantDetailScreen() {
     );
   }
 
-  const isLoading = restaurantLoading || productsLoading;
+  const isLoading = restaurantLoading || productsLoading || (products.length === 0 && productsFetching);
   const banner = imageUrl(restaurant?.bannerUrl);
   const logo = imageUrl(restaurant?.logoUrl);
 
@@ -864,10 +864,9 @@ export default function RestaurantDetailScreen() {
                     {/* 2-Column Product Grid */}
                     {!isCollapsed && (
                       <View style={styles.productListGrid}>
-                        {section.products.map((prod: any, idx: number) => (
-                          <Animated.View
+                        {section.products.map((prod: any) => (
+                          <View
                             key={prod.id}
-                            entering={FadeInDown.delay(Math.min(idx, 8) * 35).duration(320)}
                             style={{ width: '48.5%' }}
                           >
                             <Grid2ColCard
@@ -875,7 +874,7 @@ export default function RestaurantDetailScreen() {
                               isClosed={isClosed}
                               isDarkMode={isDarkMode}
                             />
-                          </Animated.View>
+                          </View>
                         ))}
                       </View>
                     )}
@@ -897,7 +896,7 @@ export default function RestaurantDetailScreen() {
 /* 2-Column Grid Product Card (Side-by-Side)                          */
 /* ═══════════════════════════════════════════════════════════════════ */
 
-function Grid2ColCard({
+const Grid2ColCard = memo(function Grid2ColCard({
   product,
   isClosed,
   isDarkMode,
@@ -1035,14 +1034,14 @@ function Grid2ColCard({
       </Pressable>
 
       {/* Price & ADD Action Row (Standalone Sibling) */}
-      <View style={[styles.gridCardFooter, { paddingHorizontal: 7, paddingBottom: 7 }]}>
-        <View style={{ flex: 1, minWidth: 0 }}>
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 3, flexWrap: 'wrap' }}>
+      <View style={[styles.gridCardFooter, { paddingHorizontal: 6, paddingBottom: 6 }]}>
+        <View style={{ flex: 1, minWidth: 0, paddingRight: 4 }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 2, flexWrap: 'nowrap' }}>
             <Text style={[styles.gridCardPrice, { color: isDarkMode ? '#fafafa' : '#0f172a' }]}>
               ₹{price}
             </Text>
             {originalPrice && originalPrice > price ? (
-              <Text style={styles.gridCardMrp}>₹{originalPrice}</Text>
+              <Text numberOfLines={1} style={styles.gridCardMrp}>₹{originalPrice}</Text>
             ) : null}
           </View>
         </View>
@@ -1051,21 +1050,33 @@ function Grid2ColCard({
         {!isClosed && (
           <View>
             {quantity > 0 ? (
-              <View style={styles.gridStepper}>
+              <View 
+                style={[
+                  styles.gridStepper,
+                  {
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    borderColor: THEME.COLORS.brand.primary,
+                  }
+                ]}
+              >
                 <Pressable
                   onPress={handleDecrement}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={({ pressed }) => [styles.gridStepperBtn, pressed && { opacity: 0.6 }]}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  style={({ pressed }) => [styles.gridStepperBtn, pressed && { opacity: 0.4 }]}
                 >
                   <Minus size={11} color={THEME.COLORS.brand.primary} strokeWidth={3} />
                 </Pressable>
+                
                 <View style={styles.gridStepperCount}>
-                  <Text style={styles.gridStepperCountText}>{quantity}</Text>
+                  <Text style={[styles.gridStepperCountText, { color: THEME.COLORS.brand.primary }]}>
+                    {quantity}
+                  </Text>
                 </View>
+
                 <Pressable
                   onPress={handleIncrement}
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-                  style={({ pressed }) => [styles.gridStepperBtn, pressed && { opacity: 0.6 }]}
+                  hitSlop={{ top: 6, bottom: 6, left: 6, right: 6 }}
+                  style={({ pressed }) => [styles.gridStepperBtn, pressed && { opacity: 0.4 }]}
                 >
                   <Plus size={11} color={THEME.COLORS.brand.primary} strokeWidth={3} />
                 </Pressable>
@@ -1075,10 +1086,13 @@ function Grid2ColCard({
                 scaleValue={0.92}
                 onPress={handleAdd}
                 haptic="success"
-                style={[styles.gridAddBtn, {
-                  backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-                  borderColor: THEME.COLORS.brand.primary,
-                }]}
+                style={[
+                  styles.gridAddBtn,
+                  {
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    borderColor: THEME.COLORS.brand.primary,
+                  }
+                ]}
               >
                 <Text style={styles.gridAddText}>ADD</Text>
                 <Plus size={10} color={THEME.COLORS.brand.primary} strokeWidth={3} />
@@ -1089,7 +1103,7 @@ function Grid2ColCard({
       </View>
     </View>
   );
-}
+});
 
 /* ═══════════════════════════════════════════════════════════════════ */
 /* Styles                                                              */
@@ -1507,12 +1521,12 @@ const styles = StyleSheet.create({
     marginTop: 4,
   },
   gridCardPrice: {
-    fontSize: 13,
+    fontSize: 12.5,
     fontWeight: '900',
     letterSpacing: -0.3,
   },
   gridCardMrp: {
-    fontSize: 9.5,
+    fontSize: 9,
     fontWeight: '500',
     color: '#94a3b8',
     textDecorationLine: 'line-through',
@@ -1521,45 +1535,54 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 5,
-    minHeight: 26,
-    borderRadius: 8,
+    width: 62,
+    height: 28,
+    borderRadius: 6,
     borderWidth: 1.5,
-    gap: 3,
+    gap: 2,
+    shadowColor: THEME.COLORS.brand.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
   gridAddText: {
     color: THEME.COLORS.brand.primary,
-    fontSize: 10,
+    fontSize: 11,
     fontWeight: '900',
     letterSpacing: 0.3,
   },
   gridStepper: {
     flexDirection: 'row',
     alignItems: 'center',
+    justifyContent: 'center',
+    width: 66,
+    height: 28,
     borderWidth: 1.5,
     borderColor: THEME.COLORS.brand.primary,
-    borderRadius: 8,
+    borderRadius: 6,
+    paddingHorizontal: 3,
     overflow: 'hidden',
-    backgroundColor: '#fff',
+    shadowColor: THEME.COLORS.brand.primary,
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.08,
+    shadowRadius: 2,
+    elevation: 2,
   },
   gridStepperBtn: {
-    width: 24,
-    height: 24,
+    width: 18,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: '#fff',
   },
   gridStepperCount: {
-    width: 20,
-    height: 24,
+    width: 24,
+    height: 28,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: THEME.COLORS.brand.primary,
   },
   gridStepperCountText: {
-    color: '#fff',
-    fontSize: 11,
+    fontSize: 12,
     fontWeight: '900',
   },
 

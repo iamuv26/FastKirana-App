@@ -29,6 +29,7 @@ import Animated, {
 // Pre-configured Local Mock Accounts for testing/demo
 const localAccounts: Record<string, { id: string, role: 'ADMIN' | 'PICKER' | 'CHEF' | 'DELIVERY', name: string, phone: string, pass: string }> = {
   'admin': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'Yuvraj@26' },
+  'admin@fastkirana.com': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'admin123' },
   'picker': { id: 'cmqgzqf2k0002vkid1f3wpwg4', role: 'PICKER', name: 'Warehouse Picker', phone: '+919888811111', pass: 'Yuvraj@26' },
   'chef': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Kitchen Chef', phone: '+919888822222', pass: 'Yuvraj@26' },
   'restaurant': { id: 'cmqgzqeyr0001vkiddw6qcuxc', role: 'CHEF', name: 'Restaurant Kitchen', phone: '+919888822222', pass: 'Yuvraj@26' },
@@ -400,17 +401,21 @@ export default function LoginScreen() {
     setIsLoading(true);
     triggerHaptic('light');
 
-    // Pre-configured demo check
+    // Pre-configured demo check — match by email, username, or key
     const lowerEmail = email.toLowerCase().trim();
     const cleanPassword = password.trim();
 
-    if (localAccounts[lowerEmail] && cleanPassword === localAccounts[lowerEmail].pass) {
+    const mockAccount = localAccounts[lowerEmail]
+      || localAccounts[lowerEmail.split('@')[0]]
+      || Object.entries(localAccounts).find(([k]) => lowerEmail.includes(k))?.[1];
+
+    if (mockAccount && cleanPassword === mockAccount.pass) {
       const mockUser = {
-        id: localAccounts[lowerEmail].id,
+        id: mockAccount.id,
         email: lowerEmail.includes('@') ? lowerEmail : `${lowerEmail}@fastkirana.com`,
-        name: localAccounts[lowerEmail].name,
-        phone: localAccounts[lowerEmail].phone,
-        role: localAccounts[lowerEmail].role,
+        name: mockAccount.name,
+        phone: mockAccount.phone,
+        role: mockAccount.role,
       };
 
       try {

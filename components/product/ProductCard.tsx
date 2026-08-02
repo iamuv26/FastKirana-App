@@ -1,5 +1,5 @@
 import { memo, useState, useMemo } from 'react';
-import { View, Text, Pressable, StyleSheet, Platform, Alert, useWindowDimensions } from 'react-native';
+import { View, Text, Pressable, StyleSheet, Platform, Alert, Dimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
 import { ShoppingBag, ChevronDown, Plus, Minus, Bell, Check } from 'lucide-react-native';
@@ -145,7 +145,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     return className.includes('w-') ? undefined : '47%';
   }, [className]);
 
-  const { width: SCREEN_WIDTH } = useWindowDimensions();
+  // Static screen width — avoids re-renders on every keyboard/orientation change
+  const SCREEN_WIDTH = Dimensions.get('window').width;
   const initialCardWidth = useMemo(() => {
     if (!resolvedWidth) return (SCREEN_WIDTH - 24) * 0.47;
     if (typeof resolvedWidth === 'number') {
@@ -344,7 +345,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     setIsAlertVisible(true);
   };
 
-  const handleAdd = () => {
+  const handleAdd = (e?: any) => {
+    e?.stopPropagation?.();
     triggerHaptic('success');
     playCartPop();
     if (hasVariants) {
@@ -359,7 +361,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     }
   };
 
-  const handleIncrement = () => {
+  const handleIncrement = (e?: any) => {
+    e?.stopPropagation?.();
     triggerHaptic('light');
     playCartPop();
     if (hasVariants) {
@@ -369,7 +372,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
     }
   };
 
-  const handleDecrement = () => {
+  const handleDecrement = (e?: any) => {
+    e?.stopPropagation?.();
     triggerHaptic('light');
     playCartPop();
     if (hasVariants) {
@@ -741,9 +745,9 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               position: 'absolute', 
               right: 8, 
               bottom: 8, 
-              zIndex: 20, 
-              width: isStoreClosed ? 56 : (!resolvedIsAvailable ? 36 : (quantity > 0 ? 90 : 36)), 
-              height: isStoreClosed ? 25 : 36,
+              zIndex: 30, 
+              width: isStoreClosed ? 56 : (!resolvedIsAvailable ? 38 : (quantity > 0 ? 84 : 64)), 
+              height: isStoreClosed ? 25 : 34,
             }}
           >
             {isStoreClosed ? (
@@ -763,13 +767,14 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               </View>
             ) : (!resolvedIsAvailable || resolvedStock <= 0) ? (
               <AnimatedPressable
-                onPress={() => { if (!notified) handleNotify(); }}
+                onPress={handleNotify}
                 onPressIn={() => {
                   addScale.value = withSpring(SCALE.addButton, SPRING.snappy);
                 }}
                 onPressOut={() => {
                   addScale.value = withSpring(1, SPRING.snappy);
                 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={[
                   {
                     width: '100%',
@@ -810,6 +815,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 onPressOut={() => {
                   addScale.value = withSpring(1, SPRING.snappy);
                 }}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
                 style={[
                   {
                     width: '100%',
@@ -818,6 +824,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                     backgroundColor: isDark ? THEME.COLORS.dark.surface : '#ffffff',
                     borderWidth: 1.5,
                     borderColor: THEME.COLORS.brand.primary,
+                    flexDirection: 'row',
+                    gap: 3,
                     justifyContent: 'center',
                     alignItems: 'center',
                     ...Platform.select<any>({
@@ -833,7 +841,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   animatedAddStyle
                 ]}
               >
-                <Plus size={18} color={THEME.COLORS.brand.primary} strokeWidth={3} />
+                <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 11, fontWeight: '900', letterSpacing: 0.3 }}>ADD</Text>
+                <Plus size={11} color={THEME.COLORS.brand.primary} strokeWidth={3} />
               </AnimatedPressable>
             ) : (
               <Animated.View
@@ -848,7 +857,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   backgroundColor: isDark ? THEME.COLORS.dark.surface : '#ffffff',
                   flexDirection: 'row',
                   alignItems: 'center',
-                  justifyContent: 'space-evenly',
+                  justifyContent: 'center',
+                  paddingHorizontal: 6,
                   ...Platform.select<any>({
                     ios: {
                       shadowColor: THEME.COLORS.brand.primary,
@@ -863,37 +873,37 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                 {/* Decrement */}
                 <Pressable 
                   onPress={handleDecrement} 
-                  hitSlop={{ top: 10, bottom: 10, left: 10, right: 5 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 10, right: 6 }}
                   style={({ pressed }) => ({
-                    flex: 1,
+                    width: 24,
                     height: '100%',
                     alignItems: 'center',
                     justifyContent: 'center',
                     opacity: pressed ? 0.5 : 1
                   })}
                 >
-                  <Minus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
+                  <Minus size={13} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
                 </Pressable>
 
                 {/* Quantity */}
-                <View style={{ paddingHorizontal: 4, alignItems: 'center', justifyContent: 'center' }}>
-                  <Text style={{ color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 14, fontWeight: '700' }}>{quantity}</Text>
+                <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center' }}>
+                  <Text style={{ color: isDark ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 13, fontWeight: '900' }}>{quantity}</Text>
                 </View>
 
                 {/* Increment */}
                 <Pressable
                   onPress={handleIncrement}
                   disabled={quantity >= resolvedStock}
-                  hitSlop={{ top: 10, bottom: 10, left: 5, right: 10 }}
+                  hitSlop={{ top: 12, bottom: 12, left: 6, right: 10 }}
                   style={({ pressed }) => ({
-                    flex: 1,
+                    width: 24,
                     height: '100%',
                     alignItems: 'center',
                     justifyContent: 'center',
                     opacity: quantity >= resolvedStock ? 0.3 : (pressed ? 0.5 : 1)
                   })}
                 >
-                  <Plus size={14} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
+                  <Plus size={13} color={THEME.COLORS.brand.primary} strokeWidth={3.5} />
                 </Pressable>
               </Animated.View>
             )}
@@ -1319,4 +1329,19 @@ const styles = StyleSheet.create({
   },
 });
 
-export default ProductCard;
+const MemoizedProductCard = memo(ProductCard, (prevProps, nextProps) => {
+  return (
+    prevProps.product?.id === nextProps.product?.id &&
+    prevProps.product?.price === nextProps.product?.price &&
+    prevProps.product?.mrp === nextProps.product?.mrp &&
+    prevProps.product?.stock === nextProps.product?.stock &&
+    prevProps.product?.isAvailable === nextProps.product?.isAvailable &&
+    prevProps.index === nextProps.index &&
+    prevProps.className === nextProps.className &&
+    prevProps.isFlashDeal === nextProps.isFlashDeal &&
+    prevProps.isCafeStyle === nextProps.isCafeStyle &&
+    prevProps.isCategoryGrid === nextProps.isCategoryGrid
+  );
+});
+
+export default MemoizedProductCard;

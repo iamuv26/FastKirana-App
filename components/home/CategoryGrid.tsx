@@ -71,7 +71,7 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
           onPress={() => {
             triggerHaptic('light');
             if (category.slug.toLowerCase().includes('cafe') || category.slug.toLowerCase().includes('café')) {
-              router.push('/cafe');
+              router.push('/restaurants');
             } else {
               router.push(`/category/${category.slug}`);
             }

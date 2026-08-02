@@ -38,8 +38,10 @@ interface FloatingCartBarProps {
 }
 
 export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCartBarProps) {
+  const insets = useSafeAreaInsets();
   const { items, getTotalItems, getSubtotal, getSavings } = useCart();
   const { theme } = useTheme();
+  const isTabBarVisible = useUIStore((s) => s.isTabBarVisible);
   const minOrderValue = useUIStore((s) => typeof s.minOrderValue === 'number' ? s.minOrderValue : 99);
   const groceryThreshold = useUIStore((s) => s.groceryFreeDeliveryThreshold || GROCERY_FREE_DELIVERY_THRESHOLD);
   const cafeThreshold = useUIStore((s) => s.cafeFreeDeliveryThreshold || CAFE_FREE_DELIVERY_THRESHOLD);
@@ -67,6 +69,7 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
   const progressShared = useSharedValue(0);
   const trackWidth = useSharedValue(0);
   const truckScale = useSharedValue(1);
+  const bottomAnimShared = useSharedValue(bottomOffset);
 
   // Smooth scale-swell badge and truck when item count changes
   useEffect(() => {
@@ -117,6 +120,20 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
     };
   }, []);
 
+  useEffect(() => {
+    let resolvedOffset = bottomOffset;
+    if (isTabBarVisible && bottomOffset >= 75) {
+      resolvedOffset = (insets.bottom > 0 ? insets.bottom : 0) + 98;
+    }
+    const targetBottom = isTabBarVisible 
+      ? resolvedOffset 
+      : (bottomOffset < 75 ? (insets.bottom > 0 ? insets.bottom + bottomOffset : bottomOffset) : 16);
+    bottomAnimShared.value = withTiming(targetBottom, {
+      duration: 280,
+      easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
+    });
+  }, [isTabBarVisible, bottomOffset, insets.bottom]);
+
   // Animated styles
   const badgeAnimatedStyle = useAnimatedStyle(() => ({
     transform: [{ scale: badgeScale.value }],
@@ -142,7 +159,9 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
     width: (progressShared.value + '%') as any,
   }));
 
-  const insets = useSafeAreaInsets();
+  const animatedBottomStyle = useAnimatedStyle(() => ({
+    bottom: bottomAnimShared.value + (insets.bottom > 0 ? insets.bottom - 8 : 0),
+  }));
 
   if (cartItemCount === 0) return null;
 
@@ -155,23 +174,8 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
     }
   };
 
-  const isTabBarVisible = useUIStore((s) => s.isTabBarVisible);
   const isFreeDelivery = cartSubtotal >= threshold;
   const amountNeeded = threshold - cartSubtotal;
-
-  const bottomAnimShared = useSharedValue(bottomOffset);
-
-  useEffect(() => {
-    const targetBottom = isTabBarVisible ? bottomOffset : 16;
-    bottomAnimShared.value = withTiming(targetBottom, {
-      duration: 280,
-      easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
-    });
-  }, [isTabBarVisible, bottomOffset]);
-
-  const animatedBottomStyle = useAnimatedStyle(() => ({
-    bottom: bottomAnimShared.value + (insets.bottom > 0 ? insets.bottom - 8 : 0),
-  }));
 
   const isCafe = cafeItems.length > 0;
   const activeBrandColor = isCafe ? '#ea580c' : '#e20a22';

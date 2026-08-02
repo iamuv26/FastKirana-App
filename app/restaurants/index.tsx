@@ -9,6 +9,7 @@ import {
   Platform,
   TextInput,
   RefreshControl,
+  TouchableOpacity,
 } from 'react-native';
 import { Search, ChevronLeft, Flame, ShoppingBag, Utensils } from 'lucide-react-native';
 import Animated, { FadeInDown } from 'react-native-reanimated';
@@ -240,17 +241,28 @@ export default function RestaurantsScreen() {
         </Text>
       </View>
 
+      {/* ═══ RESTAURANT SKELETON LOADER / CARDS ═══ */}
       {isLoading ? (
-        <View style={styles.loadingWrap}>
-          <ActivityIndicator size="large" color="#e20a22" />
-          <Text
-            style={[
-              styles.loadingText,
-              { color: isDarkMode ? '#a1a1aa' : '#64748b' },
-            ]}
-          >
-            Loading restaurants...
-          </Text>
+        <View style={{ paddingHorizontal: responsive.spacing.page, gap: 14, paddingTop: 12 }}>
+          {[1, 2, 3].map((i) => (
+            <View
+              key={i}
+              style={{
+                height: 180,
+                borderRadius: 16,
+                backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                overflow: 'hidden',
+                borderWidth: 1,
+                borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+              }}
+            >
+              <View style={{ height: 110, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0' }} />
+              <View style={{ padding: 12, gap: 6 }}>
+                <View style={{ height: 16, width: '60%', backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', borderRadius: 4 }} />
+                <View style={{ height: 12, width: '40%', backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', borderRadius: 4 }} />
+              </View>
+            </View>
+          ))}
         </View>
       ) : filtered.length === 0 ? (
         <View style={styles.emptyWrap}>

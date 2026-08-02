@@ -14,13 +14,13 @@ import StoreSelectorHeader from '../../components/shared/StoreSelectorHeader';
 import Logo from '../../components/shared/Logo';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import ProductCardSkeleton from '../../components/product/ProductCardSkeleton';
+import { FoodSpecialCard } from '../../components/restaurant/FoodSpecialCard';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
 import CartQuickPreviewSheet from '../../components/shared/CartQuickPreviewSheet';
 import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useCartActions } from '../../hooks/use-cart';
 import DealsCurationHub from '../../components/home/DealsCurationHub';
-import WedsonRestaurantCard from '../../components/home/WedsonRestaurantCard';
 import DeliveryBanner from '../../components/home/DeliveryBanner';
 import TimeGreetingHero from '../../components/home/TimeGreetingHero';
 import CafeCategoriesStrip from '../../components/home/CafeCategoriesStrip';
@@ -587,9 +587,15 @@ export default function HomeScreen() {
   const width = responsive.isLargeScreen
     ? Math.min(responsive.contentMaxWidth, windowWidth > 0 ? windowWidth : 1024)
     : (windowWidth > 0 ? windowWidth : 390);
-  const scrollViewPaddingTop = insets.top > 0
-    ? insets.top + (responsive.isTablet ? 180 : responsive.isLargeScreen ? 200 : 155)
-    : (responsive.isLargeScreen ? 200 : 160);
+
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [foodSectionY, setFoodSectionY] = useState(0);
+
+  const scrollViewPaddingTop = headerHeight > 0
+    ? headerHeight + 12
+    : (insets.top > 0
+      ? insets.top + (responsive.isTablet ? 230 : responsive.isLargeScreen ? 245 : 215)
+      : (responsive.isLargeScreen ? 245 : 220));
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -787,7 +793,7 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 0,
+    staleTime: 60000, // 60s cache — prevents refetch on tab switch
   });
 
   const getIsNonVeg = (item: any) => {
@@ -1119,6 +1125,29 @@ export default function HomeScreen() {
     refetchInterval: 90000, // Auto-refetch every 90s for stock sync
   });
 
+  const foodProducts = useMemo(() => {
+    return products.filter((p: any) => {
+      const catSlug = (p.category?.slug || p.categorySlug || '').toLowerCase();
+      const tags = (p.tags || []).map((t: string) => String(t).toLowerCase());
+      const name = (p.name || '').toLowerCase();
+      return (
+        catSlug.includes('restaurant') ||
+        catSlug.includes('cafe') ||
+        tags.includes('restaurant') ||
+        tags.includes('cafe') ||
+        tags.includes('food') ||
+        tags.includes('wedson') ||
+        name.includes('momo') ||
+        name.includes('roll') ||
+        name.includes('burger') ||
+        name.includes('pizza') ||
+        name.includes('noodle') ||
+        name.includes('shake') ||
+        name.includes('coffee')
+      );
+    }).slice(0, 10);
+  }, [products]);
+
   // Pull-to-refresh implementation
   const [isRefreshing, setIsRefreshing] = useState(false);
   const onRefresh = async () => {
@@ -1302,9 +1331,16 @@ export default function HomeScreen() {
 
       {/* Header Container */}
       <Animated.View style={[headerAnimatedStyle, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
-        <View style={{
-          paddingHorizontal: 16,
-          paddingTop: insets.top > 0 ? insets.top + 5 : 8,
+        <View 
+          onLayout={(e) => {
+            const h = e.nativeEvent.layout.height;
+            if (h > 0 && Math.abs(h - headerHeight) > 1) {
+              setHeaderHeight(h);
+            }
+          }}
+          style={{
+            paddingHorizontal: 16,
+            paddingTop: insets.top > 0 ? insets.top + 5 : 8,
           paddingBottom: 8,
           backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
           ...Platform.select({
@@ -1421,6 +1457,9 @@ export default function HomeScreen() {
                 triggerHaptic('light');
                 setLocalActiveSegment('grocery');
                 tabIndicatorTranslateX.value = withTiming(0, { duration: 130, easing: Easing.out(Easing.quad) });
+                if (scrollViewRef.current) {
+                  scrollViewRef.current.scrollTo({ y: 0, animated: true });
+                }
               }}
               style={{
                 flex: 1,
@@ -1449,7 +1488,6 @@ export default function HomeScreen() {
                 triggerHaptic('medium');
                 setLocalActiveSegment('food');
                 tabIndicatorTranslateX.value = withTiming(1, { duration: 150, easing: Easing.out(Easing.quad) });
-                setIsSwitching('food');
                 router.push('/restaurants');
               }}
               style={{
@@ -1796,6 +1834,7 @@ export default function HomeScreen() {
 
       {/* Grocery Storefront View (matching the screenshot exactly) */}
          <Animated.ScrollView 
+          ref={scrollViewRef}
           onScroll={(e) => {
             scrollY.value = e.nativeEvent.contentOffset.y;
             onTabBarScroll(e);
@@ -1804,7 +1843,7 @@ export default function HomeScreen() {
           scrollEventThrottle={16}
           style={{ flex: 1 }}
           className="flex-1 bg-white dark:bg-zinc-950" 
-          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: 0 }} 
+          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: insets.bottom + 195 }} 
           showsVerticalScrollIndicator={false}
           entering={FadeIn.duration(220)}
           refreshControl={
@@ -1846,9 +1885,6 @@ export default function HomeScreen() {
 
           {/* Category Grid (2 rows x 4 icons) */}
           <CategoryGrid />
-
-          {/* Wedson Restaurant Special Category Card */}
-          <WedsonRestaurantCard />
 
           {/* Active Order Tracker */}
           {activeOrder && (
@@ -1986,6 +2022,7 @@ export default function HomeScreen() {
           )}
 
           {/* Curated For You (Deals Curation Hub) */}
+          {/* Curated For You (Deals Curation Hub) */}
           {isReady ? (
             <>
               <DealsCurationHub products={products} isLoading={isLoading} />
@@ -2000,7 +2037,7 @@ export default function HomeScreen() {
           </Animated.ScrollView>
 
       {/* Shared Sticky Bottom Cart Bar */}
-      <FloatingCartBar bottomOffset={88} onTap={() => setShowCartSheet(true)} />
+      <FloatingCartBar bottomOffset={insets.bottom > 0 ? insets.bottom + 80 : 86} onTap={() => setShowCartSheet(true)} />
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
       <CartQuickPreviewSheet visible={showCartSheet} onClose={() => setShowCartSheet(false)} />
 
