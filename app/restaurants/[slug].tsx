@@ -46,6 +46,7 @@ import {
 import { useCartStore } from '../../stores/cart-store';
 import { useCart } from '../../hooks/use-cart';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
+import RestaurantConflictModal from '../../components/restaurant/RestaurantConflictModal';
 import { THEME } from '../../lib/theme';
 
 const SCREEN_WIDTH = Dimensions.get('window').width;
@@ -136,8 +137,16 @@ export default function RestaurantDetailScreen() {
   const [activeCat, setActiveCat] = useState<string>('');
   const [isFav, setIsFav] = useState(false);
   const [searchOpen, setSearchOpen] = useState(false);
-  const [scrollY, setScrollY] = useState(0);
   const [collapsedSections, setCollapsedSections] = useState<Record<string, boolean>>({});
+  const [scrollYVal, setScrollYVal] = useState(0);
+
+  const cartRestaurantId = useCartStore((s) => s.getCartRestaurantId());
+  const cartRestaurantName = useCartStore((s) => s.getCartRestaurantName());
+  const addItem = useCartStore((s) => s.addItem);
+  const replaceCartWithProduct = useCartStore((s) => s.replaceCartWithProduct);
+
+  const [pendingProduct, setPendingProduct] = useState<any>(null);
+  const [showConflictModal, setShowConflictModal] = useState(false);
 
   const contentScrollRef = useRef<ScrollView>(null);
   const sidebarScrollRef = useRef<ScrollView>(null);
@@ -155,6 +164,27 @@ export default function RestaurantDetailScreen() {
     enabled: !!slug,
     staleTime: 60_000,
   });
+
+  const handleAddToCart = useCallback((p: any) => {
+    const currentResId = cartRestaurantId;
+    const newResId = p.restaurantId || restaurant?.id;
+
+    if (currentResId && newResId && currentResId !== newResId) {
+      setPendingProduct({
+        ...p,
+        restaurantId: newResId,
+        restaurantName: p.restaurantName || restaurant?.name || 'Restaurant'
+      });
+      setShowConflictModal(true);
+      return;
+    }
+
+    addItem({
+      ...p,
+      restaurantId: newResId,
+      restaurantName: p.restaurantName || restaurant?.name || 'Restaurant'
+    });
+  }, [cartRestaurantId, restaurant, addItem]);
 
   // ── Fetch settings for menu sections ──
   const { data: settingsMap = {} } = useQuery<Record<string, string>>({
@@ -240,7 +270,11 @@ export default function RestaurantDetailScreen() {
         }
       }
 
-      return list.filter((p: any) => p.isAvailable !== false);
+      return list.map((p: any) => ({
+        ...p,
+        restaurantId: p.restaurantId || restaurant?.id,
+        restaurantName: p.restaurantName || restaurant?.name || 'Restaurant'
+      })).filter((p: any) => p.isAvailable !== false);
     },
     enabled: !!slug,
     staleTime: 30_000,
@@ -442,6 +476,7 @@ export default function RestaurantDetailScreen() {
 
   // Track scroll position to highlight sidebar category
   const handleContentScroll = useCallback((y: number) => {
+    setScrollYVal(y);
     let currentSection = sections[0]?.tag || '';
     for (const sec of sections) {
       const offset = sectionOffsets.current[sec.tag];
@@ -483,7 +518,7 @@ export default function RestaurantDetailScreen() {
           styles.topBar,
           {
             paddingTop: insets.top + 6,
-            backgroundColor: scrollY > 120
+            backgroundColor: scrollYVal > 120
               ? (isDarkMode ? 'rgba(9,9,11,0.96)' : 'rgba(255,255,255,0.96)')
               : 'transparent',
           },
@@ -492,15 +527,15 @@ export default function RestaurantDetailScreen() {
         <ScalePressable
           onPress={() => { triggerHaptic('light'); router.back(); }}
           style={[styles.topIconBtn, {
-            backgroundColor: scrollY > 120
+            backgroundColor: scrollYVal > 120
               ? (isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
               : 'rgba(255,255,255,0.22)',
           }]}
         >
-          <ArrowLeft size={20} color={scrollY > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'} strokeWidth={2.5} />
+          <ArrowLeft size={20} color={scrollYVal > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'} strokeWidth={2.5} />
         </ScalePressable>
 
-        {scrollY > 120 && (
+        {scrollYVal > 120 && (
           <Text
             numberOfLines={1}
             style={[styles.topBarTitle, { color: isDarkMode ? '#fafafa' : '#0f172a' }]}
@@ -817,7 +852,6 @@ export default function RestaurantDetailScreen() {
               showsVerticalScrollIndicator={false}
               onScroll={(e) => {
                 const y = e.nativeEvent.contentOffset.y;
-                setScrollY(y + 200);
                 handleContentScroll(y);
               }}
               scrollEventThrottle={16}
@@ -871,8 +905,10 @@ export default function RestaurantDetailScreen() {
                           >
                             <Grid2ColCard
                               product={prod}
+                              restaurant={restaurant}
                               isClosed={isClosed}
                               isDarkMode={isDarkMode}
+                              onAddToCart={handleAddToCart}
                             />
                           </View>
                         ))}
@@ -888,6 +924,24 @@ export default function RestaurantDetailScreen() {
 
       {/* ═══ FLOATING CART BAR ═══ */}
       <FloatingCartBar bottomOffset={insets.bottom > 0 ? 12 : 14} />
+
+      {/* Multi-Restaurant Cart Conflict Modal */}
+      <RestaurantConflictModal
+        visible={showConflictModal}
+        currentRestaurantName={cartRestaurantName || 'another restaurant'}
+        newRestaurantName={restaurant?.name || 'this restaurant'}
+        onCancel={() => {
+          setShowConflictModal(false);
+          setPendingProduct(null);
+        }}
+        onConfirmReplace={() => {
+          if (pendingProduct) {
+            replaceCartWithProduct(pendingProduct);
+          }
+          setShowConflictModal(false);
+          setPendingProduct(null);
+        }}
+      />
     </View>
   );
 }
@@ -898,12 +952,16 @@ export default function RestaurantDetailScreen() {
 
 const Grid2ColCard = memo(function Grid2ColCard({
   product,
+  restaurant,
   isClosed,
   isDarkMode,
+  onAddToCart,
 }: {
   product: any;
+  restaurant?: any;
   isClosed: boolean;
   isDarkMode: boolean;
+  onAddToCart?: (p: any) => void;
 }) {
   const router = useRouter();
   const cartItems = useCartStore((s) => s.items);
@@ -930,7 +988,7 @@ const Grid2ColCard = memo(function Grid2ColCard({
   const handleAdd = () => {
     if (isClosed) return;
     triggerHaptic('success');
-    addItem({
+    const itemData = {
       id: product.id,
       name,
       slug: product.slug || product.id,
@@ -940,9 +998,17 @@ const Grid2ColCard = memo(function Grid2ColCard({
       discount: discount || 0,
       unit: servingInfo || '1 Portion',
       stock: product.stock ?? 99,
+      restaurantId: product.restaurantId || restaurant?.id,
+      restaurantName: product.restaurantName || restaurant?.name || 'Restaurant',
       category: product.category || { id: 'restaurant', name: 'Restaurant', slug: 'restaurant', imageUrl: null, parentId: null, sortOrder: 0 },
       tags: product.tags || [],
-    });
+    };
+
+    if (onAddToCart) {
+      onAddToCart(itemData);
+    } else {
+      addItem(itemData);
+    }
   };
 
   const handleIncrement = () => {
