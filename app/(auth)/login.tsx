@@ -27,7 +27,7 @@ import Animated, {
 } from 'react-native-reanimated';
 
 // Pre-configured Local Mock Accounts for testing/demo
-const localAccounts: Record<string, { id: string, role: 'ADMIN' | 'PICKER' | 'CHEF' | 'DELIVERY', name: string, phone: string, pass: string }> = {
+const localAccounts: Record<string, { id: string, role: 'ADMIN' | 'PICKER' | 'CHEF' | 'DELIVERY' | 'RESTAURANT_OWNER', name: string, phone: string, pass: string }> = {
   'admin': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'Yuvraj@26' },
   'admin@fastkirana.com': { id: 'cmqgzqeud0000vkid7hd6mti4', role: 'ADMIN', name: 'Store Administrator', phone: '+919999900000', pass: 'admin123' },
   'picker': { id: 'cmqgzqf2k0002vkid1f3wpwg4', role: 'PICKER', name: 'Warehouse Picker', phone: '+919888811111', pass: 'Yuvraj@26' },
@@ -114,7 +114,7 @@ export default function LoginScreen() {
           
           // Redirect to appropriate console or homepage based on role
           if (userObj.role === 'PICKER') router.replace('/picker');
-          else if (userObj.role === 'CHEF') router.replace(userObj.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+          else if (userObj.role === 'CHEF' || userObj.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
           else if (userObj.role === 'DELIVERY') router.replace('/rider');
           else if (userObj.role === 'ADMIN') router.replace('/operations');
           else router.replace('/(tabs)');
@@ -179,7 +179,7 @@ export default function LoginScreen() {
           toast.success('Successfully logged in with Google!');
           
           if (userObj.role === 'PICKER') router.replace('/picker');
-          else if (userObj.role === 'CHEF') router.replace(userObj.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+          else if (userObj.role === 'CHEF' || userObj.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
           else if (userObj.role === 'DELIVERY') router.replace('/rider');
           else if (userObj.role === 'ADMIN') router.replace('/operations');
           else router.replace('/(tabs)');
@@ -275,8 +275,8 @@ export default function LoginScreen() {
         // Route according to role
         if (lastUser.role === 'PICKER') {
           router.replace('/picker');
-        } else if (lastUser.role === 'CHEF') {
-          router.replace(lastUser.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+        } else if (lastUser.role === 'CHEF' || lastUser.role === 'RESTAURANT_OWNER') {
+          router.replace('/restaurant-chef');
         } else if (lastUser.role === 'DELIVERY') {
           router.replace('/rider');
         } else if (lastUser.role === 'ADMIN') {
@@ -430,7 +430,7 @@ export default function LoginScreen() {
       setIsLoading(false);
 
       if (mockUser.role === 'PICKER') router.replace('/picker');
-      else if (mockUser.role === 'CHEF') router.replace(mockUser.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+      else if (mockUser.role === 'CHEF' || mockUser.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
       else if (mockUser.role === 'DELIVERY') router.replace('/rider');
       else if (mockUser.role === 'ADMIN') router.replace('/operations');
       else router.replace('/(tabs)');
@@ -461,7 +461,7 @@ export default function LoginScreen() {
         
         // Route according to role
         if (loginData.user.role === 'PICKER') router.replace('/picker');
-        else if (loginData.user.role === 'CHEF') router.replace(loginData.user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+        else if (loginData.user.role === 'CHEF' || loginData.user.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
         else if (loginData.user.role === 'DELIVERY') router.replace('/rider');
         else if (loginData.user.role === 'ADMIN') router.replace('/operations');
         else router.replace('/(tabs)');
@@ -524,7 +524,7 @@ export default function LoginScreen() {
         toast.success('Logged in successfully!');
         
         if (verifyData.user.role === 'PICKER') router.replace('/picker');
-        else if (verifyData.user.role === 'CHEF') router.replace(verifyData.user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+        else if (verifyData.user.role === 'CHEF' || verifyData.user.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
         else if (verifyData.user.role === 'DELIVERY') router.replace('/rider');
         else if (verifyData.user.role === 'ADMIN') router.replace('/operations');
         else router.replace('/(tabs)');

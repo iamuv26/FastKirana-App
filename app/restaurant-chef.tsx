@@ -89,7 +89,9 @@ export default function RestaurantChefScreen() {
     return n.includes('chicken') || n.includes('egg') || n.includes('fish') || n.includes('meat') || n.includes('pork') || n.includes('mutton') || n.includes('non-veg') || n.includes('nonveg') || n.includes('wings') || (n.includes('burger') && !n.includes('veg'));
   };
   const { user, logout } = useAuthStore();
-  const { activeAlertOrder, acknowledgeAlert, acceptOrder, refreshAlerts } = useNewOrderAlert(user?.role === 'CHEF');
+  const restaurantId = user?.assignedRestaurantId || '';
+  const restaurantName = user?.assignedRestaurantName || 'Restaurant Kitchen';
+  const { activeAlertOrder, acknowledgeAlert, acceptOrder, refreshAlerts } = useNewOrderAlert(user?.role === 'CHEF' || user?.role === 'RESTAURANT_OWNER');
   const [orders, setOrders] = useState<Order[]>([]);
   const [isOnline, setIsOnline] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -157,7 +159,7 @@ export default function RestaurantChefScreen() {
       const startStr = start.toISOString().split('T')[0];
       const endStr = end.toISOString().split('T')[0];
 
-      const res = await fetch(`${API_BASE_URL}/restaurant/reports?startDate=${startStr}&endDate=${endStr}`, {
+      const res = await fetch(`${API_BASE_URL}/restaurant/reports?startDate=${startStr}&endDate=${endStr}&restaurantId=${restaurantId}`, {
         headers: getAuthHeaders()
       });
       if (res.ok) {
@@ -188,15 +190,15 @@ export default function RestaurantChefScreen() {
     }
   }, [activeTab, rangePreset]);
 
-  const isTargetCategory = (slug?: string | null) => {
-    const s = (slug || 'restaurant').toLowerCase();
-    return s === 'restaurant' || s === 'north-indian' || s === 'biryani-rice';
+  const isTargetCategory = (_slug?: string | null) => {
+    // All items in this restaurant's orders are relevant
+    return true;
   };
 
   const fetchInventoryProducts = async () => {
     setIsLoadingInventory(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/products?category=restaurant,north-indian,biryani-rice&limit=300`);
+      const response = await fetch(`${API_BASE_URL}/products?restaurantId=${restaurantId}&limit=500`);
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -265,7 +267,7 @@ export default function RestaurantChefScreen() {
     if (!user) return;
     if (showLoader) setIsRefreshing(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/picker/orders?type=restaurant`, { 
+      const res = await fetch(`${API_BASE_URL}/picker/orders?type=restaurant&restaurantId=${restaurantId}`, { 
         method: 'GET', 
         headers: getAuthHeaders() 
       });
@@ -352,7 +354,7 @@ export default function RestaurantChefScreen() {
 
     // Pre-fetch all products for catalog suggestions / variant swap referencing
     try {
-      const response = await fetch(`${API_BASE_URL}/products?category=restaurant,north-indian,biryani-rice&limit=300`);
+      const response = await fetch(`${API_BASE_URL}/products?restaurantId=${restaurantId}&limit=500`);
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -611,7 +613,7 @@ export default function RestaurantChefScreen() {
           </Pressable>
           <View>
             <View className="flex-row items-center gap-2">
-              <Text className="text-slate-800 dark:text-white font-extrabold text-sm tracking-tight">Wedson Restaurant Console</Text>
+              <Text className="text-slate-800 dark:text-white font-extrabold text-sm tracking-tight">{restaurantName}</Text>
               <View className="flex-row items-center bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 px-2 py-0.5 rounded-full gap-1">
                 <LivePulseDot />
                 <Text className="text-rose-650 dark:text-rose-450 font-black text-[7.5px] tracking-wider uppercase">
@@ -619,7 +621,7 @@ export default function RestaurantChefScreen() {
                 </Text>
               </View>
             </View>
-            <Text className="text-slate-400 dark:text-zinc-500 text-[9.5px] font-bold mt-0.5">FastKirana Restaurant Food Prep Station</Text>
+            <Text className="text-slate-400 dark:text-zinc-500 text-[9.5px] font-bold mt-0.5">Kitchen Console • FastKirana</Text>
           </View>
         </View>
         

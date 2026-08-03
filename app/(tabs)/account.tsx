@@ -637,34 +637,6 @@ export default function AccountScreen() {
                   <ChevronRight size={14} color="#94a3b8" />
                 </Pressable>
 
-                {/* 5. Cafe Chef Console */}
-                <Pressable 
-                  onPress={() => {
-                    triggerHaptic('medium');
-                    router.push('/cafe-chef');
-                  }}
-                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
-                  style={({ pressed }) => [{
-                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
-                    shadowRadius: 8,
-                    elevation: 2,
-                    opacity: pressed ? 0.95 : 1
-                  }]}
-                >
-                  <View className="flex-row items-center gap-3 flex-1 pr-3">
-                    <View className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/20 items-center justify-center flex-shrink-0">
-                      <Coffee size={18} color="#ea580c" strokeWidth={2.5} />
-                    </View>
-                    <View className="flex-1 flex-shrink">
-                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Cafe Console</Text>
-                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Cafe items, beverages & baking queue</Text>
-                    </View>
-                  </View>
-                  <ChevronRight size={14} color="#94a3b8" />
-                </Pressable>
               </View>
             ) : (
               <LinearGradient
@@ -685,7 +657,7 @@ export default function AccountScreen() {
                   onPress={() => {
                     triggerHaptic('medium');
                     if (user.role === 'PICKER') router.push('/picker');
-                    else if (user.role === 'CHEF') router.push(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+                    else if (user.role === 'CHEF' || user.role === 'RESTAURANT_OWNER') router.push('/restaurant-chef');
                     else if (user.role === 'DELIVERY') router.push('/rider');
                     else router.push('/operations');
                   }}

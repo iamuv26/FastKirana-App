@@ -118,7 +118,7 @@ function CategoryCard({ category, isDarkMode, index }: { category: any; isDarkMo
         onPress={() => {
           triggerHaptic('light');
           if (category.slug === 'cafe') {
-            router.push('/cafe');
+            router.push('/restaurants');
           } else {
             router.push(`/category/${category.slug}`);
           }

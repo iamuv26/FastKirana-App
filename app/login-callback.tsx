@@ -28,7 +28,7 @@ export default function LoginCallbackScreen() {
 
         // Redirect to appropriate console or homepage based on role
         if (userObj.role === 'PICKER') router.replace('/picker');
-        else if (userObj.role === 'CHEF') router.replace(userObj.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+        else if (userObj.role === 'CHEF' || userObj.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
         else if (userObj.role === 'DELIVERY') router.replace('/rider');
         else if (userObj.role === 'ADMIN') router.replace('/operations');
         else router.replace('/(tabs)');

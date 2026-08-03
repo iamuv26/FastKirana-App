@@ -546,26 +546,26 @@ export default function RestaurantDetailScreen() {
 
         <View style={styles.topBarRight}>
           <ScalePressable
-            onPress={() => { triggerHaptic('light'); setSearchOpen((v) => !v); }}
+            onPress={() => { triggerHaptic('light'); setSearchOpen((v: boolean) => !v); }}
             style={[styles.topIconBtn, {
-              backgroundColor: scrollY > 120
+              backgroundColor: scrollYVal > 120
                 ? (isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
                 : 'rgba(255,255,255,0.22)',
             }]}
           >
-            <Search size={18} color={scrollY > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'} strokeWidth={2.3} />
+            <Search size={18} color={scrollYVal > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'} strokeWidth={2.3} />
           </ScalePressable>
           <ScalePressable
             onPress={() => { triggerHaptic('light'); setIsFav((v) => !v); }}
             style={[styles.topIconBtn, {
-              backgroundColor: scrollY > 120
+              backgroundColor: scrollYVal > 120
                 ? (isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)')
                 : 'rgba(255,255,255,0.22)',
             }]}
           >
             <Heart
               size={18}
-              color={scrollY > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'}
+              color={scrollYVal > 120 ? (isDarkMode ? '#fafafa' : '#0f172a') : '#ffffff'}
               strokeWidth={2.3}
               fill={isFav ? (isDarkMode ? '#fafafa' : '#0f172a') : 'transparent'}
             />
