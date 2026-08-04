@@ -178,14 +178,14 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
   const amountNeeded = threshold - cartSubtotal;
 
   const isCafe = cafeItems.length > 0;
-  const activeBrandColor = isCafe ? '#ea580c' : '#e20a22';
-  const progressColor = isFreeDelivery ? '#22c55e' : '#facc15';
+  const activeBrandColor = isCafe ? THEME.COLORS.brand.accent : THEME.COLORS.brand.primary;
+  const progressColor = isFreeDelivery ? THEME.COLORS.brand.success : THEME.COLORS.brand.warning;
 
   const gradientColors = (isDarkMode
     ? ['rgba(39, 39, 42, 0.95)', 'rgba(24, 24, 27, 0.98)']
     : isCafe
-      ? ['#ea580c', '#f97316']
-      : ['#e20a22', '#f43f5e']) as [string, string];
+      ? [THEME.COLORS.brand.accent, THEME.COLORS.brand.accentDark]
+      : [THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]) as [string, string];
 
   return (
     <Animated.View 
@@ -251,9 +251,9 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
           {/* Left: Items Count & Price */}
           <View style={{ flexDirection: 'row', alignItems: 'center', flex: 1, marginRight: 10 }}>
             <View style={styles.iconContainer}>
-              <ShoppingBag size={15} color="#ffffff" strokeWidth={2.4} />
+              <ShoppingBag size={15} color={isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#ffffff'} strokeWidth={2.4} />
               {/* Slender item badge */}
-              <Animated.View style={[styles.badge, { borderColor: isDarkMode ? '#27272a' : activeBrandColor }, badgeAnimatedStyle]}>
+              <Animated.View style={[styles.badge, { borderColor: isDarkMode ? THEME.COLORS.dark.borderLight : activeBrandColor }, badgeAnimatedStyle]}>
                 <Text allowFontScaling={false} style={styles.badgeText}>{cartItemCount}</Text>
               </Animated.View>
             </View>
@@ -285,13 +285,13 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
                   bottom: -3,
                   borderRadius: 99,
                   borderWidth: 1.5,
-                  borderColor: isDarkMode ? '#fafafa' : 'rgba(255, 255, 255, 0.4)',
+                  borderColor: isDarkMode ? THEME.COLORS.light.surface : 'rgba(255, 255, 255, 0.4)',
                 }
               ]}
             />
             <View style={styles.viewCartButton}>
-              <Text allowFontScaling={false} style={[styles.viewCartText, { color: isDarkMode ? '#ffffff' : activeBrandColor }]}>View Cart</Text>
-              <ChevronRight size={11} color={isDarkMode ? '#ffffff' : activeBrandColor} strokeWidth={3} />
+              <Text allowFontScaling={false} style={[styles.viewCartText, { color: isDarkMode ? colors.textPrimary : activeBrandColor }]}>View Cart</Text>
+              <ChevronRight size={11} color={isDarkMode ? colors.textPrimary : activeBrandColor} strokeWidth={3} />
             </View>
           </View>
         </View>
@@ -302,9 +302,9 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
 
 const styles = StyleSheet.create({
   innerCard: {
-    borderRadius: 20,
+    borderRadius: THEME.RADIUS.lg,
     overflow: 'hidden',
-    height: 52, // Compact, slender height
+    height: 52,
     justifyContent: 'center',
   },
   topProgressTrack: {
@@ -324,7 +324,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 14,
+    paddingHorizontal: THEME.SPACING.md,
     paddingTop: 2,
   },
   iconContainer: {
@@ -342,7 +342,7 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: -4,
     right: -4,
-    backgroundColor: '#fbbf24',
+    backgroundColor: THEME.COLORS.brand.warning,
     borderRadius: 9,
     minWidth: 17,
     height: 17,
@@ -352,28 +352,28 @@ const styles = StyleSheet.create({
     borderWidth: 1.2,
   },
   badgeText: {
-    color: '#1e293b',
-    fontSize: 9,
-    fontWeight: '900',
+    color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
     textAlign: 'center',
   },
   priceText: {
     color: '#ffffff',
-    fontWeight: '900',
-    fontSize: 13,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
     letterSpacing: -0.15,
   },
   subText: {
     color: 'rgba(255,255,255,0.92)',
-    fontWeight: '700',
-    fontSize: 9.5,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
     marginTop: 0.5,
   },
   viewCartButton: {
     backgroundColor: '#ffffff',
-    paddingHorizontal: 12,
-    paddingVertical: 5.5,
-    borderRadius: 99,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.xs + 1,
+    borderRadius: THEME.RADIUS.pill,
     flexDirection: 'row',
     alignItems: 'center',
     gap: 3,
@@ -384,8 +384,8 @@ const styles = StyleSheet.create({
     elevation: 3,
   },
   viewCartText: {
-    fontWeight: '900',
-    fontSize: 10.5,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
     textTransform: 'uppercase',
     letterSpacing: 0.4,
   },

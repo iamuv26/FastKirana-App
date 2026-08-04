@@ -1,4 +1,4 @@
-import { View, Text, Pressable, TextInput, ActivityIndicator, Alert, ScrollView, Platform } from 'react-native';
+import { View, Text, Pressable, TextInput, ActivityIndicator, Alert, ScrollView, Platform, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { useState, useEffect, useRef } from 'react';
@@ -15,6 +15,7 @@ import { WebView } from 'react-native-webview';
 import Constants from 'expo-constants';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { ZoomIn } from 'react-native-reanimated';
+import { THEME } from '../lib/theme';
 
 let MapView: any;
 let Marker: any;
@@ -33,12 +34,13 @@ if (Platform.OS !== 'web') {
 
 export default function LocationPickerScreen() {
   const { theme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
-  const { 
-    selectedLocation, 
-    userCoords, 
-    deliveryRadius, 
+  const {
+    selectedLocation,
+    userCoords,
+    deliveryRadius,
     storeLat,
     storeLng
   } = useUIStore();
@@ -48,7 +50,6 @@ export default function LocationPickerScreen() {
   const [gpsLoading, setGpsLoading] = useState(false);
   const [isValidating, setIsValidating] = useState(false);
 
-  // Default region points to userCoords or fallback to Store
   const [region, setRegion] = useState({
     latitude: userCoords?.lat || storeLat || 26.1534185,
     longitude: userCoords?.lng || storeLng || 80.1714024,
@@ -93,20 +94,18 @@ export default function LocationPickerScreen() {
     }));
   }, [markerCoords.latitude, markerCoords.longitude]);
 
-  // Haversine formula to compute distance in km
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371; // Radius of earth in km
+    const R = 6371;
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
+    const a =
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
-  // Update distance & address when marker coordinate changes with 1000ms debounce
   useEffect(() => {
     const d = calculateDistance(storeLat, storeLng, markerCoords.latitude, markerCoords.longitude);
     setDistance(d);
@@ -133,14 +132,12 @@ export default function LocationPickerScreen() {
     return () => clearTimeout(timer);
   }, [markerCoords]);
 
-  // Auto-detect current location on mount if no coords are set yet
   useEffect(() => {
     if (!userCoords) {
       handleUseCurrentLocation();
     }
   }, []);
 
-  // Request GPS Location
   const handleUseCurrentLocation = async () => {
     setGpsLoading(true);
     triggerHaptic('light');
@@ -158,7 +155,6 @@ export default function LocationPickerScreen() {
 
       const { latitude, longitude } = currentLocation.coords;
 
-      // Animate map
       mapRef.current?.animateToRegion({
         latitude,
         longitude,
@@ -174,7 +170,6 @@ export default function LocationPickerScreen() {
         longitudeDelta: 0.015,
       });
 
-      // Reverse geocode
       const [geocode] = await Location.reverseGeocodeAsync({ latitude, longitude });
       if (geocode) {
         const name = geocode.name || geocode.street || '';
@@ -195,14 +190,13 @@ export default function LocationPickerScreen() {
     }
   };
 
-  // Geocode manual address search
   const handleAddressSearch = async () => {
     if (!searchQuery.trim()) return;
     setIsSearching(true);
     triggerHaptic('light');
     try {
       let results = await Location.geocodeAsync(searchQuery).catch(() => []);
-      
+
       if (!results || results.length === 0) {
         console.log('Local geocoding returned no results, fetching from backend geocoder:', searchQuery);
         const response = await api.get(`/geocode?address=${encodeURIComponent(searchQuery)}`);
@@ -217,7 +211,7 @@ export default function LocationPickerScreen() {
 
       if (results && results.length > 0) {
         const { latitude, longitude } = results[0];
-        
+
         mapRef.current?.animateToRegion({
           latitude,
           longitude,
@@ -253,8 +247,7 @@ export default function LocationPickerScreen() {
       const response = await fetch(`${API_BASE_URL}/location/check-store?lat=${markerCoords.latitude}&lng=${markerCoords.longitude}`);
       if (!response.ok) throw new Error('Store coverage check failed');
       const store = await response.json();
-      
-      // Force all stores (including Swaroop Nagar) to map to Ghatampur
+
       const resolvedStoreId = 'default-Ghatampur Market';
       const resolvedStoreName = 'Ghatampur';
 
@@ -275,7 +268,6 @@ export default function LocationPickerScreen() {
       setSuccessModalVisible(true);
     } catch (err) {
       console.error(err);
-      // Fallback
       useUIStore.setState({
         selectedLocation: addressText,
         userCoords: { lat: markerCoords.latitude, lng: markerCoords.longitude },
@@ -299,110 +291,91 @@ export default function LocationPickerScreen() {
   const isExpoGo = Constants.appOwnership === 'expo';
 
   return (
-    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
       {/* Header */}
-      <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3">
-        <ScalePressable 
-          onPress={() => {
-            router.back();
-          }}
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <ScalePressable
+          onPress={() => { router.back(); }}
           scaleValue={0.9}
-          style={{
-            width: 32,
-            height: 32,
-            borderRadius: 16,
-            alignItems: 'center',
-            justifyContent: 'center',
-            backgroundColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-          }}
+          style={[styles.backBtn, { backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}
         >
-          <ArrowLeft size={18} color={isDark ? '#ffffff' : '#0f172a'} />
+          <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : colors.textPrimary} />
         </ScalePressable>
-        <View className="flex-1">
-          <Text className="text-slate-850 dark:text-zinc-100 font-black text-base">Select Delivery Location</Text>
-          <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold mt-0.5">Dark Store Delivery Validation</Text>
+        <View style={styles.headerTextWrap}>
+          <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Select Delivery Location</Text>
+          <Text style={[styles.headerSub, { color: colors.textMuted }]}>Dark Store Delivery Validation</Text>
         </View>
       </View>
 
-      <ScrollView className="flex-1" contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
+      <ScrollView style={styles.scrollView} contentContainerStyle={{ flexGrow: 1 }} keyboardShouldPersistTaps="handled">
         {/* Search bar */}
-        <View className="p-4 bg-white dark:bg-zinc-900 border-b border-slate-100 dark:border-zinc-800 flex-row gap-2">
-          <View className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl flex-row items-center px-3.5">
-            <Search size={16} color={isDark ? '#a1a1aa' : '#64748b'} />
+        <View style={[styles.searchBarWrap, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+          <View style={[styles.searchInputWrap, { backgroundColor: colors.borderLight, borderColor: colors.border }]}>
+            <Search size={16} color={colors.textMuted} />
             <TextInput
               placeholder="Search address or area..."
-              placeholderTextColor={isDark ? '#52525b' : '#94a3b8'}
+              placeholderTextColor={colors.textMuted}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={handleAddressSearch}
-              className="flex-1 py-2.5 ml-2 text-slate-800 dark:text-zinc-100 font-bold text-xs"
+              style={[styles.searchInput, { color: colors.textPrimary }]}
             />
           </View>
-          <ScalePressable 
+          <ScalePressable
             onPress={handleAddressSearch}
             disabled={isSearching}
             scaleValue={0.95}
-            style={{
-              backgroundColor: '#e20a22',
-              paddingHorizontal: 16,
-              borderRadius: 12,
-              alignItems: 'center',
-              justifyContent: 'center',
-            }}
+            style={[styles.searchBtn, { backgroundColor: THEME.COLORS.brand.primary }]}
           >
             {isSearching ? (
-              <ActivityIndicator size="small" color="#fff" />
+              <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text className="text-white font-extrabold text-xs">Search</Text>
+              <Text style={styles.searchBtnText}>Search</Text>
             )}
           </ScalePressable>
         </View>
 
         {/* Current Location Quick Option */}
-        <ScalePressable 
+        <ScalePressable
           onPress={handleUseCurrentLocation}
           disabled={gpsLoading}
           scaleValue={0.98}
-          style={{
-            backgroundColor: isDark ? 'rgba(79, 70, 229, 0.08)' : 'rgba(238, 242, 255, 0.4)',
-            paddingHorizontal: 16,
-            paddingVertical: 14,
-            flexDirection: 'row',
-            alignItems: 'center',
-            justifyContent: 'space-between',
-            borderBottomWidth: 1,
-            borderBottomColor: isDark ? '#27272a' : '#f1f5f9',
-          }}
+          style={[
+            styles.gpsRow,
+            {
+              backgroundColor: isDarkMode ? 'rgba(79, 70, 229, 0.08)' : 'rgba(238, 242, 255, 0.4)',
+              borderBottomColor: colors.borderLight,
+            }
+          ]}
         >
-          <View className="flex-row items-center gap-3">
+          <View style={styles.gpsLeft}>
             <Navigation size={18} color="#4f46e5" />
             <View>
-              <Text className="text-indigo-700 dark:text-indigo-400 font-black text-xs">Use Current GPS Location</Text>
-              <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold mt-0.5">Detects address automatically</Text>
+              <Text style={[styles.gpsTitle, { color: isDarkMode ? '#818cf8' : '#4338ca' }]}>Use Current GPS Location</Text>
+              <Text style={[styles.gpsSub, { color: colors.textMuted }]}>Detects address automatically</Text>
             </View>
           </View>
           {gpsLoading && <ActivityIndicator size="small" color="#4f46e5" />}
         </ScalePressable>
 
         {/* Map View */}
-        <View className="flex-1 min-h-[300px] relative bg-slate-100 dark:bg-zinc-900 border-y border-slate-200 dark:border-zinc-800 overflow-hidden">
+        <View style={[styles.mapWrap, { backgroundColor: colors.borderLight, borderTopColor: colors.border, borderBottomColor: colors.border }]}>
           {Platform.OS === 'web' ? (
-            <View className="w-full h-full relative" style={{ minHeight: 300 }}>
+            <View style={styles.webMapWrap}>
               <iframe
                 title="Delivery Location Map"
                 src={`https://maps.google.com/maps?q=${markerCoords.latitude},${markerCoords.longitude}&z=15&output=embed`}
                 style={{ width: '100%', height: '100%', border: 'none', minHeight: 300 }}
               />
-              <View className="absolute bottom-2 left-2 bg-white/90 dark:bg-zinc-900/90 px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 shadow-sm">
-                <Text className="text-[9px] text-slate-600 dark:text-zinc-400 font-bold">
+              <View style={[styles.coordsBadge, { backgroundColor: isDarkMode ? 'rgba(24,24,27,0.9)' : 'rgba(255,255,255,0.9)', borderColor: colors.border }]}>
+                <Text style={[styles.coordsText, { color: colors.textSecondary }]}>
                   Coordinates: {(markerCoords?.latitude || 26.1534185).toFixed(6)}, {(markerCoords?.longitude || 80.1714024).toFixed(6)}
                 </Text>
               </View>
             </View>
           ) : isExpoGo && Platform.OS === 'android' ? (
-            // Modern Interactive Leaflet Map for Expo Go Android
-            <View className="w-full h-full relative" style={{ minHeight: 300 }}>
+            <View style={styles.webMapWrap}>
               <WebView
                 ref={webViewRef}
                 originWhitelist={['*']}
@@ -417,16 +390,16 @@ export default function LocationPickerScreen() {
                     <style>
                       body, html, #map {
                         margin: 0; padding: 0; height: 100%; width: 100%;
-                        background-color: ${isDark ? '#09090b' : '#fafbfe'};
+                        background-color: ${isDarkMode ? '#09090b' : '#fafbfe'};
                       }
                       .leaflet-control-zoom {
                         border: none !important;
                         box-shadow: 0 4px 10px rgba(0,0,0,0.12) !important;
                       }
                       .leaflet-bar a {
-                        background-color: ${isDark ? '#1c1c1f' : '#ffffff'} !important;
-                        color: ${isDark ? '#ffffff' : '#0f172a'} !important;
-                        border: 1px solid ${isDark ? '#27272a' : '#e2e8f0'} !important;
+                        background-color: ${isDarkMode ? '#1c1c1f' : '#ffffff'} !important;
+                        color: ${isDarkMode ? '#ffffff' : '#0f172a'} !important;
+                        border: 1px solid ${isDarkMode ? '#27272a' : '#e2e8f0'} !important;
                       }
                     </style>
                   </head>
@@ -438,7 +411,7 @@ export default function LocationPickerScreen() {
                         attributionControl: false
                       }).setView([${markerCoords.latitude}, ${markerCoords.longitude}], 15);
 
-                      var tileUrl = '${isDark ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'}';
+                      var tileUrl = '${isDarkMode ? 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png' : 'https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png'}';
                       L.tileLayer(tileUrl, { maxZoom: 19 }).addTo(map);
 
                       var storeIcon = L.divIcon({
@@ -489,18 +462,16 @@ export default function LocationPickerScreen() {
                   </html>
                 ` }}
                 onMessage={onWebViewMessage}
-                style={{ width: '100%', height: '100%', backgroundColor: isDark ? '#09090b' : '#fafbfe' }}
+                style={{ width: '100%', height: '100%', backgroundColor: isDarkMode ? '#09090b' : '#fafbfe' }}
               />
             </View>
           ) : !MapView ? (
-            <View className="w-full h-full justify-center items-center p-6 bg-slate-50 dark:bg-zinc-900 gap-2">
-              <View className="w-12 h-12 rounded-full bg-rose-500/10 border border-rose-500/20 items-center justify-center">
-                <MapPin size={22} color="#e20a22" />
+            <View style={[styles.noMapWrap, { backgroundColor: colors.borderLight }]}>
+              <View style={[styles.noMapIcon, { backgroundColor: isDarkMode ? 'rgba(225,29,72,0.1)' : THEME.COLORS.brand.primaryLight, borderColor: isDarkMode ? 'rgba(225,29,72,0.2)' : '#ffe4e6' }]}>
+                <MapPin size={22} color={THEME.COLORS.brand.primary} />
               </View>
-              <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs text-center">
-                Maps Module Not Available
-              </Text>
-              <Text className="text-slate-400 dark:text-zinc-450 text-[10px] text-center max-w-[280px]">
+              <Text style={[styles.noMapTitle, { color: colors.textPrimary }]}>Maps Module Not Available</Text>
+              <Text style={[styles.noMapSub, { color: colors.textMuted }]}>
                 Google Maps Services are not configured or supported on this device. You can still auto-detect GPS coordinates or proceed using manual address text entry.
               </Text>
             </View>
@@ -515,19 +486,17 @@ export default function LocationPickerScreen() {
                 }}
                 style={{ width: '100%', height: '100%' }}
               >
-                {/* Dark Store Pin */}
                 <Marker
                   coordinate={{ latitude: storeLat, longitude: storeLng }}
                   title="FastKirana Dark Store"
                   description="Fulfillment Center"
                   tracksViewChanges={false}
                 >
-                  <View className="w-8 h-8 rounded-full bg-rose-600 items-center justify-center border-2 border-white shadow-md">
-                    <Text className="text-[12px]">📦</Text>
+                  <View style={[styles.mapStorePin, { backgroundColor: THEME.COLORS.brand.primary }]}>
+                    <Text style={styles.mapPinText}>📦</Text>
                   </View>
                 </Marker>
 
-                {/* Selected User Pin */}
                 <Marker
                   coordinate={markerCoords}
                   title="Delivery Target"
@@ -537,23 +506,21 @@ export default function LocationPickerScreen() {
                     setMarkerCoords(e.nativeEvent.coordinate);
                   }}
                 >
-                  <View className="w-8 h-8 rounded-full bg-indigo-600 items-center justify-center border-2 border-white shadow-md">
-                    <Text className="text-[12px]">📍</Text>
+                  <View style={styles.mapUserPin}>
+                    <Text style={styles.mapPinText}>📍</Text>
                   </View>
                 </Marker>
 
-                {/* Delivery zone radius circle */}
                 <Circle
                   center={{ latitude: storeLat, longitude: storeLng }}
-                  radius={deliveryRadius * 1000} // radius in meters
+                  radius={deliveryRadius * 1000}
                   fillColor="rgba(226, 10, 34, 0.08)"
                   strokeColor="rgba(226, 10, 34, 0.8)"
                   strokeWidth={2.5}
                 />
               </MapView>
 
-              {/* Compass Float Button */}
-              <Pressable 
+              <Pressable
                 onPress={() => {
                   triggerHaptic('light');
                   mapRef.current?.animateToRegion({
@@ -563,82 +530,79 @@ export default function LocationPickerScreen() {
                     longitudeDelta: 0.05,
                   }, 600);
                 }}
-                className="absolute bottom-4 right-4 bg-white dark:bg-zinc-800 p-2.5 rounded-full shadow-lg border border-slate-100 dark:border-zinc-700 active:scale-95"
+                style={[styles.compassBtn, { backgroundColor: colors.surface, borderColor: colors.border }]}
               >
-                <Compass size={20} color={isDark ? '#cbd5e1' : '#334155'} />
+                <Compass size={20} color={isDarkMode ? '#cbd5e1' : '#334155'} />
               </Pressable>
             </>
           )}
         </View>
 
         {/* Selected location and distance summary */}
-        <View className="bg-white dark:bg-zinc-900 border-t border-slate-100 dark:border-zinc-800 p-5 gap-4">
-          <View className="flex-col gap-1.5">
-            <View className="flex-row items-center gap-1.5">
-              <MapPin size={16} color="#e20a22" />
-              <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm">Target Address</Text>
+        <View style={[styles.bottomPanel, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
+          <View style={styles.addressSection}>
+            <View style={styles.addressHeader}>
+              <MapPin size={16} color={THEME.COLORS.brand.primary} />
+              <Text style={[styles.addressLabel, { color: colors.textPrimary }]}>Target Address</Text>
             </View>
             <TextInput
               value={addressText}
               onChangeText={setAddressText}
               multiline
               numberOfLines={2}
-              style={{
-                fontSize: 12,
-                color: isDark ? '#e4e4e7' : '#475569',
-                fontWeight: '600',
-                lineHeight: 18,
-                padding: 10,
-                borderRadius: 12,
-                borderWidth: 1,
-                borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-                backgroundColor: isDark ? '#18181b' : '#f8fafc',
-                marginTop: 4,
-                textAlignVertical: 'top',
-              }}
+              style={[
+                styles.addressInput,
+                {
+                  color: colors.textSecondary,
+                  borderColor: colors.border,
+                  backgroundColor: isDarkMode ? colors.surfaceElevated : THEME.COLORS.light.borderLight,
+                }
+              ]}
             />
           </View>
 
           {/* Distance and Delivery validation badge */}
-          <View className="flex-row items-center justify-between border-y border-slate-100 dark:border-zinc-800 py-3 mt-1">
-            <View className="flex-col">
-              <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold uppercase tracking-wider">Distance to Store</Text>
-              <Text className="text-slate-800 dark:text-zinc-100 font-black text-base mt-0.5">{distance.toFixed(2)} km</Text>
+          <View style={[styles.validationRow, { borderTopColor: colors.border, borderBottomColor: colors.border }]}>
+            <View style={styles.distanceInfo}>
+              <Text style={[styles.distanceLabel, { color: colors.textMuted }]}>Distance to Store</Text>
+              <Text style={[styles.distanceValue, { color: colors.textPrimary }]}>{distance.toFixed(2)} km</Text>
             </View>
 
-            <View className={`px-3 py-1.5 rounded-xl border ${
-              isWithinZone 
-                ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-200 dark:border-emerald-800/40' 
-                : 'bg-rose-50 dark:bg-rose-950/20 border-rose-200 dark:border-rose-900/40'
-            }`}>
-              <Text className={`font-black text-[10px] uppercase tracking-wide ${
-                isWithinZone ? 'text-emerald-700 dark:text-emerald-400' : 'text-rose-700 dark:text-rose-400'
-              }`}>
+            <View style={[
+              styles.zoneBadge,
+              {
+                backgroundColor: isWithinZone
+                  ? (isDarkMode ? 'rgba(16,185,129,0.1)' : THEME.COLORS.successLight)
+                  : (isDarkMode ? 'rgba(225,29,72,0.1)' : '#fef2f2'),
+                borderColor: isWithinZone
+                  ? (isDarkMode ? 'rgba(16,185,129,0.3)' : '#bbf7d0')
+                  : (isDarkMode ? 'rgba(225,29,72,0.3)' : '#fecaca'),
+              }
+            ]}>
+              <Text style={[
+                styles.zoneBadgeText,
+                {
+                  color: isWithinZone
+                    ? (isDarkMode ? '#34d399' : '#15803d')
+                    : (isDarkMode ? '#f87171' : '#b91c1c'),
+                }
+              ]}>
                 {isWithinZone ? '✅ Within Delivery Zone' : '❌ Outside Delivery Zone'}
               </Text>
             </View>
           </View>
 
-          <ScalePressable 
+          <ScalePressable
             onPress={handleConfirmLocation}
             disabled={isValidating}
             scaleValue={0.96}
             haptic="success"
-            style={{
-              opacity: isValidating ? 0.8 : 1,
-              backgroundColor: '#e20a22',
-              paddingVertical: 14,
-              borderRadius: 12,
-              flexDirection: 'row',
-              alignItems: 'center',
-              justifyContent: 'center',
-              gap: 6,
-            }}
+            style={[styles.confirmBtn, { backgroundColor: THEME.COLORS.brand.primary, opacity: isValidating ? 0.8 : 1 }]}
           >
             {isValidating ? (
               <ActivityIndicator size="small" color="#ffffff" />
             ) : (
-              <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Confirm This Location</Text>
+              <Text style={styles.confirmBtnText}>Confirm This Location</Text>
             )}
           </ScalePressable>
         </View>
@@ -646,101 +610,47 @@ export default function LocationPickerScreen() {
 
       {/* Premium Custom Success Modal */}
       {successModalVisible && (
-        <View style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          backgroundColor: 'rgba(0, 0, 0, 0.65)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          zIndex: 1000,
-          padding: 24,
-        }}>
-          <Animated.View 
+        <View style={styles.modalOverlay}>
+          <Animated.View
             entering={ZoomIn.duration(350).springify()}
-            style={{
-              width: '100%',
-              maxWidth: 320,
-              borderRadius: 24,
-              backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-              padding: 24,
-              alignItems: 'center',
-              borderWidth: 1,
-              borderColor: isDark ? 'rgba(255, 255, 255, 0.08)' : 'rgba(0, 0, 0, 0.04)',
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 10 },
-              shadowOpacity: 0.25,
-              shadowRadius: 15,
-              elevation: 8,
-            }}
+            style={[
+              styles.modalCard,
+              {
+                backgroundColor: colors.surface,
+                borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.04)',
+              }
+            ]}
           >
-            {/* Pulsing Success Icon */}
-            <View style={{
-              width: 56,
-              height: 56,
-              borderRadius: 28,
-              backgroundColor: isDark ? 'rgba(16, 185, 129, 0.12)' : '#ecfdf5',
-              justifyContent: 'center',
-              alignItems: 'center',
-              marginBottom: 14,
-            }}>
-              <CheckCircle2 size={28} color="#10b981" strokeWidth={2.5} />
+            <View style={[styles.successIconWrap, { backgroundColor: isDarkMode ? 'rgba(16,185,129,0.12)' : '#ecfdf5' }]}>
+              <CheckCircle2 size={28} color={THEME.COLORS.success} strokeWidth={2.5} />
             </View>
 
-            {/* Modal Title */}
-            <Text style={{
-              fontSize: 16,
-              fontWeight: '900',
-              color: isDark ? '#ffffff' : '#0f172a',
-              textAlign: 'center',
-              marginBottom: 8,
-            }}>
+            <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
               Location Configured!
             </Text>
 
-             {/* Store details */}
-            <Text style={{
-              fontSize: 13,
-              color: isDark ? '#cbd5e1' : '#334155',
-              textAlign: 'center',
-              lineHeight: 20,
-              marginBottom: 18,
-              fontWeight: '600',
-            }}>
+            <Text style={[styles.modalBody, { color: colors.textSecondary }]}>
               Your order will be fulfilled by{"\n"}
-              <Text style={{ fontWeight: '800', color: '#e20a22' }}>
+              <Text style={{ fontWeight: '800', color: THEME.COLORS.brand.primary }}>
                 {confirmedStoreName === 'Ghatampur' ? 'FastKirana Store' : (confirmedStoreName || 'FastKirana Store')}
               </Text>.
             </Text>
 
-            {/* Surge Charge Banner if applicable */}
             {confirmedSurgeCharge > 0 && (
-              <View style={{
-                flexDirection: 'row',
-                alignItems: 'center',
-                gap: 8,
-                padding: 10,
-                borderRadius: 12,
-                backgroundColor: isDark ? 'rgba(217, 119, 6, 0.12)' : '#fffbeb',
-                borderWidth: 1,
-                borderColor: isDark ? 'rgba(217, 119, 6, 0.2)' : '#fde68a',
-                marginBottom: 18,
-              }}>
+              <View style={[
+                styles.surgeBanner,
+                {
+                  backgroundColor: isDarkMode ? 'rgba(217,119,6,0.12)' : '#fffbeb',
+                  borderColor: isDarkMode ? 'rgba(217,119,6,0.2)' : '#fde68a',
+                }
+              ]}>
                 <AlertTriangle size={14} color="#d97706" />
-                <Text style={{
-                  flex: 1,
-                  fontSize: 10,
-                  color: isDark ? '#fbbf24' : '#b45309',
-                  fontWeight: '700',
-                }}>
+                <Text style={[styles.surgeText, { color: isDarkMode ? '#fbbf24' : '#b45309' }]}>
                   Surge charge of ₹{confirmedSurgeCharge} is active due to weather/high demand.
                 </Text>
               </View>
             )}
 
-            {/* Continue Button */}
             <ScalePressable
               onPress={() => {
                 setSuccessModalVisible(false);
@@ -752,40 +662,16 @@ export default function LocationPickerScreen() {
               }}
               scaleValue={0.98}
               haptic="success"
-              style={{
-                width: '100%',
-                borderRadius: 24,
-                elevation: 4,
-                shadowColor: '#e20a22',
-                shadowOffset: { width: 0, height: 4 },
-                shadowOpacity: 0.25,
-                shadowRadius: 8,
-              }}
+              style={styles.continueBtn}
             >
               <LinearGradient
-                colors={['#e20a22', '#f43f5e']}
+                colors={[THEME.COLORS.brand.primary, '#f43f5e']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 0 }}
-                style={{
-                  paddingVertical: 15,
-                  paddingHorizontal: 20,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  flexDirection: 'row',
-                  borderRadius: 24,
-                  gap: 10,
-                }}
+                style={styles.continueBtnGradient}
               >
                 <ShoppingBag size={16} color="#ffffff" style={{ marginRight: 2 }} />
-                <Text style={{
-                  fontSize: 14,
-                  fontWeight: '800',
-                  color: '#ffffff',
-                  textTransform: 'uppercase',
-                  letterSpacing: 1.0,
-                }}>
-                  Start Shopping
-                </Text>
+                <Text style={styles.continueBtnText}>Start Shopping</Text>
                 <ChevronRight size={16} color="#ffffff" />
               </LinearGradient>
             </ScalePressable>
@@ -795,3 +681,324 @@ export default function LocationPickerScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: { flex: 1 },
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderBottomWidth: 1,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTextWrap: {
+    flex: 1,
+    marginLeft: THEME.SPACING.sm + 2,
+  },
+  headerTitle: {
+    fontSize: THEME.TYPOGRAPHY.sizes.body,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+  },
+  headerSub: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    marginTop: 1,
+  },
+  scrollView: { flex: 1 },
+  searchBarWrap: {
+    flexDirection: 'row',
+    gap: THEME.SPACING.sm,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm,
+    borderBottomWidth: 1,
+  },
+  searchInputWrap: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 1,
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.lg,
+    borderWidth: 1,
+  },
+  searchInput: {
+    flex: 1,
+    paddingVertical: THEME.SPACING.sm + 1,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+  },
+  searchBtn: {
+    paddingHorizontal: THEME.SPACING.md + 4,
+    borderRadius: THEME.RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  searchBtnText: {
+    color: '#ffffff',
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+  },
+  gpsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: THEME.SPACING.md + 4,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderBottomWidth: 1,
+  },
+  gpsLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.sm + 2,
+  },
+  gpsTitle: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+  },
+  gpsSub: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    marginTop: 1,
+  },
+  mapWrap: {
+    height: 300,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+    overflow: 'hidden',
+  },
+  webMapWrap: {
+    width: '100%',
+    height: '100%',
+    position: 'relative',
+  },
+  coordsBadge: {
+    position: 'absolute',
+    bottom: 8,
+    left: 8,
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+  },
+  coordsText: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro - 1,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+  },
+  noMapWrap: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: THEME.SPACING.xxl,
+    gap: THEME.SPACING.sm,
+  },
+  noMapIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  noMapTitle: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    textAlign: 'center',
+  },
+  noMapSub: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  mapStorePin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#ffffff',
+  },
+  mapUserPin: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2.5,
+    borderColor: '#ffffff',
+    backgroundColor: '#4f46e5',
+  },
+  mapPinText: {
+    fontSize: 12,
+  },
+  compassBtn: {
+    position: 'absolute',
+    bottom: THEME.SPACING.md + 4,
+    right: THEME.SPACING.md + 4,
+    padding: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.full,
+    borderWidth: 1,
+  },
+  bottomPanel: {
+    padding: THEME.SPACING.md + 4,
+    gap: THEME.SPACING.md,
+    borderTopWidth: 1,
+  },
+  addressSection: {
+    gap: THEME.SPACING.xs + 2,
+  },
+  addressHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 2,
+  },
+  addressLabel: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+  },
+  addressInput: {
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    lineHeight: 18,
+    padding: THEME.SPACING.sm,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    textAlignVertical: 'top',
+    marginTop: THEME.SPACING.xs + 2,
+  },
+  validationRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: THEME.SPACING.sm + 2,
+    marginTop: THEME.SPACING.xs,
+    borderTopWidth: 1,
+    borderBottomWidth: 1,
+  },
+  distanceInfo: {
+    gap: 1,
+  },
+  distanceLabel: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  distanceValue: {
+    fontSize: THEME.TYPOGRAPHY.sizes.body,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    marginTop: 1,
+  },
+  zoneBadge: {
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.xs,
+    borderRadius: THEME.RADIUS.lg,
+    borderWidth: 1,
+  },
+  zoneBadgeText: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  confirmBtn: {
+    paddingVertical: THEME.SPACING.md + 2,
+    borderRadius: THEME.RADIUS.lg,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: 6,
+    ...THEME.SHADOWS.primaryGlow,
+  },
+  confirmBtnText: {
+    color: '#ffffff',
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  modalOverlay: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    bottom: 0,
+    backgroundColor: 'rgba(0,0,0,0.65)',
+    justifyContent: 'center',
+    alignItems: 'center',
+    zIndex: 1000,
+    padding: THEME.SPACING.xxl,
+  },
+  modalCard: {
+    width: '100%',
+    maxWidth: 320,
+    borderRadius: THEME.RADIUS.xl,
+    padding: THEME.SPACING.xxl,
+    alignItems: 'center',
+    borderWidth: 1,
+    ...THEME.SHADOWS.xl,
+  },
+  successIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: 'center',
+    alignItems: 'center',
+    marginBottom: THEME.SPACING.md + 2,
+  },
+  modalTitle: {
+    fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    textAlign: 'center',
+    marginBottom: THEME.SPACING.xs + 2,
+  },
+  modalBody: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    textAlign: 'center',
+    lineHeight: 20,
+    marginBottom: THEME.SPACING.md + 4,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+  },
+  surgeBanner: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.sm,
+    padding: THEME.SPACING.sm,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    marginBottom: THEME.SPACING.md + 4,
+    width: '100%',
+  },
+  surgeText: {
+    flex: 1,
+    fontSize: THEME.TYPOGRAPHY.sizes.micro + 1,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+  },
+  continueBtn: {
+    width: '100%',
+    borderRadius: THEME.RADIUS.xl,
+    ...THEME.SHADOWS.lg,
+  },
+  continueBtnGradient: {
+    paddingVertical: THEME.SPACING.md + 4,
+    paddingHorizontal: THEME.SPACING.md + 4,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexDirection: 'row',
+    borderRadius: THEME.RADIUS.xl,
+    gap: THEME.SPACING.xs + 2,
+  },
+  continueBtnText: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
+    textTransform: 'uppercase',
+    letterSpacing: 1.0,
+  },
+});

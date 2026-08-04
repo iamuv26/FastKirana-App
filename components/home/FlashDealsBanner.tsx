@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { View, Text, Pressable, StyleSheet } from 'react-native';
+import { useTheme } from '../../app/context/ThemeContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { Bell, Sparkles, Check, X } from 'lucide-react-native';
 import { mmkvStorage } from '../../lib/storage';
@@ -10,6 +11,9 @@ import { THEME } from '../../lib/theme';
 export default function FlashDealsBanner() {
   const [enabled, setEnabled] = useState(false);
   const [isDismissed, setIsDismissed] = useState(true);
+  const { theme } = useTheme();
+  const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   useEffect(() => {
     const isAlertActive = mmkvStorage.getItem('flash-deals-alerts-enabled') === 'true';
@@ -43,9 +47,9 @@ export default function FlashDealsBanner() {
   if (isDismissed) return null;
 
   return (
-    <View style={{ marginHorizontal: THEME.SPACING.lg, marginVertical: THEME.SPACING.xs, borderRadius: THEME.RADIUS.lg }} className="overflow-hidden border border-white/10 relative">
+    <View style={{ marginHorizontal: THEME.SPACING.lg, marginVertical: THEME.SPACING.xs, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', overflow: 'hidden', position: 'relative' }}>
       <LinearGradient
-        colors={THEME.COLORS.gradients.primary as any}
+        colors={THEME.COLORS.gradients.primary as [string, string]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.5 }}
         style={StyleSheet.absoluteFill}
@@ -53,25 +57,24 @@ export default function FlashDealsBanner() {
       {/* Close Button */}
       <Pressable
         onPress={handleDismiss}
-        style={{ position: 'absolute', top: 10, right: 10, padding: 4, zIndex: 20 }}
-        className="rounded-full bg-white/10 active:bg-white/20"
+        style={{ position: 'absolute', top: 10, right: 10, padding: 4, zIndex: 20, borderRadius: THEME.RADIUS.pill, backgroundColor: 'rgba(255,255,255,0.1)' }}
       >
         <X size={14} color="#ffffff" strokeWidth={2.5} />
       </Pressable>
 
-      <View className="flex-row items-center justify-between p-4 z-10 gap-3">
-        <View className="flex-row items-center gap-3 flex-1">
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: THEME.SPACING.md, zIndex: 10, gap: THEME.SPACING.sm }}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm, flex: 1 }}>
           {/* Accent Badge */}
-          <View style={{ height: 44, width: 44, borderRadius: THEME.RADIUS.sm }} className="overflow-hidden bg-white/10 border border-white/25 items-center justify-center shrink-0">
-            <Text className="text-xl">⚡</Text>
+          <View style={{ height: 44, width: 44, borderRadius: THEME.RADIUS.sm, overflow: 'hidden', backgroundColor: 'rgba(255,255,255,0.1)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.25)', alignItems: 'center', justifyContent: 'center' }}>
+            <Text style={{ fontSize: 22 }}>⚡</Text>
           </View>
-          
-          <View className="flex-1 pr-4">
-            <View className="flex-row items-center gap-1 flex-wrap">
-              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }} className="text-white tracking-tight">10-Min Flash Deal Alerts</Text>
+
+          <View style={{ flex: 1, paddingRight: THEME.SPACING.md }}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, flexWrap: 'wrap' }}>
+              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: '#ffffff', letterSpacing: -0.2 }}>10-Min Flash Deal Alerts</Text>
               <Sparkles size={11} color="#fcd34d" fill="#fcd34d" />
             </View>
-            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', marginTop: 4 }} className="text-rose-100/90 leading-normal">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.medium, color: 'rgba(255,182,193,0.9)', marginTop: 4, lineHeight: 16 }}>
               Get notified the exact second limited-time bargains drop! Don't miss out on 60% items.
             </Text>
           </View>
@@ -79,20 +82,28 @@ export default function FlashDealsBanner() {
 
         <Pressable
           onPress={handleToggle}
-          style={{ height: 34, paddingHorizontal: 16, borderRadius: THEME.RADIUS.sm }}
-          className={`shadow-xs active:scale-95 shrink-0 flex-row items-center justify-center gap-1.5 ${
-            enabled ? 'bg-white/20 border border-white/30' : 'bg-white'
-          }`}
+          style={{
+            height: 34,
+            paddingHorizontal: 16,
+            borderRadius: THEME.RADIUS.sm,
+            flexDirection: 'row',
+            alignItems: 'center',
+            justifyContent: 'center',
+            gap: 6,
+            ...(enabled
+              ? { backgroundColor: 'rgba(255,255,255,0.2)', borderWidth: 1, borderColor: 'rgba(255,255,255,0.3)' }
+              : { backgroundColor: '#ffffff' }),
+          }}
         >
           {enabled ? (
             <>
               <Check size={11} color="#ffffff" strokeWidth={3} />
-              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="text-white uppercase tracking-wider">Alerts Active</Text>
+              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>Alerts Active</Text>
             </>
           ) : (
             <>
               <Bell size={11} color={THEME.COLORS.brand.primary} strokeWidth={2.5} />
-              <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase tracking-wider">Notify Me</Text>
+              <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, textTransform: 'uppercase', letterSpacing: 0.5 }}>Notify Me</Text>
             </>
           )}
         </Pressable>

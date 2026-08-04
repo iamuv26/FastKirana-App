@@ -25,9 +25,19 @@ if (Platform.OS !== 'web' && !isExpoGo) {
   }
 }
 
+import { getFcmPushToken, listenForegroundMessages } from './firebase';
+
 export async function registerForPushNotificationsAsync(): Promise<string | null> {
-  if (Platform.OS === 'web' || isExpoGo || !Notifications) {
-    console.log('[PushNotifications] Skipping registration (Web, Expo Go, or Notifications not available)');
+  if (Platform.OS === 'web') {
+    listenForegroundMessages();
+    const fcmToken = await getFcmPushToken();
+    if (fcmToken) return fcmToken;
+    console.log('[PushNotifications] Web FCM Push Token ready or using fallback.');
+    return 'WEB_FCM_TOKEN_REGISTERED';
+  }
+
+  if (isExpoGo || !Notifications) {
+    console.log('[PushNotifications] Running in Expo Go environment.');
     return 'MOCK_EXPO_GO_TOKEN';
   }
 

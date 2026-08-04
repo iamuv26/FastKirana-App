@@ -19,6 +19,7 @@ interface BuyAgainSectionProps {
 export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionProps) {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { addItem } = useCartActions();
   const { user } = useAuthStore();
   const [fetchedOrders, setFetchedOrders] = useState<any[]>([]);
@@ -93,7 +94,7 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
       const orderDate = new Date(order.createdAt || Date.now());
       const now = new Date();
       const diffDays = Math.floor((now.getTime() - orderDate.getTime()) / (1000 * 3600 * 24));
-      
+
       let dateLabel = 'Recently';
       if (diffDays === 0) dateLabel = 'Today';
       else if (diffDays === 1) dateLabel = 'Yesterday';
@@ -134,7 +135,7 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
   }, [activeOrders]);
 
   if (realBuyAgainItems.length === 0) {
-    return null; // Cleanly hide if no real past order history exists
+    return null;
   }
 
   const handleAddToCart = (item: any) => {
@@ -150,19 +151,19 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
       stock: item.stock ?? 50,
       isAvailable: item.isAvailable ?? true,
     });
-    toast.success(`${item.name} added to cart 🛍️`);
+    toast.success(`${item.name} added to cart \u{1F6D2}️`);
   };
 
   return (
-    <View 
-      style={{ 
-        marginHorizontal: 16, 
-        marginVertical: 12, 
-        borderRadius: 20, 
-        padding: 16,
+    <View
+      style={{
+        marginHorizontal: THEME.SPACING.lg,
+        marginVertical: THEME.SPACING.sm,
+        borderRadius: THEME.RADIUS.lg,
+        padding: THEME.SPACING.md,
         backgroundColor: isDarkMode ? 'rgba(24, 24, 27, 0.7)' : '#ffffff',
         borderWidth: 1,
-        borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+        borderColor: isDarkMode ? colors.border : THEME.COLORS.light.border,
         ...Platform.select({
           ios: {
             shadowColor: '#000',
@@ -175,32 +176,32 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
       }}
     >
       {/* Section Header */}
-      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+      <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: THEME.SPACING.md }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-          <View style={{ 
-            width: 38, 
-            height: 38, 
-            borderRadius: 12, 
-            backgroundColor: isDarkMode ? 'rgba(226,10,34,0.15)' : '#fff1f2',
-            alignItems: 'center', 
-            justifyContent: 'center', 
-            borderWidth: 1, 
-            borderColor: isDarkMode ? 'rgba(226,10,34,0.3)' : '#ffe4e6' 
+          <View style={{
+            width: 38,
+            height: 38,
+            borderRadius: THEME.RADIUS.md,
+            backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}26` : '#fff1f2',
+            alignItems: 'center',
+            justifyContent: 'center',
+            borderWidth: 1,
+            borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}4D` : '#ffe4e6'
           }}>
-            <History size={18} color="#e20a22" strokeWidth={2.5} />
+            <History size={18} color={THEME.COLORS.brand.primary} strokeWidth={2.5} />
           </View>
           <View>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={{ fontSize: 15, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#0f172a', letterSpacing: -0.2 }}>
+              <Text style={{ fontSize: 15, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, color: colors.textPrimary, letterSpacing: -0.2 }}>
                 Buy It Again
               </Text>
-              <View style={{ backgroundColor: '#e20a22', borderRadius: 10, paddingHorizontal: 6, paddingVertical: 1 }}>
-                <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: '900', textTransform: 'uppercase' }}>
+              <View style={{ backgroundColor: THEME.COLORS.brand.primary, borderRadius: THEME.RADIUS.pill, paddingHorizontal: 6, paddingVertical: 1 }}>
+                <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase' }}>
                   Favorites
                 </Text>
               </View>
             </View>
-            <Text style={{ fontSize: 11, fontWeight: '600', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 1 }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.semibold, color: colors.textSecondary, marginTop: 1 }}>
               Your past ordered favorites, 1-tap reorder
             </Text>
           </View>
@@ -211,7 +212,7 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
+        contentContainerStyle={{ gap: THEME.SPACING.sm, paddingBottom: 4 }}
         decelerationRate="fast"
       >
         {realBuyAgainItems.map((item) => (
@@ -220,7 +221,7 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
             style={{
               width: 135,
               backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
-              borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+              borderColor: isDarkMode ? colors.border : THEME.COLORS.light.border,
               borderWidth: 1,
               borderRadius: 16,
               padding: 10,
@@ -245,12 +246,12 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
               zIndex: 5,
               backgroundColor: isDarkMode ? 'rgba(39,39,42,0.9)' : '#f8fafc',
               borderWidth: 1,
-              borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+              borderColor: isDarkMode ? colors.border : THEME.COLORS.light.borderLight,
               borderRadius: 8,
               paddingHorizontal: 5,
               paddingVertical: 1.5,
             }}>
-              <Text style={{ fontSize: 8, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
+              <Text style={{ fontSize: 8, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, color: colors.textSecondary }}>
                 {item.lastOrderedDate}
               </Text>
             </View>
@@ -260,7 +261,7 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
               width: 64,
               height: 64,
               borderRadius: 12,
-              backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+              backgroundColor: isDarkMode ? colors.surfaceElevated : '#f8fafc',
               alignItems: 'center',
               justifyContent: 'center',
               marginTop: 18,
@@ -272,23 +273,22 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
                   source={{ uri: item.imageUrl }}
                   contentFit="contain"
                   style={{ width: '100%', height: '100%' }}
-                  transition={200}
                 />
               ) : (
-                <ShoppingBag size={24} color={isDarkMode ? '#71717a' : '#94a3b8'} strokeWidth={1.5} />
+                <ShoppingBag size={28} color={colors.textMuted} />
               )}
             </View>
 
-            {/* Product name */}
+            {/* Product Name */}
             <Text
               style={{
-                color: isDarkMode ? '#f4f4f5' : '#0f172a',
-                fontSize: 11.5,
-                fontWeight: '700',
+                fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+                fontWeight: THEME.TYPOGRAPHY.weights.bold,
                 height: 30,
                 textAlign: 'center',
                 marginBottom: 4,
                 lineHeight: 15,
+                color: colors.textPrimary,
               }}
               numberOfLines={2}
             >
@@ -297,11 +297,11 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
 
             {/* Price stack */}
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginBottom: 8 }}>
-              <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a' }}>
+              <Text style={{ fontSize: 13, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>
                 {formatPrice(item.price)}
               </Text>
               {item.mrp > item.price && (
-                <Text style={{ fontSize: 9.5, fontWeight: '600', color: '#94a3b8', textDecorationLine: 'line-through' }}>
+                <Text style={{ fontSize: 9.5, fontWeight: THEME.TYPOGRAPHY.weights.semibold, color: colors.textMuted, textDecorationLine: 'line-through' }}>
                   {formatPrice(item.mrp)}
                 </Text>
               )}
@@ -310,14 +310,14 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
             {/* Quick Add Button */}
             {(item.isAvailable === false || (item.stock !== undefined && item.stock <= 0)) ? (
               <ScalePressable
-                onPress={() => toast.info(`We will notify you when ${item.name} is back in stock! 🔔`)}
+                onPress={() => toast.info(`We will notify you when ${item.name} is back in stock! \u{1F514}`)}
                 scaleValue={0.92}
                 style={{
                   width: '100%',
                   borderRadius: 10,
                   borderWidth: 1.5,
                   borderColor: THEME.COLORS.brand.warning,
-                  backgroundColor: isDarkMode ? 'rgba(234,179,8,0.1)' : '#fffbeb',
+                  backgroundColor: isDarkMode ? `${THEME.COLORS.brand.warning}1A` : '#fffbeb',
                   paddingVertical: 6,
                   alignItems: 'center',
                   justifyContent: 'center',
@@ -333,8 +333,8 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
                   width: '100%',
                   borderRadius: 10,
                   borderWidth: 1.5,
-                  borderColor: '#e20a22',
-                  backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#ffffff',
+                  borderColor: THEME.COLORS.brand.primary,
+                  backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1A` : '#ffffff',
                   paddingVertical: 5,
                   flexDirection: 'row',
                   alignItems: 'center',
@@ -342,10 +342,10 @@ export default function BuyAgainSection({ orders: propOrders }: BuyAgainSectionP
                   gap: 3,
                 }}
               >
-                <Text style={{ color: '#e20a22', fontSize: 10.5, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 10.5, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.3 }}>
                   ADD
                 </Text>
-                <Plus size={12} color="#e20a22" strokeWidth={3} />
+                <Plus size={12} color={THEME.COLORS.brand.primary} strokeWidth={3} />
               </ScalePressable>
             )}
           </View>

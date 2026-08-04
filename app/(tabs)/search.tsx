@@ -113,24 +113,25 @@ function VoicePulse() {
   }));
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         {
           position: 'absolute',
           width: 64,
           height: 64,
           borderRadius: 32,
-          backgroundColor: 'rgba(226,10,34,0.4)',
+          backgroundColor: `${THEME.COLORS.brand.primary}66`,
         },
         animatedStyle
-      ]} 
+      ]}
     />
   );
 }
 
 export default function SearchScreen() {
   const { theme, toggleTheme } = useTheme();
-  const isDark = theme === 'dark';
+  const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
@@ -234,16 +235,16 @@ export default function SearchScreen() {
         // Instantiate speech recognition
         recognition = new ExpoWebSpeechRecognition();
         recognition.lang = 'en-IN';
-        
+
         recognition.onstart = () => {
           setIsListening(true);
           setVoiceStatus('Listening...');
         };
-        
+
         recognition.onend = () => {
           setIsListening(false);
         };
-        
+
         recognition.onresult = (event: any) => {
           if (event.results && event.results[0]) {
             const transcriptText = event.results[0].transcript || event.results[0][0]?.transcript || '';
@@ -255,7 +256,7 @@ export default function SearchScreen() {
             }, 1000);
           }
         };
-        
+
         recognition.onerror = (error: any) => {
           console.warn('Speech recognition error:', error);
           setVoiceStatus('Recognition failed. Try again.');
@@ -281,7 +282,7 @@ export default function SearchScreen() {
     triggerHaptic('medium');
     setIsListening(true);
     setVoiceStatus('Initializing mic...');
-    
+
     const isNativeModuleAvailable = typeof ExpoSpeechRecognitionModule !== 'undefined' && ExpoSpeechRecognitionModule !== null;
     if (!isNativeModuleAvailable || !recognitionRef.current) {
       console.log('Using simulated voice search fallback (Expo Go / Web)');
@@ -305,7 +306,7 @@ export default function SearchScreen() {
         toast.error('Microphone permission is required.');
         return;
       }
-      
+
       recognitionRef.current.start();
     } catch (e) {
       console.warn('Failed starting voice recognition:', e);
@@ -335,7 +336,7 @@ export default function SearchScreen() {
   // Only query results from server database
   const getSearchResults = () => {
     if (!searchQuery || !searchQuery.trim()) return [];
-    
+
     const lowerQuery = searchQuery.toLowerCase();
     // Try local matching first so we get instant results
     const localMatched = allProducts.filter((p) =>
@@ -365,7 +366,7 @@ export default function SearchScreen() {
   const matchingCategories = useMemo(() => {
     if (!searchQuery || !searchQuery.trim()) return [];
     const query = searchQuery.toLowerCase();
-    
+
     const allCats = [
       ...GROCERY_CATEGORIES.map((c: CategoryItem) => ({ name: c.name, slug: c.slug, emoji: c.emoji, isCafe: false })),
       { name: 'Cafe Brews', slug: 'hot-beverage', emoji: '☕', isCafe: true },
@@ -375,26 +376,36 @@ export default function SearchScreen() {
       { name: 'Cafe Chinese', slug: 'chinese', emoji: '🥡', isCafe: true },
       { name: 'Cafe Pasta', slug: 'italian-pasta', emoji: '🍝', isCafe: true },
     ];
-    
-    return allCats.filter((c: any) => 
-      c.name.toLowerCase().includes(query) || 
+
+    return allCats.filter((c: any) =>
+      c.name.toLowerCase().includes(query) ||
       c.slug.toLowerCase().includes(query)
     ).slice(0, 3);
   }, [searchQuery]);
 
   const trendingTags = ['Mangoes', 'Amul', 'Chai', 'Milk', 'Maggi', 'Chocolate'];
 
+  const textInputStyle = {
+    color: isDarkMode ? '#ffffff' : '#0f172a',
+    fontSize: 13,
+    fontWeight: '600' as const,
+    padding: 0
+  };
+
+  const placeholderColor = isDarkMode ? colors.textMuted : '#94a3b8';
+  const dividerColor = isDarkMode ? colors.borderLight : colors.border;
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: isDark ? THEME.COLORS.dark.background : THEME.COLORS.light.background }}>
-      <StatusBar style={isDark ? "light" : "dark"} />
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Premium Header */}
-      <View 
+      <View
         style={{
           width: '100%',
-          backgroundColor: isDark ? THEME.COLORS.dark.background : '#ffffff',
+          backgroundColor: colors.surface,
           zIndex: 50,
           borderBottomWidth: 1,
-          borderColor: isDark ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+          borderColor: colors.borderLight,
         }}
       >
         <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: 12, paddingBottom: 12 }}>
@@ -402,10 +413,15 @@ export default function SearchScreen() {
           <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 10 }} />
 
           {/* Bottom Row: Search Box Input */}
-          <View 
-            className="flex-row items-center bg-slate-50 dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 px-4 h-11 w-full"
+          <View
             style={{
-              borderRadius: THEME.RADIUS.pill,
+              flexDirection: 'row',
+              alignItems: 'center',
+              backgroundColor: colors.surfaceElevated,
+              borderWidth: 1,
+              borderColor: colors.border,
+              paddingHorizontal: THEME.SPACING.lg,
+              height: 44,
               ...Platform.select({
                 ios: {
                   shadowColor: '#000',
@@ -422,28 +438,25 @@ export default function SearchScreen() {
             <Search size={16} color={THEME.COLORS.brand.primary} style={{ marginRight: 10 }} />
             <TextInput
               placeholder="Search for vegetables, dairy, snacks..."
-              placeholderTextColor={isDark ? '#52525b' : '#94a3b8'}
+              placeholderTextColor={placeholderColor}
               value={searchQuery}
               onChangeText={setSearchQuery}
               onSubmitEditing={() => saveToHistory(searchQuery)}
               returnKeyType="search"
               style={{
                 flex: 1,
-                color: isDark ? '#ffffff' : '#0f172a',
-                fontSize: 13,
-                fontWeight: '600',
-                padding: 0
+                ...textInputStyle
               }}
             />
             {searchQuery.length > 0 ? (
               <ScalePressable onPress={() => setSearchQuery('')} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
-                <X size={16} color={isDark ? '#a1a1aa' : '#64748b'} />
+                <X size={16} color={isDarkMode ? colors.textMuted : '#64748b'} />
               </ScalePressable>
             ) : (
               <View style={{ flexDirection: 'row', alignItems: 'center' }}>
-                <View style={{ width: 1, height: 16, backgroundColor: isDark ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+                <View style={{ width: 1, height: 16, backgroundColor: dividerColor, marginRight: 10 }} />
                 <ScalePressable onPress={handleStartVoiceSearch} scaleValue={0.9} hitSlop={12} style={{ padding: 4 }}>
-                  <Mic size={16} color="#e20a22" />
+                  <Mic size={16} color={THEME.COLORS.brand.primary} />
                 </ScalePressable>
               </View>
             )}
@@ -454,7 +467,6 @@ export default function SearchScreen() {
             horizontal
             showsHorizontalScrollIndicator={false}
             contentContainerStyle={{ paddingHorizontal: 2, gap: 8, paddingTop: 10 }}
-            className="mt-1"
           >
             {[
               { label: '🥛 Milk', query: 'Milk' },
@@ -473,20 +485,20 @@ export default function SearchScreen() {
                 }}
                 scaleValue={0.96}
                 style={{
-                  backgroundColor: isDark ? '#27272a' : '#f8fafc',
+                  backgroundColor: isDarkMode ? colors.surfaceElevated : colors.surfaceElevated,
                   borderWidth: 1,
-                  borderColor: isDark ? '#3f3f46' : '#e2e8f0',
-                  borderRadius: 9999,
-                  paddingHorizontal: 16,
-                  paddingVertical: 8,
+                  borderColor: colors.border,
+                  borderRadius: THEME.RADIUS.pill,
+                  paddingHorizontal: THEME.SPACING.md,
+                  paddingVertical: THEME.SPACING.sm,
                   shadowColor: '#000',
                   shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: isDark ? 0.2 : 0.03,
+                  shadowOpacity: isDarkMode ? 0.2 : 0.03,
                   shadowRadius: 3,
                   elevation: 1,
                 }}
               >
-                <Text className="text-slate-800 dark:text-zinc-200 text-[11px] font-black">{chip.label}</Text>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>{chip.label}</Text>
               </ScalePressable>
             ))}
           </ScrollView>
@@ -494,12 +506,12 @@ export default function SearchScreen() {
       </View>
 
       {/* Content Area */}
-      <View className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <View style={{ flex: 1, backgroundColor: colors.surfaceElevated }}>
         {/* Predictive Category Shortcuts Overlay */}
         {searchQuery.length > 0 && matchingCategories.length > 0 && (
-          <View className="bg-rose-50/50 dark:bg-rose-950/5 border-b border-rose-100/40 dark:border-rose-900/20 px-4 py-2.5 flex-row items-center gap-2 flex-wrap">
-            <Sparkles size={11} color="#e20a22" />
-            <Text className="text-[9px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-wider mr-1">Categories:</Text>
+          <View style={{ backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}0A` : `${THEME.COLORS.brand.primary}08`, borderBottomWidth: 1, borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}20` : THEME.COLORS.brand.primaryLight, paddingHorizontal: THEME.SPACING.md, paddingVertical: THEME.SPACING.sm, flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs, flexWrap: 'wrap' }}>
+            <Sparkles size={11} color={THEME.COLORS.brand.primary} />
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.primary, textTransform: 'uppercase', letterSpacing: 0.5, marginRight: 6 }}>Categories:</Text>
             {matchingCategories.map(cat => (
               <ScalePressable
                 key={cat.slug}
@@ -512,27 +524,25 @@ export default function SearchScreen() {
                 }}
                 scaleValue={0.95}
                 style={{
-                  backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+                  backgroundColor: colors.surface,
                   paddingHorizontal: 10,
                   paddingVertical: 6,
-                  borderRadius: 9999,
+                  borderRadius: THEME.RADIUS.pill,
                   borderWidth: 1,
-                  borderColor: isDark ? '#4c0519' : '#ffe4e6',
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  gap: 4,
+                  borderColor: colors.border,
                 }}
               >
-                <Text style={{ fontSize: 11 }}>{cat.emoji}</Text>
-                <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black">{cat.name}</Text>
-                <ChevronRight size={9} color={isDark ? '#a1a1aa' : '#64748b'} />
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>{cat.name}</Text>
+                  <ChevronDown size={14} color={colors.textMuted} />
+                </View>
               </ScalePressable>
             ))}
           </View>
         )}
         {isLoading ? (
           <ScrollView contentContainerStyle={{ padding: 8 }}>
-            <View className="flex-row flex-wrap justify-between">
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
               {[1, 2, 3, 4].map((i) => (
                 <ProductCardSkeleton key={i} style={{ width: '48%' }} />
               ))}
@@ -540,8 +550,8 @@ export default function SearchScreen() {
           </ScrollView>
         ) : searchQuery.length === 0 ? (
           // Upgraded Premium Suggestions screen
-          <ScrollView 
-            className="bg-white dark:bg-zinc-900 flex-1"
+          <ScrollView
+            style={{ flex: 1, backgroundColor: colors.surface }}
             contentContainerStyle={{ padding: 16, paddingBottom: 120 }}
             showsVerticalScrollIndicator={false}
             onScroll={onTabBarScroll}
@@ -549,14 +559,14 @@ export default function SearchScreen() {
             scrollEventThrottle={16}
           >
             {recentSearches.length > 0 && (
-              <View className="mb-6">
-                <View className="flex-row justify-between items-center mb-3">
-                  <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider">Recent Searches</Text>
+              <View style={{ marginBottom: THEME.SPACING.lg }}>
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: THEME.SPACING.sm }}>
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.8 }}>Recent Searches</Text>
                   <ScalePressable onPress={clearHistory} scaleValue={0.97} haptic="medium">
-                    <Text className="text-rose-600 dark:text-rose-400 font-black text-xs">Clear All</Text>
+                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.error }}>Clear All</Text>
                   </ScalePressable>
                 </View>
-                <View className="flex-row flex-wrap gap-2">
+                <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: THEME.SPACING.sm }}>
                   {recentSearches.map((tag) => (
                     <ScalePressable
                       key={tag}
@@ -566,49 +576,49 @@ export default function SearchScreen() {
                       }}
                       scaleValue={0.95}
                       style={{
-                        backgroundColor: isDark ? 'rgba(39, 39, 42, 0.4)' : '#f8fafc',
+                        backgroundColor: colors.surfaceElevated,
                         borderWidth: 1,
-                        borderColor: isDark ? '#27272a' : '#e2e8f0',
+                        borderColor: colors.border,
                         paddingHorizontal: 14,
                         paddingVertical: 8,
-                        borderRadius: 16,
+                        borderRadius: THEME.RADIUS.md,
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: 6,
                       }}
                     >
-                      <Clock size={12} color={isDark ? '#a1a1aa' : '#64748b'} />
-                      <Text className="text-slate-600 dark:text-zinc-350 text-xs font-bold">{tag}</Text>
+                      <Clock size={12} color={isDarkMode ? colors.textMuted : '#64748b'} />
+                      <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textSecondary }}>{tag}</Text>
                     </ScalePressable>
                   ))}
                 </View>
               </View>
             )}
 
-            <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider mb-3">🔥 Trending Now</Text>
-            <View className="flex-row flex-wrap gap-2 mb-6">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: THEME.SPACING.md }}>🔥 Trending Now</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: THEME.SPACING.sm, marginBottom: THEME.SPACING.lg }}>
               {trendingTags.map((tag, idx) => {
                 // Gamified gold/silver/bronze/neutral styling for ranks
-                let badgeBg = isDark ? '#27272a' : '#f1f5f9';
-                let badgeText = isDark ? '#a1a1aa' : '#64748b';
-                let tagBg = isDark ? '#1c1c1e' : '#f8fafc';
-                let borderCol = isDark ? '#27272a' : '#f1f5f9';
+                let badgeBg = THEME.COLORS.brand.warning;
+                let badgeText = '#ffffff';
+                let tagBg = isDarkMode ? `${THEME.COLORS.brand.warning}10` : `${THEME.COLORS.brand.warning}08`;
+                let borderCol = isDarkMode ? `${THEME.COLORS.brand.warning}30` : `${THEME.COLORS.brand.warning}20`;
 
-                if (idx === 0) {
-                  badgeBg = '#f59e0b'; // Gold
-                  badgeText = '#ffffff';
-                  tagBg = isDark ? 'rgba(245,158,11,0.06)' : 'rgba(245,158,11,0.04)';
-                  borderCol = 'rgba(245,158,11,0.2)';
-                } else if (idx === 1) {
+                if (idx === 1) {
                   badgeBg = '#94a3b8'; // Silver
                   badgeText = '#ffffff';
-                  tagBg = isDark ? 'rgba(148,163,184,0.06)' : 'rgba(148,163,184,0.04)';
-                  borderCol = 'rgba(148,163,184,0.2)';
+                  tagBg = isDarkMode ? 'rgba(148,163,184,0.08)' : 'rgba(148,163,184,0.06)';
+                  borderCol = isDarkMode ? 'rgba(148,163,184,0.25)' : 'rgba(148,163,184,0.18)';
                 } else if (idx === 2) {
                   badgeBg = '#b45309'; // Bronze
                   badgeText = '#ffffff';
-                  tagBg = isDark ? 'rgba(180,83,9,0.06)' : 'rgba(180,83,9,0.04)';
-                  borderCol = 'rgba(180,83,9,0.2)';
+                  tagBg = isDarkMode ? `${THEME.COLORS.brand.accent}10` : `${THEME.COLORS.brand.accent}06`;
+                  borderCol = isDarkMode ? `${THEME.COLORS.brand.accent}25` : `${THEME.COLORS.brand.accent}18`;
+                } else if (idx > 2) {
+                  badgeBg = isDarkMode ? colors.surfaceElevated : colors.surfaceElevated;
+                  badgeText = isDarkMode ? colors.textSecondary : colors.textSecondary;
+                  tagBg = colors.surfaceElevated;
+                  borderCol = colors.border;
                 }
 
                 return (
@@ -621,7 +631,7 @@ export default function SearchScreen() {
                     scaleValue={0.95}
                     style={{
                       overflow: 'hidden',
-                      borderRadius: 16,
+                      borderRadius: THEME.RADIUS.md,
                     }}
                   >
                     <View
@@ -634,20 +644,20 @@ export default function SearchScreen() {
                         borderWidth: 1,
                         borderColor: borderCol,
                         backgroundColor: tagBg,
-                        borderRadius: 16,
+                        borderRadius: THEME.RADIUS.md,
                       }}
                     >
-                      <View style={{ 
-                        width: 18, height: 18, borderRadius: 9, 
-                        backgroundColor: badgeBg, 
-                        alignItems: 'center', justifyContent: 'center' 
+                      <View style={{
+                        width: 18, height: 18, borderRadius: 9,
+                        backgroundColor: badgeBg,
+                        alignItems: 'center', justifyContent: 'center'
                       }}>
-                        <Text style={{ 
-                          color: badgeText, 
-                          fontSize: 9, fontWeight: '900' 
+                        <Text style={{
+                          color: badgeText,
+                          fontSize: 9, fontWeight: '900'
                         }}>{idx + 1}</Text>
                       </View>
-                      <Text className="text-slate-850 dark:text-zinc-200 text-xs font-black">{tag}</Text>
+                      <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>{tag}</Text>
                       {idx === 0 && <Text style={{ fontSize: 10 }}>👑</Text>}
                     </View>
                   </ScalePressable>
@@ -656,8 +666,8 @@ export default function SearchScreen() {
             </View>
 
             {/* Upgraded Premium Category Access with Double-Border & Soft Shadow Depth */}
-            <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs uppercase tracking-wider mb-4">Browse Categories</Text>
-            <View className="flex-row flex-wrap justify-between gap-y-5 mb-10">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textTransform: 'uppercase', letterSpacing: 0.8, marginBottom: THEME.SPACING.md }}>Browse Categories</Text>
+            <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 0, marginBottom: 40 }}>
               {dbCategories && dbCategories.length > 0 ? (
                 dbCategories.slice(0, 6).map((cat) => {
                   const img = CATEGORY_IMAGES[cat.slug];
@@ -682,13 +692,13 @@ export default function SearchScreen() {
                           borderRadius: 42,
                           overflow: 'hidden',
                           borderWidth: 2.5,
-                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                          borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
+                          backgroundColor: colors.surfaceElevated,
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: isDark ? 0.3 : 0.06,
+                          shadowOpacity: isDarkMode ? 0.3 : 0.06,
                           shadowRadius: 10,
                           elevation: 3,
                           marginBottom: 8,
@@ -700,13 +710,13 @@ export default function SearchScreen() {
                               contentFit="cover"
                               transition={200}
                               cachePolicy="memory-disk"
-                              placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
+                              placeholder={isDarkMode ? colors.surfaceElevated : colors.surfaceElevated}
                             />
                           ) : (
                             <Text style={{ fontSize: 24 }}>📦</Text>
                           )}
                         </View>
-                        <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black text-center w-full" numberOfLines={2} style={{ lineHeight: 12 }}>
+                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textAlign: 'center', width: '100%' }} numberOfLines={2}>
                           {cat.name}
                         </Text>
                       </View>
@@ -744,13 +754,13 @@ export default function SearchScreen() {
                           borderRadius: 42,
                           overflow: 'hidden',
                           borderWidth: 2.5,
-                          borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
+                          borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.03)',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          backgroundColor: isDark ? '#1c1c1e' : '#f8fafc',
+                          backgroundColor: colors.surfaceElevated,
                           shadowColor: '#000',
                           shadowOffset: { width: 0, height: 4 },
-                          shadowOpacity: isDark ? 0.3 : 0.06,
+                          shadowOpacity: isDarkMode ? 0.3 : 0.06,
                           shadowRadius: 10,
                           elevation: 3,
                           marginBottom: 8,
@@ -762,13 +772,13 @@ export default function SearchScreen() {
                               contentFit="cover"
                               transition={200}
                               cachePolicy="memory-disk"
-                              placeholder={isDark ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
+                              placeholder={isDarkMode ? colors.surfaceElevated : colors.surfaceElevated}
                             />
                           ) : (
                             <Text style={{ fontSize: 24 }}>📦</Text>
                           )}
                         </View>
-                        <Text className="text-slate-700 dark:text-zinc-300 text-[10px] font-black text-center w-full" numberOfLines={2} style={{ lineHeight: 12 }}>
+                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textAlign: 'center', width: '100%' }} numberOfLines={2}>
                           {cat.name}
                         </Text>
                       </View>
@@ -788,44 +798,46 @@ export default function SearchScreen() {
             contentContainerStyle={{ padding: 8, paddingBottom: 160 }}
             showsVerticalScrollIndicator={false}
             renderItem={({ item, index }: { item: Product; index: number }) => (
-              <View style={{ 
-                width: '100%', 
-                paddingLeft: index % 2 === 0 ? 0 : 5, 
-                paddingRight: index % 2 === 0 ? 5 : 0, 
-                marginBottom: 12 
+              <View style={{
+                width: '100%',
+                paddingLeft: index % 2 === 0 ? 0 : 5,
+                paddingRight: index % 2 === 0 ? 5 : 0,
+                marginBottom: 12
               }}>
                 <ProductCard product={item} className="w-full" index={index} />
               </View>
             )}
             ListEmptyComponent={
-              <View className="flex-1 justify-center items-center py-20 px-8">
+              <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingVertical: 80, paddingHorizontal: 32 }}>
                 {/* Decorative background ring */}
-                <View style={{ 
-                  width: 100, height: 100, borderRadius: 50, 
-                  backgroundColor: isDark ? 'rgba(63,63,70,0.3)' : '#f8fafc',
+                <View style={{
+                  width: 100, height: 100, borderRadius: 50,
+                  backgroundColor: isDarkMode ? colors.surfaceElevated : colors.surfaceElevated,
                   alignItems: 'center', justifyContent: 'center',
-                  borderWidth: 2, borderColor: isDark ? 'rgba(63,63,70,0.5)' : '#e2e8f0',
+                  borderWidth: 2, borderColor: colors.border,
                 }}>
                   <Text style={{ fontSize: 40 }}>🔍</Text>
                 </View>
-                <Text className="text-slate-800 dark:text-zinc-200 font-black text-base mt-5">No results for "{searchQuery}"</Text>
-                <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-1.5 text-center leading-5 max-w-[260px]">
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.body, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, marginTop: 20, textAlign: 'center' }}>
+                  No results for "{searchQuery}"
+                </Text>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, color: colors.textSecondary, marginTop: 8, textAlign: 'center', lineHeight: 20, maxWidth: 260 }}>
                   We couldn't find what you're looking for. Try a different search or browse our categories.
                 </Text>
-                <ScalePressable 
+                <ScalePressable
                   onPress={() => {
                     setSearchQuery('');
                   }}
                   scaleValue={0.95}
                   style={{
-                    marginTop: 16,
-                    backgroundColor: '#e20a22',
+                    marginTop: 20,
+                    backgroundColor: THEME.COLORS.brand.primary,
                     paddingHorizontal: 20,
                     paddingVertical: 10,
-                    borderRadius: 12,
+                    borderRadius: THEME.RADIUS.md,
                   }}
                 >
-                  <Text style={{ color: '#fff', fontSize: 11, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>Browse Categories</Text>
+                  <Text style={{ color: '#ffffff', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.5 }}>Browse Categories</Text>
                 </ScalePressable>
               </View>
             }
@@ -835,25 +847,51 @@ export default function SearchScreen() {
 
       {/* Voice Search Pulse overlay modal */}
       {isListening && (
-        <Animated.View 
+        <Animated.View
           entering={FadeIn.duration(200)}
           exiting={FadeOut.duration(200)}
-          className="absolute inset-0 bg-zinc-950/90 z-50 items-center justify-center px-6"
+          style={{
+            position: 'absolute', inset: 0,
+            backgroundColor: `${THEME.COLORS.dark.background}E6`,
+            zIndex: 50,
+            alignItems: 'center',
+            justifyContent: 'center',
+            paddingHorizontal: 24
+          }}
         >
-          <Animated.View 
+          <Animated.View
             entering={ZoomIn.duration(250).springify().damping(15)}
             exiting={ZoomOut.duration(200)}
-            className="bg-zinc-900 border border-zinc-800 p-8 rounded-3xl items-center w-80 shadow-2xl"
+            style={{
+              backgroundColor: colors.surface,
+              borderWidth: 1,
+              borderColor: colors.border,
+              padding: 32,
+              borderRadius: THEME.RADIUS.xxl,
+              alignItems: 'center',
+              width: 320,
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 12 },
+              shadowOpacity: 0.25,
+              shadowRadius: 24,
+              elevation: 8,
+            }}
           >
-            <View className="w-20 h-20 rounded-full bg-rose-600/10 border-2 border-rose-500 items-center justify-center mb-6 relative">
+            <View style={{
+              width: 80, height: 80, borderRadius: 40,
+              backgroundColor: `${THEME.COLORS.brand.error}1A`,
+              borderWidth: 2, borderColor: THEME.COLORS.brand.error,
+              alignItems: 'center', justifyContent: 'center',
+              marginBottom: 24,
+            }}>
               <VoicePulse />
-              <Mic size={32} color="#f43f5e" />
+              <Mic size={32} color={THEME.COLORS.brand.error} />
             </View>
-            
-            <Text className="text-white font-black text-lg text-center mb-1">
+
+            <Text style={{ color: '#ffffff', fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.titleSm, textAlign: 'center', marginBottom: 6 }}>
               Voice Search
             </Text>
-            <Text className="text-zinc-400 text-xs font-bold text-center mb-6">
+            <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold, textAlign: 'center', marginBottom: 24 }}>
               {voiceStatus}
             </Text>
 
@@ -861,15 +899,15 @@ export default function SearchScreen() {
               onPress={handleCancelVoiceSearch}
               scaleValue={0.96}
               style={{
-                backgroundColor: '#27272a',
+                backgroundColor: colors.surfaceElevated,
                 borderWidth: 1,
-                borderColor: '#3f3f46',
+                borderColor: colors.border,
                 paddingHorizontal: 24,
                 paddingVertical: 10,
-                borderRadius: 12,
+                borderRadius: THEME.RADIUS.md,
               }}
             >
-              <Text className="text-zinc-300 font-black text-xs uppercase">Cancel</Text>
+              <Text style={{ color: colors.textSecondary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, textTransform: 'uppercase', letterSpacing: 0.5 }}>Cancel</Text>
             </ScalePressable>
           </Animated.View>
         </Animated.View>

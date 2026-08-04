@@ -16,6 +16,7 @@ export default function TimeGreetingHero() {
 
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
@@ -30,22 +31,22 @@ export default function TimeGreetingHero() {
       if (!res.ok) throw new Error('Failed to load settings');
       return res.json();
     },
-    staleTime: 1000 * 60 * 5, // Cache for 5 minutes
+    staleTime: 1000 * 60 * 5,
   });
 
   useEffect(() => {
     // Pulse animation using Reanimated
     pulse.value = withRepeat(
       withTiming(1.6, { duration: 1000 }),
-      -1, // infinite loop
-      true // reverse direction (alternate between 1 and 1.6)
+      -1,
+      true
     );
 
     // Dynamic local time tracking (since device is in India/IST)
     const updateHour = () => {
       setCurrentHour(new Date().getHours());
     };
-    
+
     updateHour();
     const interval = setInterval(updateHour, 60000);
     return () => clearInterval(interval);
@@ -64,19 +65,19 @@ export default function TimeGreetingHero() {
     };
   });
 
-  // 2. Resolve dynamic greetings & styling parameters based on operational status and time
+  // 2. Resolve dynamic greetings & styling parameters
   const themeConfig = useMemo(() => {
     // CASE 1: Both Grocery and Cafe are closed
     if (!groceryMartOpen && !cafeOpen) {
       return {
-        badge: '😴 STORE CLOSED',
-        greeting: settings.hero_greeting_closed || "We're resting right now 💤",
+        badge: '\u{1F634} STORE CLOSED',
+        greeting: settings.hero_greeting_closed || "We're resting right now \u{1F4A4}",
         subtitle: settings.hero_subtitle_closed || "FastKirana Cafe & Mart are resting. We will be back to serve you fresh & hot goodies soon!",
         icon: <Moon size={10} color="#f43f5e" />,
-        badgeBg: 'bg-rose-50 dark:bg-rose-950/20',
-        badgeBorder: 'border-rose-100 dark:border-rose-900/30',
-        badgeText: 'text-rose-700 dark:text-rose-450',
-        dotColor: 'bg-rose-500',
+        badgeBg: isDarkMode ? 'rgba(244,63,94,0.15)' : '#fff1f2',
+        badgeBorder: isDarkMode ? 'rgba(244,63,94,0.3)' : '#ffe4e6',
+        badgeText: isDarkMode ? '#fda4af' : '#e11d48',
+        dotColor: '#f43f5e',
         lightGradient: ['#fff1f2', '#ffe4e6'] as [string, string],
         darkGradient: ['#1f1214', '#110507'] as [string, string]
       };
@@ -88,18 +89,18 @@ export default function TimeGreetingHero() {
       const isMartClosed = !groceryMartOpen;
 
       return {
-        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '📦 MART OPEN • CAFE CLOSED' : '🍳 BREAKFAST MODE',
-        greeting: settings.hero_greeting_morning || "Good morning, let's get breakfast! 🌅",
-        subtitle: isMartClosed 
+        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '\u{1F4E6} MART OPEN • CAFE CLOSED' : '\u{1F373} BREAKFAST MODE',
+        greeting: settings.hero_greeting_morning || "Good morning, let's get breakfast! \u{1F305}",
+        subtitle: isMartClosed
           ? (settings.hero_subtitle_morning_mart_closed || 'Grocery Mart is resting, but our Cafe is firing up fresh hot brews and breakfast specials! ☕✨')
           : isCafeClosed
-          ? (settings.hero_subtitle_morning_cafe_closed || 'Cafe is taking a break, but Grocery Mart is wide open and delivering fresh milk & fruits! 🥛📦')
+          ? (settings.hero_subtitle_morning_cafe_closed || 'Cafe is taking a break, but Grocery Mart is wide open and delivering fresh milk & fruits! \u{1F95B}\u{1F4E6}')
           : (settings.hero_subtitle_morning_both_open || 'Fresh milk, fruits, hot brews, and breakfast essentials delivered in minutes.'),
         icon: <Coffee size={10} color="#d97706" />,
-        badgeBg: 'bg-amber-50 dark:bg-amber-950/20',
-        badgeBorder: 'border-amber-100 dark:border-amber-900/30',
-        badgeText: 'text-amber-700 dark:text-amber-450',
-        dotColor: 'bg-amber-500',
+        badgeBg: isDarkMode ? 'rgba(217,119,6,0.15)' : '#fffbeb',
+        badgeBorder: isDarkMode ? 'rgba(217,119,6,0.3)' : '#fef3c7',
+        badgeText: isDarkMode ? '#fbbf24' : '#b45309',
+        dotColor: '#d97706',
         lightGradient: ['#ffedd5', '#fef3c7'] as [string, string],
         darkGradient: ['#291305', '#170b03'] as [string, string]
       };
@@ -110,18 +111,18 @@ export default function TimeGreetingHero() {
       const isMartClosed = !groceryMartOpen;
 
       return {
-        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '📦 MART OPEN • CAFE CLOSED' : '🍽️ LUNCH MODE',
-        greeting: settings.hero_greeting_afternoon || "Good afternoon! Ready for lunch? 🍛",
+        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '\u{1F4E6} MART OPEN • CAFE CLOSED' : '\u{1F37D}️ LUNCH MODE',
+        greeting: settings.hero_greeting_afternoon || "Good afternoon! Ready for lunch? \u{1F35B}",
         subtitle: isMartClosed
-          ? (settings.hero_subtitle_afternoon_mart_closed || 'Grocery Mart is resting, but our Cafe is cooking delicious hot lunch dishes and rolls! 🥡✨')
+          ? (settings.hero_subtitle_afternoon_mart_closed || 'Grocery Mart is resting, but our Cafe is cooking delicious hot lunch dishes and rolls! \u{1F37E}✨')
           : isCafeClosed
-          ? (settings.hero_subtitle_afternoon_cafe_closed || 'Cafe is taking a break, but Grocery Mart is delivering lunch staples, dal, and rice! 🌾📦')
+          ? (settings.hero_subtitle_afternoon_cafe_closed || 'Cafe is taking a break, but Grocery Mart is delivering lunch staples, dal, and rice! \u{1F33E}\u{1F4E6}')
           : (settings.hero_subtitle_afternoon_both_open || 'Atta, rice, dal, fresh vegetables, and delicious hot rolls delivered fast.'),
         icon: <Utensils size={10} color="#10b981" />,
-        badgeBg: 'bg-emerald-50 dark:bg-emerald-950/20',
-        badgeBorder: 'border-emerald-100 dark:border-emerald-900/30',
-        badgeText: 'text-emerald-700 dark:text-emerald-450',
-        dotColor: 'bg-emerald-500',
+        badgeBg: isDarkMode ? 'rgba(16,185,129,0.15)' : '#f0fdf4',
+        badgeBorder: isDarkMode ? 'rgba(16,185,129,0.3)' : '#dcfce7',
+        badgeText: isDarkMode ? '#6ee7b7' : '#047857',
+        dotColor: '#10b981',
         lightGradient: ['#f0fdf4', '#dcfce7'] as [string, string],
         darkGradient: ['#022c22', '#021811'] as [string, string]
       };
@@ -132,18 +133,18 @@ export default function TimeGreetingHero() {
       const isMartClosed = !groceryMartOpen;
 
       return {
-        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '📦 MART OPEN • CAFE CLOSED' : '🍿 SNACK MODE',
+        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '\u{1F4E6} MART OPEN • CAFE CLOSED' : '\u{1F37F} SNACK MODE',
         greeting: settings.hero_greeting_evening || "It's snack o'clock! Tea & snacks are ready ☕",
         subtitle: isMartClosed
-          ? (settings.hero_subtitle_evening_mart_closed || 'Grocery Mart is taking a break, but our Cafe is steaming hot chai & fresh samosas! ☕🥟')
+          ? (settings.hero_subtitle_evening_mart_closed || 'Grocery Mart is taking a break, but our Cafe is steaming hot chai & fresh samosas! ☕\u{1F9FF}')
           : isCafeClosed
-          ? (settings.hero_subtitle_evening_cafe_closed || 'Cafe is resting, but Grocery Mart is delivering chips, biscuits, and munchies! 🍿📦')
+          ? (settings.hero_subtitle_evening_cafe_closed || 'Cafe is resting, but Grocery Mart is delivering chips, biscuits, and munchies! \u{1F37F}\u{1F4E6}')
           : (settings.hero_subtitle_evening_both_open || 'Samosas, munchies, chips, and chilled soft drinks ready for tea time.'),
         icon: <Cookie size={10} color="#f97316" />,
-        badgeBg: 'bg-orange-50 dark:bg-orange-950/20',
-        badgeBorder: 'border-orange-100 dark:border-orange-900/30',
-        badgeText: 'text-orange-700 dark:text-orange-450',
-        dotColor: 'bg-orange-500',
+        badgeBg: isDarkMode ? 'rgba(249,115,22,0.15)' : '#fff7ed',
+        badgeBorder: isDarkMode ? 'rgba(249,115,22,0.3)' : '#ffedd5',
+        badgeText: isDarkMode ? '#fdba74' : '#c2410c',
+        dotColor: '#f97316',
         lightGradient: ['#ffedd5', '#ffe4e6'] as [string, string],
         darkGradient: ['#311005', '#1a0802'] as [string, string]
       };
@@ -154,23 +155,23 @@ export default function TimeGreetingHero() {
       const isMartClosed = !groceryMartOpen;
 
       return {
-        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '📦 MART OPEN • CAFE CLOSED' : '🌙 NIGHT MODE',
-        greeting: settings.hero_greeting_night || "Late night cravings? We got you! 🌙",
+        badge: isMartClosed ? '☕ CAFE OPEN • MART CLOSED' : isCafeClosed ? '\u{1F4E6} MART OPEN • CAFE CLOSED' : '\u{1F319} NIGHT MODE',
+        greeting: settings.hero_greeting_night || "Late night cravings? We got you! \u{1F319}",
         subtitle: isMartClosed
-          ? (settings.hero_subtitle_night_mart_closed || 'Grocery Mart is closed. Cafe is open to deliver hot night snacks & dessert cravings! 🍧✨')
+          ? (settings.hero_subtitle_night_mart_closed || 'Grocery Mart is closed. Cafe is open to deliver hot night snacks & dessert cravings! \u{1F367}✨')
           : isCafeClosed
-          ? (settings.hero_subtitle_night_cafe_closed || 'Cafe kitchen is resting, but Grocery Mart is active for ice cream, drinks & munchies! 🍦📦')
+          ? (settings.hero_subtitle_night_cafe_closed || 'Cafe kitchen is resting, but Grocery Mart is active for ice cream, drinks & munchies! \u{1F366}\u{1F4E6}')
           : (settings.hero_subtitle_night_both_open || 'Indulge in ice creams, chocolates, late night munchies, and cafe specialties.'),
         icon: <Moon size={10} color="#6366f1" />,
-        badgeBg: 'bg-indigo-50 dark:bg-indigo-950/20',
-        badgeBorder: 'border-indigo-100 dark:border-indigo-900/30',
-        badgeText: 'text-indigo-700 dark:text-indigo-400',
-        dotColor: 'bg-indigo-500',
+        badgeBg: isDarkMode ? 'rgba(99,102,241,0.15)' : '#f5f3ff',
+        badgeBorder: isDarkMode ? 'rgba(99,102,241,0.3)' : '#ede9fe',
+        badgeText: isDarkMode ? '#c4b5fd' : '#7c3aed',
+        dotColor: '#6366f1',
         lightGradient: ['#f5f3ff', '#ede9fe'] as [string, string],
         darkGradient: ['#0f0a21', '#060410'] as [string, string]
       };
     }
-  }, [currentHour, groceryMartOpen, cafeOpen, settings]);
+  }, [currentHour, groceryMartOpen, cafeOpen, settings, isDarkMode]);
 
   return (
     <Animated.View entering={FadeInDown.springify()} style={{ marginHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.xl }}>
@@ -185,7 +186,7 @@ export default function TimeGreetingHero() {
           padding: THEME.SPACING.lg,
           position: 'relative',
           overflow: 'hidden',
-          ...Platform.select<any>({
+          ...Platform.select({
             ios: THEME.SHADOWS.md,
             android: {
               elevation: 4,
@@ -200,34 +201,32 @@ export default function TimeGreetingHero() {
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: THEME.SPACING.lg }}>
           <View style={{ flex: 1 }}>
             {/* Time-Aware Greeting Badge */}
-            <View className={`flex-row items-center gap-1.5 self-start px-2.5 py-1 rounded-full mb-3 border ${themeConfig.badgeBg} ${themeConfig.badgeBorder}`}>
-              <View className="relative flex justify-center items-center w-2.5 h-2.5">
-                <Animated.View 
-                  style={animatedDotStyle}
-                  className={`w-1.5 h-1.5 rounded-full absolute ${themeConfig.dotColor}`} 
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, alignSelf: 'flex-start', paddingHorizontal: 10, paddingVertical: 4, borderRadius: THEME.RADIUS.pill, marginBottom: 12, borderWidth: 1, backgroundColor: themeConfig.badgeBg, borderColor: themeConfig.badgeBorder }}>
+              <View style={{ position: 'relative', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', width: 10, height: 10 }}>
+                <Animated.View
+                  style={[animatedDotStyle, { position: 'absolute', width: 6, height: 6, borderRadius: 3, backgroundColor: themeConfig.dotColor }]}
                 />
-                <View className={`w-1.5 h-1.5 rounded-full ${themeConfig.dotColor}`} />
+                <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: themeConfig.dotColor }} />
               </View>
-              <View className="flex-row items-center gap-1">
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
                 {themeConfig.icon}
-                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className={`uppercase tracking-wider ${themeConfig.badgeText}`}>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: themeConfig.badgeText, textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   {themeConfig.badge}
                 </Text>
               </View>
             </View>
 
-            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }} className="leading-tight">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textPrimary, lineHeight: 20 }}>
               {themeConfig.greeting}
             </Text>
-            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', color: isDarkMode ? THEME.COLORS.dark.textSecondary : THEME.COLORS.light.textSecondary, marginTop: 4 }} className="leading-normal">
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.medium, color: colors.textSecondary, marginTop: 4, lineHeight: 18 }}>
               {themeConfig.subtitle}
             </Text>
           </View>
 
           {/* Right Side Illustration - Polaroid Photo Sticker Frame */}
-          <View 
-            style={{ transform: [{ rotate: '4deg' }], width: 76, height: 76, borderRadius: THEME.RADIUS.sm, padding: 4, borderWidth: 1, borderColor: isDarkMode ? '#27272a' : '#f1f5f9', elevation: 3 }}
-            className="bg-white shadow-md overflow-hidden justify-center items-center"
+          <View
+            style={{ transform: [{ rotate: '4deg' }], width: 76, height: 76, borderRadius: THEME.RADIUS.sm, padding: 4, borderWidth: 1, borderColor: isDarkMode ? '#27272a' : '#f1f5f9', elevation: 3, backgroundColor: '#ffffff', overflow: 'hidden', alignItems: 'center', justifyContent: 'center' }}
           >
             <Image
               source={require('../../assets/grocery_bag_banner.webp')}

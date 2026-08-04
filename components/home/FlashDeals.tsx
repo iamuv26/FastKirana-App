@@ -17,6 +17,7 @@ export default function FlashDeals({ products }: FlashDealsProps) {
   const [isExpanded, setIsExpanded] = useState(false);
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   useEffect(() => {
     const calculateTimeLeft = () => {
@@ -56,29 +57,29 @@ export default function FlashDeals({ products }: FlashDealsProps) {
       {/* Header Row */}
       <View style={{ marginHorizontal: THEME.SPACING.lg, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: THEME.SPACING.sm }}>
         <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs }}>
-          <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700', color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary }}>⚡ Flash Deals</Text>
-          <View style={{ backgroundColor: isDarkMode ? 'rgba(239,68,68,0.15)' : '#ffe4e6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.xs, borderWidth: 1, borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : '#fecdd3' }}>
-            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="tabular-nums">
+          <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textPrimary }}>⚡ Flash Deals</Text>
+          <View style={{ backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}26` : '#ffe4e6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.xs, borderWidth: 1, borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}40` : '#fecdd3' }}>
+            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold }} className="tabular-nums">
               Ends in {timeLeft}
             </Text>
           </View>
         </View>
 
         {dealProducts.length > 4 && (
-          <Pressable 
+          <Pressable
             onPress={() => {
               triggerHaptic('light');
               setIsExpanded(!isExpanded);
             }}
             style={{ flexDirection: 'row', alignItems: 'center', gap: 2 }}
           >
-            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700' }}>
+            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>
               {isExpanded ? 'Show Less' : 'See All'}
             </Text>
-            <ChevronRight 
-              size={13} 
-              color={THEME.COLORS.brand.primary} 
-              style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }} 
+            <ChevronRight
+              size={13}
+              color={THEME.COLORS.brand.primary}
+              style={{ transform: [{ rotate: isExpanded ? '90deg' : '0deg' }] }}
             />
           </Pressable>
         )}
@@ -105,14 +106,14 @@ export default function FlashDeals({ products }: FlashDealsProps) {
               backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#fcf8f8',
               borderRadius: THEME.RADIUS.sm,
               borderWidth: 1,
-              borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(226,10,34,0.1)',
+              borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}33` : 'rgba(226,10,34,0.1)',
               alignItems: 'center',
               justifyContent: 'center',
               marginTop: 4,
               marginBottom: 12,
             }}
           >
-            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '750' as any }}>Show Less ▴</Text>
+            <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>Show Less ▴</Text>
           </Pressable>
         </View>
       ) : (
@@ -144,7 +145,7 @@ export default function FlashDeals({ products }: FlashDealsProps) {
                 }}
                 style={{
                   width: 144,
-                  height: 270, // Match ProductCard wrapper height
+                  height: 270,
                   borderRadius: THEME.RADIUS.md,
                   backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : THEME.COLORS.light.surface,
                   borderWidth: 1,
@@ -152,7 +153,7 @@ export default function FlashDeals({ products }: FlashDealsProps) {
                   alignItems: 'center',
                   justifyContent: 'center',
                   padding: 12,
-                  marginBottom: 16, // Align bottom edge
+                  marginBottom: 16,
                   ...Platform.select({
                     ios: {
                       shadowColor: '#000000',
@@ -170,17 +171,17 @@ export default function FlashDeals({ products }: FlashDealsProps) {
                   width: 36,
                   height: 36,
                   borderRadius: 18,
-                  backgroundColor: isDarkMode ? 'rgba(226,10,34,0.1)' : '#fff5f5',
+                  backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1A` : '#fff5f5',
                   alignItems: 'center',
                   justifyContent: 'center',
                   marginBottom: 8,
                 }}>
                   <ChevronRight size={16} color={THEME.COLORS.brand.primary} />
                 </View>
-                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#0f172a', textAlign: 'center' }}>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textPrimary, textAlign: 'center' }}>
                   See More
                 </Text>
-                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500', color: THEME.COLORS.brand.primary, marginTop: 2, textAlign: 'center' }}>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.medium, color: THEME.COLORS.brand.primary, marginTop: 2, textAlign: 'center' }}>
                   {`+${dealProducts.length - 4} Deals Left`}
                 </Text>
               </Pressable>

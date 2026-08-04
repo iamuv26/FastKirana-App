@@ -1,750 +1,37 @@
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Platform, TextInput, Modal, TouchableOpacity, useWindowDimensions, Image } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
-import { useState, useMemo, useEffect } from 'react';
-import { router } from 'expo-router';
-import { ArrowLeft, Check, ChefHat, RefreshCw, Search, Plus, Minus, AlertTriangle, X, TrendingUp, ShoppingBag, Calendar, DollarSign, Percent, ClipboardList, Package, Flame, LogOut } from 'lucide-react-native';
-import { triggerHaptic } from '../lib/haptic';
-import { toast } from '../lib/toast';
-import { useAuthStore } from '../stores/auth-store';
-import { API_BASE_URL } from '../lib/constants';
-import { StatusBar } from 'expo-status-bar';
-import { useNewOrderAlert } from '../hooks/use-new-order-alert';
-import { NewOrderAlertModal } from '../components/operations/NewOrderAlertModal';
-import { useTheme } from './context/ThemeContext';
-import { LinearGradient } from 'expo-linear-gradient';
-import Animated, { useSharedValue, useAnimatedStyle, withRepeat, withTiming, withSequence, FadeIn, FadeOut } from 'react-native-reanimated';
-
-interface OrderItem {
-  id: string;
-  productId?: string;
-  name: string;
-  price: number;
-  quantity: number;
-  imageUrl?: string | null;
-  categorySlug?: string;
-  selectedVariant?: string | null;
-  cooked?: boolean;
-  notes?: string | null;
-}
-
-interface Order {
-  id: string;
-  status: 'PENDING' | 'CONFIRMED' | 'PACKED' | 'SHIPPED' | 'DELIVERED' | 'CANCELLED';
-  total: number;
-  deliveryFee?: number;
-  miscFee?: number;
-  discount?: number;
-  createdAt: string;
-  paymentMethod: 'UPI' | 'COD' | 'CARD';
-  deliveryMethod: 'DELIVERY' | 'PICKUP';
-  user: { name: string; phone: string };
-  address: { houseNo: string; street: string; area: string; city: string; pincode: string };
-  items: OrderItem[];
-}
-
-const INITIAL_SIMULATION_ORDERS: Order[] = [
-  {
-    id: "ord-102",
-    status: "CONFIRMED",
-    total: 194,
-    createdAt: new Date(Date.now() - 8 * 60000).toISOString(),
-    paymentMethod: "COD",
-    deliveryMethod: "DELIVERY",
-    user: { name: "Rahul Singh", phone: "+919999900000" },
-    address: { houseNo: "Flat 204", street: "Kalyanpur Road", area: "Ghatampur", city: "Kanpur", pincode: "209206" },
-    items: [
-      { id: "oi4", name: "Veg Fried Momos", price: 49, quantity: 2, categorySlug: "restaurant" },
-      { id: "oi5", name: "Classic Cold Coffee", price: 79, quantity: 1, categorySlug: "restaurant" }
-    ]
-  }
-];
-
-function LivePulseDot() {
-  const scale = useSharedValue(1);
-  const opacity = useSharedValue(0.6);
-
-  useEffect(() => {
-    scale.value = withRepeat(withTiming(1.6, { duration: 1200 }), -1, false);
-    opacity.value = withRepeat(withTiming(0, { duration: 1200 }), -1, false);
-  }, []);
-
-  const glowStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    opacity: opacity.value,
-  }));
-
-  return (
-    <View style={{ width: 14, height: 14, justifyContent: 'center', alignItems: 'center', marginRight: 4 }}>
-      <Animated.View style={[{ position: 'absolute', width: 12, height: 12, borderRadius: 6, backgroundColor: '#10b981' }, glowStyle]} />
-      <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#10b981' }} />
-    </View>
-  );
-}
-
-export default function RestaurantChefScreen() {
-  const { theme } = useTheme();
-  const isDarkMode = false;
-  const isItemNonVeg = (name: string) => {
-    const n = name.toLowerCase();
-    return n.includes('chicken') || n.includes('egg') || n.includes('fish') || n.includes('meat') || n.includes('pork') || n.includes('mutton') || n.includes('non-veg') || n.includes('nonveg') || n.includes('wings') || (n.includes('burger') && !n.includes('veg'));
-  };
-  const { user, logout } = useAuthStore();
-  const restaurantId = user?.assignedRestaurantId || '';
-  const restaurantName = user?.assignedRestaurantName || 'Restaurant Kitchen';
-  const { activeAlertOrder, acknowledgeAlert, acceptOrder, refreshAlerts } = useNewOrderAlert(user?.role === 'CHEF' || user?.role === 'RESTAURANT_OWNER');
-  const [orders, setOrders] = useState<Order[]>([]);
-  const [isOnline, setIsOnline] = useState(false);
-  const [isRefreshing, setIsRefreshing] = useState(false);
-
-  const { width: windowWidth } = useWindowDimensions();
-
-  // --- Chef Console Order Edit States ---
-  const [editingOrder, setEditingOrder] = useState<Order | null>(null);
-  const [editItems, setEditItems] = useState<any[]>([]);
-  const [outOfStockProductIds, setOutOfStockProductIds] = useState<string[]>([]);
-  const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
-  const [allProducts, setAllProducts] = useState<any[]>([]);
-  const [isSavingEdit, setIsSavingEdit] = useState(false);
-
-  const [editTaxRate, setEditTaxRate] = useState<number>(0.05); // Default 5%
-  const [deliveryFeeSetting, setDeliveryFeeSetting] = useState<number>(25);
-  const [miscFeeSetting, setMiscFeeSetting] = useState<number>(5);
-  const [freeDeliveryThreshold, setFreeDeliveryThreshold] = useState<number>(200);
-
-  useEffect(() => {
-    if (!searchQuery.trim()) {
-      setSearchResults([]);
-      return;
-    }
-    const query = searchQuery.toLowerCase();
-    const filtered = allProducts.filter(p => p.name.toLowerCase().includes(query));
-    setSearchResults(filtered);
-  }, [searchQuery, allProducts]);
-
-  const [activeTab, setActiveTab] = useState<'ORDERS' | 'ANALYTICS' | 'INVENTORY'>('ORDERS');
-  const [inventoryProducts, setInventoryProducts] = useState<any[]>([]);
-  const [isLoadingInventory, setIsLoadingInventory] = useState(false);
-  const [inventorySearchQuery, setInventorySearchQuery] = useState('');
-
-  // Analytics states
-  const [summary, setSummary] = useState<any>({
-    totalSales: 0,
-    netProfit: 0,
-    ordersCount: 0,
-    avgOrderValue: 0
-  });
-  const [topProducts, setTopProducts] = useState<any[]>([]);
-  const [rangePreset, setRangePreset] = useState<'today' | 'yesterday' | '7days' | '30days'>('7days');
-  const [isLoadingReports, setIsLoadingReports] = useState(false);
-
-  const fetchReports = async (preset: string = rangePreset) => {
-    setIsLoadingReports(true);
-    try {
-      const now = new Date();
-      let start = new Date();
-      let end = new Date();
-
-      if (preset === 'today') {
-        start = now;
-      } else if (preset === 'yesterday') {
-        start.setDate(now.getDate() - 1);
-        end.setDate(now.getDate() - 1);
-      } else if (preset === '7days') {
-        start.setDate(now.getDate() - 7);
-      } else if (preset === '30days') {
-        start.setDate(now.getDate() - 30);
-      }
-
-      const startStr = start.toISOString().split('T')[0];
-      const endStr = end.toISOString().split('T')[0];
-
-      const res = await fetch(`${API_BASE_URL}/restaurant/reports?startDate=${startStr}&endDate=${endStr}&restaurantId=${restaurantId}`, {
-        headers: getAuthHeaders()
-      });
-      if (res.ok) {
-        const data = await res.json();
-        const tProducts = data.topProducts || [];
-        // Calculate sales and profit directly from products to exclude delivery/other extra charges
-        const calculatedSales = tProducts.reduce((sum: number, p: any) => sum + (p.sales || 0), 0);
-        const calculatedProfit = tProducts.reduce((sum: number, p: any) => sum + (p.profit || 0), 0);
-        
-        setSummary({
-          totalSales: calculatedSales,
-          netProfit: calculatedProfit,
-          ordersCount: data.summary?.ordersCount || 0,
-          avgOrderValue: (data.summary?.ordersCount || 0) > 0 ? (calculatedSales / data.summary.ordersCount) : 0
-        });
-        setTopProducts(tProducts);
-      }
-    } catch (err) {
-      console.warn('Failed to load restaurant analytics reports', err);
-    } finally {
-      setIsLoadingReports(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'ANALYTICS') {
-      fetchReports();
-    }
-  }, [activeTab, rangePreset]);
-
-  const isTargetCategory = (_slug?: string | null) => {
-    // All items in this restaurant's orders are relevant
-    return true;
-  };
-
-  const fetchInventoryProducts = async () => {
-    setIsLoadingInventory(true);
-    try {
-      const response = await fetch(`${API_BASE_URL}/products?restaurantId=${restaurantId}&limit=500`);
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setInventoryProducts(data);
-        }
-      }
-    } catch (err) {
-      console.log('Error fetching inventory', err);
-    } finally {
-      setIsLoadingInventory(false);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'INVENTORY') {
-      fetchInventoryProducts();
-    }
-  }, [activeTab]);
-
-  const toggleProductAvailability = async (productId: string, currentAvailable: boolean) => {
-    triggerHaptic('light');
-    setInventoryProducts(prev => prev.map(p => p.id === productId ? { ...p, isAvailable: !currentAvailable } : p));
-    try {
-      const res = await fetch(`${API_BASE_URL}/products/${productId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ isAvailable: !currentAvailable })
-      });
-      if (!res.ok) {
-        setInventoryProducts(prev => prev.map(p => p.id === productId ? { ...p, isAvailable: currentAvailable } : p));
-        toast.error('Failed to update product availability');
-      } else {
-        toast.success('Availability updated!');
-      }
-    } catch (err) {
-      setInventoryProducts(prev => prev.map(p => p.id === productId ? { ...p, isAvailable: currentAvailable } : p));
-      toast.error('Network error updating availability');
-    }
-  };
-
-  const filteredProducts = useMemo(() => {
-    if (!inventorySearchQuery.trim()) return inventoryProducts;
-    const q = inventorySearchQuery.toLowerCase();
-    return inventoryProducts.filter(p => p.name?.toLowerCase().includes(q));
-  }, [inventoryProducts, inventorySearchQuery]);
-
-  const getAuthHeaders = (): Record<string, string> => {
-    const { token } = useAuthStore.getState();
-    const headers: Record<string, string> = {
-      'Content-Type': 'application/json',
-    };
-    if (token) {
-      headers['Authorization'] = `Bearer ${token}`;
-    }
-    if (user) {
-      headers['x-user-id'] = user.id;
-      headers['x-user-role'] = user.role;
-      headers['x-user-email'] = user.email || '';
-      headers['x-user-name'] = user.name || '';
-      headers['x-user-phone'] = user.phone || '';
-    }
-    return headers;
-  };
-
-  const fetchServerOrders = async (showLoader = false) => {
-    if (!user) return;
-    if (showLoader) setIsRefreshing(true);
-    try {
-      const res = await fetch(`${API_BASE_URL}/picker/orders?type=restaurant&restaurantId=${restaurantId}`, { 
-        method: 'GET', 
-        headers: getAuthHeaders() 
-      });
-      const data = await res.json();
-      if (res.ok && Array.isArray(data)) {
-        const mappedOrders = data.map((ord: any) => ({
-          id: ord.id,
-          status: ord.status,
-          total: ord.total,
-          deliveryFee: ord.deliveryFee || 0,
-          miscFee: ord.miscFee || 0,
-          discount: ord.discount || 0,
-          createdAt: ord.createdAt,
-          paymentMethod: ord.paymentMethod || 'COD',
-          deliveryMethod: ord.deliveryMethod || 'DELIVERY',
-          user: ord.user ? {
-            name: ord.user.name || 'Customer',
-            phone: ord.user.phone || ''
-          } : { name: 'Customer', phone: '' },
-          address: ord.address ? {
-            houseNo: ord.address.houseNo || '',
-            street: ord.address.street || '',
-            area: ord.address.area || '',
-            city: ord.address.city || '',
-            pincode: ord.address.pincode || ''
-          } : { houseNo: '', street: '', area: '', city: '', pincode: '' },
-          items: (ord.items || []).map((it: any) => ({
-            id: it.id,
-            productId: it.productId || it.product?.id || it.id,
-            name: it.name,
-            price: it.price,
-            quantity: it.quantity,
-            imageUrl: it.imageUrl || it.product?.imageUrl || null,
-            categorySlug: it.product?.category?.slug || 'restaurant',
-            selectedVariant: it.selectedVariant || null,
-            cooked: it.cooked || false,
-            notes: it.notes || null
-          }))
-        }));
-        setOrders(mappedOrders);
-        setIsOnline(true);
-      } else {
-        setIsOnline(false);
-      }
-    } catch (err) {
-      setIsOnline(false);
-    } finally {
-      if (showLoader) setIsRefreshing(false);
-    }
-  };
-
-  const fetchSettings = async () => {
-    try {
-      const headers = getAuthHeaders();
-      const res = await fetch(`${API_BASE_URL}/settings`, { headers });
-      if (res.ok) {
-        const data = await res.json();
-        if (data) {
-          if (data.tax_rate !== undefined) {
-            setEditTaxRate(parseFloat(data.tax_rate) / 100);
-          }
-          if (data.delivery_fee !== undefined) {
-            setDeliveryFeeSetting(parseFloat(data.delivery_fee));
-          }
-          if (data.misc_fee !== undefined) {
-            setMiscFeeSetting(parseFloat(data.misc_fee));
-          }
-          if (data.cafe_free_delivery_threshold !== undefined) {
-            setFreeDeliveryThreshold(parseFloat(data.cafe_free_delivery_threshold));
-          }
-        }
-      }
-    } catch (err) {
-      console.warn('Failed to fetch settings, using defaults:', err);
-    }
-  };
-
-  const handleEditOrder = async (order: Order) => {
-    setEditingOrder(order);
-    setEditItems(order.items.map(it => ({ ...it })));
-    setOutOfStockProductIds([]);
-    setSearchQuery('');
-    setSearchResults([]);
-
-    // Pre-fetch all products for catalog suggestions / variant swap referencing
-    try {
-      const response = await fetch(`${API_BASE_URL}/products?restaurantId=${restaurantId}&limit=500`);
-      if (response.ok) {
-        const data = await response.json();
-        if (Array.isArray(data)) {
-          setAllProducts(data);
-        }
-      }
-    } catch (err) {
-      console.warn('Error loading products for edit suggestions', err);
-    }
-  };
-
-  const updateItemQty = (productId: string, variant: string | null, delta: number) => {
-    setEditItems(prev => {
-      return prev.map(item => {
-        if (item.productId === productId && item.selectedVariant === variant) {
-          const newQty = Math.max(0, item.quantity + delta);
-          return { ...item, quantity: newQty };
-        }
-        return item;
-      }).filter(item => item.quantity > 0);
-    });
-  };
-
-  const updateItemVariant = (productId: string, oldVariant: string | null, newVariant: string, newPrice: number) => {
-    setEditItems(prev => prev.map(item => {
-      if (item.productId === productId && item.selectedVariant === oldVariant) {
-        return {
-          ...item,
-          selectedVariant: newVariant,
-          price: newPrice
-        };
-      }
-      return item;
-    }));
-  };
-
-  const markItemOutOfStock = (productId: string) => {
-    if (!outOfStockProductIds.includes(productId)) {
-      setOutOfStockProductIds(prev => [...prev, productId]);
-    }
-    setEditItems(prev => prev.filter(item => item.productId !== productId));
-  };
-
-  const addCatalogItem = (product: any) => {
-    triggerHaptic('light');
-    const existing = editItems.find(it => it.productId === product.id && it.selectedVariant === null);
-    if (existing) {
-      updateItemQty(product.id, null, 1);
-    } else {
-      const newItem = {
-        id: `new-${Date.now()}`,
-        productId: product.id,
-        name: product.name,
-        price: product.price,
-        quantity: 1,
-        imageUrl: product.imageUrl,
-        categorySlug: product.category?.slug || 'restaurant',
-        selectedVariant: null,
-        notes: null,
-        cooked: false
-      };
-      setEditItems(prev => [...prev, newItem]);
-    }
-    setSearchQuery('');
-    setSearchResults([]);
-  };
-
-  const saveEditedOrder = async () => {
-    if (!editingOrder) return;
-    setIsSavingEdit(true);
-    triggerHaptic('medium');
-    try {
-      const subtotalVal = editItems.reduce((sum, item) => sum + (item.price * item.quantity), 0);
-      const deliveryFeeVal = editingOrder.deliveryMethod === 'PICKUP' 
-        ? 0 
-        : (subtotalVal < freeDeliveryThreshold ? deliveryFeeSetting : 0);
-      const miscFeeVal = editingOrder.deliveryMethod === 'PICKUP' 
-        ? 0 
-        : (editingOrder.miscFee === 0 ? 0 : miscFeeSetting);
-      const taxesVal = parseFloat((subtotalVal * editTaxRate).toFixed(2));
-      const totalVal = subtotalVal + deliveryFeeVal + taxesVal + miscFeeVal - (editingOrder.discount || 0);
-
-      const itemsPayload = editItems.map(it => ({
-        productId: it.productId,
-        name: it.name,
-        price: it.price,
-        quantity: it.quantity,
-        selectedVariant: it.selectedVariant,
-        notes: it.notes
-      }));
-
-      const res = await fetch(`${API_BASE_URL}/orders/${editingOrder.id}/edit`, {
-        method: 'POST',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({
-          items: itemsPayload,
-          subtotal: subtotalVal,
-          deliveryFee: deliveryFeeVal,
-          miscFee: miscFeeVal,
-          taxes: taxesVal,
-          total: totalVal,
-          outOfStockProductIds
-        })
-      });
-
-      const data = await res.json();
-      if (res.ok) {
-        toast.success('Order updated successfully!');
-        setEditingOrder(null);
-        fetchServerOrders(false);
-      } else {
-        toast.error(data.error || 'Failed to edit order');
-      }
-    } catch (err) {
-      console.warn('Error saving order edits', err);
-      toast.error('Network error updating order');
-    } finally {
-      setIsSavingEdit(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchServerOrders(true);
-    fetchSettings();
-  }, []);
-
-  const updateOrderStatus = async (orderId: string, nextStatus: string, extraPayload: any = {}) => {
-    if (!isOnline) return false;
-    try {
-      const res = await fetch(`${API_BASE_URL}/orders/${orderId}`, {
-        method: 'PATCH',
-        headers: getAuthHeaders(),
-        body: JSON.stringify({ status: nextStatus, ...extraPayload })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        fetchServerOrders(false);
-        return true;
-      } else {
-        toast.error(data.error || 'Failed to update order status');
-        return false;
-      }
-    } catch (err) {
-      toast.error('Network error updating order status');
-      return false;
-    }
-  };
-
-  const triggerAudioBeep = () => {
-    triggerHaptic('light');
-  };
-
-  const triggerAudioSuccess = () => {
-    triggerHaptic('success');
-  };
-
-  const startPreparingChef = async (order: Order) => {
-    if (isOnline) {
-      const ok = await updateOrderStatus(order.id, 'CONFIRMED');
-      if (!ok) return;
-    } else {
-      setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'CONFIRMED' } : o));
-    }
-    triggerHaptic('medium');
-    toast.success(`Started preparing Kitchen order #${order.id.slice(-6).toUpperCase()}`);
-  };
-
-  const markChefItemReady = async (orderId: string, itemId: string) => {
-    let allChefItemsReady = false;
-    let targetOrderUser = 'Customer';
-    
-    const updatedOrders = orders.map(o => {
-      if (o.id === orderId) {
-        targetOrderUser = o.user.name;
-        const updatedItems = o.items.map(it => 
-          it.id === itemId ? { ...it, cooked: !it.cooked } : it
-        );
-        
-        allChefItemsReady = updatedItems
-          .filter(it => isTargetCategory(it.categorySlug))
-          .every(it => it.cooked === true);
-
-        return { ...o, items: updatedItems };
-      }
-      return o;
-    });
-
-    if (allChefItemsReady) {
-      if (isOnline) {
-        const ok = await updateOrderStatus(orderId, 'PACKED');
-        if (!ok) return;
-      } else {
-        setOrders(updatedOrders.map(o => o.id === orderId ? { ...o, status: 'PACKED' } : o));
-      }
-      triggerAudioSuccess();
-      setTimeout(() => {
-        toast.success(`🍳 Kitchen order for ${targetOrderUser} prepared! Sent to Rider.`);
-      }, 300);
-    } else {
-      setOrders(updatedOrders);
-      triggerAudioBeep();
-    }
-  };
-
-  const pendingCafeOrders = useMemo(() => {
-    return orders.filter(o => 
-      (o.status === 'PENDING' || o.status === 'CONFIRMED') && 
-      o.items.some(it => isTargetCategory(it.categorySlug))
-    );
-  }, [orders]);
-
-  const aggregatedPrepItems = useMemo(() => {
-    const counts: Record<string, { name: string; quantity: number }> = {};
-    orders.forEach(order => {
-      if (order.status !== 'PENDING' && order.status !== 'CONFIRMED') return;
-      order.items.forEach(item => {
-        if (!isTargetCategory(item.categorySlug)) return;
-        if (item.cooked) return; // Only count uncooked/unprepared items
-
-        if (!counts[item.name]) {
-          counts[item.name] = {
-            name: item.name,
-            quantity: 0
-          };
-        }
-        counts[item.name].quantity += item.quantity;
-      });
-    });
-    return Object.values(counts).sort((a, b) => b.quantity - a.quantity);
-  }, [orders]);
-  return (
-    <LinearGradient
-      colors={isDarkMode ? ['#09090b', '#121214', '#09090b'] : ['#f8fafc', '#f1f5f9', '#f8fafc']}
-      style={{ flex: 1 }}
-    >
-      <SafeAreaView 
-        className="flex-1"
-        style={{ backgroundColor: 'transparent' }}
-      >
-      <StatusBar style={isDarkMode ? "light" : "dark"} />
-      
-      {/* Premium Header */}
-      <View className="px-4 py-3.5 flex-row items-center justify-between border-b bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800/80 shadow-xs">
-        <View className="flex-row items-center gap-3">
-          <Pressable 
-            onPress={() => {
-              if (router.canGoBack()) {
-                router.back();
-              } else {
-                router.replace('/operations');
-              }
-            }}
-            className="w-9 h-9 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-100 dark:border-zinc-700/80 active:scale-95 transition-transform"
-          >
-            <ArrowLeft size={16} color={isDarkMode ? "#fff" : "#1e293b"} />
-          </Pressable>
-          <View>
-            <View className="flex-row items-center gap-2">
-              <Text className="text-slate-800 dark:text-white font-extrabold text-sm tracking-tight">{restaurantName}</Text>
-              <View className="flex-row items-center bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 px-2 py-0.5 rounded-full gap-1">
-                <LivePulseDot />
-                <Text className="text-rose-650 dark:text-rose-450 font-black text-[7.5px] tracking-wider uppercase">
-                  {user?.role || 'CHEF'}
-                </Text>
-              </View>
-            </View>
-            <Text className="text-slate-400 dark:text-zinc-500 text-[9.5px] font-bold mt-0.5">Kitchen Console • FastKirana</Text>
-          </View>
-        </View>
-        
-        <Pressable 
-          onPress={() => {
-            if (Platform.OS === 'web') {
-              const confirmLogout = window.confirm('Are you sure you want to log out from the chef kitchen console?');
-              if (confirmLogout) {
-                logout();
-                router.replace('/(auth)/login');
-              }
-            } else {
-              Alert.alert(
-                'Log Out',
-                'Are you sure you want to log out?',
-                [
-                  { text: 'Cancel', style: 'cancel' },
-                  { 
-                    text: 'Log Out', 
-                    style: 'destructive',
-                    onPress: () => {
-                      logout();
-                      router.replace('/(auth)/login');
-                    }
-                  }
-                ]
-              );
-            }
-          }}
-          className="px-3.5 py-1.5 rounded-full border border-red-200 dark:border-red-900/40 bg-red-50/50 dark:bg-red-950/10 active:scale-95"
-        >
-          <Text className="text-red-655 dark:text-red-400 font-extrabold text-[9.5px] uppercase tracking-wider">Log Out</Text>
-        </Pressable>
-      </View>
-
-      {/* Tab Switcher - Glass Capsule design */}
-      <View className="flex-row mx-4 mt-3 mb-4 bg-slate-100 dark:bg-zinc-900 rounded-xl p-1 border border-slate-200/50 dark:border-zinc-800/80">
-        <Pressable 
-          onPress={() => { triggerHaptic('light'); setActiveTab('ORDERS'); }}
-          style={{ flex: 1, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-        >
-          {activeTab === 'ORDERS' && (
-            <LinearGradient
-              colors={['#e20a22', '#be123c']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
-            />
-          )}
-          <Text className={`font-black text-[11px] z-10 ${activeTab === 'ORDERS' ? 'text-white' : 'text-slate-500'}`}>
-            Orders ({pendingCafeOrders.length})
-          </Text>
-        </Pressable>
-
-        <Pressable 
-          onPress={() => { triggerHaptic('light'); setActiveTab('ANALYTICS'); }}
-          style={{ flex: 1, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-        >
-          {activeTab === 'ANALYTICS' && (
-            <LinearGradient
-              colors={['#e20a22', '#be123c']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
-            />
-          )}
-          <Text className={`font-black text-[11px] z-10 ${activeTab === 'ANALYTICS' ? 'text-white' : 'text-slate-500'}`}>
-            Analytics
-          </Text>
-        </Pressable>
-
-        <Pressable 
-          onPress={() => { triggerHaptic('light'); setActiveTab('INVENTORY'); }}
-          style={{ flex: 1, height: 34, justifyContent: 'center', alignItems: 'center', position: 'relative' }}
-        >
-          {activeTab === 'INVENTORY' && (
-            <LinearGradient
-              colors={['#e20a22', '#be123c']}
-              start={{ x: 0, y: 0 }}
-              end={{ x: 1, y: 0 }}
-              style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
-            />
-          )}
-          <Text className={`font-black text-[11px] z-10 ${activeTab === 'INVENTORY' ? 'text-white' : 'text-slate-500'}`}>
-            Menu Stock
-          </Text>
-        </Pressable>
-      </View>
-
       {/* Main Content */}
       {activeTab === 'ORDERS' ? (
-        <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
-          <View className="flex-row justify-between items-center mb-3.5">
-            <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 items-center justify-center">
-                <Flame size={14} color="#e20a22" />
+        <ScrollView style={[styles.scrollContent, { padding: THEME.SPACING.lg }]} showsVerticalScrollIndicator={false}>
+          <View style={[styles.queueHeaderRow, { marginBottom: THEME.SPACING.sm + 4 }]}>
+            <View style={[styles.queueHeaderLeft, { gap: THEME.SPACING.sm }]}>
+              <View style={[styles.iconCircle, { backgroundColor: `${THEME.COLORS.brand.primary}14`, borderColor: `${THEME.COLORS.brand.primary}33` }]}>
+                <Flame size={14} color={THEME.COLORS.brand.primary} />
               </View>
               <View>
-                <Text className="text-slate-800 dark:text-white font-extrabold text-[11px] uppercase tracking-wide">Restaurant Cooking Queue</Text>
-                <Text className="text-slate-400 dark:text-zinc-500 text-[8.5px] font-bold mt-0.5">Track & manage all kitchen preparations in real-time</Text>
+                <Text style={[styles.queueTitle, { color: colors.textPrimary }]}>Restaurant Cooking Queue</Text>
+                <Text style={[styles.queueSubtitle, { color: colors.textMuted }]}>Track & manage all kitchen preparations in real-time</Text>
               </View>
             </View>
-            <Pressable 
-              onPress={() => fetchServerOrders(true)} 
-              className="w-8 h-8 rounded-full bg-white dark:bg-zinc-900 items-center justify-center border border-slate-100 dark:border-zinc-800 shadow-sm active:scale-90 transition-transform"
+            <Pressable
+              onPress={() => fetchServerOrders(true)}
+              style={[styles.refreshBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
             >
-              <RefreshCw size={12} color={isDarkMode ? '#ffffff' : '#64748b'} />
+              <RefreshCw size={12} color={isDarkMode ? colors.textPrimary : THEME.COLORS.light.textSecondary} />
             </Pressable>
           </View>
 
-          {/* Bulk Prep Box - Redesigned into glass card with shadow */}
+          {/* Bulk Prep Box */}
           {aggregatedPrepItems.length > 0 && (
-            <View className="mb-4 bg-rose-50/70 dark:bg-rose-950/10 border border-rose-100/60 dark:border-rose-900/20 rounded-2xl p-4 shadow-sm">
-              <View className="flex-row items-center gap-1.5 mb-3">
-                <ChefHat size={14} color="#e20a22" />
-                <Text className="text-rose-650 dark:text-rose-400 font-black text-[9.5px] uppercase tracking-wider">Kitchen Prep Summary (Bulk Prepare)</Text>
+            <View style={[styles.bulkPrepBox, { backgroundColor: `${THEME.COLORS.brand.primary}0A`, borderColor: `${THEME.COLORS.brand.primary}28` }]}>
+              <View style={[styles.bulkPrepHeader, { marginBottom: THEME.SPACING.sm + 2 }]}>
+                <ChefHat size={14} color={THEME.COLORS.brand.primary} />
+                <Text style={[styles.bulkPrepTitle, { color: THEME.COLORS.brand.primary }]}>Kitchen Prep Summary (Bulk Prepare)</Text>
               </View>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2.5 py-0.5">
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: THEME.SPACING.sm + 4 }}>
                 {aggregatedPrepItems.map((item, idx) => (
-                  <View key={idx} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 flex-row items-center gap-2 shadow-2xs">
-                    <Text className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">{item.name}</Text>
-                    <View className="bg-rose-500 px-2 py-0.5 rounded-full">
-                      <Text className="text-white font-black text-[9px]">x{item.quantity}</Text>
+                  <View key={idx} style={[styles.prepChip, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                    <Text style={[styles.prepChipText, { color: colors.textPrimary }]}>{item.name}</Text>
+                    <View style={[styles.prepChipBadge, { backgroundColor: THEME.COLORS.brand.primary }]}>
+                      <Text style={styles.prepChipBadgeText}>x{item.quantity}</Text>
                     </View>
                   </View>
                 ))}
@@ -753,34 +40,34 @@ export default function RestaurantChefScreen() {
           )}
 
           {pendingCafeOrders.length === 0 ? (
-            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-8 items-center shadow-sm py-16">
-              <Text className="text-4xl mb-1">🍳</Text>
-              <Text className="text-slate-800 dark:text-white font-black text-sm mt-3">No restaurant items pending cooking</Text>
-              <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1.5 text-center leading-normal max-w-xs">
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <Text style={styles.emptyEmoji}>🍳</Text>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No restaurant items pending cooking</Text>
+              <Text style={[styles.emptySubtitle, { color: colors.textMuted }]}>
                 Restaurant orders placed on the customer app sync instantly to the chef console.
               </Text>
             </View>
           ) : (
-            <View className="gap-4.5 mb-8">
+            <View style={{ gap: THEME.SPACING.md + 4, marginBottom: THEME.SPACING.xxl }}>
               {pendingCafeOrders.map((ord) => {
                 const cafeItems = ord.items.filter(it => isTargetCategory(it.categorySlug));
                 const isPending = ord.status === 'PENDING';
                 return (
-                  <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-4.5 shadow-sm">
-                    <View className="flex-row justify-between items-center border-b border-slate-50 dark:border-zinc-850 pb-3 mb-3">
+                  <View key={ord.id} style={[styles.orderCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                    <View style={[styles.orderCardHeader, { borderBottomColor: colors.border }]}>
                       <View>
-                        <Text className="text-slate-800 dark:text-white font-black text-xs uppercase tracking-wide">Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
-                        <Text className="text-slate-400 dark:text-zinc-500 text-[8.5px] font-bold mt-0.5">Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+                        <Text style={[styles.orderJobTitle, { color: colors.textPrimary }]}>Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
+                        <Text style={[styles.orderTime, { color: colors.textMuted }]}>Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
                       </View>
-                      
+
                       {/* Gradient Status badge */}
                       <LinearGradient
-                        colors={isPending ? ['#f59e0b', '#d97706'] : ['#e20a22', '#be123c']}
+                        colors={isPending ? ['#f59e0b', '#d97706'] : [THEME.COLORS.brand.primary, '#be123c']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
-                        className="px-3 py-1 rounded-full shadow-2xs"
+                        style={[styles.statusBadge, { borderRadius: THEME.RADIUS.pill }]}
                       >
-                        <Text className="text-white font-extrabold text-[8px] uppercase tracking-wider">
+                        <Text style={styles.statusBadgeText}>
                           {isPending ? 'Pending' : 'Preparing'}
                         </Text>
                       </LinearGradient>
@@ -788,27 +75,27 @@ export default function RestaurantChefScreen() {
 
                     {isPending ? (
                       <View>
-                        <Text className="text-slate-400 dark:text-zinc-500 font-extrabold text-[9px] uppercase tracking-wider mb-2">Items Preview</Text>
-                        <View className="gap-2 opacity-75 mb-4">
+                        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Items Preview</Text>
+                        <View style={{ gap: THEME.SPACING.sm, opacity: 0.75, marginBottom: THEME.SPACING.md + 4 }}>
                           {cafeItems.map((item) => (
-                            <View key={item.id} className="flex-row justify-between items-center p-3 rounded-2xl border border-slate-100 dark:border-zinc-800/85 bg-slate-50/50 dark:bg-zinc-950/40">
-                              <View className="flex-1 pr-2">
-                                <Text className="text-[11.5px] font-bold text-slate-800 dark:text-zinc-200">{item.name}</Text>
-                                <Text className="text-slate-500 dark:text-zinc-450 text-[8.5px] font-bold mt-0.5">Quantity: x{item.quantity}</Text>
+                            <View key={item.id} style={[styles.previewItem, { backgroundColor: `${colors.textPrimary}06`, borderColor: `${colors.textPrimary}14` }]}>
+                              <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                                <Text style={[styles.previewItemName, { color: colors.textPrimary }]}>{item.name}</Text>
+                                <Text style={[styles.previewItemQty, { color: `${colors.textPrimary}99` }]}>Quantity: x{item.quantity}</Text>
                                 {item.notes && (
-                                  <Text className="text-orange-600 dark:text-orange-400 text-[9px] font-black mt-1">🗒️ Note: {item.notes}</Text>
+                                  <Text style={[styles.previewItemNotes, { color: THEME.COLORS.brand.accent }]}>🗒️ Note: {item.notes}</Text>
                                 )}
                               </View>
                             </View>
                           ))}
                         </View>
-                        <View style={{ flexDirection: 'row', gap: 10 }}>
+                        <View style={{ flexDirection: 'row', gap: THEME.SPACING.sm + 2 }}>
                           <TouchableOpacity
                             onPress={() => handleEditOrder(ord)}
-                            style={{ flex: 1, height: 42, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 14, justifyContent: 'center', alignItems: 'center' }}
+                            style={[styles.editBtn, { borderColor: colors.border }]}
                             activeOpacity={0.7}
                           >
-                            <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#e2e8f0' : '#475569' }}>Edit Order</Text>
+                            <Text style={[styles.editBtnText, { color: colors.textSecondary }]}>Edit Order</Text>
                           </TouchableOpacity>
                           <TouchableOpacity
                             onPress={() => startPreparingChef(ord)}
@@ -816,12 +103,12 @@ export default function RestaurantChefScreen() {
                             activeOpacity={0.8}
                           >
                             <LinearGradient
-                              colors={['#e20a22', '#be123c']}
+                              colors={[THEME.COLORS.brand.primary, '#be123c']}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 0 }}
                               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
                             >
-                              <ChefHat size={13} color="#fff" />
+                              <ChefHat size={13} color="#ffffff" />
                               <Text style={{ color: '#ffffff', fontSize: 11, fontWeight: '800', textTransform: 'uppercase' }}>Start Cooking</Text>
                             </LinearGradient>
                           </TouchableOpacity>
@@ -829,38 +116,30 @@ export default function RestaurantChefScreen() {
                       </View>
                     ) : (
                       <View>
-                        <Text className="text-slate-400 dark:text-zinc-500 font-extrabold text-[9px] uppercase tracking-wider mb-2.5">Items to Cook (Tap to ready)</Text>
-                        <View className="gap-2.5">
+                        <Text style={[styles.sectionLabel, { color: colors.textSecondary }]}>Items to Cook (Tap to ready)</Text>
+                        <View style={{ gap: THEME.SPACING.sm + 2 }}>
                           {cafeItems.map((item) => (
                             <Pressable
                               key={item.id}
                               onPress={() => markChefItemReady(ord.id, item.id)}
-                              className={`flex-row justify-between items-center p-3.5 rounded-2xl border transition-all ${
-                                item.cooked 
-                                  ? 'bg-emerald-50/70 dark:bg-emerald-950/10 border-emerald-100/60 dark:border-emerald-900/20' 
-                                  : 'bg-slate-50/50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-850'
-                              }`}
+                              style={[styles.cookItemRow, item.cooked ? styles.cookItemRowReady : { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border }]}
                             >
-                              <View className="flex-1 pr-2">
-                                <Text className={`text-[12px] font-bold ${item.cooked ? 'text-slate-400 dark:text-zinc-600 line-through' : 'text-slate-800 dark:text-zinc-100'}`}>
+                              <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                                <Text style={[styles.cookItemName, item.cooked ? { color: colors.textMuted, textDecorationLine: 'line-through' } : { color: colors.textPrimary }]}>
                                   {item.name}
                                 </Text>
-                                <Text className="text-slate-550 dark:text-zinc-450 text-[9px] font-extrabold mt-0.5">Quantity: x{item.quantity}</Text>
+                                <Text style={[styles.cookItemQty, { color: `${colors.textPrimary}88` }]}>Quantity: x{item.quantity}</Text>
                                 {item.notes && (
-                                  <Text className="text-orange-655 dark:text-orange-400 text-[9px] font-black mt-1">🗒️ Note: {item.notes}</Text>
+                                  <Text style={[styles.cookItemNotes, { color: THEME.COLORS.brand.accent }]}>🗒️ Note: {item.notes}</Text>
                                 )}
                               </View>
 
                               {/* Interactive check badge */}
-                              <View className={`w-6 h-6 rounded-full items-center justify-center border ${
-                                item.cooked 
-                                  ? 'bg-emerald-600 border-emerald-600' 
-                                  : 'bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'
-                              }`}>
+                              <View style={[styles.checkBadge, item.cooked ? styles.checkBadgeDone : { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
                                 {item.cooked ? (
-                                  <Check size={12} color="#fff" strokeWidth={3.5} />
+                                  <Check size={12} color="#ffffff" strokeWidth={3.5} />
                                 ) : (
-                                  <Text className="text-[10px] font-black text-slate-400 dark:text-slate-500">+</Text>
+                                  <Text style={[styles.checkBadgePlus, { color: colors.textMuted }]}>+</Text>
                                 )}
                               </View>
                             </Pressable>
@@ -873,23 +152,19 @@ export default function RestaurantChefScreen() {
               })}
             </View>
           )}
-          <View className="h-8" />
+          <View style={{ height: THEME.SPACING.xxl }} />
         </ScrollView>
       ) : activeTab === 'ANALYTICS' ? (
-        <View className="flex-1 px-4">
-          {/* Preset Buttons - Premium Pill layout */}
-          <View className="flex-row gap-2 mb-4 bg-slate-100 dark:bg-zinc-900 p-1 rounded-xl border border-slate-200/40 dark:border-zinc-850">
+        <View style={{ flex: 1, paddingHorizontal: THEME.SPACING.lg }}>
+          {/* Preset Buttons */}
+          <View style={[styles.presetRow, { backgroundColor: `${colors.textPrimary}08`, borderColor: `${colors.textPrimary}18` }]}>
             {(['today', 'yesterday', '7days', '30days'] as const).map((preset) => (
               <Pressable
                 key={preset}
                 onPress={() => { triggerHaptic('light'); setRangePreset(preset); }}
-                className={`flex-1 py-1.5 rounded-lg items-center justify-center ${
-                  rangePreset === preset ? 'bg-white dark:bg-zinc-800 shadow-xs' : ''
-                }`}
+                style={[styles.presetBtn, rangePreset === preset && { backgroundColor: colors.surfaceElevated, ...THEME.SHADOWS.sm }]}
               >
-                <Text className={`font-black text-[10px] uppercase tracking-wider ${
-                  rangePreset === preset ? 'text-red-600 dark:text-red-400 font-extrabold' : 'text-slate-500'
-                }`}>
+                <Text style={[styles.presetBtnText, rangePreset === preset ? { color: THEME.COLORS.brand.primary, fontWeight: '800' as const } : { color: colors.textSecondary }]}>
                   {preset === 'today' ? 'Today' : preset === 'yesterday' ? 'Yday' : preset === '7days' ? '7 Days' : '30 Days'}
                 </Text>
               </Pressable>
@@ -897,81 +172,79 @@ export default function RestaurantChefScreen() {
           </View>
 
           {isLoadingReports ? (
-            <View className="flex-1 items-center justify-center py-20">
-              <ActivityIndicator size="small" color="#e20a22" />
-              <Text className="text-[10px] text-slate-400 dark:text-zinc-550 font-bold mt-2">Loading analytics...</Text>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: THEME.SPACING.xxl * 2 }}>
+              <ActivityIndicator size="small" color={THEME.COLORS.brand.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading analytics...</Text>
             </View>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              {/* Financial Metrics Grid - Glass tiles with top accent indicator */}
-              <View className="flex-row flex-wrap justify-between gap-y-3.5 mb-4">
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              {/* Financial Metrics Grid */}
+              <View style={[styles.metricsGrid, { gap: THEME.SPACING.sm + 4, marginBottom: THEME.SPACING.md + 4 }]}>
                 {/* Gross Revenue */}
-                <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-4 w-[48%] shadow-2xs overflow-hidden relative">
-                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#10b981' }} />
-                  <View className="flex-row justify-between items-center mb-1">
-                    <Text className="text-[9px] font-black uppercase text-slate-400">Gross Sales</Text>
-                    <TrendingUp size={12} color="#10b981" />
+                <View style={[styles.metricCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                  <View style={[styles.metricAccent, { backgroundColor: THEME.COLORS.brand.success }]} />
+                  <View style={[styles.metricRow, { marginBottom: THEME.SPACING.xs }]}>
+                    <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Gross Sales</Text>
+                    <TrendingUp size={12} color={THEME.COLORS.brand.success} />
                   </View>
-                  <Text className="text-slate-800 dark:text-white font-extrabold text-sm">₹{summary.totalSales || 0}</Text>
+                  <Text style={[styles.metricValue, { color: colors.textPrimary }]}>₹{summary.totalSales || 0}</Text>
                 </View>
 
                 {/* Net Profit */}
-                <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-4 w-[48%] shadow-2xs overflow-hidden relative">
-                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#e20a22' }} />
-                  <View className="flex-row justify-between items-center mb-1">
-                    <Text className="text-[9px] font-black uppercase text-slate-400">Net Profit</Text>
-                    <Percent size={11} color="#e20a22" />
+                <View style={[styles.metricCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                  <View style={[styles.metricAccent, { backgroundColor: THEME.COLORS.brand.primary }]} />
+                  <View style={[styles.metricRow, { marginBottom: THEME.SPACING.xs }]}>
+                    <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Net Profit</Text>
+                    <Percent size={11} color={THEME.COLORS.brand.primary} />
                   </View>
-                  <Text className="text-slate-800 dark:text-white font-extrabold text-sm">₹{summary.netProfit || 0}</Text>
+                  <Text style={[styles.metricValue, { color: colors.textPrimary }]}>₹{summary.netProfit || 0}</Text>
                 </View>
 
                 {/* Orders Count */}
-                <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-4 w-[48%] shadow-2xs overflow-hidden relative">
-                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#3b82f6' }} />
-                  <View className="flex-row justify-between items-center mb-1">
-                    <Text className="text-[9px] font-black uppercase text-slate-400">Orders</Text>
+                <View style={[styles.metricCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                  <View style={[styles.metricAccent, { backgroundColor: '#3b82f6' }]} />
+                  <View style={[styles.metricRow, { marginBottom: THEME.SPACING.xs }]}>
+                    <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Orders</Text>
                     <ShoppingBag size={11} color="#3b82f6" />
                   </View>
-                  <Text className="text-slate-800 dark:text-white font-extrabold text-sm">{summary.ordersCount || 0}</Text>
+                  <Text style={[styles.metricValue, { color: colors.textPrimary }]}>{summary.ordersCount || 0}</Text>
                 </View>
 
                 {/* Avg Value */}
-                <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-4 w-[48%] shadow-2xs overflow-hidden relative">
-                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#8b5cf6' }} />
-                  <View className="flex-row justify-between items-center mb-1">
-                    <Text className="text-[9px] font-black uppercase text-slate-400">Avg Value</Text>
+                <View style={[styles.metricCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                  <View style={[styles.metricAccent, { backgroundColor: '#8b5cf6' }]} />
+                  <View style={[styles.metricRow, { marginBottom: THEME.SPACING.xs }]}>
+                    <Text style={[styles.metricLabel, { color: colors.textMuted }]}>Avg Value</Text>
                     <DollarSign size={11} color="#8b5cf6" />
                   </View>
-                  <Text className="text-slate-800 dark:text-white font-extrabold text-sm">₹{Math.round(summary.avgOrderValue || 0)}</Text>
+                  <Text style={[styles.metricValue, { color: colors.textPrimary }]}>₹{Math.round(summary.avgOrderValue || 0)}</Text>
                 </View>
               </View>
 
-              {/* Top Products - Redesigned with visual quantity sales bars */}
-              <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-3xl p-4.5 mb-6 shadow-xs">
-                <Text className="text-slate-800 dark:text-white font-black text-xs mb-3.5">🔥 Top Selling Restaurant Items</Text>
+              {/* Top Products */}
+              <View style={[styles.topProductsCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, marginBottom: THEME.SPACING.xxl }]}>
+                <Text style={[styles.topProductsTitle, { color: colors.textPrimary }]}>🔥 Top Selling Restaurant Items</Text>
                 {topProducts.length === 0 ? (
-                  <Text className="text-slate-400 text-[10px] font-bold text-center py-4">No top products data for this period</Text>
+                  <Text style={[styles.topProductsEmpty, { color: colors.textSecondary }]}>No top products data for this period</Text>
                 ) : (
-                  <View className="gap-3.5">
+                  <View style={{ gap: THEME.SPACING.sm + 4 }}>
                     {(() => {
                       const maxQty = Math.max(...topProducts.map(p => p.quantity), 1);
                       return topProducts.map((prod, idx) => {
                         const pct = (prod.quantity / maxQty) * 100;
                         return (
-                          <View key={idx} className="pb-3.5 border-b border-slate-50 dark:border-zinc-850 last:border-b-0 last:pb-0">
-                            <View className="flex-row justify-between items-center mb-1">
-                              <View className="flex-1 pr-2">
-                                <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-[12px]" numberOfLines={1}>{prod.name}</Text>
-                                <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-bold mt-0.5">Qty sold: x{prod.quantity}</Text>
-                              </View>
-                              <View className="items-end">
-                                <Text className="text-slate-800 dark:text-zinc-200 font-black text-[11px]">₹{prod.sales}</Text>
-                                <Text className="text-emerald-600 dark:text-emerald-500 font-bold text-[8.5px] mt-0.5">Profit: ₹{prod.profit}</Text>
-                              </View>
+                          <View key={idx} style={[styles.topProductRow, { borderBottomColor: colors.border, paddingBottom: THEME.SPACING.sm + 4 }]}>
+                            <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                              <Text style={[styles.topProductName, { color: colors.textPrimary }]} numberOfLines={1}>{prod.name}</Text>
+                              <Text style={[styles.topProductQty, { color: colors.textMuted }]}>Qty sold: x{prod.quantity}</Text>
                             </View>
-                            {/* Horizontal visual progress bar */}
-                            <View style={{ height: 4, backgroundColor: isDarkMode ? '#1c1c1e' : '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
-                              <View style={{ height: '100%', width: `${pct}%`, backgroundColor: '#e20a22', borderRadius: 2 }} />
+                            <View style={{ alignItems: 'flex-end' }}>
+                              <Text style={[styles.topProductSales, { color: colors.textPrimary }]}>₹{prod.sales}</Text>
+                              <Text style={[styles.topProductProfit, { color: THEME.COLORS.brand.success }]}>Profit: ₹{prod.profit}</Text>
+                            </View>
+                            {/* Horizontal progress bar */}
+                            <View style={[styles.progressTrack, { backgroundColor: `${colors.textPrimary}0D` }]}>
+                              <View style={[styles.progressFill, { width: `${pct}%`, backgroundColor: THEME.COLORS.brand.primary }]} />
                             </View>
                           </View>
                         );
@@ -984,65 +257,58 @@ export default function RestaurantChefScreen() {
           )}
         </View>
       ) : (
-        <View className="flex-1 px-4">
-          {/* Search Bar - Modern Glassmorphic style */}
-          <View className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl px-3.5 py-2.5 mb-4 shadow-2xs">
-            <Search size={14} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ marginRight: 8 }} />
+        <View style={{ flex: 1, paddingHorizontal: THEME.SPACING.lg }}>
+          {/* Search Bar */}
+          <View style={[styles.invSearchBar, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <Search size={14} color={isDarkMode ? colors.textSecondary : THEME.COLORS.light.textSecondary} style={{ marginRight: THEME.SPACING.sm }} />
             <TextInput
               value={inventorySearchQuery}
               onChangeText={setInventorySearchQuery}
               placeholder="Search restaurant menu..."
-              placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
-              className="flex-1 text-xs text-slate-800 dark:text-white font-bold p-0"
+              placeholderTextColor={isDarkMode ? colors.textSecondary : colors.textMuted}
+              style={[styles.invSearchInput, { color: colors.textPrimary }]}
             />
           </View>
 
           {isLoadingInventory ? (
-            <View className="flex-1 items-center justify-center py-20">
-              <ActivityIndicator size="small" color="#e20a22" />
-              <Text className="text-[10px] text-slate-400 dark:text-zinc-550 font-bold mt-2">Loading items...</Text>
+            <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingVertical: THEME.SPACING.xxl * 2 }}>
+              <ActivityIndicator size="small" color={THEME.COLORS.brand.primary} />
+              <Text style={[styles.loadingText, { color: colors.textSecondary }]}>Loading items...</Text>
             </View>
           ) : filteredProducts.length === 0 ? (
-            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-8 items-center shadow-sm py-16">
-              <Text className="text-3xl mb-1">📦</Text>
-              <Text className="text-slate-800 dark:text-white font-black text-xs mt-2">No items found</Text>
+            <View style={[styles.emptyCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+              <Text style={styles.emptyEmoji}>📦</Text>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No items found</Text>
             </View>
           ) : (
-            <ScrollView className="flex-1" showsVerticalScrollIndicator={false}>
-              <View className="gap-3 mb-6">
+            <ScrollView style={{ flex: 1 }} showsVerticalScrollIndicator={false}>
+              <View style={{ gap: THEME.SPACING.sm, marginBottom: THEME.SPACING.xxl }}>
                 {filteredProducts.map((product) => {
                   const available = product.isAvailable !== false;
                   const isNonVeg = product.tags?.some((t: string) => t.toLowerCase() === 'non-veg') || false;
                   return (
-                    <View key={product.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800/85 p-3.5 flex-row justify-between items-center shadow-2xs">
-                      <View className="flex-1 pr-3">
-                        <View className="flex-row items-center gap-1.5 mb-1.5">
-                          <View className={`px-2 py-0.5 rounded-full ${isNonVeg ? 'bg-red-50 dark:bg-red-950/20 border border-red-100/60 dark:border-red-900/30' : 'bg-green-50 dark:bg-green-950/20 border border-green-100/60 dark:border-green-900/30'}`}>
-                            <Text className={`font-black text-[7.5px] tracking-wider uppercase ${isNonVeg ? 'text-red-600' : 'text-green-600'}`}>
+                    <View key={product.id} style={[styles.invProductCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                      <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                        <View style={[styles.invTagRow, { gap: THEME.SPACING.xs + 2, marginBottom: THEME.SPACING.xs + 2 }]}>
+                          <View style={[styles.invTag, isNonVeg ? { backgroundColor: `${THEME.COLORS.brand.primary}0D`, borderColor: `${THEME.COLORS.brand.primary}28` } : { backgroundColor: `${THEME.COLORS.brand.success}0D`, borderColor: `${THEME.COLORS.brand.success}28` }]}>
+                            <Text style={[styles.invTagText, isNonVeg ? { color: THEME.COLORS.brand.primary } : { color: THEME.COLORS.brand.success }]}>
                               {isNonVeg ? 'NON-VEG' : 'VEG'}
                             </Text>
                           </View>
-                          <Text className="text-[8.5px] text-slate-400 dark:text-zinc-500 font-extrabold uppercase">{product.category?.name || 'Food'}</Text>
+                          <Text style={[styles.invCategory, { color: colors.textMuted }]}>{product.category?.name || 'Food'}</Text>
                         </View>
-                        <Text className="text-slate-800 dark:text-white font-extrabold text-[12px] leading-normal">{product.name}</Text>
-                        <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-black mt-1">₹{product.price}</Text>
+                        <Text style={[styles.invProductName, { color: colors.textPrimary }]}>{product.name}</Text>
+                        <Text style={[styles.invProductPrice, { color: `${colors.textPrimary}cc` }]}>₹{product.price}</Text>
                       </View>
 
-                      {/* Sleek toggle capsule button */}
-                      <View className="items-center">
+                      {/* Toggle capsule button */}
+                      <View style={{ alignItems: 'center' }}>
                         <Pressable
                           onPress={() => toggleProductAvailability(product.id, available)}
-                          className={`px-3 py-1.5 rounded-xl border flex-row items-center gap-1.5 ${
-                            available 
-                              ? 'bg-emerald-50 dark:bg-emerald-950/20 border-emerald-100 dark:border-emerald-900/30' 
-                              : 'bg-slate-50 dark:bg-zinc-900 border-slate-200 dark:border-zinc-850'
-                          }`}
-                          style={{ minWidth: 95, justifyContent: 'center' }}
+                          style={[styles.toggleBtn, available ? styles.toggleBtnAvailable : { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                         >
-                          <View className={`w-1.5 h-1.5 rounded-full ${available ? 'bg-emerald-500' : 'bg-slate-400'}`} />
-                          <Text className={`font-black text-[9px] uppercase tracking-wider ${
-                            available ? 'text-emerald-700 dark:text-emerald-500' : 'text-slate-500 dark:text-zinc-400'
-                          }`}>
+                          <View style={[styles.toggleDot, { backgroundColor: available ? THEME.COLORS.brand.success : colors.textMuted }]} />
+                          <Text style={[styles.toggleBtnText, available ? { color: THEME.COLORS.brand.success } : { color: colors.textSecondary }]}>
                             {available ? 'Available' : 'Out of Stock'}
                           </Text>
                         </Pressable>
@@ -1051,12 +317,12 @@ export default function RestaurantChefScreen() {
                   );
                 })}
               </View>
-              <View className="h-6" />
+              <View style={{ height: THEME.SPACING.xxl }} />
             </ScrollView>
           )}
         </View>
       )}
-      
+
       <NewOrderAlertModal
         order={activeAlertOrder}
         onAccept={async (id) => {
@@ -1068,51 +334,51 @@ export default function RestaurantChefScreen() {
         isDarkMode={isDarkMode}
       />
 
-      {/* Order Edit Modal Overlay (Native/Web responsive hybrid) */}
+      {/* Order Edit Modal */}
       <Modal
         visible={editingOrder !== null}
         transparent={true}
         animationType="fade"
         onRequestClose={() => setEditingOrder(null)}
       >
-        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-          <View style={{ width: '100%', maxWidth: 440, backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderRadius: 24, padding: 20, maxHeight: '85%' }}>
+        <View style={[styles.modalOverlay, { backgroundColor: `${colors.textPrimary}99` }]}>
+          <View style={[styles.modalSheet, { backgroundColor: colors.surfaceElevated, borderRadius: THEME.RADIUS.xl, padding: THEME.SPACING.lg, maxHeight: '85%' }]}>
             {/* Modal Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#e2e8f0', paddingBottom: 12, marginBottom: 12 }}>
+            <View style={[styles.modalHeader, { borderBottomColor: colors.border, paddingBottom: THEME.SPACING.sm, marginBottom: THEME.SPACING.sm }]}>
               <View>
-                <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', textTransform: 'uppercase' }}>Edit Order Items</Text>
-                <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2 }}>Job #{editingOrder?.id.slice(-6).toUpperCase()}</Text>
+                <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>Edit Order Items</Text>
+                <Text style={[styles.modalJob, { color: colors.textSecondary }]}>Job #{editingOrder?.id.slice(-6).toUpperCase()}</Text>
               </View>
               <TouchableOpacity onPress={() => setEditingOrder(null)} style={{ padding: 4 }}>
-                <X size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
+                <X size={16} color={isDarkMode ? colors.textSecondary : THEME.COLORS.light.textSecondary} />
               </TouchableOpacity>
             </View>
 
             {/* Catalog Search Input */}
-            <View style={{ position: 'relative', marginBottom: 12, zIndex: 50 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', borderRadius: 14, paddingHorizontal: 12, height: 40 }}>
-                <Search size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} style={{ marginRight: 8 }} />
+            <View style={{ position: 'relative', marginBottom: THEME.SPACING.sm, zIndex: 50 }}>
+              <View style={[styles.modalSearchBar, { backgroundColor: `${colors.textPrimary}0D`, borderColor: colors.border }]}>
+                <Search size={14} color={isDarkMode ? `${colors.textPrimary}99` : THEME.COLORS.light.textSecondary} style={{ marginRight: THEME.SPACING.sm }} />
                 <TextInput
                   placeholder="Search catalog to add items..."
-                  placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+                  placeholderTextColor={isDarkMode ? colors.textSecondary : colors.textMuted}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  style={{ flex: 1, fontSize: 12, fontWeight: '700', color: isDarkMode ? '#ffffff' : '#0f172a' }}
+                  style={[styles.modalSearchInput, { color: colors.textPrimary }]}
                 />
               </View>
 
               {/* Search Suggestions Dropdown */}
               {searchResults.length > 0 && (
-                <View style={{ position: 'absolute', top: 44, left: 0, right: 0, maxHeight: 180, backgroundColor: isDarkMode ? '#27272a' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 14, zIndex: 100, elevation: 5, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.1, shadowRadius: 4 }}>
+                <View style={[styles.suggestionsDropdown, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
                   <ScrollView nestedScrollEnabled={true}>
                     {searchResults.map((prod) => (
                       <TouchableOpacity
                         key={prod.id}
                         onPress={() => addCatalogItem(prod)}
-                        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: isDarkMode ? '#3f3f46' : '#f1f5f9' }}
+                        style={[styles.suggestionRow, { borderBottomColor: `${colors.textPrimary}14` }]}
                       >
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b', flex: 1, marginRight: 8 }}>{prod.name}</Text>
-                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#e20a22' }}>₹{prod.price}</Text>
+                        <Text style={[styles.suggestionName, { color: colors.textPrimary }]}>{prod.name}</Text>
+                        <Text style={[styles.suggestionPrice, { color: THEME.COLORS.brand.primary }]}>₹{prod.price}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -1121,10 +387,10 @@ export default function RestaurantChefScreen() {
             </View>
 
             {/* Scrollable list of current items */}
-            <ScrollView style={{ flexGrow: 0, flexShrink: 1, marginBottom: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
+            <ScrollView style={{ flexGrow: 0, flexShrink: 1, marginBottom: THEME.SPACING.sm }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
               {editItems.length === 0 ? (
-                <View style={{ paddingVertical: 20, alignItems: 'center' }}>
-                  <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>No items in order. Add items from catalog search.</Text>
+                <View style={{ paddingVertical: THEME.SPACING.lg, alignItems: 'center' }}>
+                  <Text style={[styles.modalEmptyText, { color: colors.textSecondary }]}>No items in order. Add items from catalog search.</Text>
                 </View>
               ) : (
                 editItems.map((item, idx) => {
@@ -1133,33 +399,25 @@ export default function RestaurantChefScreen() {
                   const hasItemVariants = variants && Array.isArray(variants) && variants.length > 0;
 
                   return (
-                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 8 }}>
-                      <View style={{ flex: 1, paddingRight: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }} numberOfLines={1}>{item.name}</Text>
-                        <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2 }}>₹{item.price}</Text>
-                        
+                    <View key={idx} style={[styles.editItemRow, { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border, marginBottom: THEME.SPACING.sm }]}>
+                      <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                        <Text style={[styles.editItemName, { color: colors.textPrimary }]} numberOfLines={1}>{item.name}</Text>
+                        <Text style={[styles.editItemPrice, { color: colors.textSecondary, marginTop: 2 }]}>₹{item.price}</Text>
+
                         {/* Variant Swap Selector */}
                         {hasItemVariants && (
-                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                            <Text style={{ fontSize: 8.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', textTransform: 'uppercase' }}>Variant:</Text>
-                            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 4 }}>
+                          <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs, marginTop: THEME.SPACING.sm }}>
+                            <Text style={[styles.variantLabel, { color: colors.textSecondary }]}>Variant:</Text>
+                            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: THEME.SPACING.xs }}>
                               {variants.map((v) => {
                                 const isSelected = item.selectedVariant === v.name;
                                 return (
                                   <TouchableOpacity
                                     key={v.name}
                                     onPress={() => updateItemVariant(item.productId, item.selectedVariant, v.name, v.price)}
-                                    style={{
-                                      paddingHorizontal: 8,
-                                      paddingVertical: 3,
-                                      borderRadius: 8,
-                                      borderWidth: 1,
-                                      borderColor: isSelected ? '#e20a22' : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
-                                      backgroundColor: isSelected ? 'rgba(226,10,34,0.1)' : 'transparent',
-                                      marginRight: 4
-                                    }}
+                                    style={[styles.variantChip, isSelected ? { borderColor: THEME.COLORS.brand.primary, backgroundColor: `${THEME.COLORS.brand.primary}1A` } : { borderColor: colors.border }]}
                                   >
-                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? '#e20a22' : (isDarkMode ? '#e2e8f0' : '#475569') }}>
+                                    <Text style={[styles.variantChipText, isSelected ? { color: THEME.COLORS.brand.primary } : { color: colors.textSecondary }]}>
                                       {v.name} (₹{v.price})
                                     </Text>
                                   </TouchableOpacity>
@@ -1170,30 +428,30 @@ export default function RestaurantChefScreen() {
                         )}
                       </View>
 
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
+                        <View style={[styles.qtyControl, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
                           <TouchableOpacity
                             onPress={() => updateItemQty(item.productId, item.selectedVariant, -1)}
                             style={{ padding: 6 }}
                           >
-                            <Minus size={10} color={isDarkMode ? '#e2e8f0' : '#475569'} strokeWidth={3} />
+                            <Minus size={10} color={isDarkMode ? colors.textPrimary : THEME.COLORS.light.textSecondary} strokeWidth={3} />
                           </TouchableOpacity>
-                          <Text style={{ paddingHorizontal: 8, fontSize: 11, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', minWidth: 18, textAlign: 'center' }}>
+                          <Text style={{ paddingHorizontal: THEME.SPACING.sm + 4, fontSize: 11, fontWeight: '900', color: colors.textPrimary, minWidth: 18, textAlign: 'center' }}>
                             {item.quantity}
                           </Text>
                           <TouchableOpacity
                             onPress={() => updateItemQty(item.productId, item.selectedVariant, 1)}
                             style={{ padding: 6 }}
                           >
-                            <Plus size={10} color={isDarkMode ? '#e2e8f0' : '#475569'} strokeWidth={3} />
+                            <Plus size={10} color={isDarkMode ? colors.textPrimary : THEME.COLORS.light.textSecondary} strokeWidth={3} />
                           </TouchableOpacity>
                         </View>
 
                         <TouchableOpacity
                           onPress={() => markItemOutOfStock(item.productId)}
-                          style={{ padding: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10 }}
+                          style={{ padding: 6, backgroundColor: `${THEME.COLORS.brand.primary}1A`, borderRadius: 10 }}
                         >
-                          <AlertTriangle size={12} color="#ef4444" />
+                          <AlertTriangle size={12} color={THEME.COLORS.brand.primary} />
                         </TouchableOpacity>
                       </View>
                     </View>
@@ -1215,51 +473,51 @@ export default function RestaurantChefScreen() {
               const computedTotal = computedSubtotal + computedDeliveryFee + computedTaxes + computedMiscFee - (editingOrder?.discount || 0);
 
               return (
-                <View style={{ backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 12, gap: 4 }}>
+                <View style={[styles.billPreview, { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border }]}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Subtotal</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedSubtotal}</Text>
+                    <Text style={[styles.billLineLabel, { color: colors.textSecondary }]}>Subtotal</Text>
+                    <Text style={[styles.billLineValue, { color: colors.textPrimary }]}>₹{computedSubtotal}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Taxes ({Math.round(editTaxRate * 100)}%)</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedTaxes}</Text>
+                    <Text style={[styles.billLineLabel, { color: colors.textSecondary }]}>Taxes ({Math.round(editTaxRate * 100)}%)</Text>
+                    <Text style={[styles.billLineValue, { color: colors.textPrimary }]}>₹{computedTaxes}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Delivery Fee</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedDeliveryFee}</Text>
+                    <Text style={[styles.billLineLabel, { color: colors.textSecondary }]}>Delivery Fee</Text>
+                    <Text style={[styles.billLineValue, { color: colors.textPrimary }]}>₹{computedDeliveryFee}</Text>
                   </View>
                   {computedMiscFee > 0 && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Handling / Packaging Fee</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedMiscFee}</Text>
+                      <Text style={[styles.billLineLabel, { color: colors.textSecondary }]}>Handling / Packaging Fee</Text>
+                      <Text style={[styles.billLineValue, { color: colors.textPrimary }]}>₹{computedMiscFee}</Text>
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Discount</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>-₹{editingOrder?.discount || 0}</Text>
+                    <Text style={[styles.billLineLabel, { color: colors.textSecondary }]}>Discount</Text>
+                    <Text style={[styles.billLineValue, { color: colors.textPrimary }]}>-₹{editingOrder?.discount || 0}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: isDarkMode ? '#3f3f46' : '#e2e8f0', paddingTop: 6, marginTop: 2 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Estimated Total</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#e20a22' }}>₹{computedTotal}</Text>
+                  <View style={[styles.billTotalRow, { borderTopColor: colors.border }]}>
+                    <Text style={[styles.billTotalLabel, { color: colors.textPrimary }]}>Estimated Total</Text>
+                    <Text style={[styles.billTotalValue, { color: THEME.COLORS.brand.primary }]}>₹{computedTotal}</Text>
                   </View>
                 </View>
               );
             })()}
 
             {/* Action buttons */}
-            <View style={{ flexDirection: 'row', gap: 10 }}>
+            <View style={{ flexDirection: 'row', gap: THEME.SPACING.sm + 2 }}>
               <TouchableOpacity
                 onPress={() => setEditingOrder(null)}
-                style={{ flex: 1, height: 40, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
+                style={[styles.modalCancelBtn, { borderColor: colors.border }]}
               >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#475569' }}>Cancel</Text>
+                <Text style={[styles.modalCancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 disabled={isSavingEdit}
                 onPress={saveEditedOrder}
-                style={{ flex: 1, height: 40, backgroundColor: '#e20a22', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
+                style={[styles.modalSaveBtn, { backgroundColor: THEME.COLORS.brand.primary, opacity: isSavingEdit ? 0.6 : 1 }]}
               >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: '#ffffff' }}>
+                <Text style={styles.modalSaveBtnText}>
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </Text>
               </TouchableOpacity>
@@ -1271,3 +529,578 @@ export default function RestaurantChefScreen() {
     </LinearGradient>
   );
 }
+
+const styles = StyleSheet.create({
+  scrollContent: {
+    flex: 1,
+  },
+  queueHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  queueHeaderLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  iconCircle: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  queueTitle: {
+    fontSize: 11,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  queueSubtitle: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  refreshBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  bulkPrepBox: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: THEME.SPACING.md,
+    marginBottom: THEME.SPACING.md,
+  },
+  bulkPrepHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 2,
+  },
+  bulkPrepTitle: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  prepChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: THEME.RADIUS.lg,
+    borderWidth: 1,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 4,
+    gap: THEME.SPACING.sm,
+  },
+  prepChipText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  prepChipBadge: {
+    borderRadius: THEME.RADIUS.pill,
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+  },
+  prepChipBadgeText: {
+    color: '#ffffff',
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  emptyCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: THEME.SPACING.xxl,
+    alignItems: 'center',
+    paddingTop: THEME.SPACING.xxl * 2,
+  },
+  emptyEmoji: {
+    fontSize: 36,
+    marginBottom: THEME.SPACING.sm,
+  },
+  emptyTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+    marginTop: THEME.SPACING.sm + 2,
+  },
+  emptySubtitle: {
+    fontSize: 10,
+    marginTop: THEME.SPACING.sm + 2,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  orderCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: THEME.SPACING.md + 4,
+    ...THEME.SHADOWS.sm,
+  },
+  orderCardHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingBottom: THEME.SPACING.sm + 2,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  orderJobTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  orderTime: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  statusBadge: {
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    paddingVertical: THEME.SPACING.xs + 1,
+  },
+  statusBadgeText: {
+    color: '#ffffff',
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+  },
+  sectionLabel: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  previewItem: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: THEME.SPACING.sm + 4,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  previewItemName: {
+    fontSize: 11.5,
+    fontWeight: '700',
+  },
+  previewItemQty: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  previewItemNotes: {
+    fontSize: 9,
+    fontWeight: '900',
+    marginTop: THEME.SPACING.xs + 2,
+  },
+  editBtn: {
+    flex: 1,
+    height: 42,
+    borderWidth: 1,
+    borderRadius: 14,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  editBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  cookItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: THEME.SPACING.sm + 4,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  cookItemReady: {
+    backgroundColor: `${THEME.COLORS.brand.success}14`,
+    borderColor: `${THEME.COLORS.brand.success}40`,
+  },
+  cookItemName: {
+    fontSize: 12,
+    fontWeight: '700',
+  },
+  cookItemQty: {
+    fontSize: 9,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  cookItemNotes: {
+    fontSize: 9,
+    fontWeight: '900',
+    marginTop: THEME.SPACING.xs + 2,
+  },
+  checkBadge: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+  },
+  checkBadgeDone: {
+    backgroundColor: THEME.COLORS.brand.success,
+    borderColor: THEME.COLORS.brand.success,
+  },
+  checkBadgePlus: {
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  presetRow: {
+    flexDirection: 'row',
+    gap: THEME.SPACING.sm,
+    padding: THEME.SPACING.xs,
+    borderRadius: THEME.RADIUS.lg,
+    borderWidth: 1,
+    marginBottom: THEME.SPACING.md + 4,
+  },
+  presetBtn: {
+    flex: 1,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.md,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  presetBtnText: {
+    fontSize: 10,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  loadingText: {
+    fontSize: 10,
+    fontWeight: '700',
+    marginTop: THEME.SPACING.sm,
+  },
+  metricsGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  metricCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: THEME.SPACING.md,
+    width: '48%',
+    overflow: 'hidden',
+    position: 'relative',
+  },
+  metricAccent: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: 3,
+  },
+  metricRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  metricLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  metricValue: {
+    fontSize: 14,
+    fontWeight: '800',
+  },
+  topProductsCard: {
+    borderRadius: 24,
+    borderWidth: 1,
+    padding: THEME.SPACING.md + 4,
+    ...THEME.SHADOWS.xs,
+  },
+  topProductsTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    marginBottom: THEME.SPACING.sm + 4,
+  },
+  topProductsEmpty: {
+    fontSize: 10,
+    fontWeight: '700',
+    textAlign: 'center',
+    paddingVertical: THEME.SPACING.lg,
+  },
+  topProductRow: {
+    borderBottomWidth: 1,
+    paddingBottom: THEME.SPACING.sm + 4,
+  },
+  topProductName: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  topProductQty: {
+    fontSize: 9,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  topProductSales: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  topProductProfit: {
+    fontSize: 8.5,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  progressTrack: {
+    height: 4,
+    borderRadius: 2,
+    overflow: 'hidden',
+    marginTop: THEME.SPACING.sm + 2,
+  },
+  progressFill: {
+    height: '100%',
+    borderRadius: 2,
+  },
+  invSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 16,
+    borderWidth: 1,
+    paddingHorizontal: THEME.SPACING.md + 2,
+    paddingVertical: THEME.SPACING.sm + 4,
+    marginBottom: THEME.SPACING.md + 4,
+  },
+  invSearchInput: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    padding: 0,
+  },
+  invProductCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: THEME.SPACING.sm + 4,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  invTagRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  invTag: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.pill,
+    borderWidth: 1,
+  },
+  invTagText: {
+    fontSize: 7.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  invCategory: {
+    fontSize: 8.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  invProductName: {
+    fontSize: 12,
+    fontWeight: '800',
+  },
+  invProductPrice: {
+    fontSize: 10,
+    fontWeight: '900',
+    marginTop: THEME.SPACING.xs + 2,
+  },
+  toggleBtn: {
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 2,
+    minWidth: 110,
+    justifyContent: 'center',
+  },
+  toggleBtnAvailable: {
+    backgroundColor: `${THEME.COLORS.brand.success}14`,
+    borderColor: `${THEME.COLORS.brand.success}40`,
+  },
+  toggleDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
+  },
+  toggleBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  modalOverlay: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: THEME.SPACING.lg,
+  },
+  modalSheet: {
+    width: '100%',
+    maxWidth: 440,
+  },
+  modalHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+  },
+  modalTitle: {
+    fontSize: 13,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  modalJob: {
+    fontSize: 9.5,
+    fontWeight: '800',
+    marginTop: 2,
+  },
+  modalSearchBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    height: 40,
+  },
+  modalSearchInput: {
+    flex: 1,
+    fontSize: 12,
+    fontWeight: '700',
+    padding: 0,
+  },
+  suggestionsDropdown: {
+    position: 'absolute',
+    top: 44,
+    left: 0,
+    right: 0,
+    maxHeight: 180,
+    borderRadius: 14,
+    borderWidth: 1,
+    zIndex: 100,
+  },
+  suggestionRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    paddingVertical: THEME.SPACING.sm,
+    borderBottomWidth: 0.5,
+  },
+  suggestionName: {
+    fontSize: 11,
+    fontWeight: '700',
+    flex: 1,
+    marginRight: THEME.SPACING.sm,
+  },
+  suggestionPrice: {
+    fontSize: 11,
+    fontWeight: '900',
+  },
+  editItemRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    padding: THEME.SPACING.sm + 4,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  editItemName: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  editItemPrice: {
+    fontSize: 9.5,
+    fontWeight: '900',
+  },
+  variantLabel: {
+    fontSize: 8.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  variantChip: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs + 1,
+    borderRadius: 8,
+    borderWidth: 1,
+    marginRight: THEME.SPACING.xs,
+  },
+  variantChipText: {
+    fontSize: 8.5,
+    fontWeight: '800',
+  },
+  qtyControl: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: 10,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  billPreview: {
+    padding: THEME.SPACING.sm + 4,
+    borderRadius: 16,
+    borderWidth: 1,
+    marginBottom: THEME.SPACING.sm,
+    gap: THEME.SPACING.xs + 2,
+  },
+  billLineLabel: {
+    fontSize: 10,
+    fontWeight: '700',
+  },
+  billLineValue: {
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  billTotalRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    borderTopWidth: 0.5,
+    paddingTop: THEME.SPACING.sm,
+    marginTop: THEME.SPACING.xs,
+  },
+  billTotalLabel: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  billTotalValue: {
+    fontSize: 12,
+    fontWeight: '900',
+  },
+  modalCancelBtn: {
+    flex: 1,
+    height: 40,
+    borderWidth: 1,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalCancelBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+  },
+  modalSaveBtn: {
+    flex: 1,
+    height: 40,
+    borderRadius: 12,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  modalSaveBtnText: {
+    fontSize: 11,
+    fontWeight: '800',
+    color: '#ffffff',
+  },
+  modalEmptyText: {
+    fontSize: 11,
+    fontWeight: '700',
+  },
+});

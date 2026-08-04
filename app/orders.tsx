@@ -1,38 +1,38 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
-import { 
-  View, 
-  Text, 
-  Pressable, 
-  ScrollView, 
-  ActivityIndicator, 
-  StyleSheet, 
+import {
+  View,
+  Text,
+  Pressable,
+  ScrollView,
+  ActivityIndicator,
+  StyleSheet,
   Platform,
-  useWindowDimensions 
+  useWindowDimensions
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import { router, useFocusEffect } from 'expo-router';
-import { 
-  ArrowLeft, 
-  Clock, 
-  ChevronRight, 
-  ShoppingBag, 
-  Sparkles, 
-  RotateCcw, 
-  CheckCircle2, 
-  Package, 
-  Truck, 
-  AlertCircle 
+import {
+  ArrowLeft,
+  Clock,
+  ChevronRight,
+  ShoppingBag,
+  Sparkles,
+  RotateCcw,
+  CheckCircle2,
+  Package,
+  Truck,
+  AlertCircle
 } from 'lucide-react-native';
-import Animated, { 
-  useSharedValue, 
-  useAnimatedStyle, 
-  withSpring, 
-  interpolate 
+import Animated, {
+  useSharedValue,
+  useAnimatedStyle,
+  withSpring,
+  interpolate
 } from 'react-native-reanimated';
 import { useAuthStore } from '../stores/auth-store';
 import { useCartActions } from '../hooks/use-cart';
-import { API_BASE_URL, ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../lib/constants';
+import { ORDER_STATUS_LABELS, ORDER_STATUS_COLORS } from '../lib/constants';
 import { api } from '../lib/api-client';
 import { formatPrice, formatDisplayOrderId } from '../lib/utils';
 import { useResponsive, getCenteredContainerStyle } from '../lib/responsive';
@@ -41,6 +41,7 @@ import { triggerHaptic } from '../lib/haptic';
 import { useTheme } from './context/ThemeContext';
 import { ScalePressable } from '../components/shared/ScalePressable';
 import BuyAgainSection from '../components/home/BuyAgainSection';
+import { THEME } from '../lib/theme';
 
 interface OrderItem {
   id?: string;
@@ -68,6 +69,7 @@ export default function OrdersScreen() {
   const { user } = useAuthStore();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { width } = useWindowDimensions();
   const responsive = useResponsive();
 
@@ -77,7 +79,6 @@ export default function OrdersScreen() {
 
   const { addItem } = useCartActions();
 
-  // Tab Indicator Animation
   const tabTranslateX = useSharedValue(0);
   const tabContainerWidth = useMemo(() => {
     return Math.min(width - 32, 400);
@@ -96,7 +97,7 @@ export default function OrdersScreen() {
 
   const loadOrders = async () => {
     let serverOrders: Order[] = [];
-    
+
     try {
       const data = await api.get('/orders');
       if (Array.isArray(data)) {
@@ -116,7 +117,7 @@ export default function OrdersScreen() {
           let localList = [];
           try {
             localList = JSON.parse(localData);
-          } catch (jsonErr) {}
+          } catch (jsonErr) { }
           if (Array.isArray(localList)) {
             const combined = [...localList];
             serverOrders.forEach((so: Order) => {
@@ -130,7 +131,7 @@ export default function OrdersScreen() {
             return;
           }
         }
-      } catch (storageErr) {}
+      } catch (storageErr) { }
     }
 
     setOrders(serverOrders);
@@ -145,7 +146,6 @@ export default function OrdersScreen() {
     }, [user])
   );
 
-  // Split Orders into Live Active vs Past History
   const liveOrders = useMemo(() => {
     return orders.filter(o => !['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(o.status));
   }, [orders]);
@@ -154,7 +154,6 @@ export default function OrdersScreen() {
     return orders.filter(o => ['DELIVERED', 'CANCELLED', 'COMPLETED'].includes(o.status));
   }, [orders]);
 
-  // Auto-switch to history if no live orders exist on load
   useEffect(() => {
     if (!isLoading && liveOrders.length === 0 && historyOrders.length > 0) {
       setActiveTab('history');
@@ -171,7 +170,7 @@ export default function OrdersScreen() {
   const handleReorder = (order: Order) => {
     triggerHaptic('success');
     if (!order.items || order.items.length === 0) return;
-    
+
     order.items.forEach((item) => {
       addItem({
         id: item.productId || item.id || '',
@@ -194,9 +193,10 @@ export default function OrdersScreen() {
   const getStatusBadge = (status: string) => {
     const label = ORDER_STATUS_LABELS[status] || status;
     const isLive = !['DELIVERED', 'CANCELLED'].includes(status);
-    const bg = isLive ? '#eff6ff' : (status === 'DELIVERED' ? '#f0fdf4' : '#fef2f2');
-    const border = isLive ? '#bfdbfe' : (status === 'DELIVERED' ? '#bbf7d0' : '#fecaca');
-    const text = isLive ? '#1d4ed8' : (status === 'DELIVERED' ? '#15803d' : '#b91c1c');
+    const statusConfig = ORDER_STATUS_COLORS[status] || ORDER_STATUS_COLORS.DEFAULT;
+    const bg = isLive ? THEME.COLORS.successLight : (status === 'DELIVERED' ? '#f0fdf4' : '#fef2f2');
+    const border = isLive ? '#bbf7d0' : (status === 'DELIVERED' ? '#bbf7d0' : '#fecaca');
+    const text = isLive ? '#15803d' : (status === 'DELIVERED' ? '#15803d' : '#b91c1c');
 
     return (
       <View style={{
@@ -211,76 +211,68 @@ export default function OrdersScreen() {
         gap: 4
       }}>
         {isLive && (
-          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: '#2563eb' }} />
+          <View style={{ width: 6, height: 6, borderRadius: 3, backgroundColor: THEME.COLORS.success }} />
         )}
-        <Text style={{ fontSize: 10, fontWeight: '900', color: text, letterSpacing: 0.3 }}>
+        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '900', color: text, letterSpacing: 0.3 }}>
           {label.toUpperCase()}
         </Text>
       </View>
     );
   };
 
+  const isStepComplete = (stepStatuses: string[], current: string) => stepStatuses.includes(current);
+
   return (
-    <SafeAreaView style={[styles.container, isDarkMode ? styles.bgDark : styles.bgLight]}>
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <StatusBar style={isDarkMode ? 'light' : 'dark'} />
 
       {/* Header */}
-      <View style={[styles.header, isDarkMode ? styles.headerDark : styles.headerLight]}>
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.borderLight }]}>
         <ScalePressable
           onPress={() => router.back()}
           scaleValue={0.9}
-          style={[styles.backBtn, isDarkMode ? styles.backBtnDark : styles.backBtnLight]}
+          style={[styles.backBtn, { backgroundColor: isDarkMode ? colors.borderLight : THEME.COLORS.light.borderLight }]}
         >
-          <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
+          <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : colors.textPrimary} />
         </ScalePressable>
-        
-        <Text style={[styles.headerTitle, isDarkMode ? styles.textDark : styles.textLight]}>
+
+        <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>
           My Orders
         </Text>
 
         <View style={{ width: 34 }} />
       </View>
 
-      {/* Segmented Control Tabs (LIVE ORDERS vs ORDER HISTORY) */}
+      {/* Segmented Control Tabs */}
       <View style={styles.tabContainerWrap}>
         <View style={[
-          styles.tabContainer, 
-          isDarkMode ? styles.tabContainerDark : styles.tabContainerLight,
-          { width: tabContainerWidth }
+          styles.tabContainer,
+          { backgroundColor: colors.borderLight, borderColor: colors.border, width: tabContainerWidth }
         ]}>
-          {/* Gliding Active Indicator */}
           <Animated.View style={[
             styles.activeIndicator,
             { width: (tabContainerWidth - 8) / 2 },
             animatedIndicatorStyle
           ]} />
 
-          {/* Live Orders Tab */}
-          <Pressable
-            onPress={() => handleTabSwitch('live')}
-            style={styles.tabBtn}
-          >
+          <Pressable onPress={() => handleTabSwitch('live')} style={styles.tabBtn}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
               {liveOrders.length > 0 && (
-                <View style={styles.liveDotPulse} />
+                <View style={[styles.liveDotPulse, { backgroundColor: THEME.COLORS.success }]} />
               )}
               <Text style={[
                 styles.tabText,
-                activeTab === 'live' ? styles.tabTextActive : (isDarkMode ? styles.tabTextInactiveDark : styles.tabTextInactiveLight)
+                activeTab === 'live' ? styles.tabTextActive : { color: colors.textSecondary }
               ]}>
                 Live Orders ({liveOrders.length})
               </Text>
             </View>
           </Pressable>
 
-          {/* Order History Tab */}
-          <Pressable
-            onPress={() => handleTabSwitch('history')}
-            style={styles.tabBtn}
-          >
+          <Pressable onPress={() => handleTabSwitch('history')} style={styles.tabBtn}>
             <Text style={[
               styles.tabText,
-              activeTab === 'history' ? styles.tabTextActive : (isDarkMode ? styles.tabTextInactiveDark : styles.tabTextInactiveLight)
+              activeTab === 'history' ? styles.tabTextActive : { color: colors.textSecondary }
             ]}>
               History ({historyOrders.length})
             </Text>
@@ -288,7 +280,7 @@ export default function OrdersScreen() {
         </View>
       </View>
 
-      {/* Main Content Area */}
+      {/* Main Content */}
       <ScrollView
         style={styles.scrollView}
         contentContainerStyle={{
@@ -301,20 +293,19 @@ export default function OrdersScreen() {
       >
         {isLoading ? (
           <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#e20a22" />
-            <Text style={[styles.loadingText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
+            <ActivityIndicator size="large" color={THEME.COLORS.brand.primary} />
+            <Text style={[styles.loadingText, { color: colors.textSecondary }]}>
               Syncing live orders...
             </Text>
           </View>
         ) : activeTab === 'live' ? (
-          /* LIVE ORDERS TAB CONTENT */
           liveOrders.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 44 }}>🛵</Text>
-              <Text style={[styles.emptyTitle, isDarkMode ? styles.textDark : styles.textLight]}>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                 No Active Orders
               </Text>
-              <Text style={[styles.emptySub, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                 You don't have any ongoing orders at the moment. Explore items and place an order!
               </Text>
               <ScalePressable
@@ -328,112 +319,118 @@ export default function OrdersScreen() {
             </View>
           ) : (
             <View style={{ gap: 14 }}>
-              {liveOrders.map((order) => (
-                <ScalePressable
-                  key={order.id}
-                  onPress={() => router.push(`/order/${order.id}`)}
-                  scaleValue={0.98}
-                  style={[styles.orderCard, isDarkMode ? styles.orderCardDark : styles.orderCardLight]}
-                >
-                  {/* Top Live Bar Header */}
-                  <View style={[styles.cardHeaderRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                    <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={styles.orderIdLabel}>ACTIVE ORDER</Text>
-                      <Text style={[styles.orderIdValue, isDarkMode ? styles.textDark : styles.textLight]}>
-                        #{formatDisplayOrderId(order.id, order.readableId)}
+              {liveOrders.map((order) => {
+                const packedStepStatuses = ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'];
+                const shippedStepStatuses = ['SHIPPED', 'OUT_FOR_DELIVERY'];
+                return (
+                  <ScalePressable
+                    key={order.id}
+                    onPress={() => router.push(`/order/${order.id}`)}
+                    scaleValue={0.98}
+                    style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
+                  >
+                    {/* Top Live Bar Header */}
+                    <View style={[styles.cardHeaderRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                      <View style={{ flex: 1, marginRight: 12 }}>
+                        <Text style={[styles.orderIdLabel, { color: THEME.COLORS.brand.primary }]}>ACTIVE ORDER</Text>
+                        <Text style={[styles.orderIdValue, { color: colors.textPrimary }]}>
+                          #{formatDisplayOrderId(order.id, order.readableId)}
+                        </Text>
+                      </View>
+
+                      {getStatusBadge(order.status)}
+                    </View>
+
+                    {/* Items List */}
+                    <View style={styles.cardItemsWrap}>
+                      <Text numberOfLines={2} style={[styles.itemSummaryText, { color: colors.textSecondary }]}>
+                        {order.items.map(it => `${it.name} (${it.quantity}x)`).join('  •  ')}
                       </Text>
                     </View>
 
-                    {getStatusBadge(order.status)}
-                  </View>
-
-                  {/* Items List */}
-                  <View style={styles.cardItemsWrap}>
-                    <Text numberOfLines={2} style={[styles.itemSummaryText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
-                      {order.items.map(it => `${it.name} (${it.quantity}x)`).join('  •  ')}
-                    </Text>
-                  </View>
-
-                  {/* Stage Progress Visual */}
-                  <View style={[styles.progressRow, { backgroundColor: isDarkMode ? 'rgba(255, 255, 255, 0.02)' : 'rgba(16, 185, 129, 0.04)', borderWidth: 1, borderColor: isDarkMode ? 'rgba(255,255,255,0.03)' : 'rgba(16, 185, 129, 0.08)' }]}>
-                    <View style={styles.progressStep}>
-                      <View style={[styles.stepIconCircle, { backgroundColor: '#dcfce7' }]}>
-                        <CheckCircle2 size={13} color="#16a34a" />
-                      </View>
-                      <Text style={[styles.stepText, { color: isDarkMode ? '#e4e4e7' : '#0f172a' }]}>Confirmed</Text>
-                    </View>
+                    {/* Stage Progress Visual */}
                     <View style={[
-                      styles.progressLine, 
-                      { backgroundColor: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#16a34a' : (isDarkMode ? '#27272a' : '#e2e8f0') }
-                    ]} />
-                    
-                    <View style={styles.progressStep}>
+                      styles.progressRow,
+                      {
+                        backgroundColor: isDarkMode ? 'rgba(16,185,129,0.06)' : 'rgba(16, 185, 129, 0.04)',
+                        borderColor: isDarkMode ? 'rgba(16,185,129,0.1)' : 'rgba(16, 185, 129, 0.08)',
+                        borderWidth: 1,
+                      }
+                    ]}>
+                      <View style={styles.progressStep}>
+                        <View style={[styles.stepIconCircle, { backgroundColor: '#dcfce7' }]}>
+                          <CheckCircle2 size={13} color={THEME.COLORS.success} />
+                        </View>
+                        <Text style={[styles.stepText, { color: colors.textPrimary }]}>Confirmed</Text>
+                      </View>
                       <View style={[
-                        styles.stepIconCircle, 
-                        { backgroundColor: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#dcfce7' : (isDarkMode ? '#27272a' : '#f1f5f9') }
-                      ]}>
-                        <Package size={13} color={['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#16a34a' : '#94a3b8'} />
-                      </View>
-                      <Text style={[
-                        styles.stepText, 
-                        { color: ['PACKED', 'SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) 
-                            ? (isDarkMode ? '#e4e4e7' : '#0f172a') 
-                            : (isDarkMode ? '#52525b' : '#94a3b8') }
-                      ]}>Packed</Text>
-                    </View>
-                    <View style={[
-                      styles.progressLine, 
-                      { backgroundColor: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#2563eb' : (isDarkMode ? '#27272a' : '#e2e8f0') }
-                    ]} />
+                        styles.progressLine,
+                        { backgroundColor: isStepComplete(packedStepStatuses, order.status) ? THEME.COLORS.success : colors.border }
+                      ]} />
 
-                    <View style={styles.progressStep}>
+                      <View style={styles.progressStep}>
+                        <View style={[
+                          styles.stepIconCircle,
+                          { backgroundColor: isStepComplete(packedStepStatuses, order.status) ? '#dcfce7' : colors.borderLight }
+                        ]}>
+                          <Package size={13} color={isStepComplete(packedStepStatuses, order.status) ? THEME.COLORS.success : colors.textMuted} />
+                        </View>
+                        <Text style={[
+                          styles.stepText,
+                          { color: isStepComplete(packedStepStatuses, order.status) ? colors.textPrimary : colors.textMuted }
+                        ]}>Packed</Text>
+                      </View>
                       <View style={[
-                        styles.stepIconCircle, 
-                        { backgroundColor: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#eff6ff' : (isDarkMode ? '#27272a' : '#f1f5f9') }
-                      ]}>
-                        <Truck size={13} color={['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) ? '#2563eb' : '#94a3b8'} />
-                      </View>
-                      <Text style={[
-                        styles.stepText, 
-                        { color: ['SHIPPED', 'OUT_FOR_DELIVERY'].includes(order.status) 
-                            ? (isDarkMode ? '#e4e4e7' : '#0f172a') 
-                            : (isDarkMode ? '#52525b' : '#94a3b8') }
-                      ]}>On the way</Text>
-                    </View>
-                  </View>
+                        styles.progressLine,
+                        { backgroundColor: isStepComplete(shippedStepStatuses, order.status) ? '#2563eb' : colors.border }
+                      ]} />
 
-                  {/* Footer Row */}
-                  <View style={[styles.cardFooterRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                      <Clock size={12} color={isDarkMode ? '#71717a' : '#94a3b8'} />
-                      <Text style={[styles.timestampText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
-                        {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                      </Text>
-                    </View>
-
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                      <Text style={[styles.totalAmount, isDarkMode ? styles.textDark : styles.textLight]}>
-                        {formatPrice(order.total)}
-                      </Text>
-                      <View style={styles.trackBtn}>
-                        <Text style={styles.trackBtnText}>Track</Text>
-                        <ChevronRight size={13} color="#ffffff" />
+                      <View style={styles.progressStep}>
+                        <View style={[
+                          styles.stepIconCircle,
+                          { backgroundColor: isStepComplete(shippedStepStatuses, order.status) ? '#eff6ff' : colors.borderLight }
+                        ]}>
+                          <Truck size={13} color={isStepComplete(shippedStepStatuses, order.status) ? '#2563eb' : colors.textMuted} />
+                        </View>
+                        <Text style={[
+                          styles.stepText,
+                          { color: isStepComplete(shippedStepStatuses, order.status) ? colors.textPrimary : colors.textMuted }
+                        ]}>On the way</Text>
                       </View>
                     </View>
-                  </View>
-                </ScalePressable>
-              ))}
+
+                    {/* Footer Row */}
+                    <View style={[styles.cardFooterRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4 }}>
+                        <Clock size={12} color={colors.textMuted} />
+                        <Text style={[styles.timestampText, { color: colors.textSecondary }]}>
+                          {new Date(order.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                        </Text>
+                      </View>
+
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                        <Text style={[styles.totalAmount, { color: colors.textPrimary }]}>
+                          {formatPrice(order.total)}
+                        </Text>
+                        <View style={styles.trackBtn}>
+                          <Text style={styles.trackBtnText}>Track</Text>
+                          <ChevronRight size={13} color="#ffffff" />
+                        </View>
+                      </View>
+                    </View>
+                  </ScalePressable>
+                );
+              })}
             </View>
           )
         ) : (
-          /* ORDER HISTORY TAB CONTENT */
           historyOrders.length === 0 ? (
             <View style={styles.emptyWrap}>
               <Text style={{ fontSize: 44 }}>📜</Text>
-              <Text style={[styles.emptyTitle, isDarkMode ? styles.textDark : styles.textLight]}>
+              <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
                 No Past Orders
               </Text>
-              <Text style={[styles.emptySub, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
+              <Text style={[styles.emptySub, { color: colors.textSecondary }]}>
                 Your order history will appear here after your first completed delivery.
               </Text>
             </View>
@@ -444,13 +441,14 @@ export default function OrdersScreen() {
                   key={order.id}
                   onPress={() => router.push(`/order/${order.id}`)}
                   scaleValue={0.98}
-                  style={[styles.orderCard, isDarkMode ? styles.orderCardDark : styles.orderCardLight]}
+                  style={[styles.orderCard, { backgroundColor: colors.surface, borderColor: colors.border }]}
                 >
-                  {/* Top Bar Header */}
                   <View style={[styles.cardHeaderRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
                     <View style={{ flex: 1, marginRight: 12 }}>
-                      <Text style={styles.orderIdLabel}>ORDER #{formatDisplayOrderId(order.id, order.readableId)}</Text>
-                      <Text style={[styles.timestampText, isDarkMode ? styles.subtextDark : styles.subtextLight, { marginTop: 4 }]}>
+                      <Text style={[styles.orderIdLabel, { color: THEME.COLORS.brand.primary }]}>
+                        ORDER #{formatDisplayOrderId(order.id, order.readableId)}
+                      </Text>
+                      <Text style={[styles.timestampText, { color: colors.textSecondary, marginTop: 4 }]}>
                         {new Date(order.createdAt).toLocaleDateString('en-IN', {
                           day: 'numeric',
                           month: 'short',
@@ -464,16 +462,14 @@ export default function OrdersScreen() {
                     {getStatusBadge(order.status)}
                   </View>
 
-                  {/* Items List */}
                   <View style={styles.cardItemsWrap}>
-                    <Text numberOfLines={2} style={[styles.itemSummaryText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
+                    <Text numberOfLines={2} style={[styles.itemSummaryText, { color: colors.textSecondary }]}>
                       {order.items.map(it => `${it.name} (${it.quantity}x)`).join('  •  ')}
                     </Text>
                   </View>
 
-                  {/* Footer Row */}
                   <View style={[styles.cardFooterRow, { borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)' }]}>
-                    <Text style={[styles.totalAmount, isDarkMode ? styles.textDark : styles.textLight]}>
+                    <Text style={[styles.totalAmount, { color: colors.textPrimary }]}>
                       {formatPrice(order.total)}
                     </Text>
 
@@ -482,14 +478,13 @@ export default function OrdersScreen() {
                       scaleValue={0.94}
                       style={styles.reorderBtn}
                     >
-                      <RotateCcw size={13} color="#e20a22" style={{ marginRight: 4 }} />
+                      <RotateCcw size={13} color={THEME.COLORS.brand.primary} style={{ marginRight: 4 }} />
                       <Text style={styles.reorderBtnText}>Reorder</Text>
                     </ScalePressable>
                   </View>
                 </ScalePressable>
               ))}
 
-              {/* Buy Again Section */}
               <View style={{ marginTop: 8 }}>
                 <BuyAgainSection orders={orders} />
               </View>
@@ -502,30 +497,14 @@ export default function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  bgLight: {
-    backgroundColor: '#f8fafc',
-  },
-  bgDark: {
-    backgroundColor: '#09090b',
-  },
+  container: { flex: 1 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: 16,
-    paddingVertical: 12,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 4,
     borderBottomWidth: 1,
-  },
-  headerLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#f1f5f9',
-  },
-  headerDark: {
-    backgroundColor: '#18181b',
-    borderColor: '#27272a',
   },
   backBtn: {
     width: 34,
@@ -534,32 +513,14 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
   },
-  backBtnLight: {
-    backgroundColor: '#f1f5f9',
-  },
-  backBtnDark: {
-    backgroundColor: '#27272a',
-  },
   headerTitle: {
-    fontSize: 17,
-    fontWeight: '900',
+    fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
     letterSpacing: -0.3,
-  },
-  textLight: {
-    color: '#0f172a',
-  },
-  textDark: {
-    color: '#f4f4f5',
-  },
-  subtextLight: {
-    color: '#64748b',
-  },
-  subtextDark: {
-    color: '#a1a1aa',
   },
   tabContainerWrap: {
     alignItems: 'center',
-    paddingVertical: 10,
+    paddingVertical: THEME.SPACING.sm + 2,
     backgroundColor: 'transparent',
   },
   tabContainer: {
@@ -571,22 +532,14 @@ const styles = StyleSheet.create({
     padding: 4,
     position: 'relative',
   },
-  tabContainerLight: {
-    backgroundColor: '#f1f5f9',
-    borderColor: '#e2e8f0',
-  },
-  tabContainerDark: {
-    backgroundColor: '#18181b',
-    borderColor: '#27272a',
-  },
   activeIndicator: {
     position: 'absolute',
     height: 34,
     top: 3,
     left: 4,
     borderRadius: 17,
-    backgroundColor: '#e20a22',
-    shadowColor: '#e20a22',
+    backgroundColor: THEME.COLORS.brand.primary,
+    shadowColor: THEME.COLORS.brand.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.3,
     shadowRadius: 4,
@@ -603,128 +556,99 @@ const styles = StyleSheet.create({
     width: 7,
     height: 7,
     borderRadius: 3.5,
-    backgroundColor: '#22c55e',
   },
   tabText: {
-    fontSize: 13,
-    fontWeight: '800',
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
     letterSpacing: 0.2,
   },
   tabTextActive: {
     color: '#ffffff',
   },
-  tabTextInactiveLight: {
-    color: '#64748b',
-  },
-  tabTextInactiveDark: {
-    color: '#a1a1aa',
-  },
-  scrollView: {
-    flex: 1,
-  },
+  scrollView: { flex: 1 },
   loadingWrap: {
     paddingVertical: 60,
     alignItems: 'center',
   },
   loadingText: {
-    fontSize: 13,
-    fontWeight: '600',
-    marginTop: 10,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    marginTop: THEME.SPACING.sm,
   },
   emptyWrap: {
     alignItems: 'center',
     justifyContent: 'center',
     paddingVertical: 50,
-    paddingHorizontal: 24,
+    paddingHorizontal: THEME.SPACING.xxl,
   },
   emptyTitle: {
-    fontSize: 18,
-    fontWeight: '900',
-    marginTop: 12,
+    fontSize: THEME.TYPOGRAPHY.sizes.title,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    marginTop: THEME.SPACING.md,
   },
   emptySub: {
-    fontSize: 13,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
     textAlign: 'center',
-    marginTop: 4,
+    marginTop: THEME.SPACING.xs + 2,
     lineHeight: 18,
   },
   shopBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e20a22',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 14,
-    marginTop: 18,
+    backgroundColor: THEME.COLORS.brand.primary,
+    paddingHorizontal: THEME.SPACING.xxl,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.lg,
+    marginTop: THEME.SPACING.md + 6,
+    ...THEME.SHADOWS.primaryGlow,
   },
   shopBtnText: {
     color: '#ffffff',
-    fontSize: 13,
-    fontWeight: '900',
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
   },
   orderCard: {
-    borderRadius: 20,
+    borderRadius: THEME.RADIUS.xl,
     borderWidth: 1.2,
-    padding: 16,
+    padding: THEME.SPACING.md + 4,
     flexDirection: 'column',
     alignItems: 'stretch',
     justifyContent: 'flex-start',
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      }
-    })
-  },
-  orderCardLight: {
-    backgroundColor: '#ffffff',
-    borderColor: '#e2e8f0',
-  },
-  orderCardDark: {
-    backgroundColor: '#18181b',
-    borderColor: '#27272a',
+    ...THEME.SHADOWS.sm,
   },
   cardHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingBottom: 10,
+    paddingBottom: THEME.SPACING.xs + 2,
     borderBottomWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
   orderIdLabel: {
-    fontSize: 9.5,
-    fontWeight: '900',
-    color: '#e20a22',
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
     letterSpacing: 0.6,
   },
   orderIdValue: {
-    fontSize: 14,
-    fontWeight: '900',
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm + 1,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
     marginTop: 1,
   },
   cardItemsWrap: {
-    paddingVertical: 10,
+    paddingVertical: THEME.SPACING.sm,
   },
   itemSummaryText: {
-    fontSize: 13,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
     lineHeight: 18,
-    fontWeight: '600',
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
   },
   progressRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingVertical: 8,
-    paddingHorizontal: 6,
-    backgroundColor: 'rgba(0,0,0,0.02)',
-    borderRadius: 12,
-    marginBottom: 10,
+    paddingVertical: THEME.SPACING.sm,
+    paddingHorizontal: THEME.SPACING.xs + 2,
+    borderRadius: THEME.RADIUS.md,
+    marginBottom: THEME.SPACING.sm + 2,
   },
   progressStep: {
     flexDirection: 'row',
@@ -739,59 +663,56 @@ const styles = StyleSheet.create({
     alignItems: 'center',
   },
   stepText: {
-    fontSize: 10,
-    fontWeight: '800',
-    color: '#64748b',
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
   },
   progressLine: {
     flex: 1,
     height: 1.5,
-    backgroundColor: '#cbd5e1',
     marginHorizontal: 4,
   },
   cardFooterRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingTop: 8,
+    paddingTop: THEME.SPACING.sm,
     borderTopWidth: 1,
-    borderColor: 'rgba(0,0,0,0.05)',
   },
   timestampText: {
-    fontSize: 11,
-    fontWeight: '600',
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
   },
   totalAmount: {
-    fontSize: 15,
-    fontWeight: '900',
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm + 2,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
   },
   trackBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#e20a22',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    backgroundColor: THEME.COLORS.brand.primary,
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    paddingVertical: THEME.SPACING.xs + 1,
+    borderRadius: THEME.RADIUS.sm,
     gap: 2,
   },
   trackBtnText: {
     color: '#ffffff',
-    fontSize: 11.5,
-    fontWeight: '900',
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
   },
   reorderBtn: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#fff1f2',
+    backgroundColor: THEME.COLORS.brand.primaryLight,
     borderWidth: 1,
-    borderColor: '#fecdd3',
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 10,
+    borderColor: THEME.COLORS.brand.primaryLight,
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    paddingVertical: THEME.SPACING.xs + 1,
+    borderRadius: THEME.RADIUS.sm,
   },
   reorderBtnText: {
-    color: '#e20a22',
-    fontSize: 11.5,
-    fontWeight: '900',
+    color: THEME.COLORS.brand.primary,
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
   },
 });

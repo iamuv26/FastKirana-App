@@ -4,18 +4,16 @@ import { StatusBar } from 'expo-status-bar';
 import { router, Stack } from 'expo-router';
 import { useState, useMemo, useEffect, memo } from 'react';
 import { Image } from 'expo-image';
-import { ArrowLeft, ShoppingCart, Tag, Trash2, ArrowRight, Clock, ShieldCheck, RefreshCw, Sparkles, CheckCircle2, KeyRound } from 'lucide-react-native';
+import { ArrowLeft, ShoppingCart, Trash2, ArrowRight, Clock, KeyRound } from 'lucide-react-native';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice, getAppImageSource, getCategoryEmoji } from '../lib/utils';
-import { DELIVERY_FEE, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, TAX_RATE, API_BASE_URL } from '../lib/constants';
+import { API_BASE_URL } from '../lib/constants';
 import { useUIStore } from '../stores/ui-store';
 import { useAuthStore } from '../stores/auth-store';
 import { useTheme } from './context/ThemeContext';
 import { ScalePressable } from '../components/shared/ScalePressable';
 import { useQuery } from '@tanstack/react-query';
 import { THEME } from '../lib/theme';
-
-import { queryKeys } from '../lib/query-keys';
 import { LinearGradient } from 'expo-linear-gradient';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
@@ -80,6 +78,7 @@ export default function CartScreen() {
   const { theme } = useTheme();
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const cafeOpen = useUIStore((s) => s.cafeOpen);
   const taxRate = useUIStore((s) => s.taxRate);
@@ -96,8 +95,6 @@ export default function CartScreen() {
     discountAmount: number;
   } | null>(null);
   const [isCouponLoading, setIsCouponLoading] = useState(false);
-
-  // Suggestions state variables removed (migrated to useQuery)
 
   const subtotal = getSubtotal();
   const mrpTotal = getMrpTotal();
@@ -252,9 +249,9 @@ export default function CartScreen() {
   const isCafeProduct = (product: any) => {
     const categorySlug = product.category?.slug || product.categorySlug;
     return (
-      categorySlug === 'cafe' || 
+      categorySlug === 'cafe' ||
       categorySlug === 'restaurant' ||
-      product.tags?.includes('cafe') || 
+      product.tags?.includes('cafe') ||
       product.tags?.includes('restaurant')
     );
   };
@@ -262,10 +259,10 @@ export default function CartScreen() {
   const groceryItems = useMemo(() => items.filter(item => !isCafeProduct(item.product)), [items]);
   const cafeItems = useMemo(() => items.filter(item => isCafeProduct(item.product)), [items]);
 
-  const grocerySubtotal = useMemo(() => 
+  const grocerySubtotal = useMemo(() =>
     groceryItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [groceryItems]);
 
-  const cafeSubtotal = useMemo(() => 
+  const cafeSubtotal = useMemo(() =>
     cafeItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [cafeItems]);
 
   let deliveryFee = 0;
@@ -308,7 +305,7 @@ export default function CartScreen() {
               }
             });
             if (adjustedCount > 0) {
-              toast.info('🛒 Cart adjusted to match live stock & pricing!');
+              toast.info('Cart adjusted to match live stock & pricing!');
             }
           }
         }
@@ -374,25 +371,25 @@ export default function CartScreen() {
 
   const showSuggestions = deliveryFee > 0;
 
-  const CartItemRow = memo(function CartItemRow({ item, isDarkMode }: { item: any; isDarkMode: boolean }) {
+  const CartItemRow = memo(function CartItemRow({ item, colors }: { item: any; colors: typeof THEME.COLORS.light }) {
     const isCafe = isCafeProduct(item.product);
     const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
     const isOOS = item.product.isAvailable === false || (item.product.stock !== undefined && item.product.stock !== null && item.product.stock <= 0);
-    const effectiveStock = item.product.isAvailable === false 
-      ? 0 
-      : (item.product.stock !== undefined && item.product.stock !== null 
-          ? Math.max(0, item.product.stock) 
+    const effectiveStock = item.product.isAvailable === false
+      ? 0
+      : (item.product.stock !== undefined && item.product.stock !== null
+          ? Math.max(0, item.product.stock)
           : 999);
     const isExceeded = item.quantity > effectiveStock && !isOOS;
     const activeColor = isCafe ? '#ea580c' : '#e20a22';
 
     return (
-      <View 
-        key={item.product.id} 
+      <View
+        key={item.product.id}
         style={{
           paddingVertical: 14,
           borderBottomWidth: 1,
-          borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+          borderColor: colors.border,
         }}
       >
         <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
@@ -404,7 +401,7 @@ export default function CartScreen() {
                   width: 12,
                   height: 12,
                   borderWidth: 1,
-                  borderColor: item.product.tags?.includes('non-veg') ? '#b91c1c' : '#16a34a',
+                  borderColor: item.product.tags?.includes('non-veg') ? THEME.COLORS.brand.error : THEME.COLORS.brand.success,
                   justifyContent: 'center',
                   alignItems: 'center',
                   marginRight: 6,
@@ -414,14 +411,14 @@ export default function CartScreen() {
                     width: 6,
                     height: 6,
                     borderRadius: 3,
-                    backgroundColor: item.product.tags?.includes('non-veg') ? '#b91c1c' : '#16a34a',
+                    backgroundColor: item.product.tags?.includes('non-veg') ? THEME.COLORS.brand.error : THEME.COLORS.brand.success,
                   }} />
                 </View>
               )}
-              <Text 
+              <Text
                 style={{
-                  color: isDarkMode ? '#f4f4f5' : '#0f172a',
-                  fontWeight: '800',
+                  color: colors.textPrimary,
+                  fontWeight: '900',
                   fontSize: 14,
                   lineHeight: 20,
                   textDecorationLine: isOOS ? 'line-through' : 'none',
@@ -430,15 +427,15 @@ export default function CartScreen() {
                 {item.product.name}
               </Text>
             </View>
-            <Text style={{ color: isDarkMode ? '#71717a' : '#64748b', fontSize: 11, fontWeight: '600', marginTop: 2 }}>
+            <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '600', marginTop: 2 }}>
               {item.product.unit}
             </Text>
             <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 6, marginTop: 4 }}>
-              <Text style={{ color: isDarkMode ? '#fafafa' : '#0f172a', fontWeight: '900', fontSize: 14 }}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: 14 }}>
                 {formatPrice(item.product.price)}
               </Text>
               {item.product.mrp > item.product.price && (
-                <Text style={{ color: isDarkMode ? '#52525b' : '#94a3b8', fontSize: 11, textDecorationLine: 'line-through' }}>
+                <Text style={{ color: colors.textMuted, fontSize: 11, textDecorationLine: 'line-through' }}>
                   {formatPrice(item.product.mrp)}
                 </Text>
               )}
@@ -450,20 +447,20 @@ export default function CartScreen() {
             flexDirection: 'row',
             alignItems: 'center',
             borderWidth: 1,
-            borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
-            borderRadius: 12,
-            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+            borderColor: colors.border,
+            borderRadius: THEME.RADIUS.sm,
+            backgroundColor: colors.surface,
             height: 34,
-            padding: 2, // Slight padding so buttons look inset
+            padding: 2,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 2 },
             shadowOpacity: isDarkMode ? 0.2 : 0.04,
             shadowRadius: 3,
             elevation: 1,
           }}>
-            <ScalePressable 
-              onPress={() => { 
-                triggerHaptic('light'); 
+            <ScalePressable
+              onPress={() => {
+                triggerHaptic('light');
                 if (item.quantity === 1) {
                   removeItem(item.product.id, item.product.name);
                 } else {
@@ -474,44 +471,42 @@ export default function CartScreen() {
               style={{
                 width: 30,
                 height: 30,
-                borderRadius: 10,
-                backgroundColor: isDarkMode ? 'rgba(239, 68, 68, 0.1)' : '#fef2f2',
+                borderRadius: THEME.RADIUS.sm,
+                backgroundColor: isDarkMode ? `${THEME.COLORS.brand.error}1A` : '#fef2f2',
                 justifyContent: 'center',
                 alignItems: 'center',
               }}
             >
               {item.quantity === 1 ? (
-                <Trash2 size={13} color="#ef4444" strokeWidth={2.5} />
+                <Trash2 size={13} color={THEME.COLORS.brand.error} strokeWidth={2.5} />
               ) : (
                 <Text style={{ color: activeColor, fontWeight: '900', fontSize: 16, lineHeight: 18, marginTop: -2 }}>-</Text>
               )}
             </ScalePressable>
-            <Text style={{ width: 26, textAlign: 'center', color: isDarkMode ? '#fafafa' : '#0f172a', fontWeight: '900', fontSize: 13 }}>
+            <Text style={{ width: 26, textAlign: 'center', color: colors.textPrimary, fontWeight: '900', fontSize: 13 }}>
               {item.quantity}
             </Text>
-            <ScalePressable 
-              onPress={() => { 
-                triggerHaptic('light'); 
-                updateQuantity(item.product.id, item.product.name, item.quantity + 1); 
+            <ScalePressable
+              onPress={() => {
+                triggerHaptic('light');
+                updateQuantity(item.product.id, item.product.name, item.quantity + 1);
               }}
               disabled={isStoreClosed || item.quantity >= item.product.stock}
               scaleValue={0.9}
               style={{
                 width: 30,
                 height: 30,
-                borderRadius: 10,
+                borderRadius: THEME.RADIUS.sm,
                 backgroundColor: isStoreClosed || item.quantity >= item.product.stock
-                  ? (isDarkMode ? '#27272a' : '#f1f5f9')
+                  ? colors.surfaceElevated
                   : activeColor,
                 justifyContent: 'center',
                 alignItems: 'center',
               }}
             >
-              <Text style={{ 
-                color: isStoreClosed || item.quantity >= item.product.stock 
-                  ? (isDarkMode ? '#52525b' : '#94a3b8') 
-                  : '#ffffff', 
-                fontWeight: '900', 
+              <Text style={{
+                color: '#ffffff',
+                fontWeight: '900',
                 fontSize: 15,
                 lineHeight: 18,
                 marginTop: -1
@@ -521,28 +516,28 @@ export default function CartScreen() {
         </View>
 
         {isOOS && (
-          <View style={{ marginTop: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(239, 68, 68, 0.08)', borderWidth: 1, borderColor: 'rgba(239, 68, 68, 0.2)', borderRadius: 8 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: '#ef4444' }}>❌ Out of stock — please remove to checkout.</Text>
+          <View style={{ marginTop: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: `${THEME.COLORS.brand.error}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.error}33`, borderRadius: THEME.RADIUS.md }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', color: THEME.COLORS.brand.error }}>Out of stock — please remove to checkout.</Text>
           </View>
         )}
         {isExceeded && (
-          <View style={{ marginTop: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: 'rgba(245, 158, 11, 0.08)', borderWidth: 1, borderColor: 'rgba(245, 158, 11, 0.2)', borderRadius: 8 }}>
-            <Text style={{ fontSize: 10, fontWeight: '700', color: '#d97706' }}>⚠️ Only {item.product.stock} units available in stock.</Text>
+          <View style={{ marginTop: 8, paddingHorizontal: 10, paddingVertical: 6, backgroundColor: `${THEME.COLORS.brand.warning}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33`, borderRadius: THEME.RADIUS.md }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '700', color: THEME.COLORS.brand.warning }}>Only {item.product.stock} units available in stock.</Text>
           </View>
         )}
         {isCafe && (
-          <View style={{ marginTop: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: isDarkMode ? '#1e1e24' : '#f8fafc', borderStyle: 'dashed', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#cbd5e1', borderRadius: 10, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Clock size={11} color={isDarkMode ? '#71717a' : '#94a3b8'} />
+          <View style={{ marginTop: 8, paddingHorizontal: 12, paddingVertical: 8, backgroundColor: colors.surfaceElevated, borderStyle: 'dashed', borderWidth: 1, borderColor: colors.border, borderRadius: THEME.RADIUS.md, flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+            <Clock size={11} color={colors.textMuted} />
             <TextInput
               value={item.notes || ''}
               onChangeText={(text) => updateItemNotes(item.product.id, text)}
               placeholder="Cooking instructions (e.g., less sugar, extra spicy)..."
-              placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+              placeholderTextColor={colors.textMuted}
               style={{
                 flex: 1,
                 fontSize: 11,
                 fontWeight: '700',
-                color: isDarkMode ? '#fafafa' : '#475569',
+                color: colors.textPrimary,
                 padding: 0,
               }}
             />
@@ -554,36 +549,36 @@ export default function CartScreen() {
 
   if (items.length === 0) {
     return (
-      <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+      <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
         <StatusBar style={isDarkMode ? "light" : "dark"} />
         <Stack.Screen options={{ headerShown: false }} />
         {/* Header */}
-        <View className="bg-white dark:bg-zinc-900 px-4 py-3 border-b border-slate-100 dark:border-zinc-800 flex-row items-center gap-3">
-          <Pressable 
+        <View style={{ paddingHorizontal: THEME.SPACING.md, paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, borderColor: colors.border, flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+          <Pressable
             onPress={() => {
               triggerHaptic('light');
               router.back();
             }}
-            className="w-8 h-8 rounded-full items-center justify-center bg-slate-50 dark:bg-zinc-800"
+            style={{ width: 32, height: 32, borderRadius: THEME.RADIUS.pill, alignItems: 'center', justifyContent: 'center', backgroundColor: colors.surfaceElevated }}
           >
             <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
           </Pressable>
-          <View className="flex-1">
-            <Text className="text-slate-850 dark:text-zinc-100 font-black text-base">Review Cart Items</Text>
+          <View style={{ flex: 1 }}>
+            <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>Review Cart Items</Text>
           </View>
         </View>
 
-        <View className="flex-1 items-center justify-center px-8">
+        <View style={{ flex: 1, alignItems: 'center', justifyContent: 'center', paddingHorizontal: THEME.SPACING.xxl }}>
           {/* Animated/Glowing Cart Icon */}
-          <View className="w-24 h-24 rounded-full bg-slate-50 dark:bg-zinc-900 border border-slate-105 dark:border-zinc-800 items-center justify-center mb-6 shadow-xs relative">
-            <View className="absolute inset-0 rounded-full bg-rose-500/5" style={{ opacity: 0.1 }} />
-            <ShoppingCart size={40} color="#e20a22" strokeWidth={2} />
+          <View style={{ width: 96, height: 96, borderRadius: THEME.RADIUS.pill, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, alignItems: 'center', justifyContent: 'center', marginBottom: 24, shadowColor: '#000', shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.06, shadowRadius: 8, elevation: 3 }}>
+            <View style={{ position: 'absolute', inset: 0, borderRadius: THEME.RADIUS.pill, backgroundColor: `${THEME.COLORS.brand.primary}14`, opacity: 0.14 }} />
+            <ShoppingCart size={40} color={THEME.COLORS.brand.primary} strokeWidth={2} />
           </View>
 
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-lg text-center">
+          <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: 18, textAlign: 'center' }}>
             Your Cart is Empty
           </Text>
-          <Text className="text-slate-400 dark:text-zinc-450 text-[11px] font-medium text-center mt-2 leading-5 max-w-xs">
+          <Text style={{ color: colors.textMuted, fontSize: 11, fontWeight: '500', textAlign: 'center', marginTop: 8, lineHeight: 18, maxWidth: 280 }}>
             Add items to get started! Choose from fresh farm produce, groceries, snacks, and freshly cooked meals.
           </Text>
 
@@ -595,11 +590,20 @@ export default function CartScreen() {
             style={({ pressed }) => [
               {
                 transform: [{ scale: pressed ? 0.97 : 1 }],
+                marginTop: 32,
+                backgroundColor: THEME.COLORS.brand.primary,
+                paddingHorizontal: 32,
+                paddingVertical: 14,
+                borderRadius: THEME.RADIUS.lg,
+                shadowColor: THEME.COLORS.brand.primary,
+                shadowOffset: { width: 0, height: 4 },
+                shadowOpacity: 0.3,
+                shadowRadius: 8,
+                elevation: 4,
               },
             ]}
-            className="mt-8 bg-rose-600 active:bg-rose-700 px-8 py-3.5 rounded-2xl shadow-sm"
           >
-            <Text className="text-white font-black text-xs uppercase tracking-wider">
+            <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 12, textTransform: 'uppercase', letterSpacing: 1 }}>
               Start Shopping
             </Text>
           </Pressable>
@@ -609,24 +613,24 @@ export default function CartScreen() {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <Stack.Screen options={{ headerShown: false }} />
       {/* Header */}
-      <View 
+      <View
         style={{
-          paddingHorizontal: 16,
+          paddingHorizontal: THEME.SPACING.md,
           paddingVertical: 12,
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)',
+          borderColor: colors.borderLight,
           backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
           flexDirection: 'row',
           alignItems: 'center',
           gap: 12,
-          overflow: 'hidden'
+          overflow: 'hidden',
         }}
       >
-        <Pressable 
+        <Pressable
           onPress={() => {
             triggerHaptic('light');
             router.back();
@@ -634,37 +638,35 @@ export default function CartScreen() {
           style={{
             width: 32,
             height: 32,
-            borderRadius: 16,
+            borderRadius: THEME.RADIUS.pill,
             alignItems: 'center',
             justifyContent: 'center',
-            backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
-            zIndex: 10
+            backgroundColor: isDarkMode ? `${THEME.COLORS.dark.textPrimary}14` : 'rgba(0,0,0,0.05)',
+            zIndex: 10,
           }}
         >
           <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
         </Pressable>
-        <View className="flex-1">
-          <Text className="text-slate-850 dark:text-zinc-100 font-black text-base">Review Cart Items</Text>
-          <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold mt-0.5">{items.length} item(s) selected</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>Review Cart Items</Text>
+          <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '600', marginTop: 2 }}>{items.length} item(s) selected</Text>
         </View>
 
         {hasInventoryIssues && (
-          <Pressable 
+          <Pressable
             onPress={handleAutoAdjust}
-            className="bg-indigo-50 dark:bg-indigo-900/30 border border-indigo-200 dark:border-indigo-800 px-2.5 py-1.5 rounded-xl active:bg-indigo-100"
+            style={{ backgroundColor: `${THEME.COLORS.brand.accent}1A`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.accent}44`, paddingHorizontal: 10, paddingVertical: 6, borderRadius: THEME.RADIUS.md }}
           >
-            <Text className="text-indigo-650 dark:text-indigo-300 font-extrabold text-[9px] uppercase">🪄 Auto-Adjust</Text>
+            <Text style={{ color: isDarkMode ? '#c7d2fe' : '#4338ca', fontWeight: '800', fontSize: THEME.TYPOGRAPHY.sizes.micro, textTransform: 'uppercase' }}>Auto-Adjust</Text>
           </Pressable>
         )}
       </View>
 
       <ScrollView
-        className="flex-1"
-        style={{
+        style={{ flex: 1 }}
+        contentContainerStyle={{
           paddingHorizontal: responsive.spacing.page,
           paddingVertical: responsive.spacing.card,
-        }}
-        contentContainerStyle={{
           paddingBottom: 110,
           ...getCenteredContainerStyle(responsive),
         }}
@@ -672,22 +674,22 @@ export default function CartScreen() {
       >
         {/* Closed store alerts */}
         {hasClosedGroceryItems && (
-          <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl mb-3 flex-row gap-3 items-start">
-            <Text className="text-lg">💤</Text>
-            <View className="flex-1">
-              <Text className="text-amber-800 dark:text-amber-300 font-black text-xs">Grocery Mart Closed</Text>
-              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold mt-0.5 leading-4">
+          <View style={{ backgroundColor: `${THEME.COLORS.brand.warning}1A`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 12, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+            <Text style={{ fontSize: 18 }}>💤</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: isDarkMode ? '#fcd34d' : '#92400e', fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.caption }}>Grocery Mart Closed</Text>
+              <Text style={{ color: isDarkMode ? '#fbbf24' : '#b45309', fontSize: 10, fontWeight: '700', marginTop: 2, lineHeight: 14 }}>
                 Our Grocery Mart is currently closed (6 AM - 12 AM). Please remove groceries to proceed with Food items.
               </Text>
             </View>
           </View>
         )}
         {hasClosedCafeItems && (
-          <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/50 p-3.5 rounded-2xl mb-3 flex-row gap-3 items-start">
-            <Text className="text-lg">🍔</Text>
-            <View className="flex-1">
-              <Text className="text-amber-800 dark:text-amber-300 font-black text-xs">Food Kitchen Closed</Text>
-              <Text className="text-amber-700 dark:text-amber-400 text-[10px] font-bold mt-0.5 leading-4">
+          <View style={{ backgroundColor: `${THEME.COLORS.brand.warning}1A`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 12, flexDirection: 'row', gap: 12, alignItems: 'flex-start' }}>
+            <Text style={{ fontSize: 18 }}>🍔</Text>
+            <View style={{ flex: 1 }}>
+              <Text style={{ color: isDarkMode ? '#fcd34d' : '#92400e', fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.caption }}>Food Kitchen Closed</Text>
+              <Text style={{ color: isDarkMode ? '#fbbf24' : '#b45309', fontSize: 10, fontWeight: '700', marginTop: 2, lineHeight: 14 }}>
                 Our Food Kitchen is currently closed (6 AM - 12 AM). Please remove Food items to proceed with groceries.
               </Text>
             </View>
@@ -697,11 +699,11 @@ export default function CartScreen() {
         {/* Free Delivery Progress Header */}
         {groceryItems.length > 0 ? (
           grocerySubtotal < groceryFreeDeliveryThreshold ? (
-            <View className="bg-rose-50 dark:bg-rose-950/20 border border-rose-150 dark:border-rose-900/30 p-3.5 rounded-2xl mb-4">
-              <Text className="text-rose-700 dark:text-rose-350 text-[11px] font-black">
-                📦 Add {formatPrice(groceryFreeDeliveryThreshold - grocerySubtotal)} more of groceries for FREE delivery (Over {formatPrice(groceryFreeDeliveryThreshold)})
+            <View style={{ backgroundColor: `${THEME.COLORS.brand.primary}0D`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.primary}28`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#fda4af' : '#be123c', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '900' }}>
+                Add {formatPrice(groceryFreeDeliveryThreshold - grocerySubtotal)} more of groceries for FREE delivery (Over {formatPrice(groceryFreeDeliveryThreshold)})
               </Text>
-              <View style={{ height: 6, width: '100%', backgroundColor: theme === 'dark' ? '#27272a' : '#e2e8f0', borderRadius: 99, marginTop: 8, overflow: 'hidden' }}>
+              <View style={{ height: 6, width: '100%', backgroundColor: colors.surfaceElevated, borderRadius: 99, marginTop: 8, overflow: 'hidden' }}>
                 <LinearGradient
                   colors={['#e20a22', '#f97316', '#10b981']}
                   start={{ x: 0, y: 0 }}
@@ -711,19 +713,19 @@ export default function CartScreen() {
               </View>
             </View>
           ) : (
-            <View className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-150 dark:border-emerald-900/30 p-3.5 rounded-2xl mb-4">
-              <Text className="text-emerald-700 dark:text-emerald-355 text-[11px] font-black text-center">
-                🎉 FREE Grocery delivery unlocked!
+            <View style={{ backgroundColor: `${THEME.COLORS.brand.success}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.success}33`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#34d399' : '#047857', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '900', textAlign: 'center' }}>
+                FREE Grocery delivery unlocked!
               </Text>
             </View>
           )
         ) : cafeItems.length > 0 ? (
           cafeSubtotal < cafeFreeDeliveryThreshold ? (
-            <View className="bg-rose-50 dark:bg-rose-950/20 border border-rose-150 dark:border-rose-900/30 p-3.5 rounded-2xl mb-4">
-              <Text className="text-rose-700 dark:text-rose-350 text-[11px] font-black">
-                🍔 Add {formatPrice(cafeFreeDeliveryThreshold - cafeSubtotal)} more from Food for FREE delivery (Over {formatPrice(cafeFreeDeliveryThreshold)})
+            <View style={{ backgroundColor: `${THEME.COLORS.brand.accent}0D`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.accent}28`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#fdba74' : '#c2410c', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '900' }}>
+                Add {formatPrice(cafeFreeDeliveryThreshold - cafeSubtotal)} more from Food for FREE delivery (Over {formatPrice(cafeFreeDeliveryThreshold)})
               </Text>
-              <View style={{ height: 6, width: '100%', backgroundColor: theme === 'dark' ? '#27272a' : '#e2e8f0', borderRadius: 99, marginTop: 8, overflow: 'hidden' }}>
+              <View style={{ height: 6, width: '100%', backgroundColor: colors.surfaceElevated, borderRadius: 99, marginTop: 8, overflow: 'hidden' }}>
                 <LinearGradient
                   colors={['#e20a22', '#f97316', '#10b981']}
                   start={{ x: 0, y: 0 }}
@@ -733,9 +735,9 @@ export default function CartScreen() {
               </View>
             </View>
           ) : (
-            <View className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-150 dark:border-emerald-900/30 p-3.5 rounded-2xl mb-4">
-              <Text className="text-emerald-700 dark:text-emerald-355 text-[11px] font-black text-center">
-                🎉 FREE Food delivery unlocked!
+            <View style={{ backgroundColor: `${THEME.COLORS.brand.success}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.success}33`, padding: 14, borderRadius: THEME.RADIUS.lg, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#34d399' : '#047857', fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '900', textAlign: 'center' }}>
+                FREE Food delivery unlocked!
               </Text>
             </View>
           )
@@ -744,25 +746,25 @@ export default function CartScreen() {
 
         {/* Grocery items splitting */}
         {groceryItems.length > 0 && (
-          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4">
-            <View className="border-b border-slate-100 dark:border-zinc-800 pb-2 mb-2">
-              <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm">📦 Grocery & Essentials</Text>
-              <Text className="text-slate-400 dark:text-zinc-400 text-[9px] font-bold mt-0.5">Delivered from Dark Store</Text>
+          <View style={{ backgroundColor: colors.surface, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 16 }}>
+            <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 8, marginBottom: 8 }}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.titleSm }}>Grocery & Essentials</Text>
+              <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700', marginTop: 2 }}>Delivered from Dark Store</Text>
             </View>
 
-            <View>{groceryItems.map((item) => <CartItemRow key={item.product.id} item={item} isDarkMode={isDarkMode} />)}</View>
+            <View>{groceryItems.map((item) => <CartItemRow key={item.product.id} item={item} colors={colors} />)}</View>
           </View>
         )}
 
         {/* Cafe items splitting */}
         {cafeItems.length > 0 && (
-          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4">
-            <View className="border-b border-slate-100 dark:border-zinc-800 pb-2 mb-2">
-              <Text className="text-rose-600 dark:text-rose-400 font-black text-sm">🍔 FastKirana Food</Text>
-              <Text className="text-slate-400 dark:text-zinc-400 text-[9px] font-bold mt-0.5">Piping hot food & drinks from Food Kitchen</Text>
+          <View style={{ backgroundColor: colors.surface, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 16 }}>
+            <View style={{ borderBottomWidth: 1, borderBottomColor: colors.border, paddingBottom: 8, marginBottom: 8 }}>
+              <Text style={{ color: THEME.COLORS.brand.accent, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.titleSm }}>FastKirana Food</Text>
+              <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700', marginTop: 2 }}>Piping hot food & drinks from Food Kitchen</Text>
             </View>
 
-            <View>{cafeItems.map((item) => <CartItemRow key={item.product.id} item={item} isDarkMode={isDarkMode} />)}</View>
+            <View>{cafeItems.map((item) => <CartItemRow key={item.product.id} item={item} colors={colors} />)}</View>
           </View>
         )}
 
@@ -770,37 +772,37 @@ export default function CartScreen() {
 
         {/* Smart Upsell Suggestions Carousel */}
         {cheapSuggestions.length > 0 && (
-          <View className="mb-4 bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4">
-            <View className="mb-3">
-              <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm">💡 Frequently Added Together</Text>
-              <Text className="text-slate-400 dark:text-zinc-400 text-[9px] font-bold mt-0.5">Quick recommendations based on your cart</Text>
+          <View style={{ marginBottom: 16, backgroundColor: colors.surface, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: colors.border, padding: 16 }}>
+            <View style={{ marginBottom: 12 }}>
+              <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.titleSm }}>Frequently Added Together</Text>
+              <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700', marginTop: 2 }}>Quick recommendations based on your cart</Text>
             </View>
-            <ScrollView 
-              horizontal 
+            <ScrollView
+              horizontal
               showsHorizontalScrollIndicator={false}
               contentContainerStyle={{ gap: 12, paddingRight: 10 }}
             >
               {cheapSuggestions.slice(0, 10).map((product) => {
-                const discount = product.mrp && product.mrp > product.price 
-                  ? Math.round(((product.mrp - product.price) / product.mrp) * 100) 
+                const discount = product.mrp && product.mrp > product.price
+                  ? Math.round(((product.mrp - product.price) / product.mrp) * 100)
                   : 0;
 
                 return (
-                  <View 
+                  <View
                     key={product.id}
-                    style={{ 
-                      width: 140, 
-                      backgroundColor: isDarkMode ? '#1c1c1e' : '#f8fafc',
-                      borderRadius: 16,
+                    style={{
+                      width: 140,
+                      backgroundColor: colors.surfaceElevated,
+                      borderRadius: THEME.RADIUS.md,
                       borderWidth: 1,
-                      borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                      borderColor: colors.border,
                       padding: 10,
-                      justifyContent: 'space-between'
+                      justifyContent: 'space-between',
                     }}
                   >
                     <View>
                       {/* Image Container with Discount Badge */}
-                      <View style={{ width: '100%', height: 80, borderRadius: 10, overflow: 'hidden', backgroundColor: isDarkMode ? '#2c2c2e' : '#ffffff', position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
+                      <View style={{ width: '100%', height: 80, borderRadius: 10, overflow: 'hidden', backgroundColor: colors.surface, position: 'relative', justifyContent: 'center', alignItems: 'center' }}>
                         {(() => {
                           const imgSrc = getAppImageSource(product.imageUrl || (product as any).image, 250);
                           if (imgSrc) {
@@ -820,22 +822,22 @@ export default function CartScreen() {
                           );
                         })()}
                         {discount > 0 && (
-                          <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: '#e20a22', paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
+                          <View style={{ position: 'absolute', top: 4, left: 4, backgroundColor: THEME.COLORS.brand.primary, paddingHorizontal: 5, paddingVertical: 1.5, borderRadius: 4 }}>
                             <Text style={{ color: '#ffffff', fontSize: 7, fontWeight: '900' }}>{discount}% OFF</Text>
                           </View>
                         )}
                       </View>
 
                       {/* Product Name */}
-                      <Text 
-                        numberOfLines={2} 
-                        style={{ 
-                          fontSize: 10, 
-                          fontWeight: '800', 
-                          color: isDarkMode ? '#fafafa' : '#1e293b', 
+                      <Text
+                        numberOfLines={2}
+                        style={{
+                          fontSize: THEME.TYPOGRAPHY.sizes.micro,
+                          fontWeight: '800',
+                          color: colors.textPrimary,
                           marginTop: 8,
                           minHeight: 28,
-                          lineHeight: 13
+                          lineHeight: 13,
                         }}
                       >
                         {product.name}
@@ -845,9 +847,9 @@ export default function CartScreen() {
                     {/* Price and Add button */}
                     <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 10 }}>
                       <View>
-                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#16a34a' }}>{formatPrice(product.price)}</Text>
+                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '900', color: THEME.COLORS.brand.success }}>{formatPrice(product.price)}</Text>
                         {product.mrp && product.mrp > product.price && (
-                          <Text style={{ fontSize: 8, fontWeight: 'bold', color: '#94a3b8', textDecorationLine: 'line-through' }}>{formatPrice(product.mrp)}</Text>
+                          <Text style={{ fontSize: 8, fontWeight: 'bold', color: colors.textMuted, textDecorationLine: 'line-through' }}>{formatPrice(product.mrp)}</Text>
                         )}
                       </View>
 
@@ -858,10 +860,10 @@ export default function CartScreen() {
                             <View style={{
                               flexDirection: 'row',
                               alignItems: 'center',
-                              backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4',
+                              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.success}1A` : '#f0fdf4',
                               borderWidth: 1.5,
-                              borderColor: '#10b981',
-                              borderRadius: 10,
+                              borderColor: THEME.COLORS.brand.success,
+                              borderRadius: THEME.RADIUS.sm,
                               height: 30,
                               paddingHorizontal: 2,
                             }}>
@@ -876,9 +878,9 @@ export default function CartScreen() {
                                   justifyContent: 'center',
                                 }}
                               >
-                                <Text style={{ color: isDarkMode ? '#34d399' : '#059669', fontSize: 14, fontWeight: '900' }}>-</Text>
+                                <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.success, fontSize: 14, fontWeight: '900' }}>-</Text>
                               </Pressable>
-                              <Text style={{ color: isDarkMode ? '#34d399' : '#047857', fontSize: 11, fontWeight: '900', paddingHorizontal: 3 }}>
+                              <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: 11, fontWeight: '900', paddingHorizontal: 3 }}>
                                 {qty}
                               </Text>
                               <Pressable
@@ -892,7 +894,7 @@ export default function CartScreen() {
                                   justifyContent: 'center',
                                 }}
                               >
-                                <Text style={{ color: isDarkMode ? '#34d399' : '#059669', fontSize: 14, fontWeight: '900' }}>+</Text>
+                                <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.success, fontSize: 14, fontWeight: '900' }}>+</Text>
                               </Pressable>
                             </View>
                           );
@@ -905,15 +907,15 @@ export default function CartScreen() {
                               addItem(product);
                             }}
                             style={{
-                              backgroundColor: '#e20a22',
+                              backgroundColor: THEME.COLORS.brand.primary,
                               borderRadius: 8,
                               paddingHorizontal: 12,
                               paddingVertical: 5,
                               alignItems: 'center',
-                              justifyContent: 'center'
+                              justifyContent: 'center',
                             }}
                           >
-                            <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: '900' }}>ADD</Text>
+                            <Text style={{ color: '#ffffff', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '900' }}>ADD</Text>
                           </Pressable>
                         );
                       })()}
@@ -926,44 +928,42 @@ export default function CartScreen() {
         )}
 
         {/* Coupon code block */}
-        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4">
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm mb-3">Apply Promo Coupon</Text>
+        <View style={{ backgroundColor: colors.surface, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: colors.border, padding: 16, marginBottom: 16 }}>
+          <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.titleSm, marginBottom: 12 }}>Apply Promo Coupon</Text>
           {appliedCoupon ? (
-            <View className="flex-row items-center justify-between border border-emerald-200 dark:border-emerald-800 bg-emerald-50/50 dark:bg-emerald-950/20 p-3 rounded-xl">
+            <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', borderWidth: 1, borderColor: `${THEME.COLORS.brand.success}33`, backgroundColor: `${THEME.COLORS.brand.success}14`, padding: 12, borderRadius: THEME.RADIUS.md }}>
               <View>
-                <Text className="text-emerald-700 dark:text-emerald-300 font-black text-xs bg-emerald-100 dark:bg-emerald-900/50 px-2 py-0.5 rounded self-start">
+                <Text style={{ backgroundColor: `${THEME.COLORS.brand.success}1A`, color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.caption, paddingHorizontal: 8, paddingVertical: 2, borderRadius: 4, alignSelf: 'flex-start' }}>
                   {appliedCoupon.code}
                 </Text>
-                <Text className="text-emerald-600 dark:text-emerald-400 text-[10px] font-bold mt-1">Saved {formatPrice(appliedCoupon.discountAmount)}</Text>
+                <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: 10, fontWeight: '700', marginTop: 4 }}>Saved {formatPrice(appliedCoupon.discountAmount)}</Text>
               </View>
-              <Pressable 
+              <Pressable
                 onPress={handleRemoveCoupon}
-                className="bg-rose-600/10 border border-rose-500/20 px-3 py-1.5 rounded-lg active:bg-rose-600/20"
+                style={{ backgroundColor: `${THEME.COLORS.brand.primary}1A`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.primary}33`, paddingHorizontal: 12, paddingVertical: 6, borderRadius: THEME.RADIUS.md }}
               >
-                <Text className="text-rose-600 dark:text-rose-400 font-black text-[10px] uppercase">Remove</Text>
+                <Text style={{ color: THEME.COLORS.brand.primary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.micro, textTransform: 'uppercase' }}>Remove</Text>
               </Pressable>
             </View>
           ) : (
-            <View className="flex-row gap-2">
+            <View style={{ flexDirection: 'row', gap: 8 }}>
               <TextInput
                 placeholder="e.g. WELCOME50"
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={colors.textMuted}
                 autoCapitalize="characters"
                 value={couponCode}
                 onChangeText={setCouponCode}
-                className="flex-1 bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2 text-slate-800 dark:text-zinc-100 font-bold text-xs"
+                style={{ flex: 1, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: THEME.RADIUS.md, paddingHorizontal: 12, paddingVertical: 8, color: colors.textPrimary, fontWeight: '700', fontSize: THEME.TYPOGRAPHY.sizes.caption }}
               />
-              <Pressable 
+              <Pressable
                 onPress={handleApplyCoupon}
                 disabled={isCouponLoading || !couponCode.trim()}
-                className={`px-4 py-2.5 rounded-xl items-center justify-center ${
-                  isCouponLoading || !couponCode.trim() ? 'bg-slate-200 dark:bg-zinc-800' : 'bg-rose-600 active:bg-rose-700'
-                }`}
+                style={{ backgroundColor: isCouponLoading || !couponCode.trim() ? colors.surfaceElevated : THEME.COLORS.brand.primary, paddingHorizontal: 16, paddingVertical: 8, borderRadius: THEME.RADIUS.md, alignItems: 'center', justifyContent: 'center' }}
               >
                 {isCouponLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Text className="text-white font-extrabold text-xs uppercase">Apply</Text>
+                  <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: THEME.TYPOGRAPHY.sizes.caption, textTransform: 'uppercase' }}>Apply</Text>
                 )}
               </Pressable>
             </View>
@@ -971,13 +971,13 @@ export default function CartScreen() {
         </View>
 
         {/* Pricing break-down list */}
-        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100/50 dark:border-zinc-800/40 p-4 mb-10 shadow-xs">
-          <Text className="text-slate-800 dark:text-zinc-100 font-black text-base mb-3 pb-2">Bill Summary</Text>
+        <View style={{ backgroundColor: colors.surface, borderRadius: THEME.RADIUS.lg, borderWidth: 1, borderColor: colors.borderLight, padding: 16, marginBottom: 40, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.04, shadowRadius: 3, elevation: 1 }}>
+          <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.body, marginBottom: 12, paddingBottom: 8 }}>Bill Summary</Text>
 
           {/* Savings Banner */}
           {(itemDiscount + promoDiscount) > 0 && (
             <LinearGradient
-              colors={theme === 'dark' ? ['rgba(16,185,129,0.15)', 'rgba(5,150,105,0.03)'] : ['#f0fdf4', '#ecfdf5']}
+              colors={isDarkMode ? ['rgba(16,185,129,0.15)', 'rgba(5,150,105,0.03)'] : ['#f0fdf4', '#ecfdf5']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={{
@@ -986,119 +986,123 @@ export default function CartScreen() {
                 gap: 8,
                 paddingHorizontal: 12,
                 paddingVertical: 10,
-                borderRadius: 12,
+                borderRadius: THEME.RADIUS.md,
                 borderWidth: 1,
-                borderColor: theme === 'dark' ? 'rgba(16,185,129,0.3)' : '#bbf7d0',
+                borderColor: isDarkMode ? 'rgba(16,185,129,0.3)' : '#bbf7d0',
                 marginBottom: 12,
               }}
             >
               <Text style={{ fontSize: 16 }}>🎉</Text>
               <View style={{ flex: 1 }}>
-                <Text style={{ fontSize: 11, fontWeight: '900', color: theme === 'dark' ? '#34d399' : '#15803d' }}>
+                <Text style={{ fontSize: 11, fontWeight: '900', color: isDarkMode ? '#34d399' : '#15803d' }}>
                   YAY! Saving {formatPrice(itemDiscount + promoDiscount)} on this order!
                 </Text>
-                <Text style={{ fontSize: 9, fontWeight: '600', color: theme === 'dark' ? '#10b981' : '#16a34a', marginTop: 1 }}>
+                <Text style={{ fontSize: 9, fontWeight: '600', color: isDarkMode ? '#10b981' : THEME.COLORS.brand.successDark, marginTop: 1 }}>
                   Includes products discount & promo savings
                 </Text>
               </View>
             </LinearGradient>
           )}
 
-          <View className="flex-row justify-between py-1.5">
-            <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">Item Total (MRP)</Text>
-            <Text className="text-slate-800 dark:text-zinc-200 text-sm font-bold">{formatPrice(mrpTotal)}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>Item Total (MRP)</Text>
+            <Text style={{ color: colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>{formatPrice(mrpTotal)}</Text>
           </View>
 
           {itemDiscount > 0 && (
-            <View className="flex-row justify-between py-1.5">
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-semibold">Product Discount</Text>
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-bold">-{formatPrice(itemDiscount)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+              <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>Product Discount</Text>
+              <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>-{formatPrice(itemDiscount)}</Text>
             </View>
           )}
 
           {appliedCoupon && (
-            <View className="flex-row justify-between py-1.5">
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-semibold">Coupon Discount</Text>
-              <Text className="text-emerald-600 dark:text-emerald-400 text-sm font-bold">-{formatPrice(promoDiscount)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+              <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>Coupon Discount</Text>
+              <Text style={{ color: isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>-{formatPrice(promoDiscount)}</Text>
             </View>
           )}
 
-          <View className="flex-row justify-between py-1.5">
-            <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">Delivery Fee</Text>
-            <Text className={`text-sm font-bold ${deliveryFee === 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-800 dark:text-zinc-200'}`}>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>Delivery Fee</Text>
+            <Text style={{ color: deliveryFee === 0 ? (isDarkMode ? '#34d399' : THEME.COLORS.brand.successDark) : colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>
               {deliveryFee === 0 ? 'FREE' : formatPrice(deliveryFee)}
             </Text>
           </View>
 
           {miscFee > 0 && (
-            <View className="flex-row justify-between py-1.5">
-              <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">{miscFeeLabel || 'Handling Charge'}</Text>
-              <Text className="text-slate-800 dark:text-zinc-200 text-sm font-bold">{formatPrice(miscFee)}</Text>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+              <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>{miscFeeLabel || 'Handling Charge'}</Text>
+              <Text style={{ color: colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>{formatPrice(miscFee)}</Text>
             </View>
           )}
 
-          <View className="flex-row justify-between py-1.5">
-            <Text className="text-slate-500 dark:text-zinc-400 text-sm font-semibold">GST Tax ({taxRate}%)</Text>
-            <Text className="text-slate-800 dark:text-zinc-200 text-sm font-bold">{formatPrice(taxes)}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 6 }}>
+            <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '600' }}>GST Tax ({taxRate}%)</Text>
+            <Text style={{ color: colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>{formatPrice(taxes)}</Text>
           </View>
 
           {/* Monospace receipt dashed separator */}
-          <View 
-            style={{ 
-              borderStyle: 'dashed', 
-              borderWidth: 0.6, 
-              borderColor: theme === 'dark' ? 'rgba(255,255,255,0.1)' : '#e2e8f0', 
-              marginVertical: 10, 
-              height: 1, 
+          <View
+            style={{
+              borderStyle: 'dashed',
+              borderWidth: 0.6,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : colors.border,
+              marginVertical: 10,
+              height: 1,
               width: '100%',
               borderRadius: 1,
-            }} 
+            }}
           />
 
-          <View className="flex-row justify-between py-2">
-            <Text className="text-slate-800 dark:text-zinc-100 font-black text-base">To Pay</Text>
-            <Text className="text-rose-600 dark:text-rose-400 font-black text-base">{formatPrice(totalPayable)}</Text>
+          <View style={{ flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 8 }}>
+            <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.body }}>To Pay</Text>
+            <Text style={{ color: THEME.COLORS.brand.primary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.body }}>{formatPrice(totalPayable)}</Text>
           </View>
         </View>
       </ScrollView>
 
       {/* Sticky Bottom bar */}
-      <View 
-        style={{ 
-          backgroundColor: isDarkMode ? THEME.COLORS.dark.background : '#ffffff', 
-          borderTopWidth: 1, 
-          borderTopColor: isDarkMode ? THEME.COLORS.dark.border : '#e2e8f0', 
-          paddingHorizontal: 16, 
-          paddingTop: 12, 
-          paddingBottom: insets.bottom > 0 ? insets.bottom : 12 
+      <View
+        style={{
+          backgroundColor: colors.background,
+          borderTopWidth: 1,
+          borderTopColor: colors.border,
+          paddingHorizontal: THEME.SPACING.md,
+          paddingTop: 12,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 12,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: -2 },
+          shadowOpacity: 0.05,
+          shadowRadius: 8,
+          elevation: 4,
         }}
-        className="shadow-lg"
       >
         {isCheckoutBlocked ? (
-          <Pressable 
+          <Pressable
             disabled
             style={{
               width: '100%',
               height: 52,
-              borderRadius: 16,
-              backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+              borderRadius: THEME.RADIUS.md,
+              backgroundColor: colors.surfaceElevated,
               flexDirection: 'row',
               alignItems: 'center',
               justifyContent: 'center',
             }}
           >
-            <Text style={{ color: isDarkMode ? '#71717a' : '#94a3b8', fontSize: 13, fontWeight: '700' }}>
+            <Text style={{ color: colors.textMuted, fontSize: 13, fontWeight: '700' }}>
               {hasInventoryIssues ? 'Fix Inventory Issues to Proceed' : 'Store Closed'}
             </Text>
           </Pressable>
         ) : (
-          <ScalePressable 
+          <ScalePressable
             onPress={handleCheckoutRedirect}
             scaleValue={0.98}
             haptic="medium"
             style={{
               width: '100%',
-              borderRadius: 16,
+              borderRadius: THEME.RADIUS.md,
               overflow: 'hidden',
               ...Platform.select({
                 ios: {
@@ -1163,41 +1167,34 @@ export default function CartScreen() {
             <BlurView intensity={20} style={StyleSheet.absoluteFill} tint="dark" />
           ) : null}
 
-          <Animated.View 
+          <Animated.View
             entering={FadeInRight.duration(300)}
-            className="w-full max-w-[340px] bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-6 items-center shadow-2xl"
+            style={{ width: '100%', maxWidth: 340, backgroundColor: colors.surface, borderRadius: THEME.RADIUS.xl, borderWidth: 1, borderColor: colors.border, padding: 24, alignItems: 'center', shadowColor: '#000', shadowOffset: { width: 0, height: 8 }, shadowOpacity: 0.2, shadowRadius: 16, elevation: 8 }}
           >
             {/* Golden Key Badge wrapper */}
-            <View className="w-16 h-16 rounded-full bg-amber-55/60 dark:bg-amber-950/20 border border-amber-100 dark:border-amber-900/30 items-center justify-center mb-4">
-              <KeyRound size={28} color="#d97706" strokeWidth={2.5} />
+            <View style={{ width: 64, height: 64, borderRadius: THEME.RADIUS.pill, backgroundColor: `${THEME.COLORS.brand.warning}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33`, alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+              <KeyRound size={28} color={THEME.COLORS.brand.warning} strokeWidth={2.5} />
             </View>
 
-            <Text className="text-slate-800 dark:text-zinc-100 font-black text-lg text-center mb-2">
+            <Text style={{ color: colors.textPrimary, fontWeight: '900', fontSize: THEME.TYPOGRAPHY.sizes.titleSm, textAlign: 'center', marginBottom: 8 }}>
               Login Required
             </Text>
 
-            <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold text-center leading-relaxed mb-6 px-2">
+            <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: '600', textAlign: 'center', lineHeight: 20, marginBottom: 24, paddingHorizontal: 8 }}>
               Please log in or sign up to proceed to checkout and place your order.
             </Text>
 
             {/* Action buttons */}
-            <View className="w-full gap-3">
+            <View style={{ width: '100', gap: 12 }}>
               <ScalePressable
                 onPress={() => {
                   setShowLoginModal(false);
                   router.push('/(auth)/login');
                 }}
                 scaleValue={0.97}
-                style={{
-                  width: '100%',
-                  paddingVertical: 14,
-                  backgroundColor: '#e20a22',
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                style={{ width: '100%', paddingVertical: 14, backgroundColor: THEME.COLORS.brand.primary, borderRadius: THEME.RADIUS.md, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Log In / Sign Up</Text>
+                <Text style={{ color: '#ffffff', fontWeight: '800', fontSize: THEME.TYPOGRAPHY.sizes.caption, textTransform: 'uppercase', letterSpacing: 1 }}>Log In / Sign Up</Text>
               </ScalePressable>
 
               <ScalePressable
@@ -1205,18 +1202,9 @@ export default function CartScreen() {
                   setShowLoginModal(false);
                 }}
                 scaleValue={0.97}
-                style={{
-                  width: '100%',
-                  paddingVertical: 14,
-                  backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
-                  borderWidth: 1,
-                  borderColor: isDarkMode ? '#3f3f46' : '#cbd5e1',
-                  borderRadius: 16,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                }}
+                style={{ width: '100%', paddingVertical: 14, backgroundColor: colors.surfaceElevated, borderWidth: 1, borderColor: colors.border, borderRadius: THEME.RADIUS.md, alignItems: 'center', justifyContent: 'center' }}
               >
-                <Text className="text-slate-600 dark:text-zinc-350 font-bold text-xs uppercase tracking-wider">Cancel</Text>
+                <Text style={{ color: colors.textSecondary, fontWeight: '700', fontSize: THEME.TYPOGRAPHY.sizes.caption, textTransform: 'uppercase', letterSpacing: 1 }}>Cancel</Text>
               </ScalePressable>
             </View>
           </Animated.View>

@@ -1,4 +1,4 @@
-import { View, Text, TextInput, Pressable,  KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator } from 'react-native';
+import { View, Text, TextInput, Pressable, KeyboardAvoidingView, Platform, ScrollView, Alert, ActivityIndicator, StyleSheet } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState } from 'react';
 import { ArrowLeft, User, Phone, Mail, Lock } from 'lucide-react-native';
@@ -9,17 +9,21 @@ import { triggerHaptic } from '../../lib/haptic';
 import { toast } from '../../lib/toast';
 import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
+import { THEME } from '../../lib/theme';
 
 export default function SignupScreen() {
   const { setAuth } = useAuthStore();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
+
   const [name, setName] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+
+  const isFormValid = name && phoneNumber.length === 10 && email && password;
 
   const handleSignup = async () => {
     if (!name || phoneNumber.length !== 10 || !email || !password) return;
@@ -27,17 +31,11 @@ export default function SignupScreen() {
     triggerHaptic('light');
 
     try {
-      // 1. Sign up request
       const formattedPhone = `+91${phoneNumber}`;
       const signupRes = await fetch(`${API_BASE_URL}/auth/signup`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          phone: formattedPhone,
-        }),
+        body: JSON.stringify({ name, email, password, phone: formattedPhone }),
       });
 
       const signupData = await signupRes.json();
@@ -47,14 +45,10 @@ export default function SignupScreen() {
 
       toast.success('Account created! Logging in...');
 
-      // 2. Immediate log in request
       const loginRes = await fetch(`${API_BASE_URL}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email,
-          password,
-        }),
+        body: JSON.stringify({ email, password }),
       });
 
       const loginData = await loginRes.json();
@@ -76,132 +70,134 @@ export default function SignupScreen() {
     }
   };
 
-  const placeholderColor = isDarkMode ? '#52525b' : '#94a3b8';
-  const iconColor = isDarkMode ? '#a1a1aa' : '#64748b';
+  const inputBg = isDarkMode ? 'rgba(39,39,42,0.35)' : THEME.COLORS.light.borderLight;
 
   return (
-    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-        className="flex-1"
+        style={styles.keyboardView}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }} className="px-6 py-4" showsVerticalScrollIndicator={false}>
-
- 
+        <ScrollView
+          contentContainerStyle={{ flexGrow: 1 }}
+          style={styles.scrollView}
+          showsVerticalScrollIndicator={false}
+        >
           {/* Heading */}
-          <View className="mt-6 mb-6">
-            <Text className="text-slate-800 dark:text-zinc-100 font-black text-3xl leading-tight">Create Account</Text>
-            <Text className="text-slate-500 dark:text-zinc-400 text-sm mt-2">Sign up to get fresh groceries and fast-food in minutes.</Text>
+          <View style={styles.headingWrap}>
+            <Text style={[styles.headingTitle, { color: colors.textPrimary }]}>Create Account</Text>
+            <Text style={[styles.headingSub, { color: colors.textSecondary }]}>
+              Sign up to get fresh groceries and fast-food in minutes.
+            </Text>
           </View>
- 
-          <View className="flex-1 justify-between pb-8">
-            <View className="gap-4">
+
+          <View style={styles.formWrap}>
+            <View style={styles.fieldsContainer}>
               {/* Full Name Input */}
-              <View className="gap-1.5">
-                <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Full Name</Text>
-                <View className="flex-row items-center border border-slate-200 dark:border-zinc-850 focus:border-rose-500 px-3 py-3 rounded-xl bg-slate-50/50 dark:bg-zinc-900/30">
-                  <User size={18} color={iconColor} />
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Full Name</Text>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: inputBg }]}>
+                  <User size={18} color={colors.textSecondary} />
                   <TextInput
                     placeholder="Enter your full name"
-                    placeholderTextColor={placeholderColor}
+                    placeholderTextColor={colors.textMuted}
                     value={name}
                     onChangeText={setName}
-                    className="flex-1 ml-2.5 text-slate-800 dark:text-zinc-100 font-semibold text-sm p-0"
+                    style={[styles.textInput, { color: colors.textPrimary }]}
                   />
                 </View>
               </View>
- 
+
               {/* Phone Number Input */}
-              <View className="gap-1.5">
-                <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Phone Number</Text>
-                <View className="flex-row items-center border border-slate-200 dark:border-zinc-850 focus:border-rose-500 px-3 py-3 rounded-xl bg-slate-50/50 dark:bg-zinc-900/30">
-                  <Phone size={18} color={iconColor} />
-                  <Text className="text-slate-800 dark:text-zinc-100 font-bold ml-2 text-sm">+91</Text>
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Phone Number</Text>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: inputBg }]}>
+                  <Phone size={18} color={colors.textSecondary} />
+                  <Text style={[styles.countryCode, { color: colors.textPrimary }]}>+91</Text>
                   <TextInput
                     placeholder="Enter mobile number"
-                    placeholderTextColor={placeholderColor}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="numeric"
                     maxLength={10}
                     value={phoneNumber}
                     onChangeText={setPhoneNumber}
-                    className="flex-1 ml-2 text-slate-800 dark:text-zinc-100 font-bold text-sm p-0"
+                    style={[styles.textInput, { color: colors.textPrimary }]}
                   />
                 </View>
               </View>
- 
+
               {/* Email Input */}
-              <View className="gap-1.5">
-                <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Email Address</Text>
-                <View className="flex-row items-center border border-slate-200 dark:border-zinc-850 focus:border-rose-500 px-3 py-3 rounded-xl bg-slate-50/50 dark:bg-zinc-900/30">
-                  <Mail size={18} color={iconColor} />
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Email Address</Text>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: inputBg }]}>
+                  <Mail size={18} color={colors.textSecondary} />
                   <TextInput
                     placeholder="Enter your email address"
-                    placeholderTextColor={placeholderColor}
+                    placeholderTextColor={colors.textMuted}
                     keyboardType="email-address"
                     autoCapitalize="none"
                     value={email}
                     onChangeText={setEmail}
-                    className="flex-1 ml-2.5 text-slate-800 dark:text-zinc-100 font-semibold text-sm p-0"
+                    style={[styles.textInput, { color: colors.textPrimary }]}
                   />
                 </View>
               </View>
- 
+
               {/* Password Input */}
-              <View className="gap-1.5">
-                <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider">Password</Text>
-                <View className="flex-row items-center border border-slate-200 dark:border-zinc-850 focus:border-rose-500 px-3 py-3 rounded-xl bg-slate-50/50 dark:bg-zinc-900/30">
-                  <Lock size={18} color={iconColor} />
+              <View style={styles.fieldGroup}>
+                <Text style={[styles.fieldLabel, { color: colors.textSecondary }]}>Password</Text>
+                <View style={[styles.inputContainer, { borderColor: colors.border, backgroundColor: inputBg }]}>
+                  <Lock size={18} color={colors.textSecondary} />
                   <TextInput
                     placeholder="Create a strong password"
-                    placeholderTextColor={placeholderColor}
+                    placeholderTextColor={colors.textMuted}
                     secureTextEntry
                     value={password}
                     onChangeText={setPassword}
-                    className="flex-1 ml-2.5 text-slate-800 dark:text-zinc-100 font-semibold text-sm p-0"
+                    style={[styles.textInput, { color: colors.textPrimary }]}
                   />
                 </View>
               </View>
- 
+
               {/* Submit Button */}
               <ScalePressable
                 onPress={handleSignup}
-                disabled={isLoading || !name || phoneNumber.length !== 10 || !email || !password}
+                disabled={isLoading || !isFormValid}
                 scaleValue={0.96}
                 haptic="success"
-                style={{
-                  paddingVertical: 16,
-                  borderRadius: 12,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  marginTop: 12,
-                  backgroundColor: isLoading 
-                    ? (isDarkMode ? '#27272a' : '#cbd5e1')
-                    : (name && phoneNumber.length === 10 && email && password)
-                      ? '#e11d48'
-                      : (isDarkMode ? 'rgba(39, 39, 42, 0.8)' : '#e2e8f0')
-                }}
+                style={[
+                  styles.submitBtn,
+                  {
+                    backgroundColor: isLoading
+                      ? colors.surfaceElevated
+                      : isFormValid
+                        ? THEME.COLORS.brand.primary
+                        : colors.border,
+                  },
+                ]}
               >
                 {isLoading ? (
-                  <ActivityIndicator size="small" color="#fff" />
+                  <ActivityIndicator size="small" color="#ffffff" />
                 ) : (
-                  <Text className={`font-extrabold text-sm ${
-                    (name && phoneNumber.length === 10 && email && password) ? 'text-white' : 'text-slate-400 dark:text-zinc-500'
-                  }`}>
+                  <Text style={[
+                    styles.submitBtnText,
+                    { color: isFormValid ? '#ffffff' : colors.textMuted }
+                  ]}>
                     Create Account
                   </Text>
                 )}
               </ScalePressable>
             </View>
- 
+
             {/* Link back to login */}
-            <View className="flex-row items-center justify-center gap-1 mt-6">
-              <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">Already have an account?</Text>
-              <ScalePressable 
+            <View style={styles.loginLinkWrap}>
+              <Text style={[styles.loginLinkText, { color: colors.textMuted }]}>Already have an account?</Text>
+              <ScalePressable
                 onPress={() => router.push('/(auth)/login')}
                 scaleValue={0.95}
                 haptic="light"
               >
-                <Text className="text-rose-600 dark:text-rose-500 font-bold text-xs underline">Log In</Text>
+                <Text style={[styles.loginLinkBtn, { color: THEME.COLORS.brand.primary }]}>Log In</Text>
               </ScalePressable>
             </View>
           </View>
@@ -210,3 +206,92 @@ export default function SignupScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollView: {
+    flex: 1,
+  },
+  headingWrap: {
+    marginTop: THEME.SPACING.xxl,
+    marginBottom: THEME.SPACING.xxl,
+  },
+  headingTitle: {
+    fontSize: THEME.TYPOGRAPHY.sizes.title,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    lineHeight: 34,
+  },
+  headingSub: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    marginTop: THEME.SPACING.sm,
+  },
+  formWrap: {
+    flex: 1,
+    justifyContent: 'space-between',
+    paddingBottom: THEME.SPACING.xxl,
+  },
+  fieldsContainer: {
+    gap: THEME.SPACING.md,
+  },
+  fieldGroup: {
+    gap: THEME.SPACING.xs + 2,
+  },
+  fieldLabel: {
+    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+  },
+  inputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderRadius: THEME.RADIUS.lg,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    gap: THEME.SPACING.sm + 2,
+  },
+  textInput: {
+    flex: 1,
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    padding: 0,
+  },
+  countryCode: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    marginRight: THEME.SPACING.sm,
+  },
+  submitBtn: {
+    paddingVertical: THEME.SPACING.md + 4,
+    borderRadius: THEME.RADIUS.lg,
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginTop: THEME.SPACING.md + 4,
+  },
+  submitBtnText: {
+    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
+  },
+  loginLinkWrap: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.SPACING.xs,
+    marginTop: THEME.SPACING.xxl,
+  },
+  loginLinkText: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+  },
+  loginLinkBtn: {
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    textDecorationLine: 'underline',
+  },
+});

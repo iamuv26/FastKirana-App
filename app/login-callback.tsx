@@ -1,9 +1,10 @@
-import { useEffect } from 'react';
+import React, { useEffect } from 'react';
 import { View, ActivityIndicator, Text } from 'react-native';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useAuthStore } from '../stores/auth-store';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
+import { THEME } from '../lib/theme';
 
 export default function LoginCallbackScreen() {
   const params = useLocalSearchParams();
@@ -45,9 +46,9 @@ export default function LoginCallbackScreen() {
   }, [params]);
 
   return (
-    <View style={{ flex: 1, backgroundColor: '#ffffff', justifyContent: 'center', alignItems: 'center' }}>
-      <ActivityIndicator size="large" color="#e20a22" />
-      <Text style={{ marginTop: 16, color: '#64748b', fontWeight: '600' }}>Signing you in...</Text>
+    <View style={{ flex: 1, backgroundColor: THEME.COLORS.light.background, justifyContent: 'center', alignItems: 'center' }}>
+      <ActivityIndicator size="large" color={THEME.COLORS.brand.primary} />
+      <Text style={{ marginTop: 16, color: THEME.COLORS.light.textSecondary, fontWeight: '600' }}>Signing you in...</Text>
     </View>
   );
 }

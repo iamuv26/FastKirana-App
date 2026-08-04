@@ -1,9 +1,9 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, Modal, Platform } from 'react-native';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Alert, Modal, TouchableOpacity, useWindowDimensions, Platform } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useMemo, useEffect } from 'react';
 import { router } from 'expo-router';
 import { CameraView, useCameraPermissions } from 'expo-camera';
-import { ArrowLeft, CheckCircle, Package, Play, Barcode, RefreshCw } from 'lucide-react-native';
+import { ArrowLeft, CheckCircle, Package, Play, Barcode, RefreshCw, Minus, Plus } from 'lucide-react-native';
 import { formatPrice, formatDisplayOrderId } from '../lib/utils';
 import { triggerHaptic } from '../lib/haptic';
 import { toast } from '../lib/toast';
@@ -13,6 +13,9 @@ import { StatusBar } from 'expo-status-bar';
 import { useNewOrderAlert } from '../hooks/use-new-order-alert';
 import { NewOrderAlertModal } from '../components/operations/NewOrderAlertModal';
 import { useTheme } from './context/ThemeContext';
+import { LinearGradient } from 'expo-linear-gradient';
+import { StyleSheet } from 'react-native';
+import { THEME } from '../../lib/theme';
 
 interface OrderItem {
   id: string;
@@ -77,12 +80,13 @@ const INITIAL_SIMULATION_ORDERS: Order[] = [
 export default function PickerScreen() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { user, logout } = useAuthStore();
   const { activeAlertOrder, acknowledgeAlert, acceptOrder, refreshAlerts } = useNewOrderAlert(user?.role === 'PICKER');
   const [orders, setOrders] = useState<Order[]>(INITIAL_SIMULATION_ORDERS);
   const [isOnline, setIsOnline] = useState(false);
   const [isRefreshing, setIsRefreshing] = useState(false);
-  
+
   const [activePickingOrder, setActivePickingOrder] = useState<Order | null>(null);
   const [pickedQuantities, setPickedQuantities] = useState<Record<string, number>>({});
   const [barcodeQuery, setBarcodeQuery] = useState('');
@@ -125,9 +129,9 @@ export default function PickerScreen() {
     if (!user) return;
     if (showLoader) setIsRefreshing(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/picker/orders`, { 
-        method: 'GET', 
-        headers: getAuthHeaders() 
+      const res = await fetch(`${API_BASE_URL}/picker/orders`, {
+        method: 'GET',
+        headers: getAuthHeaders()
       });
       const data = await res.json();
       if (res.ok && Array.isArray(data)) {
@@ -213,7 +217,7 @@ export default function PickerScreen() {
     } else {
       setOrders(prev => prev.map(o => o.id === order.id ? { ...o, status: 'CONFIRMED' } : o));
     }
-    
+
     const initQtys: Record<string, number> = {};
     order.items.forEach(it => {
       initQtys[it.id] = 0;
@@ -252,13 +256,13 @@ export default function PickerScreen() {
   const scanBarcodeProduct = () => {
     if (!activePickingOrder || !barcodeQuery.trim()) return;
     const query = barcodeQuery.trim().toLowerCase();
-    
+
     if (isMultiPickingMode) {
       scanMultiBarcodeProduct(barcodeQuery);
       return;
     }
 
-    const matched = activePickingOrder.items.find(item => 
+    const matched = activePickingOrder.items.find(item =>
       item.name.toLowerCase().includes(query)
     );
 
@@ -292,8 +296,8 @@ export default function PickerScreen() {
 
     if (!activePickingOrder) return;
     const query = scannedData.trim().toLowerCase();
-    
-    const matched = activePickingOrder.items.find(item => 
+
+    const matched = activePickingOrder.items.find(item =>
       item.name.toLowerCase().includes(query) || item.id === query
     );
 
@@ -359,7 +363,7 @@ export default function PickerScreen() {
           }
           activeOrdersToSet.push(order);
           assignedBins[order.id] = binNames[i % binNames.length];
-          
+
           const orderPicked: Record<string, number> = {};
           order.items.forEach(item => {
             orderPicked[item.id] = 0;
@@ -450,7 +454,7 @@ export default function PickerScreen() {
     triggerHaptic('success');
     triggerAudioSuccess();
     toast.success(`Order #${orderId.slice(-6).toUpperCase()} Packed & Dispatched to Rider!`);
-    
+
     // Remove from active list
     setMultiActiveOrders(prev => prev.filter(o => o.id !== orderId));
     setMultiPickedQuantities(prev => {
@@ -467,9 +471,9 @@ export default function PickerScreen() {
 
   const scanMultiBarcodeProduct = (scannedCode: string) => {
     const query = scannedCode.trim().toLowerCase();
-    
+
     for (const order of multiActiveOrders) {
-      const matched = order.items.find(item => 
+      const matched = order.items.find(item =>
         item.name.toLowerCase().includes(query) || item.id === query
       );
       if (matched) {
@@ -487,7 +491,7 @@ export default function PickerScreen() {
           setMultiPickedQuantities(nextQtys);
           triggerAudioBeep();
           const bin = binColors[order.id] || 'Blue Bin';
-          
+
           Alert.alert(
             'Place Item',
             `Scanned: ${matched.name}\n\n👉 Place in ${bin} (${order.user.name})`,
@@ -563,21 +567,40 @@ export default function PickerScreen() {
   const pickerPendingOrders = useMemo(() => orders.filter(o => o.status === 'PENDING'), [orders]);
 
   const toggleSelectOrder = (orderId: string) => {
-    setSelectedOrderIds(prev => 
+    setSelectedOrderIds(prev =>
       prev.includes(orderId) ? prev.filter(id => id !== orderId) : [...prev, orderId]
     );
   };
 
+  // Compute bin placement styles
+  const getBinPlacementStyle = (binName: string, isDone: boolean) => {
+    let bg, borderColor, textColor;
+    if (binName.includes('Red')) {
+      bg = isDarkMode ? `${THEME.COLORS.brand.primary}1E` : `${THEME.COLORS.brand.primary}14`;
+      borderColor = isDarkMode ? `${THEME.COLORS.brand.primary}40` : `${THEME.COLORS.brand.primary}28`;
+      textColor = THEME.COLORS.brand.primary;
+    } else if (binName.includes('Green')) {
+      bg = isDarkMode ? `${THEME.COLORS.brand.success}1E` : `${THEME.COLORS.brand.success}14`;
+      borderColor = isDarkMode ? `${THEME.COLORS.brand.success}40` : `${THEME.COLORS.brand.success}28`;
+      textColor = isDarkMode ? THEME.COLORS.brand.success : THEME.COLORS.brand.success;
+    } else {
+      bg = isDarkMode ? `${THEME.COLORS.brand.accent}1E` : `${THEME.COLORS.brand.accent}14`;
+      borderColor = isDarkMode ? `${THEME.COLORS.brand.accent}40` : `${THEME.COLORS.brand.accent}28`;
+      textColor = THEME.COLORS.brand.accent;
+    }
+    return { backgroundColor: bg, borderColor, textColor, opacity: isDone ? 0.4 : 1 };
+  };
+
   return (
-    <SafeAreaView 
-      className="flex-1"
-      style={{ backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}
+    <SafeAreaView
+      style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : colors.background }}
     >
       <StatusBar style={isDarkMode ? "light" : "dark"} />
+
       {/* Header */}
-      <View className="px-4 py-3 flex-row items-center justify-between border-b bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800 shadow-sm">
-        <View className="flex-row items-center gap-3">
-          <Pressable 
+      <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
+        <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm + 2 }}>
+          <Pressable
             onPress={() => {
               if (isMultiPickingMode) {
                 Alert.alert('Consolidated Multi-Picking', 'Exit consolidated multi-picking?', [
@@ -594,26 +617,26 @@ export default function PickerScreen() {
                 }
               }
             }}
-            className="w-8 h-8 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-100 dark:border-zinc-700 active:opacity-80"
+            style={[styles.backBtn, { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border }]}
           >
-            <ArrowLeft size={15} color={isDarkMode ? "#fff" : "#1e293b"} />
+            <ArrowLeft size={15} color={colors.textPrimary} />
           </Pressable>
           <View>
-            <View className="flex-row items-center gap-2">
-              <Text className="text-slate-800 dark:text-white font-black text-sm">Picker Console</Text>
-              <View className="px-1.5 py-0.5 rounded bg-indigo-50 dark:bg-indigo-950 border border-indigo-100 dark:border-indigo-900">
-                <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[7.5px] tracking-wider uppercase">
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs + 2 }}>
+              <Text style={[styles.headerTitle, { color: colors.textPrimary }]}>Picker Console</Text>
+              <View style={[styles.roleBadge, { backgroundColor: `${THEME.COLORS.brand.accent}14`, borderColor: `${THEME.COLORS.brand.accent}33` }]}>
+                <Text style={[styles.roleBadgeText, { color: THEME.COLORS.brand.accent }]}>
                   {user?.role || 'PICKER'}
                 </Text>
               </View>
             </View>
-            <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-bold tracking-wide">
+            <Text style={[styles.headerSubtitle, { color: colors.textMuted }]}>
               {isMultiPickingMode ? 'Consolidated Multi-Picking' : 'FastKirana Darkstore'}
             </Text>
           </View>
         </View>
-        
-        <Pressable 
+
+        <Pressable
           onPress={() => {
             if (Platform.OS === 'web') {
               const confirmLogout = window.confirm('Are you sure you want to log out from the picker console?');
@@ -628,105 +651,103 @@ export default function PickerScreen() {
               ]);
             }
           }}
-          className="px-2.5 py-1.5 rounded-lg bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 active:opacity-85"
+          style={[styles.logoutBtn, { backgroundColor: `${THEME.COLORS.brand.primary}14`, borderColor: `${THEME.COLORS.brand.primary}33` }]}
         >
-          <Text className="text-red-650 dark:text-red-400 font-black text-[10px] uppercase tracking-wider">Log Out</Text>
+          <Text style={[styles.logoutBtnText, { color: THEME.COLORS.brand.primary }]}>Log Out</Text>
         </Pressable>
       </View>
 
       {/* Main Content */}
-      <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
+      <ScrollView style={{ flex: 1 }} contentContainerStyle={{ padding: THEME.SPACING.lg }} showsVerticalScrollIndicator={false}>
         {isMultiPickingMode ? (
           // Multi Picking Console View
-          <View className="bg-slate-900 rounded-xl border border-slate-800 p-3 shadow-sm mb-6">
-            <View className="flex-row justify-between items-center border-b border-slate-800 pb-2 mb-3">
+          <View style={[styles.multiPickCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <View style={[styles.multiPickHeader, { borderBottomColor: colors.border }]}>
               <View>
-                <Text className="text-white font-black text-xs uppercase">Multi-Picking Checklist</Text>
-                <Text className="text-slate-400 text-[8px] font-bold">{multiActiveOrders.length} Orders Active</Text>
+                <Text style={[styles.multiPickTitle, { color: colors.textPrimary }]}>Multi-Picking Checklist</Text>
+                <Text style={[styles.multiPickSubtitle, { color: colors.textSecondary }]}>{multiActiveOrders.length} Orders Active</Text>
               </View>
-              
-              <View className="flex-row gap-1">
+
+              <View style={{ flexDirection: 'row', gap: THEME.SPACING.xs }}>
                 {multiActiveOrders.map(o => (
-                  <View key={o.id} className="bg-slate-950 border border-slate-800 px-1.5 py-0.5 rounded">
-                    <Text className="text-[7px] font-bold text-slate-300">{binColors[o.id]}</Text>
+                  <View key={o.id} style={[styles.binChip, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                    <Text style={[styles.binChipText, { color: colors.textSecondary }]}>{binColors[o.id]}</Text>
                   </View>
                 ))}
               </View>
             </View>
 
-            <View className="flex-row gap-1 bg-slate-955 p-1 rounded-lg border border-slate-800 items-center mb-3">
-              <Barcode size={12} color="#6366f1" />
+            <View style={[styles.barcodeBar, { backgroundColor: `${THEME.COLORS.brand.accent}14`, borderColor: `${THEME.COLORS.brand.accent}33` }]}>
+              <Barcode size={12} color={THEME.COLORS.brand.accent} />
               <TextInput
                 placeholder="Scan product barcode..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={isDarkMode ? `${colors.textPrimary}88` : colors.textMuted}
                 value={barcodeQuery}
                 onChangeText={setBarcodeQuery}
                 onSubmitEditing={scanBarcodeProduct}
-                className="flex-grow text-white text-[10px] font-semibold p-0"
+                style={[styles.barcodeInput, { color: colors.textPrimary }]}
               />
-              <Pressable 
+              <Pressable
                 onPress={() => setIsCameraActive(true)}
-                className="bg-indigo-650 px-2.5 py-1.5 rounded active:bg-indigo-750"
+                style={[styles.scanBtn, { backgroundColor: `${THEME.COLORS.brand.accent}26` }]}
               >
-                <Text className="text-white font-extrabold text-[8px] uppercase">📷 Scan</Text>
+                <Text style={[styles.scanBtnText, { color: '#ffffff' }]}>📷 Scan</Text>
               </Pressable>
             </View>
 
-            <Text className="text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Sorted by Warehouse Aisle</Text>
-            
-            <View className="divide-y divide-slate-800">
+            <Text style={[styles.aisleLabel, { color: colors.textSecondary }]}>Sorted by Warehouse Aisle</Text>
+
+            <View style={{ gap: THEME.SPACING.xs }}>
               {consolidatedItems.map((cItem) => {
                 const aisle = getItemAisle({ id: cItem.productId, name: cItem.name, price: 0, quantity: 0, categorySlug: cItem.categorySlug });
                 const isAllDone = cItem.totalPicked === cItem.totalNeeded;
 
                 return (
-                  <View key={cItem.name} className="py-3">
-                    <View className="flex-row justify-between items-start">
-                      <View className="flex-1 pr-3">
-                        <Text className={`text-xs font-extrabold leading-tight ${isAllDone ? 'text-slate-600 line-through' : 'text-slate-200'}`}>
+                  <View key={cItem.name} style={[styles.consolidatedItem, { borderBottomColor: colors.border }]}>
+                    <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start' }}>
+                      <View style={{ flex: 1, paddingRight: THEME.SPACING.sm }}>
+                        <Text style={[styles.consolidatedName, isAllDone ? { color: colors.textMuted, textDecorationLine: 'line-through' } : { color: colors.textPrimary }]}>
                           {cItem.name}
                         </Text>
-                        <Text className="text-indigo-400 text-[8px] font-black mt-1 uppercase tracking-wider">{aisle}</Text>
+                        <Text style={[styles.aisleTag, { color: THEME.COLORS.brand.accent }]}>{aisle}</Text>
                       </View>
-                      
-                      <View className="bg-slate-950 border border-slate-800 px-2 py-0.5 rounded">
-                        <Text className="text-slate-300 font-black text-[9px]">{cItem.totalPicked}/{cItem.totalNeeded}</Text>
+
+                      <View style={[styles.qtyCounter, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                        <Text style={[styles.qtyCounterText, { color: colors.textSecondary }]}>{cItem.totalPicked}/{cItem.totalNeeded}</Text>
                       </View>
                     </View>
 
                     {/* Placements for Bins */}
-                    <View className="flex-row flex-wrap gap-2 mt-2">
+                    <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: THEME.SPACING.sm + 2, marginTop: THEME.SPACING.sm + 2 }}>
                       {cItem.placements.map((plc) => {
                         const plcDone = plc.quantityPicked === plc.quantityNeeded;
-                        let binColorClass = 'bg-blue-950/30 border-blue-900/30 text-blue-400';
-                        if (plc.binName.includes('Red')) binColorClass = 'bg-red-950/30 border-red-900/30 text-red-400';
-                        else if (plc.binName.includes('Green')) binColorClass = 'bg-green-950/30 border-green-900/30 text-emerald-400';
+                        const binStyle = getBinPlacementStyle(plc.binName, plcDone);
 
                         return (
-                          <View 
+                          <View
                             key={plc.orderId}
-                            className={`border rounded-lg p-1.5 flex-row items-center gap-1.5 ${binColorClass} ${plcDone ? 'opacity-40' : ''}`}
+                            style={[styles.binPlacement, { backgroundColor: binStyle.backgroundColor, borderColor: binStyle.borderColor }, { opacity: binStyle.opacity }]}
                           >
-                            <Text className="font-extrabold text-[8px] uppercase">{plc.binName}: {plc.quantityPicked}/{plc.quantityNeeded}</Text>
+                            <Text style={[styles.binPlacementText, { color: binStyle.textColor }]}>{plc.binName}: {plc.quantityPicked}/{plc.quantityNeeded}</Text>
                             {!plcDone && (
-                              <View className="flex-row items-center gap-1">
-                                <Pressable 
+                              <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs }}>
+                                <Pressable
                                   onPress={() => handleResetMultiItem(plc.orderId, plc.itemId)}
-                                  className="bg-slate-950/80 px-1 py-0.5 rounded border border-slate-800"
+                                  style={[styles.binActionBtn, { backgroundColor: `${colors.textPrimary}18` }]}
                                 >
-                                  <Text className="text-[7px] text-slate-300">↺</Text>
+                                  <Text style={[styles.binActionText, { color: colors.textSecondary }]}>↺</Text>
                                 </Pressable>
-                                <Pressable 
+                                <Pressable
                                   onPress={() => handleMultiPickOne(plc.orderId, plc.itemId, plc.quantityNeeded)}
-                                  className="bg-slate-950 px-1.5 py-0.5 rounded border border-slate-800 active:bg-slate-800"
+                                  style={[styles.binActionBtn, { backgroundColor: `${colors.textPrimary}14` }]}
                                 >
-                                  <Text className="text-[7px] font-black text-slate-300">+1</Text>
+                                  <Text style={[styles.binActionText, { color: colors.textSecondary }]}>+1</Text>
                                 </Pressable>
-                                <Pressable 
+                                <Pressable
                                   onPress={() => handleMultiPickAll(plc.orderId, plc.itemId, plc.quantityNeeded)}
-                                  className="bg-indigo-600 px-1.5 py-0.5 rounded"
+                                  style={[styles.binAllBtn, { backgroundColor: THEME.COLORS.brand.accent }]}
                                 >
-                                  <Text className="text-white text-[7px] font-black">ALL</Text>
+                                  <Text style={[styles.binAllBtnText, { color: '#ffffff' }]}>ALL</Text>
                                 </Pressable>
                               </View>
                             )}
@@ -741,40 +762,42 @@ export default function PickerScreen() {
           </View>
         ) : activePickingOrder ? (
           // Single Picking Console View
-          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-sm mb-4">
-            <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-3">
+          <View style={[styles.singlePickCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+            <View style={[styles.singlePickHeader, { borderBottomColor: colors.border }]}>
               <View>
-                <Text className="text-slate-800 dark:text-white font-black text-xs uppercase">Picking Order #{formatDisplayOrderId(activePickingOrder.id, (activePickingOrder as any).readableId)}</Text>
-                <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-semibold">Customer: {activePickingOrder.user.name}</Text>
+                <Text style={[styles.singlePickTitle, { color: colors.textPrimary }]}>
+                  Picking Order #{formatDisplayOrderId(activePickingOrder.id, (activePickingOrder as any).readableId)}
+                </Text>
+                <Text style={[styles.singlePickCustomer, { color: `${colors.textPrimary}99` }]}>Customer: {activePickingOrder.user.name}</Text>
               </View>
-              <Pressable 
+              <Pressable
                 onPress={() => setActivePickingOrder(null)}
-                className="px-2.5 py-1.5 rounded-lg bg-slate-50 dark:bg-zinc-800 border border-slate-100 dark:border-zinc-700 active:opacity-80"
+                style={[styles.cancelBtn, { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border }]}
               >
-                <Text className="text-slate-600 dark:text-zinc-300 font-extrabold text-[8px] uppercase tracking-wider">Cancel</Text>
+                <Text style={[styles.cancelBtnText, { color: colors.textSecondary }]}>Cancel</Text>
               </Pressable>
             </View>
 
-            <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-2 rounded-xl border border-slate-100 dark:border-zinc-850 items-center mb-3">
-              <Barcode size={12} color="#6366f1" />
+            <View style={[styles.barcodeBar, { backgroundColor: `${colors.textPrimary}08`, borderColor: colors.border }]}>
+              <Barcode size={12} color={THEME.COLORS.brand.accent} />
               <TextInput
                 placeholder="Scan product barcode..."
-                placeholderTextColor="#94a3b8"
+                placeholderTextColor={isDarkMode ? `${colors.textPrimary}88` : colors.textMuted}
                 value={barcodeQuery}
                 onChangeText={setBarcodeQuery}
                 onSubmitEditing={scanBarcodeProduct}
-                className="flex-1 text-slate-800 dark:text-white text-[10px] font-semibold p-0"
+                style={[styles.barcodeInput, { color: colors.textPrimary }]}
               />
-              <Pressable 
+              <Pressable
                 onPress={() => setIsCameraActive(true)}
-                className="bg-indigo-600 px-2 py-1 rounded active:bg-indigo-750 mr-0.5"
+                style={[styles.scanBtn, { backgroundColor: `${THEME.COLORS.brand.accent}26` }]}
               >
-                <Text className="text-white font-extrabold text-[7px] uppercase">📷 Scan</Text>
+                <Text style={[styles.scanBtnText, { color: '#ffffff' }]}>📷 Scan</Text>
               </Pressable>
             </View>
 
-            <Text className="text-slate-400 dark:text-zinc-500 font-black text-[9px] uppercase tracking-wider mb-2">Checklist by Location</Text>
-            <View className="divide-y divide-slate-100 dark:divide-zinc-800">
+            <Text style={[styles.checklistLabel, { color: colors.textSecondary }]}>Checklist by Location</Text>
+            <View style={{ gap: THEME.SPACING.xs + 2 }}>
               {activePickingOrder.items.map((item) => {
                 const picked = pickedQuantities[item.id] || 0;
                 const max = item.quantity;
@@ -782,37 +805,37 @@ export default function PickerScreen() {
                 const isDone = picked === max;
 
                 return (
-                  <View key={item.id} className="py-2.5 flex-row justify-between items-center gap-2">
-                    <View className="flex-1 pr-1">
-                      <Text className={`text-[11px] font-bold leading-tight ${isDone ? 'text-slate-400 dark:text-zinc-650 line-through' : 'text-slate-800 dark:text-zinc-200'}`}>
+                  <View key={item.id} style={[styles.checklistRow, { paddingVertical: THEME.SPACING.sm + 4 }]}>
+                    <View style={{ flex: 1, paddingRight: THEME.SPACING.xs + 2 }}>
+                      <Text style={[styles.itemName, isDone ? { color: colors.textMuted, textDecorationLine: 'line-through' } : { color: colors.textPrimary }]}>
                         {item.name}
                       </Text>
-                      <Text className="text-indigo-650 dark:text-indigo-400 text-[8px] font-black mt-0.5 uppercase tracking-wider">{aisle}</Text>
+                      <Text style={[styles.aisleTag, { color: THEME.COLORS.brand.accent }]}>{aisle}</Text>
                     </View>
-                    
-                    <View className="flex-row items-center gap-1.5">
+
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs + 2 }}>
                       {isDone ? (
-                        <View className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-100 dark:border-emerald-900/30 px-1.5 py-0.5 rounded flex-row items-center gap-0.5">
-                          <CheckCircle size={8} color="#059669" />
-                          <Text className="text-emerald-600 dark:text-emerald-400 font-black text-[8px] uppercase">{max}/{max}</Text>
+                        <View style={[styles.doneBadge, { backgroundColor: `${THEME.COLORS.brand.success}14`, borderColor: `${THEME.COLORS.brand.success}33` }]}>
+                          <CheckCircle size={8} color={THEME.COLORS.brand.successDark || '#059669'} />
+                          <Text style={[styles.doneBadgeText, { color: THEME.COLORS.brand.success }]}>{max}/{max}</Text>
                         </View>
                       ) : (
-                        <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 rounded-lg p-0.5 border border-slate-100 dark:border-zinc-800">
-                          <Pressable onPress={() => resetItemPicker(item.id)} className="px-2 py-1">
-                            <Text className="text-slate-400 dark:text-zinc-500 font-black text-[10px]">↺</Text>
+                        <View style={[styles.pickControls, { backgroundColor: colors.background, borderColor: colors.border }]}>
+                          <Pressable onPress={() => resetItemPicker(item.id)} style={{ paddingHorizontal: THEME.SPACING.sm + 2, paddingVertical: THEME.SPACING.sm }}>
+                            <Text style={[styles.pickReset, { color: colors.textMuted }]}>↺</Text>
                           </Pressable>
-                          <Text className="px-1 text-slate-700 dark:text-zinc-200 font-black text-[10px]">{picked}/{max}</Text>
-                          <Pressable 
+                          <Text style={[styles.pickCount, { color: colors.textPrimary }]}>{picked}/{max}</Text>
+                          <Pressable
                             onPress={() => manualPickOne(item.id, max)}
-                            className="bg-white dark:bg-zinc-900 px-2 py-1 rounded border border-slate-150 dark:border-zinc-800 active:opacity-80 ml-1.5"
+                            style={[styles.pickOneBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                           >
-                            <Text className="text-slate-655 dark:text-zinc-300 font-black text-[9px] uppercase">+1</Text>
+                            <Text style={[styles.pickOneBtnText, { color: colors.textSecondary }]}>+1</Text>
                           </Pressable>
-                          <Pressable 
+                          <Pressable
                             onPress={() => manualPickAll(item.id, max)}
-                            className="bg-indigo-600 px-2.5 py-1 rounded-md active:bg-indigo-700 ml-1"
+                            style={[styles.pickAllBtn, { backgroundColor: THEME.COLORS.brand.accent }]}
                           >
-                            <Text className="text-white font-extrabold text-[9px] uppercase">All</Text>
+                            <Text style={[styles.pickAllBtnText, { color: '#ffffff' }]}>All</Text>
                           </Pressable>
                         </View>
                       )}
@@ -824,81 +847,77 @@ export default function PickerScreen() {
 
             <Pressable
               onPress={() => packActiveOrder(activePickingOrder.id)}
-              className="bg-indigo-650 py-2.5 rounded-xl items-center mt-4 active:bg-indigo-750"
+              style={[styles.packBtn, { backgroundColor: THEME.COLORS.brand.accent }]}
             >
-              <Text className="text-white font-black text-xs uppercase tracking-wider">Pack & Complete Order</Text>
+              <Text style={[styles.packBtnText, { color: '#ffffff' }]}>Pack & Complete Order</Text>
             </Pressable>
           </View>
         ) : (
           // Pending Jobs List
           <View>
-            <View className="flex-row justify-between items-center mb-3">
-              <Text className="text-white font-black text-sm">Picker Pending Jobs</Text>
-              
-              <View className="flex-row gap-2.5 items-center">
+            <View style={[styles.pendingHeaderRow, { marginBottom: THEME.SPACING.sm + 4 }]}>
+              <Text style={[styles.pendingTitle, { color: colors.textPrimary }]}>Picker Pending Jobs</Text>
+
+              <View style={{ flexDirection: 'row', gap: THEME.SPACING.sm + 2, alignItems: 'center' }}>
                 {selectedOrderIds.length > 0 && (
-                  <Pressable 
+                  <Pressable
                     onPress={handleStartMultiPicking}
-                    className="bg-indigo-600 px-3 py-1.5 rounded-xl active:bg-indigo-700"
+                    style={[styles.multiPickStartBtn, { backgroundColor: THEME.COLORS.brand.accent }]}
                   >
-                    <Text className="text-white font-black text-[9px] uppercase">Multi-Pick ({selectedOrderIds.length})</Text>
+                    <Text style={[styles.multiPickStartBtnText, { color: '#ffffff' }]}>Multi-Pick ({selectedOrderIds.length})</Text>
                   </Pressable>
                 )}
-                
-                <Pressable 
-                  onPress={() => fetchServerOrders(true)} 
-                  className="w-7 h-7 rounded-full bg-slate-900 items-center justify-center border border-slate-800 active:bg-slate-800"
+
+                <Pressable
+                  onPress={() => fetchServerOrders(true)}
+                  style={[styles.refreshSmallBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
                 >
-                  <Text className="text-[10px]">🔄</Text>
+                  <Text style={{ fontSize: 10 }}>🔄</Text>
                 </Pressable>
               </View>
             </View>
 
             {pickerPendingOrders.length === 0 ? (
-              <View className="bg-slate-900 rounded-xl border border-slate-800 p-4 items-center shadow-xs">
-                <Text className="text-3xl">📭</Text>
-                <Text className="text-white font-black text-xs mt-2">No orders waiting for pickers</Text>
-                <Text className="text-slate-400 text-[10px] mt-1 text-center leading-normal">
+              <View style={[styles.emptyCard, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                <Text style={styles.emptyEmoji}>📭</Text>
+                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>No orders waiting for pickers</Text>
+                <Text style={[styles.emptySubtitle, { color: colors.textSecondary }]}>
                   New orders placed by customers will sync here in real time.
                 </Text>
               </View>
             ) : (
-              <View className="gap-2.5">
+              <View style={{ gap: THEME.SPACING.sm + 2 }}>
                 {pickerPendingOrders.map((ord) => {
                   const isSelected = selectedOrderIds.includes(ord.id);
                   return (
-                    <Pressable 
-                      key={ord.id} 
+                    <Pressable
+                      key={ord.id}
                       onPress={() => toggleSelectOrder(ord.id)}
-                      className={`bg-slate-900 rounded-xl border p-3 shadow-xs ${
-                        isSelected ? 'border-indigo-600 bg-indigo-950/20' : 'border-slate-800'
-                      }`}
+                      style={[styles.pendingOrderCard, { backgroundColor: colors.surfaceElevated, borderColor: isSelected ? THEME.COLORS.brand.accent : colors.border }]}
                     >
-                      <View className="flex-row justify-between items-center border-b border-slate-800 pb-2 mb-2">
-                        <View className="flex-row items-center gap-2">
-                          <View className={`w-3.5 h-3.5 rounded-full border items-center justify-center ${
-                            isSelected ? 'border-indigo-600 bg-indigo-600' : 'border-slate-700 bg-slate-950'
-                          }`}>
-                            {isSelected && <Text className="text-[8px] font-black text-white">✓</Text>}
+                      <View style={[styles.pendingOrderHeader, { borderBottomColor: colors.border }]}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.xs + 2 }}>
+                          <View style={[styles.checkbox, isSelected ? { backgroundColor: THEME.COLORS.brand.accent, borderColor: THEME.COLORS.brand.accent } : { backgroundColor: colors.background, borderColor: colors.border }]}>
+                            {isSelected && <Text style={[styles.checkboxCheck, { color: '#ffffff' }]}>✓</Text>}
                           </View>
-                          <Text className="text-white font-black text-xs uppercase">Order #{formatDisplayOrderId(ord.id, (ord as any).readableId)}</Text>
+                          <Text style={[styles.pendingOrderId, { color: colors.textPrimary }]}>Order #{formatDisplayOrderId(ord.id, (ord as any).readableId)}</Text>
                         </View>
-                        <View className="bg-amber-950/20 border border-amber-900/30 px-1.5 py-0.5 rounded-full">
-                          <Text className="text-amber-400 font-extrabold text-[7px] uppercase tracking-wider">{ord.status}</Text>
+                        <View style={[styles.statusBadge, { backgroundColor: `${THEME.COLORS.brand.primary}14`, borderColor: `${THEME.COLORS.brand.primary}33` }]}>
+                          <Text style={[styles.statusBadgeText, { color: THEME.COLORS.brand.primary }]}>{ord.status}</Text>
                         </View>
                       </View>
 
-                      <Text className="text-slate-300 text-[11px] font-semibold">User: {ord.user.name}</Text>
-                      <Text className="text-slate-400 text-[9px] font-semibold mt-0.5 truncate" numberOfLines={1}>
+                      <Text style={[styles.pendingOrderUser, { color: colors.textSecondary }]}>User: {ord.user.name}</Text>
+                      <Text style={[styles.pendingOrderItems, { color: colors.textMuted }]} numberOfLines={1}>
                         Items: {ord.items.map(it => `${it.name} x${it.quantity}`).join(', ')}
                       </Text>
 
                       <Pressable
                         onPress={() => startPicking(ord)}
-                        className="bg-indigo-650 mt-3 py-2 rounded-lg flex-row items-center justify-center gap-1 active:bg-indigo-750"
+                        style={[styles.startPickBtn, { backgroundColor: THEME.COLORS.brand.accent }]}
                       >
-                        <Play size={8} color="#fff" fill="#fff" />
-                        <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Start Single Pick</Text>
+                        <Play size={8} color="#ffffff" fill="#ffffff" />
+                        <Text style={[styles.startPickBtnText, { color: '#ffffff' }]}>Start Single Pick</Text>
                       </Pressable>
                     </Pressable>
                   );
@@ -907,7 +926,7 @@ export default function PickerScreen() {
             )}
           </View>
         )}
-        <View className="h-6" />
+        <View style={{ height: THEME.SPACING.xxl }} />
       </ScrollView>
 
       {/* Camera Barcode View Modal */}
@@ -917,28 +936,28 @@ export default function PickerScreen() {
           animationType="slide"
           onRequestClose={() => setIsCameraActive(false)}
         >
-          <SafeAreaView className="flex-1 bg-black justify-between p-6">
-            <View className="flex-row justify-between items-center mt-8">
-              <Pressable 
+          <SafeAreaView style={{ flex: 1, backgroundColor: '#000000' }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: THEME.SPACING.xxl * 1.5, paddingHorizontal: THEME.SPACING.lg }}>
+              <Pressable
                 onPress={() => setIsCameraActive(false)}
-                className="w-10 h-10 rounded-full bg-slate-800 items-center justify-center"
+                style={styles.cameraCloseBtn}
               >
-                <Text className="text-white font-bold text-lg">✕</Text>
+                <Text style={styles.cameraCloseText}>✕</Text>
               </Pressable>
-              <Text className="text-white font-black text-xs uppercase tracking-widest text-center flex-1 pr-10">Scan Item Barcode</Text>
+              <Text style={[styles.cameraTitle, { color: '#ffffff' }]}>Scan Item Barcode</Text>
             </View>
 
-            <View className="w-full aspect-[4/3] bg-slate-900 border-2 border-white/20 rounded-3xl items-center justify-center relative overflow-hidden self-center my-6">
+            <View style={[styles.cameraFrame, { borderColor: `${colors.textPrimary}33` }]}>
               {!permission ? (
-                <ActivityIndicator size="small" color="#fff" />
+                <ActivityIndicator size="small" color="#ffffff" />
               ) : !permission.granted ? (
-                <View className="items-center p-6">
-                  <Text className="text-white/80 text-xs font-bold text-center mb-3">Camera permissions are required to scan barcodes</Text>
-                  <Pressable 
+                <View style={{ alignItems: 'center', padding: THEME.SPACING.lg }}>
+                  <Text style={[styles.cameraPermissionText, { color: `${colors.textPrimary}cc` }]}>Camera permissions are required to scan barcodes</Text>
+                  <Pressable
                     onPress={requestPermission}
-                    className="bg-indigo-650 px-4 py-2 rounded-xl"
+                    style={[styles.cameraPermitBtn, { backgroundColor: `${THEME.COLORS.brand.accent}26` }]}
                   >
-                    <Text className="text-white font-extrabold text-[10px] uppercase">Grant Permission</Text>
+                    <Text style={[styles.cameraPermitBtnText, { color: '#ffffff' }]}>Grant Permission</Text>
                   </Pressable>
                 </View>
               ) : (
@@ -952,12 +971,13 @@ export default function PickerScreen() {
               )}
             </View>
 
-            <Text className="text-white/60 text-[10px] font-black uppercase tracking-wider text-center mb-8">
+            <Text style={[styles.cameraHint, { color: `${colors.textPrimary}99` }]}>
               Center the product barcode in the screen box to scan
             </Text>
           </SafeAreaView>
         </Modal>
       )}
+
       <NewOrderAlertModal
         order={activeAlertOrder}
         onAccept={async (id) => {
@@ -971,3 +991,473 @@ export default function PickerScreen() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  header: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.md + 2,
+    borderBottomWidth: 1,
+  },
+  backBtn: {
+    width: 32,
+    height: 32,
+    borderRadius: 16,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  headerTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  roleBadge: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.pill,
+    borderWidth: 1,
+  },
+  roleBadgeText: {
+    fontSize: 7.5,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  headerSubtitle: {
+    fontSize: 9,
+    fontWeight: '700',
+    letterSpacing: 0.2,
+  },
+  logoutBtn: {
+    paddingHorizontal: THEME.SPACING.sm + 4,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+  },
+  logoutBtnText: {
+    fontSize: 9.5,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  multiPickCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: THEME.SPACING.md,
+    marginBottom: THEME.SPACING.lg,
+    ...THEME.SHADOWS.sm,
+  },
+  multiPickHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingBottom: THEME.SPACING.sm + 2,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  multiPickTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  multiPickSubtitle: {
+    fontSize: 8,
+    fontWeight: '700',
+  },
+  binChip: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.sm,
+    borderWidth: 1,
+  },
+  binChipText: {
+    fontSize: 7,
+    fontWeight: '700',
+  },
+  barcodeBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 2,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.sm,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  barcodeInput: {
+    flex: 1,
+    fontSize: 10,
+    fontWeight: '600',
+    padding: 0,
+  },
+  scanBtn: {
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.sm,
+  },
+  scanBtnText: {
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  aisleLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  consolidatedItem: {
+    paddingVertical: THEME.SPACING.sm + 4,
+    borderBottomWidth: 1,
+  },
+  consolidatedName: {
+    fontSize: 12,
+    fontWeight: '800',
+    lineHeight: 16,
+  },
+  aisleTag: {
+    fontSize: 8,
+    fontWeight: '900',
+    marginTop: 2,
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  qtyCounter: {
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.sm,
+    borderWidth: 1,
+  },
+  qtyCounterText: {
+    fontSize: 9,
+    fontWeight: '900',
+  },
+  binPlacement: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs + 2,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    padding: THEME.SPACING.xs + 2,
+  },
+  binPlacementText: {
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  binActionBtn: {
+    paddingHorizontal: THEME.SPACING.xs,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.xs,
+    borderWidth: 1,
+  },
+  binActionText: {
+    fontSize: 7,
+    fontWeight: '700',
+  },
+  binAllBtn: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.xs,
+  },
+  binAllBtnText: {
+    fontSize: 7,
+    fontWeight: '900',
+  },
+  singlePickCard: {
+    borderRadius: 16,
+    borderWidth: 1,
+    padding: THEME.SPACING.md + 4,
+    marginBottom: THEME.SPACING.md,
+    ...THEME.SHADOWS.sm,
+  },
+  singlePickHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingBottom: THEME.SPACING.sm + 2,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  singlePickTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  singlePickCustomer: {
+    fontSize: 8,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  cancelBtn: {
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+  },
+  cancelBtnText: {
+    fontSize: 8,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  checklistLabel: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  checklistRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+  },
+  itemName: {
+    fontSize: 11,
+    fontWeight: '700',
+    lineHeight: 15,
+  },
+  doneBadge: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.xs / 2,
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.pill,
+    borderWidth: 1,
+  },
+  doneBadgeText: {
+    fontSize: 8,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  pickControls: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    borderRadius: THEME.RADIUS.md,
+    borderWidth: 1,
+    overflow: 'hidden',
+  },
+  pickReset: {
+    fontSize: 10,
+    fontWeight: '900',
+  },
+  pickCount: {
+    paddingHorizontal: THEME.SPACING.sm,
+    fontSize: 10,
+    fontWeight: '900',
+    minWidth: 24,
+    textAlign: 'center',
+  },
+  pickOneBtn: {
+    paddingHorizontal: THEME.SPACING.sm + 2,
+    paddingVertical: THEME.SPACING.sm,
+    borderLeftWidth: 1,
+  },
+  pickOneBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  pickAllBtn: {
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm,
+    borderTopRightRadius: THEME.RADIUS.md,
+    borderBottomRightRadius: THEME.RADIUS.md,
+  },
+  pickAllBtnText: {
+    fontSize: 9,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  packBtn: {
+    paddingVertical: THEME.SPACING.md + 2,
+    borderRadius: THEME.RADIUS.xl,
+    alignItems: 'center',
+    marginTop: THEME.SPACING.md + 4,
+  },
+  packBtnText: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+  },
+  pendingHeaderRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+  },
+  pendingTitle: {
+    fontSize: 14,
+    fontWeight: '900',
+  },
+  multiPickStartBtn: {
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.lg,
+  },
+  multiPickStartBtnText: {
+    fontSize: 9,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  refreshSmallBtn: {
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  pendingOrderCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: THEME.SPACING.md,
+    ...THEME.SHADOWS.xs,
+  },
+  pendingOrderHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    paddingBottom: THEME.SPACING.sm + 2,
+    marginBottom: THEME.SPACING.sm + 2,
+  },
+  checkbox: {
+    width: 14,
+    height: 14,
+    borderRadius: 7,
+    borderWidth: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  checkboxCheck: {
+    fontSize: 8,
+    fontWeight: '900',
+  },
+  pendingOrderId: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+  },
+  statusBadge: {
+    paddingHorizontal: THEME.SPACING.sm,
+    paddingVertical: THEME.SPACING.xs / 2,
+    borderRadius: THEME.RADIUS.pill,
+    borderWidth: 1,
+  },
+  statusBadgeText: {
+    fontSize: 7,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  pendingOrderUser: {
+    fontSize: 11,
+    fontWeight: '600',
+  },
+  pendingOrderItems: {
+    fontSize: 9,
+    fontWeight: '600',
+    marginTop: 2,
+  },
+  startPickBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    gap: THEME.SPACING.xs,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.md,
+    marginTop: THEME.SPACING.sm + 4,
+  },
+  startPickBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+    letterSpacing: 0.3,
+  },
+  emptyCard: {
+    borderRadius: 12,
+    borderWidth: 1,
+    padding: THEME.SPACING.lg,
+    alignItems: 'center',
+  },
+  emptyEmoji: {
+    fontSize: 32,
+    marginBottom: THEME.SPACING.sm,
+  },
+  emptyTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    marginTop: THEME.SPACING.sm,
+  },
+  emptySubtitle: {
+    fontSize: 10,
+    marginTop: THEME.SPACING.sm,
+    textAlign: 'center',
+    maxWidth: 280,
+  },
+  cameraCloseBtn: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: `${colors.textPrimary}18`,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  cameraCloseText: {
+    color: '#ffffff',
+    fontSize: 18,
+    fontWeight: '700',
+  },
+  cameraTitle: {
+    fontSize: 12,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    textAlign: 'center',
+    flex: 1,
+    paddingRight: 40,
+  },
+  cameraFrame: {
+    width: '100%',
+    aspectRatio: 4 / 3,
+    backgroundColor: '#09090b',
+    borderWidth: 2,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    alignSelf: 'center',
+    marginVertical: THEME.SPACING.lg,
+  },
+  cameraPermissionText: {
+    fontSize: 12,
+    fontWeight: '700',
+    textAlign: 'center',
+    marginBottom: THEME.SPACING.md,
+  },
+  cameraPermitBtn: {
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    borderRadius: THEME.RADIUS.lg,
+  },
+  cameraPermitBtnText: {
+    fontSize: 10,
+    fontWeight: '800',
+    textTransform: 'uppercase',
+  },
+  cameraHint: {
+    fontSize: 10,
+    fontWeight: '900',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    textAlign: 'center',
+    marginBottom: THEME.SPACING.xxl,
+  },
+});

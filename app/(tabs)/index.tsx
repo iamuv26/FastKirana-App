@@ -35,6 +35,7 @@ import { toast } from '../../lib/toast';
 import { useResponsive, getCenteredContainerStyle } from '../../lib/responsive';
 import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
 import { formatPrice, formatHeaderAddress, getAppImageSource, isRestaurantProduct, formatDisplayOrderId } from '../../lib/utils';
+import { THEME } from '../../lib/theme';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
@@ -61,14 +62,14 @@ function PulsingRedDot() {
   }));
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         {
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: '#ef4444',
-          shadowColor: '#ef4444',
+          backgroundColor: THEME.COLORS.brand.error,
+          shadowColor: THEME.COLORS.brand.error,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.6,
           shadowRadius: 4,
@@ -76,7 +77,7 @@ function PulsingRedDot() {
           marginRight: 6,
         },
         animatedStyle
-      ]} 
+      ]}
     />
   );
 }
@@ -93,9 +94,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   const storeOpenHour = useUIStore((s) => s.storeOpenHour);
   const storeCloseHour = useUIStore((s) => s.storeCloseHour);
   const responsive = useResponsive();
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   useEffect(() => {
-    // Clock pulse animation
     pulse.value = withRepeat(
       withSequence(
         withTiming(1.08, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
@@ -104,7 +105,6 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
       -1,
       true
     );
-    // Glow ring animation
     glow.value = withRepeat(
       withSequence(
         withTiming(0.5, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
@@ -113,7 +113,6 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
       -1,
       true
     );
-    // Blob drift animations
     blob1X.value = withRepeat(
       withSequence(
         withTiming(30, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
@@ -183,17 +182,17 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   const closeTimeStr = formatHour(storeCloseHour ?? 24);
 
   const hours = [
-    { 
-      label: 'Grocery Mart', 
-      time: `${openTimeStr} – ${closeTimeStr}`, 
-      lucideIcon: <ShoppingBag size={15} color="#e20a22" />,
-      colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
+    {
+      label: 'Grocery Mart',
+      time: `${openTimeStr} – ${closeTimeStr}`,
+      lucideIcon: <ShoppingBag size={15} color={THEME.COLORS.brand.primary} />,
+      colorBg: isDarkMode ? `${THEME.COLORS.brand.primary}26` : THEME.COLORS.brand.primaryLight
     },
-    { 
-      label: 'FastKirana Food', 
-      time: '7:00 AM – 11:00 PM', 
-      lucideIcon: <Utensils size={15} color="#d97706" />,
-      colorBg: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : '#fef3c7'
+    {
+      label: 'FastKirana Food',
+      time: '7:00 AM – 11:00 PM',
+      lucideIcon: <Utensils size={15} color={THEME.COLORS.brand.accent} />,
+      colorBg: isDarkMode ? `${THEME.COLORS.brand.accent}26` : THEME.COLORS.brand.warningLight
     },
   ];
 
@@ -208,9 +207,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe' }}>
+    <View style={{ flex: 1, backgroundColor: colors.background }}>
       {/* Background blobs - full width */}
-      {/* Gradient mesh background blobs */}
       <Animated.View
         style={[blob1Style, {
           position: 'absolute',
@@ -223,7 +221,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         }]}
       >
         <LinearGradient
-          colors={(isDarkMode ? ['#e20a22', '#ff8787', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']) as any}
+          colors={isDarkMode ? [THEME.COLORS.brand.primary, '#ff8787', THEME.COLORS.brand.primary] : [THEME.COLORS.brand.primaryLight, '#fda4af', THEME.COLORS.brand.primaryLight]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ width: '100%', height: '100%', borderRadius: 160 }}
@@ -241,7 +239,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         }]}
       >
         <LinearGradient
-          colors={(isDarkMode ? ['#7c3aed', '#c084fc', '#7c3aed'] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']) as any}
+          colors={isDarkMode ? [THEME.COLORS.brand.accent, '#c084fc', THEME.COLORS.brand.accent] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']}
           style={{ width: 240, height: 240, borderRadius: 120 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -262,7 +260,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Clock with glow ring */}
-        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
+        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: THEME.SPACING.md }}>
           {/* Glow ring */}
           <Animated.View
             style={[glowStyle, {
@@ -270,7 +268,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               width: 110,
               height: 110,
               borderRadius: 55,
-              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.14)' : 'rgba(226,10,34,0.06)',
+              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}24` : `${THEME.COLORS.brand.primary}0F`,
             }]}
           />
           {/* Clock container */}
@@ -279,19 +277,19 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               width: 76,
               height: 76,
               borderRadius: 38,
-              backgroundColor: isDarkMode ? '#1c1c1f' : '#ffffff',
+              backgroundColor: colors.surfaceElevated,
               justifyContent: 'center',
               alignItems: 'center',
               borderWidth: 1.5,
-              borderColor: isDarkMode ? 'rgba(226,10,34,0.3)' : '#fda4af',
-              shadowColor: '#e20a22',
+              borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}4D` : '#fda4af',
+              shadowColor: THEME.COLORS.brand.primary,
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: isDarkMode ? 0.3 : 0.08,
               shadowRadius: 15,
               elevation: 5,
             }]}
           >
-            <Clock size={32} color="#e20a22" strokeWidth={2.2} />
+            <Clock size={32} color={THEME.COLORS.brand.primary} strokeWidth={2.2} />
           </Animated.View>
         </Animated.View>
 
@@ -303,15 +301,15 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               alignItems: 'center',
               paddingHorizontal: 12,
               paddingVertical: 5,
-              borderRadius: 16,
-              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.12)' : '#fee2e2',
+              borderRadius: THEME.RADIUS.md,
+              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.error}1F` : '#fee2e2',
               borderWidth: 1,
-              borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : '#fca5a5',
-              marginBottom: 12,
+              borderColor: isDarkMode ? `${THEME.COLORS.brand.error}33` : '#fca5a5',
+              marginBottom: THEME.SPACING.md,
             }}
           >
             <PulsingRedDot />
-            <Text style={{ fontSize: 10, fontWeight: '800', color: '#ef4444', letterSpacing: 1, textTransform: 'uppercase' }}>
+            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.error, letterSpacing: 1, textTransform: 'uppercase' }}>
               Currently Closed
             </Text>
           </View>
@@ -321,9 +319,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View entering={FadeInDown.delay(200).duration(400).springify()} style={{ alignItems: 'center' }}>
           <Text
             style={{
-              fontSize: 14,
-              fontWeight: '700',
-              color: isDarkMode ? '#8e8e93' : '#64748b',
+              fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+              fontWeight: THEME.TYPOGRAPHY.weights.bold,
+              color: colors.textSecondary,
               textAlign: 'center',
               letterSpacing: 0.5,
               textTransform: 'uppercase',
@@ -331,18 +329,18 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           >
             {"We'll be back at"}
           </Text>
-          
+
           {/* Elegant Time Capsule */}
           <LinearGradient
-            colors={['#e20a22', '#f43f5e']}
+            colors={[THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
-              borderRadius: 24,
+              borderRadius: THEME.RADIUS.xl,
               paddingHorizontal: 26,
               paddingVertical: 10,
               marginTop: 10,
-              shadowColor: '#e20a22',
+              shadowColor: THEME.COLORS.brand.primary,
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.3,
               shadowRadius: 12,
@@ -357,8 +355,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
             <Text
               style={{
                 fontSize: 26,
-                fontWeight: '900',
-                color: '#ffffff',
+                fontWeight: THEME.TYPOGRAPHY.weights.black,
+                color: THEME.COLORS.light.surface,
                 textAlign: 'center',
                 letterSpacing: 0.5,
               }}
@@ -366,16 +364,16 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               {openTimeStr}
             </Text>
           </LinearGradient>
-          
+
           <Text
             style={{
-              fontSize: 13,
-              color: isDarkMode ? '#a1a1aa' : '#475569',
+              fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+              color: colors.textSecondary,
               textAlign: 'center',
-              marginTop: 16,
+              marginTop: THEME.SPACING.md,
               lineHeight: 18,
               maxWidth: 270,
-              fontWeight: '600',
+              fontWeight: THEME.TYPOGRAPHY.weights.semibold,
             }}
           >
             Our team is resting up to bring you the freshest groceries & treats tomorrow!
@@ -386,28 +384,28 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View
           entering={FadeInUp.delay(300).duration(400).springify()}
           style={{
-            marginTop: 22,
+            marginTop: THEME.SPACING.xxl,
             width: '100%',
             maxWidth: 320,
-            borderRadius: 24,
+            borderRadius: THEME.RADIUS.xl,
             overflow: 'hidden',
             borderWidth: 1.5,
-            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
+            borderColor: colors.borderLight,
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: isDarkMode ? 0.3 : 0.04,
             shadowRadius: 16,
             elevation: 4,
-            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            backgroundColor: colors.surface,
           }}
         >
-          <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
+          <View style={{ paddingHorizontal: THEME.SPACING.md, paddingVertical: THEME.SPACING.sm }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <Text
                 style={{
-                  fontSize: 10,
-                  fontWeight: '800',
-                  color: isDarkMode ? '#8e8e93' : '#64748b',
+                  fontSize: THEME.TYPOGRAPHY.sizes.micro,
+                  fontWeight: THEME.TYPOGRAPHY.weights.black,
+                  color: colors.textSecondary,
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                 }}
@@ -417,22 +415,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               <View style={{
                 paddingHorizontal: 6,
                 paddingVertical: 2,
-                borderRadius: 6,
-                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
+                borderRadius: THEME.RADIUS.xs,
+                backgroundColor: colors.borderLight,
               }}>
-                <Text style={{ fontSize: 8, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569' }}>Daily</Text>
+                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textSecondary }}>Daily</Text>
               </View>
             </View>
 
             {hours.map((item, idx) => (
-              <View 
-                key={idx} 
-                style={{ 
-                  flexDirection: 'row', 
-                  alignItems: 'center', 
-                  paddingVertical: 8,
+              <View
+                key={idx}
+                style={{
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  paddingVertical: THEME.SPACING.xs,
                   borderBottomWidth: idx < hours.length - 1 ? 1 : 0,
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.borderLight,
                 }}
               >
                 <View style={{
@@ -446,12 +444,12 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 }}>
                   {item.lucideIcon}
                 </View>
-                
+
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: 11, color: isDarkMode ? '#8e8e93' : '#64748b', marginTop: 1, fontWeight: '500' }}>
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, color: colors.textSecondary, marginTop: 1, fontWeight: THEME.TYPOGRAPHY.weights.medium }}>
                     {item.time}
                   </Text>
                 </View>
@@ -460,13 +458,13 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                   width: 20,
                   height: 20,
                   borderRadius: 10,
-                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc',
+                  backgroundColor: colors.borderLight,
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderWidth: 1,
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
+                  borderColor: colors.border,
                 }}>
-                  <Clock size={10} color={isDarkMode ? '#71717a' : '#94a3b8'} />
+                  <Clock size={10} color={colors.textMuted} />
                 </View>
               </View>
             ))}
@@ -474,17 +472,17 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         </Animated.View>
 
         {/* Notify me button */}
-        <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: 18, width: '100%', maxWidth: 320 }}>
+        <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: THEME.SPACING.lg, width: '100%', maxWidth: 320 }}>
           <ScalePressable
             onPress={handleNotify}
             disabled={notified}
             scaleValue={0.98}
             haptic="success"
             style={({ pressed }) => ({
-              borderRadius: 24,
+              borderRadius: THEME.RADIUS.xl,
               opacity: pressed ? 0.88 : 1,
               elevation: 4,
-              shadowColor: notified ? '#15803d' : '#e20a22',
+              shadowColor: notified ? THEME.COLORS.brand.success : THEME.COLORS.brand.primary,
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.25,
               shadowRadius: 8,
@@ -492,8 +490,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           >
             <LinearGradient
               colors={notified
-                ? (isDarkMode ? ['#15803d', '#16a34a'] : ['#dcfce7', '#bbf7d0'])
-                : ['#e20a22', '#f43f5e']
+                ? (isDarkMode ? [THEME.COLORS.brand.success, THEME.COLORS.brand.successDark] : [THEME.COLORS.brand.successLight, '#bbf7d0'])
+                : [THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -503,21 +501,21 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',
-                borderRadius: 24,
+                borderRadius: THEME.RADIUS.xl,
                 gap: 8,
               }}
             >
               {notified ? (
                 <>
-                  <Check size={16} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d', letterSpacing: 0.5 }}>
+                  <Check size={16} color={isDarkMode ? '#bbf7d0' : THEME.COLORS.brand.successDark} strokeWidth={3} />
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: isDarkMode ? '#bbf7d0' : THEME.COLORS.brand.successDark, letterSpacing: 0.5 }}>
                     {"You'll be Notified!"}
                   </Text>
                 </>
               ) : (
                 <>
                   <Bell size={16} color="#ffffff" strokeWidth={2.2} />
-                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', letterSpacing: 1.0, textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', letterSpacing: 1.0, textTransform: 'uppercase' }}>
                     Notify Me When Open
                   </Text>
                 </>
@@ -528,7 +526,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
         {/* Subtle bottom text */}
         <Animated.View entering={FadeIn.delay(500).duration(500)}>
-          <Text style={{ marginTop: 14, fontSize: 10, color: isDarkMode ? '#3f3f46' : '#94a3b8', textAlign: 'center', fontWeight: '500' }}>
+          <Text style={{ marginTop: 14, fontSize: THEME.TYPOGRAPHY.sizes.micro, color: colors.textMuted, textAlign: 'center', fontWeight: THEME.TYPOGRAPHY.weights.medium }}>
             FastKirana · Delivery in 10 minutes
           </Text>
         </Animated.View>
@@ -560,20 +558,20 @@ function PulsingStatusDot() {
   }));
 
   return (
-    <Animated.View 
+    <Animated.View
       style={[
         {
           width: 7,
           height: 7,
           borderRadius: 3.5,
-          backgroundColor: '#ffffff',
-          shadowColor: '#ffffff',
+          backgroundColor: THEME.COLORS.light.surface,
+          shadowColor: THEME.COLORS.light.surface,
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.8,
           shadowRadius: 3,
         },
         animatedStyle
-      ]} 
+      ]}
     />
   );
 }
@@ -594,6 +592,7 @@ export default function HomeScreen() {
     : (insets.top > 0
       ? insets.top + (responsive.isTablet ? 230 : responsive.isLargeScreen ? 245 : 215)
       : (responsive.isLargeScreen ? 245 : 220));
+
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -613,6 +612,7 @@ export default function HomeScreen() {
       transform: [{ translateY }],
     };
   });
+
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
@@ -620,9 +620,9 @@ export default function HomeScreen() {
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
 
-  // Home states and refs
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
+  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const scrollViewRef = useRef<any>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
@@ -663,12 +663,11 @@ export default function HomeScreen() {
 
       const timer = setTimeout(() => {
         setIsSwitching('none');
-      }, 400); // Hold for 400ms for a smooth transition!
+      }, 400);
       return () => clearTimeout(timer);
     }, [])
   );
 
-  // ── Stable renderItem for both FlashLists (prevents scroll jitter) ──
   const renderProductCard = useCallback(({ item, index }: any) => (
     <ProductCard product={item} className="w-full" index={index} />
   ), []);
@@ -690,7 +689,6 @@ export default function HomeScreen() {
     transform: [{ translateY: loaderTranslateY.value }],
   }));
 
-  // Removed Cafe UI conditional states
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -699,8 +697,6 @@ export default function HomeScreen() {
     }, 200);
     return () => clearTimeout(timer);
   }, []);
-
-  // Removed Reanimated layout tracking for gliding tab indicator
 
   // Collapsible sticky header scroll tracking
   const scrollY = useSharedValue(0);
@@ -748,7 +744,6 @@ export default function HomeScreen() {
     const scrollYVal = event.nativeEvent.contentOffset.y;
     scrollY.value = scrollYVal;
 
-    // Update isCollapsed state
     if (scrollYVal > 40 && !isCollapsed) {
       setIsCollapsed(true);
     } else if (scrollYVal <= 40 && isCollapsed) {
@@ -814,12 +809,12 @@ export default function HomeScreen() {
 
   const handleReorderLast = () => {
     if (!lastCompletedOrder || !lastCompletedOrder.items) return;
-    
+
     triggerHaptic('success');
-    
+
     lastCompletedOrder.items.forEach((item: any) => {
       const matchedProd = products.find(p => p.id === item.productId || p.slug === item.productSlug);
-      
+
       addItem({
         id: item.productId || matchedProd?.id || '',
         name: item.name || matchedProd?.name || '',
@@ -835,12 +830,8 @@ export default function HomeScreen() {
       });
     });
 
-    toast.success("Reordered! 🛍️ All items from your previous order have been added to your cart.");
+    toast.success("Reordered! All items from your previous order have been added to your cart.");
   };
-
-
-
-  // Redundant 8s refetch interval removed as useQuery('active-orders') already polls every 5 seconds.
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -849,18 +840,18 @@ export default function HomeScreen() {
       prevStatusRef.current = null;
       return;
     }
-    
+
     if (prevStatusRef.current !== null && prevStatusRef.current !== activeOrder.status) {
       const statusLabel = ORDER_STATUS_LABELS[activeOrder.status] || activeOrder.status;
       sendLocalNotification(
-        `⚡ Order Status: ${statusLabel}`,
+        `Order Status: ${statusLabel}`,
         `Your order #${formatDisplayOrderId(activeOrder.id, activeOrder.readableId)} is now ${statusLabel.toLowerCase()}!`
       );
     }
     prevStatusRef.current = activeOrder.status;
   }, [activeOrder]);
 
-  // Fetch ALL live products from Next.js backend (no hardcoded fallback)
+  // Fetch ALL live products from Next.js backend
   const { data: products = [], isLoading, refetch: refetchAllProducts } = useQuery<Product[]>({
     queryKey: ['home-products', validStoreId],
     queryFn: async () => {
@@ -869,8 +860,8 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 60000, // 60s cache validity
-    refetchInterval: 90000, // Auto-refetch every 90s for stock sync
+    staleTime: 60000,
+    refetchInterval: 90000,
   });
 
   const foodProducts = useMemo(() => {
@@ -894,7 +885,7 @@ export default function HomeScreen() {
     }).slice(0, 10);
   }, [products]);
 
-  // Pull-to-refresh implementation
+  // Pull-to-refresh
   const [isRefreshing, setIsRefreshing] = useState(false);
   const onRefresh = async () => {
     setIsRefreshing(true);
@@ -913,12 +904,11 @@ export default function HomeScreen() {
 
   const [showModeSwitchLoader, setShowModeSwitchLoader] = useState(true);
 
-  // We should hide the loader only when products are loaded AND we are not transitioning
   useEffect(() => {
     if (!isLoading && isSwitching === 'none') {
       const timer = setTimeout(() => {
         setShowModeSwitchLoader(false);
-      }, 500); // 500ms minimum display duration for premium feeling
+      }, 500);
       return () => clearTimeout(timer);
     } else {
       setShowModeSwitchLoader(true);
@@ -948,19 +938,18 @@ export default function HomeScreen() {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  // Prefetch top products and categories images in the background to speed up image loading
+  // Prefetch product images
   useEffect(() => {
     if (products && products.length > 0) {
       const urls = products
         .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
         .filter((url): url is string => !!url)
-        .slice(0, 24); // Prefetch first 24 product images (was 40; reduce RAM/IO during scrolling)
+        .slice(0, 24);
       if (urls.length > 0) {
         ExpoImage.prefetch(urls);
       }
     }
   }, [products]);
-
 
   const trendingProducts = useMemo(() => {
     const list = products.filter(p => p.isAvailable !== false && !isRestaurantProduct(p));
@@ -974,9 +963,9 @@ export default function HomeScreen() {
     return [];
   }, [products]);
 
-  // Dynamic Hour-based suggestion filter (IST equivalent)
+  // Dynamic Hour-based suggestion filter
   const currentHour = new Date().getHours();
-  
+
   const timeDetails = useMemo(() => {
     if (currentHour >= 6 && currentHour < 11) {
       return {
@@ -1013,7 +1002,6 @@ export default function HomeScreen() {
       if (categorySlug && timeDetails.categories.includes(categorySlug)) {
         return true;
       }
-      // Fallback for mock prefix IDs
       const prefix = p.id.slice(0, 2);
       if (prefix === 'db' && timeDetails.categories.includes('dairy-breakfast')) return true;
       if (prefix === 'bb' && timeDetails.categories.includes('bakery')) return true;
@@ -1021,50 +1009,49 @@ export default function HomeScreen() {
       if (prefix === 'de' && timeDetails.categories.includes('grocery-essential')) return true;
       if (prefix === 'sm' && timeDetails.categories.includes('snacks-biscuits')) return true;
       if (prefix === 'bv' && timeDetails.categories.includes('beverages')) return true;
-      
+
       return false;
     }).slice(0, 10);
   }, [products, timeDetails]);
 
-  // Best Sellers (overall top rated or explicitly flagged as bestseller)
+  // Best Sellers
   const bestSellers = useMemo(() => {
     const dbBestsellers = products.filter(p => p.isAvailable !== false && (p.tags?.includes('popular') || p.tags?.includes('essential')));
     if (dbBestsellers.length > 0) return dbBestsellers.slice(0, 6);
 
-    // Fallback to static selection for mock products
     return products.filter(p => p.isAvailable !== false && (p.id === 'db1' || p.id === 'sm2' || p.id === 'fv1' || p.id === 'def2' || p.id === 'db3' || p.id === 'bv2'));
   }, [products]);
 
   return (
-    <View style={{ flex: 1 }} className="flex-1 bg-white dark:bg-zinc-950 relative">
+    <View style={{ flex: 1 }} className="flex-1 relative">
       {/* Status Bar Solid Blocker */}
-      <View 
-        style={{ 
-          position: 'absolute', 
-          top: 0, 
-          left: 0, 
-          right: 0, 
-          height: insets.top, 
-          backgroundColor: isDarkMode ? '#09090b' : '#ffffff', 
-          zIndex: 25 
-        }} 
+      <View
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: insets.top,
+          backgroundColor: colors.background,
+          zIndex: 25
+        }}
       />
 
       {/* Gradient Mesh Blobs */}
       <View className="absolute inset-0 overflow-hidden pointer-events-none z-0" style={{ pointerEvents: 'none' }}>
         <LinearGradient
-          colors={isDarkMode ? ['rgba(226,10,34,0.12)', 'rgba(226,10,34,0)'] : ['rgba(226,10,34,0.08)', 'rgba(226,10,34,0)']}
+          colors={isDarkMode ? [`${THEME.COLORS.brand.primary}1F`, `${THEME.COLORS.brand.primary}00`] : [`${THEME.COLORS.brand.primary}14`, `${THEME.COLORS.brand.primary}00`]}
           style={{ position: 'absolute', top: -50, left: -50, width: 250, height: 250, borderRadius: 125 }}
         />
         <LinearGradient
-          colors={isDarkMode ? ['rgba(0,177,64,0.08)', 'rgba(0,177,64,0)'] : ['rgba(0,177,64,0.06)', 'rgba(0,177,64,0)']}
+          colors={isDarkMode ? [`${THEME.COLORS.brand.success}14`, `${THEME.COLORS.brand.success}00`] : [`${THEME.COLORS.brand.success}0F`, `${THEME.COLORS.brand.success}00`]}
           style={{ position: 'absolute', top: 300, right: -80, width: 280, height: 280, borderRadius: 140 }}
         />
       </View>
 
       {/* Header Container */}
       <Animated.View style={[headerAnimatedStyle, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
-        <View 
+        <View
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
             if (h > 0 && Math.abs(h - headerHeight) > 1) {
@@ -1072,27 +1059,27 @@ export default function HomeScreen() {
             }
           }}
           style={{
-            paddingHorizontal: 16,
+            paddingHorizontal: THEME.SPACING.lg,
             paddingTop: insets.top > 0 ? insets.top + 5 : 8,
-          paddingBottom: 8,
-          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-          ...Platform.select({
-            ios: {
-              shadowColor: '#000',
-              shadowOffset: { width: 0, height: 2 },
-              shadowOpacity: isDarkMode ? 0.15 : 0.02,
-              shadowRadius: 6,
-            },
-            android: {
-              elevation: 1,
-            },
-          }),
-        }}>
+            paddingBottom: 8,
+            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: isDarkMode ? 0.15 : 0.02,
+                shadowRadius: 6,
+              },
+              android: {
+                elevation: 1,
+              },
+            }),
+          }}>
           {/* Top Row: Branded Header & Location Capsule */}
           <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} onLocationPress={() => setShowAddressSheet(true)} />
 
           {/* Search Box Shortcut right under Branding */}
-          <ScalePressable 
+          <ScalePressable
             onPress={() => {
               router.push('/search');
             }}
@@ -1100,9 +1087,9 @@ export default function HomeScreen() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              backgroundColor: colors.surface,
               borderWidth: 1,
-              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+              borderColor: colors.border,
               borderRadius: 22,
               paddingHorizontal: 16,
               height: 42,
@@ -1122,19 +1109,19 @@ export default function HomeScreen() {
               }),
             }}
           >
-            <Search size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ marginRight: 10 }} />
-            <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '600', flex: 1 }, placeholderStyle]}>
+            <Search size={16} color={colors.textSecondary} style={{ marginRight: 10 }} />
+            <Animated.Text style={[{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, color: colors.textMuted, fontWeight: THEME.TYPOGRAPHY.weights.semibold, flex: 1 }, placeholderStyle]}>
               {currentSuggestion}
             </Animated.Text>
-            
+
             {/* Vertical Divider */}
-            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginHorizontal: 10 }} />
-            
-            <Mic size={16} color="#e20a22" />
+            <View style={{ width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: 10 }} />
+
+            <Mic size={16} color={THEME.COLORS.brand.primary} />
           </ScalePressable>
 
-          {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control matching media__1785285067014.png */}
-          <View 
+          {/* Store Switcher Tab Pills */}
+          <View
             onLayout={(e) => {
               const w = e.nativeEvent.layout.width;
               if (w > 0 && Math.abs(w - measuredPillWidth) > 0.5) {
@@ -1149,8 +1136,8 @@ export default function HomeScreen() {
               height: 48,
               borderRadius: 24,
               borderWidth: 1,
-              borderColor: isDarkMode ? '#27272a' : 'rgba(0,0,0,0.06)',
-              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+              borderColor: colors.border,
+              backgroundColor: colors.surface,
               padding: 3,
               marginTop: 2,
               marginBottom: 6,
@@ -1176,8 +1163,8 @@ export default function HomeScreen() {
               bottom: 3,
               left: 3,
               borderRadius: 21,
-              backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
-              shadowColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
+              backgroundColor: localActiveSegment === 'grocery' ? THEME.COLORS.brand.primary : THEME.COLORS.brand.accent,
+              shadowColor: localActiveSegment === 'grocery' ? THEME.COLORS.brand.primary : THEME.COLORS.brand.accent,
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.35,
               shadowRadius: 6,
@@ -1204,12 +1191,12 @@ export default function HomeScreen() {
                 gap: 8,
               }}
             >
-              <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+              <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textSecondary} strokeWidth={2.2} />
               <View>
-                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textPrimary, lineHeight: 15 }}>
                   Grocery
                 </Text>
-                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : '#64748b', textTransform: 'uppercase' }}>
+                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textSecondary, textTransform: 'uppercase' }}>
                   FAST DELIVERY
                 </Text>
               </View>
@@ -1233,12 +1220,12 @@ export default function HomeScreen() {
                 gap: 8,
               }}
             >
-              <Utensils size={18} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
+              <Utensils size={18} color={localActiveSegment === 'food' ? THEME.COLORS.light.surface : colors.textSecondary} strokeWidth={2.2} />
               <View>
-                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
+                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: localActiveSegment === 'food' ? THEME.COLORS.light.surface : colors.textPrimary, lineHeight: 15 }}>
                   Food
                 </Text>
-                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#fde047' : '#ea580c', textTransform: 'uppercase' }}>
+                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.5, color: localActiveSegment === 'food' ? THEME.COLORS.brand.warning : THEME.COLORS.brand.accent, textTransform: 'uppercase' }}>
                   RESTAURANT
                 </Text>
               </View>
@@ -1247,15 +1234,15 @@ export default function HomeScreen() {
         </View>
         {/* Hairline underline & Top Loading Progress Bar */}
         {isSwitching !== 'none' ? (
-          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? '#27272a' : '#fecdd3', overflow: 'hidden' }}>
-            <Animated.View 
-              style={[{ height: '100%', width: '45%', backgroundColor: '#e20a22', borderRadius: 2 }, loaderAnimatedStyle]} 
+          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? colors.border : THEME.COLORS.brand.primaryLight, overflow: 'hidden' }}>
+            <Animated.View
+              style={[{ height: '100%', width: '45%', backgroundColor: THEME.COLORS.brand.primary, borderRadius: 2 }, loaderAnimatedStyle]}
             />
           </View>
         ) : (
           <LinearGradient
-            colors={isDarkMode 
-              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
+            colors={isDarkMode
+              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)']
               : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
             }
             start={{ x: 0, y: 0 }}
@@ -1267,8 +1254,8 @@ export default function HomeScreen() {
 
       {/* Scrollable Content */}
 
-      {/* Grocery Storefront View (matching the screenshot exactly) */}
-         <Animated.ScrollView 
+      {/* Grocery Storefront View */}
+         <Animated.ScrollView
           ref={scrollViewRef}
           onScroll={(e) => {
             scrollY.value = e.nativeEvent.contentOffset.y;
@@ -1277,16 +1264,16 @@ export default function HomeScreen() {
           onTouchStart={onTabBarTouchStart}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
-          className="flex-1 bg-white dark:bg-zinc-950" 
-          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: insets.bottom + 195 }} 
+          className="flex-1"
+          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: insets.bottom + 195 }}
           showsVerticalScrollIndicator={false}
           entering={FadeIn.duration(220)}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={onRefresh}
-              tintColor={isDarkMode ? "#ffffff" : "#e20a22"}
-              colors={["#e20a22"]}
+              tintColor={isDarkMode ? THEME.COLORS.light.surface : THEME.COLORS.brand.primary}
+              colors={[THEME.COLORS.brand.primary]}
             />
           }
         >
@@ -1295,8 +1282,8 @@ export default function HomeScreen() {
 
           {/* Category Grid Section Title */}
           <View className="px-4 flex-row justify-between items-center mb-3 mt-1">
-            <Text className="text-base font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>Trending Categories</Text>
-            <ScalePressable 
+            <Text className="text-base font-black tracking-tight" style={{ color: colors.textPrimary }}>Trending Categories</Text>
+            <ScalePressable
               onPress={() => {
                 router.push('/(tabs)/categories');
               }}
@@ -1304,17 +1291,17 @@ export default function HomeScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
+                backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1F` : THEME.COLORS.brand.primaryLight,
                 paddingHorizontal: 9,
                 paddingVertical: 4.5,
-                borderRadius: 12,
+                borderRadius: THEME.RADIUS.md,
                 borderWidth: 1,
-                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
+                borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}40` : '#ffe4e6',
                 gap: 2,
               }}
             >
-              <Text className="text-rose-600 dark:text-rose-450 font-extrabold text-[10px] uppercase tracking-wider">See all</Text>
-              <ChevronRight size={11} color="#e20a22" strokeWidth={3} />
+              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, color: THEME.COLORS.brand.primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>See all</Text>
+              <ChevronRight size={11} color={THEME.COLORS.brand.primary} strokeWidth={3} />
             </ScalePressable>
           </View>
 
@@ -1323,24 +1310,24 @@ export default function HomeScreen() {
 
           {/* Active Order Tracker */}
           {activeOrder && (
-            <ScalePressable 
+            <ScalePressable
               onPress={() => {
                 router.push(`/order/${activeOrder.id}`);
               }}
               scaleValue={0.98}
               style={{
                 alignSelf: 'stretch',
-                marginHorizontal: 16,
-                marginBottom: 16,
-                borderRadius: 16,
+                marginHorizontal: THEME.SPACING.md,
+                marginBottom: THEME.SPACING.md,
+                borderRadius: THEME.RADIUS.lg,
                 overflow: 'hidden',
               }}
             >
               <LinearGradient
-                colors={['#10b981', '#047857']}
+                colors={[THEME.COLORS.brand.success, THEME.COLORS.brand.successDark]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ width: '100%', padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: 16 }}
+                style={{ width: '100%', padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: THEME.RADIUS.lg }}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2 flex-1 pr-2">
@@ -1360,7 +1347,7 @@ export default function HomeScreen() {
                   </View>
                   <ChevronRight size={16} color="#fff" />
                 </View>
-                
+
                 {/* Timeline Progress Bar */}
                 <View className="flex-row items-center gap-1.5 mt-3 pt-2 border-t border-emerald-500/30">
                   {['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED'].map((step, idx) => {
@@ -1368,8 +1355,8 @@ export default function HomeScreen() {
                     const currentIdx = stepOrder.indexOf(activeOrder.status);
                     const isCompleted = idx <= currentIdx;
                     return (
-                      <View 
-                        key={step} 
+                      <View
+                        key={step}
                         className={`flex-1 h-1 rounded-full ${
                           isCompleted ? 'bg-white' : 'bg-emerald-800'
                         }`}
@@ -1379,21 +1366,21 @@ export default function HomeScreen() {
                 </View>
               </LinearGradient>
             </ScalePressable>
-          )}
- 
+          )
+
           {/* Reorder Last Order Banner */}
           {!activeOrder && lastCompletedOrder && (
-            <ScalePressable 
+            <ScalePressable
               onPress={handleReorderLast}
               scaleValue={0.97}
               haptic="medium"
               style={{
                 alignSelf: 'stretch',
-                marginHorizontal: 16,
+                marginHorizontal: THEME.SPACING.md,
                 marginBottom: 18,
-                borderRadius: 18,
+                borderRadius: THEME.RADIUS.lg,
                 overflow: 'hidden',
-                shadowColor: isDarkMode ? '#e11d48' : '#fda4af',
+                shadowColor: THEME.COLORS.brand.accent,
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: isDarkMode ? 0.15 : 0.25,
                 shadowRadius: 10,
@@ -1401,7 +1388,7 @@ export default function HomeScreen() {
               }}
             >
               <LinearGradient
-                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : ['#fff7ed', '#fff1f2']}
+                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : [THEME.COLORS.brand.accentLight, THEME.COLORS.brand.primaryLight]}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -1409,35 +1396,35 @@ export default function HomeScreen() {
                   paddingHorizontal: 18,
                   paddingVertical: 15,
                   borderWidth: 1.2,
-                  borderColor: isDarkMode ? '#312e81' : '#fecdd3',
-                  borderRadius: 18,
+                  borderColor: isDarkMode ? '#312e81' : THEME.COLORS.brand.primaryLight,
+                  borderRadius: THEME.RADIUS.lg,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1, paddingRight: 20 }}>
-                  <View className="w-11 h-11 rounded-full bg-rose-500/10 dark:bg-rose-500/15 items-center justify-center border border-rose-500/20 shrink-0">
-                    <RefreshCw size={18} color="#e11d48" strokeWidth={2.5} />
+                  <View className="w-11 h-11 rounded-full items-center justify-center border shrink-0" style={{ backgroundColor: `${THEME.COLORS.brand.primary}1A`, borderColor: `${THEME.COLORS.brand.primary}33` }}>
+                    <RefreshCw size={18} color={THEME.COLORS.brand.accent} strokeWidth={2.5} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: 0.1 }} numberOfLines={1}>
+                      <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, letterSpacing: 0.1 }} numberOfLines={1}>
                         Reorder Last Order
                       </Text>
-                      <View className="bg-rose-500/10 px-1.5 py-0.5 rounded-md shrink-0">
-                        <Text className="text-rose-600 dark:text-rose-400 text-[8px] font-black uppercase">Quick</Text>
+                      <View className="px-1.5 py-0.5 rounded-md shrink-0" style={{ backgroundColor: `${THEME.COLORS.brand.primary}1A` }}>
+                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.primary, textTransform: 'uppercase' }}>Quick</Text>
                       </View>
                     </View>
-                    <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '500', marginTop: 3 }} numberOfLines={1}>
+                    <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 3 }} numberOfLines={1}>
                       {lastCompletedOrder.items?.map((it: any) => it.name).join(', ')}
                     </Text>
                   </View>
                 </View>
-                
+
                 <View style={{ overflow: 'hidden', borderRadius: 99 }}>
                   <LinearGradient
-                    colors={['#ea580c', '#e11d48']}
+                    colors={[THEME.COLORS.brand.accent, THEME.COLORS.brand.primary]}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={{
@@ -1448,7 +1435,7 @@ export default function HomeScreen() {
                       gap: 4
                     }}
                   >
-                    <Text className="text-white font-black text-[10px] uppercase tracking-wider">Reorder</Text>
+                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>Reorder</Text>
                     <ChevronRight size={12} color="#fff" strokeWidth={3.5} />
                   </LinearGradient>
                 </View>
@@ -1456,7 +1443,6 @@ export default function HomeScreen() {
             </ScalePressable>
           )}
 
-          {/* Curated For You (Deals Curation Hub) */}
           {/* Curated For You (Deals Curation Hub) */}
           {isReady ? (
             <>
@@ -1466,7 +1452,7 @@ export default function HomeScreen() {
             </>
           ) : (
             <View style={{ height: 300, alignItems: 'center', justifyContent: 'center' }}>
-              <ActivityIndicator size="small" color="#e11d48" />
+              <ActivityIndicator size="small" color={THEME.COLORS.brand.accent} />
             </View>
           )}
           </Animated.ScrollView>
@@ -1476,7 +1462,7 @@ export default function HomeScreen() {
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
       <CartQuickPreviewSheet visible={showCartSheet} onClose={() => setShowCartSheet(false)} />
 
-      {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
+      {/* Branded Mode Switch Doorstep Loader Screen Overlay */}
       {showModeSwitchLoader && (
         <Animated.View
           entering={FadeIn.duration(150)}
@@ -1488,7 +1474,7 @@ export default function HomeScreen() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+              backgroundColor: colors.background,
               zIndex: 99999,
               justifyContent: 'center',
               alignItems: 'center',
@@ -1509,7 +1495,7 @@ export default function HomeScreen() {
                   alignItems: 'center',
                   borderWidth: 1,
                   borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                  shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
+                  shadowColor: colors.border,
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.1,
                   shadowRadius: 8,
@@ -1532,20 +1518,20 @@ export default function HomeScreen() {
               </View>
             </Animated.View>
 
-            {/* Doorstep Message matching user's splash screen typography */}
+            {/* Doorstep Message */}
             <View style={{ paddingHorizontal: 40, alignItems: 'center', marginTop: 12 }}>
-              <Text 
+              <Text
                 style={{
-                  fontSize: 14.5,
-                  fontWeight: '700',
-                  color: isDarkMode ? '#a1a1aa' : '#64748b',
+                  fontSize: THEME.TYPOGRAPHY.sizes.body,
+                  fontWeight: THEME.TYPOGRAPHY.weights.bold,
+                  color: colors.textSecondary,
                   textAlign: 'center',
                   lineHeight: 22,
                   letterSpacing: -0.2,
                 }}
               >
                 {isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
-                  ? "Cooking fresh food, delivered at your doorstep" 
+                  ? "Cooking fresh food, delivered at your doorstep"
                   : "Everything you need, delivered at your doorstep"}
               </Text>
             </View>
