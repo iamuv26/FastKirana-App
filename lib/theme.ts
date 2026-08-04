@@ -1,3 +1,5 @@
+import { TextStyle } from 'react-native';
+
 export const THEME = {
   COLORS: {
     // Brand Colors
@@ -59,13 +61,13 @@ export const THEME = {
       hero: 28,        // Large hero titles
     },
     weights: {
-      light: '300',
-      regular: '400',
-      medium: '500',
-      semibold: '600',
-      bold: '700',
-      extrabold: '800',
-      black: '850',    // Extra weight for premium titles if supported
+      light: '300' as TextStyle['fontWeight'],
+      regular: '400' as TextStyle['fontWeight'],
+      medium: '500' as TextStyle['fontWeight'],
+      semibold: '600' as TextStyle['fontWeight'],
+      bold: '700' as TextStyle['fontWeight'],
+      extrabold: '800' as TextStyle['fontWeight'],
+      black: '900' as TextStyle['fontWeight'],
     }
   },
 

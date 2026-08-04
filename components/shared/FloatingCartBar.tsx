@@ -290,8 +290,8 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
               ]}
             />
             <View style={styles.viewCartButton}>
-              <Text allowFontScaling={false} style={[styles.viewCartText, { color: isDarkMode ? colors.textPrimary : activeBrandColor }]}>View Cart</Text>
-              <ChevronRight size={11} color={isDarkMode ? colors.textPrimary : activeBrandColor} strokeWidth={3} />
+              <Text allowFontScaling={false} style={[styles.viewCartText, { color: isDarkMode ? THEME.COLORS.dark.textPrimary : activeBrandColor }]}>View Cart</Text>
+              <ChevronRight size={11} color={isDarkMode ? THEME.COLORS.dark.textPrimary : activeBrandColor} strokeWidth={3} />
             </View>
           </View>
         </View>
@@ -303,9 +303,38 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
 const styles = StyleSheet.create({
   innerCard: {
     borderRadius: THEME.RADIUS.lg,
-    overflow: 'hidden',
-    height: 52,
+    paddingHorizontal: THEME.SPACING.md,
+    paddingVertical: THEME.SPACING.sm + 2,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    elevation: 8,
+    shadowColor: '#e20a22',
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.25,
+    shadowRadius: 12,
+  },
+  leftSection: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: THEME.SPACING.sm,
+    flex: 1,
+  },
+  badge: {
+    minWidth: 20,
+    height: 20,
+    borderRadius: THEME.RADIUS.pill,
+    backgroundColor: '#ffffff',
+    alignItems: 'center',
     justifyContent: 'center',
+    paddingHorizontal: 3,
+    borderWidth: 1.2,
+  },
+  badgeText: {
+    color: THEME.COLORS.brand.primary,
+    fontSize: THEME.TYPOGRAPHY.sizes.micro,
+    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    textAlign: 'center',
   },
   topProgressTrack: {
     position: 'absolute',
@@ -337,19 +366,6 @@ const styles = StyleSheet.create({
     position: 'relative',
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.12)',
-  },
-  badge: {
-    position: 'absolute',
-    top: -4,
-    right: -4,
-    backgroundColor: THEME.COLORS.brand.warning,
-    borderRadius: 9,
-    minWidth: 17,
-    height: 17,
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: 3,
-    borderWidth: 1.2,
   },
   badgeText: {
     color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary,
