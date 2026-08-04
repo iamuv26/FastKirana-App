@@ -16,6 +16,9 @@ export const THEME = {
       warning: '#f59e0b',       // Amber/Yellow
       warningLight: '#fffbeb',  // Light amber tint
       warningDark: '#b45309',   // Dark amber
+      error: '#ef4444',         // Red Error
+      errorLight: '#fef2f2',    // Light Red Tint
+      errorDark: '#991b1b',     // Dark Red
     },
     // Gradients
     gradients: {

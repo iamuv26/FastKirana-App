@@ -406,7 +406,7 @@ const styles = StyleSheet.create({
   },
   badgeText: {
     fontSize: 9,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontWeight: '900',
     color: '#ea580c',
     letterSpacing: 0.5,
   },
@@ -429,18 +429,18 @@ const styles = StyleSheet.create({
   },
   liveText: {
     fontSize: 8.5,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontWeight: '900',
     color: '#15803d',
     letterSpacing: 0.4,
   },
   bannerSubTitle: {
     fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
+    fontWeight: '700',
     marginTop: 2,
   },
   bannerMainTitle: {
     fontSize: 21,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontWeight: '900',
     letterSpacing: -0.4,
   },
   textLight: {
