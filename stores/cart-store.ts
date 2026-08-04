@@ -13,8 +13,6 @@ export interface CartProduct {
   unit: string;
   stock: number;
   isAvailable?: boolean;
-  restaurantId?: string | null;
-  restaurantName?: string | null;
   category?: {
     id: string;
     name: string;
@@ -35,7 +33,6 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   addItem: (product: CartProduct) => void;
-  replaceCartWithProduct: (product: CartProduct) => void;
   removeItem: (productId: string) => void;
   updateQuantity: (productId: string, quantity: number) => void;
   clearCart: () => void;
@@ -44,8 +41,6 @@ interface CartState {
   getSubtotal: () => number;
   getMrpTotal: () => number;
   getSavings: () => number;
-  getCartRestaurantId: () => string | null;
-  getCartRestaurantName: () => string | null;
   updateCartProduct: (productId: string, updates: Partial<CartProduct>) => void;
   updateItemNotes: (productId: string, notes: string) => void;
 }
@@ -72,22 +67,6 @@ export const useCartStore = create<CartState>()(
           }
           return { items: [...state.items, { product, quantity: 1 }] };
         });
-      },
-
-      replaceCartWithProduct: (product: CartProduct) => {
-        const isOOS = product.isAvailable === false || (product.isAvailable !== true && product.stock !== undefined && product.stock !== null && product.stock <= 0);
-        if (isOOS) return;
-        set({ items: [{ product, quantity: 1 }] });
-      },
-
-      getCartRestaurantId: () => {
-        const item = get().items.find((i) => !!i.product.restaurantId);
-        return item?.product.restaurantId || null;
-      },
-
-      getCartRestaurantName: () => {
-        const item = get().items.find((i) => !!i.product.restaurantName);
-        return item?.product.restaurantName || null;
       },
 
       removeItem: (productId: string) => {

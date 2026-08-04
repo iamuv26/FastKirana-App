@@ -1,4 +1,4 @@
-import { View, Text, ScrollView, useWindowDimensions, Pressable, StyleSheet, Platform } from 'react-native';
+import { View, Text, ScrollView, useWindowDimensions, Pressable } from 'react-native';
 import { useState, useEffect, useRef } from 'react';
 import { ShoppingBag } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
@@ -6,7 +6,6 @@ import Animated, { FadeIn, useAnimatedStyle, withSpring } from 'react-native-rea
 import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
 import { THEME } from '../../lib/theme';
-import { useTheme } from '../../app/context/ThemeContext';
 
 const BANNERS = [
   {
@@ -35,13 +34,13 @@ const BANNERS = [
   }
 ];
 
-function PaginationDot({ isActive, isDarkMode }: { isActive: boolean; isDarkMode: boolean }) {
+function PaginationDot({ isActive }: { isActive: boolean }) {
   const animatedStyle = useAnimatedStyle(() => {
     return {
       width: withSpring(isActive ? 20 : 6, { damping: 12 }),
-      backgroundColor: isActive ? THEME.COLORS.brand.primary : (isDarkMode ? THEME.COLORS.dark.border : THEME.COLORS.light.border),
+      backgroundColor: isActive ? THEME.COLORS.brand.primary : THEME.COLORS.light.border,
     };
-  }, [isActive, isDarkMode]);
+  }, [isActive]);
 
   return (
     <Animated.View
@@ -53,9 +52,6 @@ function PaginationDot({ isActive, isDarkMode }: { isActive: boolean; isDarkMode
 export default function HeroBanner() {
   const { width } = useWindowDimensions();
   const bannerWidth = width > 0 ? width : 390;
-  const { theme } = useTheme();
-  const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const [activeIndex, setActiveIndex] = useState(0);
   const scrollViewRef = useRef<ScrollView>(null);
 
@@ -81,7 +77,7 @@ export default function HeroBanner() {
   };
 
   return (
-    <Animated.View entering={FadeIn.duration(300)} style={{ marginBottom: THEME.SPACING.lg, overflow: 'hidden' }}>
+    <Animated.View entering={FadeIn.duration(300)} style={{ marginBottom: THEME.SPACING.lg }} className="overflow-hidden">
       <ScrollView
         ref={scrollViewRef}
         horizontal
@@ -93,7 +89,7 @@ export default function HeroBanner() {
         {BANNERS.map((banner) => (
           <View
             key={banner.id}
-            style={{ width: width, paddingHorizontal: THEME.SPACING.lg, height: 170 }}
+            style={{ width: width, paddingHorizontal: 16, height: 170 }}
           >
             <ScalePressable
               onPress={() => {}}
@@ -101,18 +97,8 @@ export default function HeroBanner() {
               style={{
                 width: '100%',
                 height: 170,
-                borderRadius: THEME.RADIUS.xl,
-                overflow: 'hidden',
-                ...Platform.select({
-                  ios: {
-                    shadowColor: '#000',
-                    shadowOffset: { width: 0, height: 4 },
-                    shadowOpacity: 0.05,
-                    shadowRadius: 8,
-                  },
-                  android: { elevation: 2 },
-                }),
               }}
+              className="rounded-2xl overflow-hidden shadow-sm"
             >
               <LinearGradient
                 colors={banner.colors}
@@ -120,34 +106,34 @@ export default function HeroBanner() {
                 end={{ x: 1, y: 1 }}
                 style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
               />
-              <View style={{ padding: THEME.SPACING.lg, position: 'relative', flexDirection: 'column', justifyContent: 'space-between', height: '100%', width: '100%' }}>
+              <View className="p-6 relative flex-col justify-between h-full w-full">
                 {/* Glossy decorative background accents */}
                 <View style={{ position: 'absolute', right: -40, top: -40, width: 192, height: 192, borderRadius: 96, borderWidth: 1, borderColor: 'rgba(255,255,255,0.05)', backgroundColor: 'rgba(255,255,255,0.03)', zIndex: 0 }} />
                 <View style={{ position: 'absolute', right: -20, bottom: -20, width: 144, height: 144, borderRadius: 72, borderWidth: 1, borderColor: 'rgba(255,255,255,0.1)', backgroundColor: 'rgba(255,255,255,0.05)', zIndex: 0 }} />
 
                 {/* Overlay Graphic */}
-                <View style={{ position: 'absolute', right: -10, bottom: -10, opacity: 0.15, zIndex: 0 }}>
+                <View className="absolute right-[-10px] bottom-[-10px] opacity-15 z-0">
                   <ShoppingBag size={130} color="#fff" />
                 </View>
 
                 {/* Tag & Offer */}
-                <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', zIndex: 10 }}>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.2)', paddingHorizontal: 10, paddingVertical: 4, borderRadius: THEME.RADIUS.sm }}>
-                    <Text style={{ color: '#ffffff', fontSize: 9, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, textTransform: 'uppercase', letterSpacing: 0.5 }}>{banner.tag}</Text>
+                <View className="flex-row items-center justify-between z-10">
+                  <View className="bg-white/20 px-2.5 py-1 rounded-md">
+                    <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">{banner.tag}</Text>
                   </View>
-                  <View style={{ backgroundColor: 'rgba(255,255,255,0.1)', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.pill, flexDirection: 'row', alignItems: 'center', gap: 4 }}>
-                    <Text style={{ color: '#ffffff', fontSize: 8, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>10 Mins</Text>
+                  <View className="bg-white/10 px-2 py-0.5 rounded-full flex-row items-center gap-1">
+                    <Text className="text-white text-[8px] font-bold">10 Mins</Text>
                   </View>
                 </View>
 
                 {/* Heading & Button */}
-                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-end', zIndex: 10 }}>
-                  <View style={{ flex: 1, paddingRight: THEME.SPACING.md }}>
-                    <Text style={{ color: '#ffffff', fontSize: 18, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', lineHeight: 20, letterSpacing: -0.5 }}>{banner.title}</Text>
-                    <Text style={{ color: 'rgba(255,255,255,0.85)', fontSize: 10, fontWeight: THEME.TYPOGRAPHY.weights.bold, marginTop: 4 }}>{banner.desc}</Text>
+                <View className="flex-row justify-between items-end z-10">
+                  <View className="flex-1 pr-4">
+                    <Text className="text-white font-black text-lg leading-tight uppercase" style={{ letterSpacing: -0.5 }}>{banner.title}</Text>
+                    <Text className="text-white/85 text-[10px] font-bold mt-1">{banner.desc}</Text>
                   </View>
-                  <View style={{ backgroundColor: '#ffffff', paddingHorizontal: 16, paddingVertical: 8, borderRadius: THEME.RADIUS.md }}>
-                    <Text style={{ color: banner.colors[0], fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, textTransform: 'uppercase', letterSpacing: 0.3 }}>
+                  <View className="bg-white px-4 py-2 rounded-xl shadow-md">
+                    <Text style={{ color: banner.colors[0], fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase tracking-wider">
                       Order Now
                     </Text>
                   </View>
@@ -159,9 +145,9 @@ export default function HeroBanner() {
       </ScrollView>
 
       {/* Dynamic Animated Pagination indicators */}
-      <View style={{ flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6, marginTop: THEME.SPACING.sm }}>
+      <View className="flex-row justify-center items-center gap-1.5 mt-3">
         {BANNERS.map((_, index) => (
-          <PaginationDot key={index} isActive={activeIndex === index} isDarkMode={isDarkMode} />
+          <PaginationDot key={index} isActive={activeIndex === index} />
         ))}
       </View>
     </Animated.View>

@@ -1,20 +1,19 @@
 import React, { useState, useMemo } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-  ActivityIndicator,
-  Platform,
+import { 
+  View, 
+  Text, 
+  ScrollView, 
+  Pressable, 
+  StyleSheet, 
+  ActivityIndicator, 
+  Platform 
 } from 'react-native';
-import { ChevronRight, Utensils, Flame } from 'lucide-react-native';
+import { ChevronRight, Utensils, Flame, Sparkles } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useQuery } from '@tanstack/react-query';
 import ProductCard, { Product } from '../product/ProductCard';
-import { ScalePressable } from '../shared/ScalePressable';
 import { useTheme } from '../../app/context/ThemeContext';
-import { THEME } from '../../lib/theme';
+import { ScalePressable } from '../shared/ScalePressable';
 import { triggerHaptic } from '../../lib/haptic';
 import { API_BASE_URL } from '../../lib/constants';
 import { router } from 'expo-router';
@@ -39,7 +38,6 @@ const WEDSON_CATEGORIES: WedsonCategory[] = [
 export default function WedsonRestaurantCard() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   const cafeOpen = useUIStore((s) => s.cafeOpen);
 
@@ -54,20 +52,20 @@ export default function WedsonRestaurantCard() {
         if (!response.ok) throw new Error('API fetch failed');
         const data = await response.json();
         const list = Array.isArray(data) ? data : (data.products || []);
-
+        
         // Filter for food/cafe/restaurant items
         const cafeList = list.filter((p: Product) => {
           const catSlug = p.category?.slug?.toLowerCase() || '';
           const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
-          return catSlug.includes('cafe') ||
-                 catSlug.includes('food') ||
+          return catSlug.includes('cafe') || 
+                 catSlug.includes('food') || 
                  catSlug.includes('restaurant') ||
                  catSlug.includes('main-course') ||
                  tags.some((t: string) => ['cafe', 'restaurant', 'chinese', 'sandwich', 'pizza', 'shake', 'biryani', 'meal', 'main-course', 'paneer', 'curry'].includes(t));
         });
 
         return cafeList.length > 0 ? cafeList : list.slice(0, 10);
-      } catch {
+      } catch (e) {
         return [];
       }
     },
@@ -78,7 +76,7 @@ export default function WedsonRestaurantCard() {
     if (activeCategory === 'all') {
       // Show & prioritize Main Course, Paneer Specialties & Gravies under Chef's Specials
       const mainCourseKeywords = ['main-course', 'curry', 'paneer', 'butter-masala', 'kadhai', 'dal-makhani', 'sabzi', 'gravy', 'shahi', 'matar-paneer', 'thali', 'handi', 'biryani'];
-
+      
       const mainCourseProducts = realProducts.filter((p) => {
         const catSlug = p.category?.slug?.toLowerCase() || '';
         const tags = p.tags?.map((t: string) => t.toLowerCase()) || [];
@@ -145,17 +143,6 @@ export default function WedsonRestaurantCard() {
     router.push('/cafe');
   };
 
-  const badgeBg = '#fff7ed';
-  const badgeBorder = '#ffedd5';
-  const liveOpenBg = '#f0fdf4';
-  const liveOpenBorder = '#bbf7d0';
-  const liveOpenDotColor = '#16a34a';
-  const liveOpenTextColor = '#15803d';
-  const subtextColor = isDarkMode ? '#fb923c' : '#ea580c';
-  const inactivePillBg = isDarkMode ? '#27272a' : '#ffffff';
-  const inactivePillBorder = isDarkMode ? '#3f3f46' : '#fed7aa';
-  const inactivePillText = isDarkMode ? '#f4f4f5' : '#334155';
-
   return (
     <View style={styles.cardContainer}>
       <LinearGradient
@@ -167,42 +154,25 @@ export default function WedsonRestaurantCard() {
         {/* Sleek Gourmet Header */}
         <View style={styles.bannerHeader}>
           <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', flexWrap: 'wrap', gap: 6, marginBottom: 4 }}>
-            <View style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: badgeBg,
-              borderWidth: 1,
-              borderColor: badgeBorder,
-              paddingHorizontal: THEME.SPACING.sm,
-              paddingVertical: 3,
-              borderRadius: THEME.RADIUS.sm,
-              gap: 3,
-            }}>
-              <Flame size={11} color="#ea580c" />
-              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ea580c', letterSpacing: 0.5 }}>WEDSON SPECIALS</Text>
+            <View style={styles.badgeCapsule}>
+              <Flame size={11} color="#ea580c" style={{ marginRight: 3 }} />
+              <Text style={styles.badgeText}>WEDSON SPECIALS</Text>
             </View>
-
-            <View style={[
-              styles.liveBadge,
-              !cafeOpen && {
-                backgroundColor: `${THEME.COLORS.brand.error}26`,
-                borderColor: `${THEME.COLORS.brand.error}4D`,
-              },
-            ]}>
-              <View style={[styles.liveDot, !cafeOpen && { backgroundColor: THEME.COLORS.brand.error }]} />
-              <Text style={[styles.liveText, !cafeOpen && { color: THEME.COLORS.brand.error }]}>{cafeOpen ? 'FRESH PREP' : 'CLOSED NOW'}</Text>
+            <View style={[styles.liveBadge, !cafeOpen && { backgroundColor: 'rgba(239, 68, 68, 0.15)', borderColor: 'rgba(239, 68, 68, 0.3)' }]}>
+              <View style={[styles.liveDot, !cafeOpen && { backgroundColor: '#ef4444' }]} />
+              <Text style={[styles.liveText, !cafeOpen && { color: '#ef4444' }]}>{cafeOpen ? 'FRESH PREP' : 'CLOSED NOW'}</Text>
             </View>
           </View>
 
           <Text style={[styles.bannerSubTitle, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
             Fresh & Hot Gourmet Meals from
           </Text>
-
+          
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 2 }}>
             <Text style={[styles.bannerMainTitle, isDarkMode ? styles.textLight : styles.textDark]}>
               Wedson Restaurant
             </Text>
-            <Text style={{ fontSize: 20 }}>{'\U0001F468‍\U0000200D\U0001F373\U0001F35B\U0001F355'}</Text>
+            <Text style={{ fontSize: 20 }}>👨‍🍳🍛🍕</Text>
           </View>
         </View>
 
@@ -211,7 +181,6 @@ export default function WedsonRestaurantCard() {
           horizontal
           showsHorizontalScrollIndicator={false}
           contentContainerStyle={styles.categoryScrollContainer}
-          decelerationRate="fast"
         >
           {WEDSON_CATEGORIES.map((cat) => {
             const isActive = activeCategory === cat.id;
@@ -223,11 +192,14 @@ export default function WedsonRestaurantCard() {
                   setActiveCategory(cat.id);
                 }}
                 scaleValue={0.95}
-                style={{ borderRadius: THEME.RADIUS.lg, marginBottom: 2 }}
+                style={{
+                  borderRadius: 18,
+                  marginBottom: 2,
+                }}
               >
                 {isActive ? (
                   <View style={{
-                    borderRadius: THEME.RADIUS.lg,
+                    borderRadius: 18,
                     backgroundColor: '#9a3412',
                     paddingBottom: 3,
                     shadowColor: '#ea580c',
@@ -241,16 +213,16 @@ export default function WedsonRestaurantCard() {
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
                       style={{
-                        paddingHorizontal: THEME.SPACING.sm,
+                        paddingHorizontal: 15,
                         paddingVertical: 8,
-                        borderRadius: THEME.RADIUS.lg,
+                        borderRadius: 18,
                         flexDirection: 'row',
                         alignItems: 'center',
                         gap: 6,
                       }}
                     >
                       <Text style={{ fontSize: 13 }}>{cat.emoji}</Text>
-                      <Text style={{ fontSize: 12.5, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', letterSpacing: 0.2 }}>
+                      <Text style={{ fontSize: 12.5, fontWeight: '900', color: '#ffffff', letterSpacing: 0.2 }}>
                         {cat.name}
                       </Text>
                     </LinearGradient>
@@ -259,14 +231,14 @@ export default function WedsonRestaurantCard() {
                   <View style={{
                     paddingHorizontal: 14,
                     paddingVertical: 8,
-                    borderRadius: THEME.RADIUS.lg,
+                    borderRadius: 18,
                     flexDirection: 'row',
                     alignItems: 'center',
                     gap: 6,
-                    backgroundColor: inactivePillBg,
+                    backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
                     borderWidth: 1.2,
-                    borderColor: inactivePillBorder,
-                    shadowColor: '#000000',
+                    borderColor: isDarkMode ? '#3f3f46' : '#fed7aa',
+                    shadowColor: '#000',
                     shadowOffset: { width: 0, height: 1 },
                     shadowOpacity: 0.04,
                     shadowRadius: 3,
@@ -275,8 +247,8 @@ export default function WedsonRestaurantCard() {
                     <Text style={{ fontSize: 12.5 }}>{cat.emoji}</Text>
                     <Text style={{
                       fontSize: 12,
-                      fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-                      color: inactivePillText,
+                      fontWeight: '800',
+                      color: isDarkMode ? '#f4f4f5' : '#334155',
                     }}>
                       {cat.name}
                     </Text>
@@ -287,11 +259,11 @@ export default function WedsonRestaurantCard() {
           })}
         </ScrollView>
 
-        {/* Grocery Product Cards Carousel */}
+        {/* Grocery Product Cards Carousel (Exact Grocery Match & Real Sync) */}
         {isLoading ? (
           <View style={{ height: 180, justifyContent: 'center', alignItems: 'center' }}>
             <ActivityIndicator size="small" color="#ea580c" />
-            <Text style={{ fontSize: 12, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textSecondary, marginTop: 8 }}>
+            <Text style={{ fontSize: 12, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 8 }}>
               Syncing Wedson Menu...
             </Text>
           </View>
@@ -303,10 +275,10 @@ export default function WedsonRestaurantCard() {
           >
             {displayProducts.slice(0, 12).map((prod, idx) => (
               <View key={prod.id || idx} style={{ width: 144, height: 270 }}>
-                <ProductCard
-                  product={prod}
-                  index={idx}
-                  className="w-full"
+                <ProductCard 
+                  product={prod} 
+                  index={idx} 
+                  className="w-full" 
                   isCafeStyle={true}
                 />
               </View>
@@ -324,7 +296,7 @@ export default function WedsonRestaurantCard() {
           >
             <View style={{
               width: '100%',
-              borderRadius: THEME.RADIUS.lg,
+              borderRadius: 18,
               backgroundColor: '#9a3412',
               paddingBottom: 4,
               shadowColor: '#ea580c',
@@ -339,16 +311,16 @@ export default function WedsonRestaurantCard() {
                 end={{ x: 1, y: 1 }}
                 style={{
                   height: 50,
-                  borderRadius: THEME.RADIUS.lg,
+                  borderRadius: 18,
                   flexDirection: 'row',
                   alignItems: 'center',
                   justifyContent: 'center',
                   gap: 8,
-                  paddingHorizontal: THEME.SPACING.sm,
+                  paddingHorizontal: 16,
                 }}
               >
                 <Utensils size={18} color="#ffffff" strokeWidth={2.5} />
-                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.4, textTransform: 'uppercase' }}>
+                <Text style={{ color: '#ffffff', fontSize: 14, fontWeight: '900', letterSpacing: 0.4, textTransform: 'uppercase' }}>
                   EXPLORE WEDSON MENU
                 </Text>
                 <ChevronRight size={18} color="#ffffff" strokeWidth={3} />
@@ -364,13 +336,13 @@ export default function WedsonRestaurantCard() {
 
 const styles = StyleSheet.create({
   cardContainer: {
-    marginHorizontal: THEME.SPACING.lg,
-    marginVertical: THEME.SPACING.sm,
+    marginHorizontal: 16,
+    marginVertical: 12,
   },
   outerCard: {
-    borderRadius: THEME.RADIUS.xl,
-    paddingTop: THEME.SPACING.md,
-    paddingBottom: THEME.SPACING.sm,
+    borderRadius: 24,
+    paddingTop: 16,
+    paddingBottom: 14,
     borderWidth: 1.5,
     ...Platform.select({
       ios: {
@@ -381,8 +353,8 @@ const styles = StyleSheet.create({
       },
       android: {
         elevation: 3,
-      },
-    }),
+      }
+    })
   },
   outerCardLight: {
     borderColor: '#fed7aa',
@@ -391,7 +363,7 @@ const styles = StyleSheet.create({
     borderColor: '#451a03',
   },
   bannerHeader: {
-    paddingHorizontal: THEME.SPACING.md,
+    paddingHorizontal: 18,
     marginBottom: 12,
   },
   badgeCapsule: {
@@ -402,7 +374,7 @@ const styles = StyleSheet.create({
     borderColor: '#ffedd5',
     paddingHorizontal: 8,
     paddingVertical: 3,
-    borderRadius: THEME.RADIUS.sm,
+    borderRadius: 10,
   },
   badgeText: {
     fontSize: 9,
@@ -418,7 +390,7 @@ const styles = StyleSheet.create({
     borderColor: '#bbf7d0',
     paddingHorizontal: 7,
     paddingVertical: 3,
-    borderRadius: THEME.RADIUS.sm,
+    borderRadius: 10,
     gap: 4,
   },
   liveDot: {
@@ -434,7 +406,7 @@ const styles = StyleSheet.create({
     letterSpacing: 0.4,
   },
   bannerSubTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
+    fontSize: 12,
     fontWeight: '700',
     marginTop: 2,
   },
@@ -456,17 +428,17 @@ const styles = StyleSheet.create({
     color: '#fb923c',
   },
   categoryScrollContainer: {
-    paddingHorizontal: THEME.SPACING.md,
-    gap: THEME.SPACING.sm,
+    paddingHorizontal: 18,
+    gap: 8,
     paddingBottom: 12,
   },
   productScrollContainer: {
-    paddingHorizontal: THEME.SPACING.sm,
+    paddingHorizontal: 16,
     gap: 10,
     paddingBottom: 12,
   },
   footerWrap: {
-    paddingHorizontal: THEME.SPACING.md,
-    marginTop: THEME.SPACING.sm,
+    paddingHorizontal: 18,
+    marginTop: 10,
   },
 });

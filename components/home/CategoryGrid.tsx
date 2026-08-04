@@ -85,11 +85,11 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
           style={{
             width: '100%',
             height: 126,
-            backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff',
-            borderRadius: THEME.RADIUS.xl,
+            backgroundColor: isDarkMode ? '#1e1e24' : '#ffffff',
+            borderRadius: 24,
             borderWidth: 1,
-            borderColor: isDarkMode ? THEME.COLORS.dark.border : '#f1f5f9',
-            paddingVertical: THEME.SPACING.sm,
+            borderColor: isDarkMode ? '#2d2d34' : '#f1f5f9',
+            paddingVertical: 10,
             paddingHorizontal: 4,
             alignItems: 'center',
             justifyContent: 'center',
@@ -104,15 +104,16 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
                 elevation: 2,
               },
               web: {
-                boxShadow: isDarkMode
-                  ? '0 4px 12px rgba(0,0,0,0.3)'
+                // @ts-ignore
+                boxShadow: isDarkMode 
+                  ? '0 4px 12px rgba(0,0,0,0.3)' 
                   : '0 4px 12px rgba(0, 0, 0, 0.03)',
               }
             })
           }}
         >
           {/* Inner Circle Image Container */}
-          <View
+          <View 
             style={{
               width: 62,
               height: 62,
@@ -120,7 +121,7 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
               overflow: 'hidden',
               alignItems: 'center',
               justifyContent: 'center',
-              backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#f8fafc',
+              backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
             }}
           >
             {/* Visual Gradient Background */}
@@ -134,26 +135,26 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
             {category.emoji ? (
               <Text style={{ fontSize: 26 }}>{category.emoji}</Text>
             ) : (
-              <ExpoImage
+              <ExpoImage 
                 source={category.source}
                 contentFit="cover"
                 style={{ width: '100%', height: '100%' }}
                 transition={200}
                 cachePolicy="memory-disk"
-                placeholder={isDarkMode ? 'rgba(39,39,42,0.4)' : 'rgba(241,245,249,0.6)'}
+                placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
               />
             )}
           </View>
-
+          
           {/* Label with upgraded typography */}
-          <Text
-            numberOfLines={2}
+          <Text 
+            numberOfLines={2} 
             allowFontScaling={false}
             style={{
-              color: isDarkMode ? THEME.COLORS.light.textPrimary : THEME.COLORS.light.textPrimary,
+              color: isDarkMode ? '#f4f4f5' : '#0f172a',
               fontSize: 10.5,
-              fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-              marginTop: THEME.SPACING.sm,
+              fontWeight: '800',
+              marginTop: 8,
               letterSpacing: -0.2,
               lineHeight: 13,
               textAlign: 'center',
@@ -208,7 +209,7 @@ export default function CategoryGrid() {
         // Sort by displayOrder / sortOrder (lowest first)
         const sorted = [...trending].sort((a: any, b: any) => {
           const ao = typeof a.displayOrder === 'number' ? a.displayOrder :
-                     typeof b.sortOrder === 'number' ? b.sortOrder : 999;
+                     typeof a.sortOrder === 'number' ? a.sortOrder : 999;
           const bo = typeof b.displayOrder === 'number' ? b.displayOrder :
                      typeof b.sortOrder === 'number' ? b.sortOrder : 999;
           return ao - bo;
@@ -315,10 +316,10 @@ export default function CategoryGrid() {
             width: '100%',
             height: 264, // Full 2-row height
             backgroundColor: isDarkMode ? '#1e1e24' : '#fff1f2',
-            borderRadius: THEME.RADIUS.xl,
+            borderRadius: 24,
             borderWidth: 1,
             borderColor: isDarkMode ? '#e20a22' : '#ffe4e6',
-            paddingVertical: THEME.SPACING.sm,
+            paddingVertical: 12,
             paddingHorizontal: 4,
             alignItems: 'center',
             justifyContent: 'center',
@@ -339,11 +340,11 @@ export default function CategoryGrid() {
             style={{
               width: 50,
               height: 50,
-              borderRadius: THEME.RADIUS.pill,
+              borderRadius: 25,
               backgroundColor: isDarkMode ? 'rgba(226,10,34,0.2)' : '#ffe4e6',
               alignItems: 'center',
               justifyContent: 'center',
-              marginBottom: THEME.SPACING.sm,
+              marginBottom: 10,
             }}
           >
             <LayoutGrid size={22} color="#e20a22" />
@@ -352,7 +353,7 @@ export default function CategoryGrid() {
             style={{
               color: '#e20a22',
               fontSize: 10,
-              fontWeight: THEME.TYPOGRAPHY.weights.black,
+              fontWeight: '900',
               textAlign: 'center',
               textTransform: 'uppercase',
               letterSpacing: -0.2,
@@ -361,7 +362,7 @@ export default function CategoryGrid() {
           >
             See All{'\n'}Categories
           </Text>
-          <View style={{ marginTop: THEME.SPACING.sm, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
+          <View style={{ marginTop: 8, flexDirection: 'row', alignItems: 'center', gap: 2 }}>
             <ArrowRight size={14} color="#e20a22" />
           </View>
         </Pressable>
@@ -369,5 +370,4 @@ export default function CategoryGrid() {
     </ScrollView>
   );
 }
-
 

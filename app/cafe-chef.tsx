@@ -81,7 +81,7 @@ function LivePulseDot() {
   );
 }
 
-export default function RestaurantChefScreen() {
+export default function CafeChefScreen() {
   const { theme } = useTheme();
   const isDarkMode = false;
   const isItemNonVeg = (name: string) => {
@@ -162,18 +162,8 @@ export default function RestaurantChefScreen() {
       });
       if (res.ok) {
         const data = await res.json();
-        const tProducts = data.topProducts || [];
-        // Calculate sales and profit directly from products to exclude delivery/other extra charges
-        const calculatedSales = tProducts.reduce((sum: number, p: any) => sum + (p.sales || 0), 0);
-        const calculatedProfit = tProducts.reduce((sum: number, p: any) => sum + (p.profit || 0), 0);
-        
-        setSummary({
-          totalSales: calculatedSales,
-          netProfit: calculatedProfit,
-          ordersCount: data.summary?.ordersCount || 0,
-          avgOrderValue: (data.summary?.ordersCount || 0) > 0 ? (calculatedSales / data.summary.ordersCount) : 0
-        });
-        setTopProducts(tProducts);
+        setSummary(data.summary || {});
+        setTopProducts(data.topProducts || []);
       }
     } catch (err) {
       console.warn('Failed to load restaurant analytics reports', err);
@@ -189,14 +179,14 @@ export default function RestaurantChefScreen() {
   }, [activeTab, rangePreset]);
 
   const isTargetCategory = (slug?: string | null) => {
-    const s = (slug || 'restaurant').toLowerCase();
-    return s === 'restaurant' || s === 'north-indian' || s === 'biryani-rice';
+    const s = (slug || 'cafe').toLowerCase();
+    return s === 'cafe' || s === 'burgers' || s === 'garlic-bread' || s === 'desserts' || s === 'beverages' || s === 'ice-cream' || s === 'bakery';
   };
 
   const fetchInventoryProducts = async () => {
     setIsLoadingInventory(true);
     try {
-      const response = await fetch(`${API_BASE_URL}/products?category=restaurant,north-indian,biryani-rice&limit=300`);
+      const response = await fetch(`${API_BASE_URL}/products?category=cafe,burgers,garlic-bread,desserts,beverages,ice-cream,bakery&limit=300`);
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -265,7 +255,7 @@ export default function RestaurantChefScreen() {
     if (!user) return;
     if (showLoader) setIsRefreshing(true);
     try {
-      const res = await fetch(`${API_BASE_URL}/picker/orders?type=restaurant`, { 
+      const res = await fetch(`${API_BASE_URL}/picker/orders?type=cafe`, { 
         method: 'GET', 
         headers: getAuthHeaders() 
       });
@@ -352,7 +342,7 @@ export default function RestaurantChefScreen() {
 
     // Pre-fetch all products for catalog suggestions / variant swap referencing
     try {
-      const response = await fetch(`${API_BASE_URL}/products?category=restaurant,north-indian,biryani-rice&limit=300`);
+      const response = await fetch(`${API_BASE_URL}/products?category=cafe,burgers,garlic-bread,desserts,beverages,ice-cream,bakery&limit=300`);
       if (response.ok) {
         const data = await response.json();
         if (Array.isArray(data)) {
@@ -409,7 +399,7 @@ export default function RestaurantChefScreen() {
         price: product.price,
         quantity: 1,
         imageUrl: product.imageUrl,
-        categorySlug: product.category?.slug || 'restaurant',
+        categorySlug: product.category?.slug || 'cafe',
         selectedVariant: null,
         notes: null,
         cooked: false
@@ -549,7 +539,7 @@ export default function RestaurantChefScreen() {
       }
       triggerAudioSuccess();
       setTimeout(() => {
-        toast.success(`🍳 Kitchen order for ${targetOrderUser} prepared! Sent to Rider.`);
+        toast.success(`☕ Cafe order for ${targetOrderUser} prepared! Sent to Rider.`);
       }, 300);
     } else {
       setOrders(updatedOrders);
@@ -611,15 +601,15 @@ export default function RestaurantChefScreen() {
           </Pressable>
           <View>
             <View className="flex-row items-center gap-2">
-              <Text className="text-slate-800 dark:text-white font-extrabold text-sm tracking-tight">Wedson Restaurant Console</Text>
-              <View className="flex-row items-center bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/30 px-2 py-0.5 rounded-full gap-1">
+              <Text className="text-slate-800 dark:text-white font-extrabold text-sm tracking-tight">FastKirana Cafe Console</Text>
+              <View className="flex-row items-center bg-orange-50 dark:bg-orange-950/20 border border-orange-100 dark:border-orange-900/30 px-2 py-0.5 rounded-full gap-1">
                 <LivePulseDot />
-                <Text className="text-rose-650 dark:text-rose-450 font-black text-[7.5px] tracking-wider uppercase">
+                <Text className="text-orange-650 dark:text-orange-450 font-black text-[7.5px] tracking-wider uppercase">
                   {user?.role || 'CHEF'}
                 </Text>
               </View>
             </View>
-            <Text className="text-slate-400 dark:text-zinc-500 text-[9.5px] font-bold mt-0.5">FastKirana Restaurant Food Prep Station</Text>
+            <Text className="text-slate-400 dark:text-zinc-500 text-[9.5px] font-bold mt-0.5">FastKirana Cafe Food Prep Station</Text>
           </View>
         </View>
         
@@ -663,7 +653,7 @@ export default function RestaurantChefScreen() {
         >
           {activeTab === 'ORDERS' && (
             <LinearGradient
-              colors={['#e20a22', '#be123c']}
+              colors={['#ea580c', '#f97316']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
@@ -680,7 +670,7 @@ export default function RestaurantChefScreen() {
         >
           {activeTab === 'ANALYTICS' && (
             <LinearGradient
-              colors={['#e20a22', '#be123c']}
+              colors={['#ea580c', '#f97316']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
@@ -697,7 +687,7 @@ export default function RestaurantChefScreen() {
         >
           {activeTab === 'INVENTORY' && (
             <LinearGradient
-              colors={['#e20a22', '#be123c']}
+              colors={['#ea580c', '#f97316']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
               style={{ position: 'absolute', left: 2, right: 2, top: 2, bottom: 2, borderRadius: 8 }}
@@ -714,11 +704,11 @@ export default function RestaurantChefScreen() {
         <ScrollView className="flex-1 p-4" showsVerticalScrollIndicator={false}>
           <View className="flex-row justify-between items-center mb-3.5">
             <View className="flex-row items-center gap-2">
-              <View className="w-8 h-8 rounded-full bg-rose-50 dark:bg-rose-950/20 border-rose-100 dark:border-rose-900/30 items-center justify-center">
-                <Flame size={14} color="#e20a22" />
+              <View className="w-8 h-8 rounded-full bg-orange-50 dark:bg-orange-950/20 border-orange-100 dark:border-orange-900/30 items-center justify-center">
+                <Flame size={14} color="#ea580c" />
               </View>
               <View>
-                <Text className="text-slate-800 dark:text-white font-extrabold text-[11px] uppercase tracking-wide">Restaurant Cooking Queue</Text>
+                <Text className="text-slate-800 dark:text-white font-extrabold text-[11px] uppercase tracking-wide">Cafe Cooking Queue</Text>
                 <Text className="text-slate-400 dark:text-zinc-500 text-[8.5px] font-bold mt-0.5">Track & manage all kitchen preparations in real-time</Text>
               </View>
             </View>
@@ -732,16 +722,16 @@ export default function RestaurantChefScreen() {
 
           {/* Bulk Prep Box - Redesigned into glass card with shadow */}
           {aggregatedPrepItems.length > 0 && (
-            <View className="mb-4 bg-rose-50/70 dark:bg-rose-950/10 border border-rose-100/60 dark:border-rose-900/20 rounded-2xl p-4 shadow-sm">
+            <View className="mb-4 bg-orange-50/70 dark:bg-orange-950/10 border border-orange-100/60 dark:border-orange-900/20 rounded-2xl p-4 shadow-sm">
               <View className="flex-row items-center gap-1.5 mb-3">
-                <ChefHat size={14} color="#e20a22" />
-                <Text className="text-rose-650 dark:text-rose-400 font-black text-[9.5px] uppercase tracking-wider">Kitchen Prep Summary (Bulk Prepare)</Text>
+                <ChefHat size={14} color="#ea580c" />
+                <Text className="text-orange-650 dark:text-orange-400 font-black text-[9.5px] uppercase tracking-wider">Kitchen Prep Summary (Bulk Prepare)</Text>
               </View>
               <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2.5 py-0.5">
                 {aggregatedPrepItems.map((item, idx) => (
                   <View key={idx} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 flex-row items-center gap-2 shadow-2xs">
                     <Text className="text-slate-800 dark:text-slate-200 font-extrabold text-[11px]">{item.name}</Text>
-                    <View className="bg-rose-500 px-2 py-0.5 rounded-full">
+                    <View className="bg-orange-500 px-2 py-0.5 rounded-full">
                       <Text className="text-white font-black text-[9px]">x{item.quantity}</Text>
                     </View>
                   </View>
@@ -752,8 +742,8 @@ export default function RestaurantChefScreen() {
 
           {pendingCafeOrders.length === 0 ? (
             <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800/80 p-8 items-center shadow-sm py-16">
-              <Text className="text-4xl mb-1">🍳</Text>
-              <Text className="text-slate-800 dark:text-white font-black text-sm mt-3">No restaurant items pending cooking</Text>
+              <Text className="text-4xl mb-1">☕</Text>
+              <Text className="text-slate-800 dark:text-white font-black text-sm mt-3">No cafe items pending cooking</Text>
               <Text className="text-slate-400 dark:text-zinc-500 text-[10px] mt-1.5 text-center leading-normal max-w-xs">
                 Restaurant orders placed on the customer app sync instantly to the chef console.
               </Text>
@@ -773,7 +763,7 @@ export default function RestaurantChefScreen() {
                       
                       {/* Gradient Status badge */}
                       <LinearGradient
-                        colors={isPending ? ['#f59e0b', '#d97706'] : ['#e20a22', '#be123c']}
+                        colors={isPending ? ['#f59e0b', '#d97706'] : ['#ea580c', '#f97316']}
                         start={{ x: 0, y: 0 }}
                         end={{ x: 1, y: 0 }}
                         className="px-3 py-1 rounded-full shadow-2xs"
@@ -814,7 +804,7 @@ export default function RestaurantChefScreen() {
                             activeOpacity={0.8}
                           >
                             <LinearGradient
-                              colors={['#e20a22', '#be123c']}
+                              colors={['#ea580c', '#f97316']}
                               start={{ x: 0, y: 0 }}
                               end={{ x: 1, y: 0 }}
                               style={{ flex: 1, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 6 }}
@@ -896,7 +886,7 @@ export default function RestaurantChefScreen() {
 
           {isLoadingReports ? (
             <View className="flex-1 items-center justify-center py-20">
-              <ActivityIndicator size="small" color="#e20a22" />
+              <ActivityIndicator size="small" color="#ea580c" />
               <Text className="text-[10px] text-slate-400 dark:text-zinc-550 font-bold mt-2">Loading analytics...</Text>
             </View>
           ) : (
@@ -915,10 +905,10 @@ export default function RestaurantChefScreen() {
 
                 {/* Net Profit */}
                 <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-4 w-[48%] shadow-2xs overflow-hidden relative">
-                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#e20a22' }} />
+                  <View style={{ position: 'absolute', top: 0, left: 0, right: 0, height: 3, backgroundColor: '#ea580c' }} />
                   <View className="flex-row justify-between items-center mb-1">
                     <Text className="text-[9px] font-black uppercase text-slate-400">Net Profit</Text>
-                    <Percent size={11} color="#e20a22" />
+                    <Percent size={11} color="#ea580c" />
                   </View>
                   <Text className="text-slate-800 dark:text-white font-extrabold text-sm">₹{summary.netProfit || 0}</Text>
                 </View>
@@ -946,7 +936,7 @@ export default function RestaurantChefScreen() {
 
               {/* Top Products - Redesigned with visual quantity sales bars */}
               <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800/80 rounded-3xl p-4.5 mb-6 shadow-xs">
-                <Text className="text-slate-800 dark:text-white font-black text-xs mb-3.5">🔥 Top Selling Restaurant Items</Text>
+                <Text className="text-slate-800 dark:text-white font-black text-xs mb-3.5">🔥 Top Selling Cafe Items</Text>
                 {topProducts.length === 0 ? (
                   <Text className="text-slate-400 text-[10px] font-bold text-center py-4">No top products data for this period</Text>
                 ) : (
@@ -969,7 +959,7 @@ export default function RestaurantChefScreen() {
                             </View>
                             {/* Horizontal visual progress bar */}
                             <View style={{ height: 4, backgroundColor: isDarkMode ? '#1c1c1e' : '#f1f5f9', borderRadius: 2, overflow: 'hidden' }}>
-                              <View style={{ height: '100%', width: `${pct}%`, backgroundColor: '#e20a22', borderRadius: 2 }} />
+                              <View style={{ height: '100%', width: `${pct}%`, backgroundColor: '#ea580c', borderRadius: 2 }} />
                             </View>
                           </View>
                         );
@@ -997,7 +987,7 @@ export default function RestaurantChefScreen() {
 
           {isLoadingInventory ? (
             <View className="flex-1 items-center justify-center py-20">
-              <ActivityIndicator size="small" color="#e20a22" />
+              <ActivityIndicator size="small" color="#ea580c" />
               <Text className="text-[10px] text-slate-400 dark:text-zinc-550 font-bold mt-2">Loading items...</Text>
             </View>
           ) : filteredProducts.length === 0 ? (
@@ -1110,7 +1100,7 @@ export default function RestaurantChefScreen() {
                         style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: isDarkMode ? '#3f3f46' : '#f1f5f9' }}
                       >
                         <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b', flex: 1, marginRight: 8 }}>{prod.name}</Text>
-                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#e20a22' }}>₹{prod.price}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#ea580c' }}>₹{prod.price}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -1152,12 +1142,12 @@ export default function RestaurantChefScreen() {
                                       paddingVertical: 3,
                                       borderRadius: 8,
                                       borderWidth: 1,
-                                      borderColor: isSelected ? '#e20a22' : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                                      borderColor: isSelected ? '#ea580c' : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
                                       backgroundColor: isSelected ? 'rgba(226,10,34,0.1)' : 'transparent',
                                       marginRight: 4
                                     }}
                                   >
-                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? '#e20a22' : (isDarkMode ? '#e2e8f0' : '#475569') }}>
+                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? '#ea580c' : (isDarkMode ? '#e2e8f0' : '#475569') }}>
                                       {v.name} (₹{v.price})
                                     </Text>
                                   </TouchableOpacity>
@@ -1238,7 +1228,7 @@ export default function RestaurantChefScreen() {
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: isDarkMode ? '#3f3f46' : '#e2e8f0', paddingTop: 6, marginTop: 2 }}>
                     <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Estimated Total</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#e20a22' }}>₹{computedTotal}</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#ea580c' }}>₹{computedTotal}</Text>
                   </View>
                 </View>
               );
@@ -1255,7 +1245,7 @@ export default function RestaurantChefScreen() {
               <TouchableOpacity
                 disabled={isSavingEdit}
                 onPress={saveEditedOrder}
-                style={{ flex: 1, height: 40, backgroundColor: '#e20a22', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
+                style={{ flex: 1, height: 40, backgroundColor: '#ea580c', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
               >
                 <Text style={{ fontSize: 11, fontWeight: '800', color: '#ffffff' }}>
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}

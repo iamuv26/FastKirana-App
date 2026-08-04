@@ -8,7 +8,6 @@ import { useUIStore } from '../../stores/ui-store';
 import { useTheme } from '../../app/context/ThemeContext';
 import { formatHeaderAddress } from '../../lib/utils';
 import { triggerHaptic } from '../../lib/haptic';
-import { THEME } from '../../lib/theme';
 
 interface BrandedTopHeaderProps {
   showBack?: boolean;
@@ -35,8 +34,6 @@ export default function BrandedTopHeader({
   const isDarkMode = theme === 'dark';
   const selectedLocation = useUIStore((s) => s.selectedLocation);
 
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
-
   const handleBack = () => {
     triggerHaptic('light');
     if (onBackPress) {
@@ -60,8 +57,8 @@ export default function BrandedTopHeader({
       style={[
         styles.container,
         {
-          backgroundColor: colors.background,
-          borderBottomColor: isDarkMode ? THEME.COLORS.dark.borderLight : colors.borderLight,
+          backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+          borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
         },
         style,
       ]}
@@ -77,11 +74,11 @@ export default function BrandedTopHeader({
               style={[
                 styles.backBtn,
                 {
-                  backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : colors.borderLight,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.05)',
                 },
               ]}
             >
-              <ArrowLeft size={18} color={colors.textPrimary} />
+              <ArrowLeft size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
             </ScalePressable>
           )}
 
@@ -90,7 +87,7 @@ export default function BrandedTopHeader({
               <Text
                 style={[
                   styles.titleText,
-                  { color: colors.textPrimary },
+                  { color: isDarkMode ? '#fafafa' : '#0f172a' },
                 ]}
                 numberOfLines={1}
               >
@@ -100,7 +97,7 @@ export default function BrandedTopHeader({
                 <Text
                   style={[
                     styles.subtitleText,
-                    { color: colors.textSecondary },
+                    { color: isDarkMode ? '#a1a1aa' : '#64748b' },
                   ]}
                   numberOfLines={1}
                 >
@@ -121,8 +118,8 @@ export default function BrandedTopHeader({
                 style={[
                   styles.logoContainer,
                   {
-                    backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : colors.borderLight,
-                    borderColor: colors.border,
+                    backgroundColor: isDarkMode ? '#18181b' : '#f1f5f9',
+                    borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
                   },
                 ]}
               >
@@ -130,8 +127,8 @@ export default function BrandedTopHeader({
               </View>
               <View style={styles.brandTextWrap}>
                 <Text style={styles.brandTitle}>
-                  <Text style={{ color: THEME.COLORS.brand.primary }}>Fast</Text>
-                  <Text style={{ color: colors.textPrimary }}>Kirana</Text>
+                  <Text style={{ color: '#e20a22' }}>Fast</Text>
+                  <Text style={{ color: isDarkMode ? '#e4e4e7' : '#7c0617' }}>Kirana</Text>
                 </Text>
                 <Text style={styles.brandSubtitle}>DELIVERY APP</Text>
               </View>
@@ -149,22 +146,22 @@ export default function BrandedTopHeader({
             style={[
               styles.locationCapsule,
               {
-                backgroundColor: isDarkMode ? 'rgba(226, 10, 34, 0.1)' : THEME.COLORS.brand.primaryLight,
-                borderColor: isDarkMode ? 'rgba(226, 10, 34, 0.25)' : '#fecdd3',
+                backgroundColor: isDarkMode ? 'rgba(225, 29, 72, 0.1)' : '#fff5f5',
+                borderColor: isDarkMode ? 'rgba(225, 29, 72, 0.3)' : '#fecdd3',
               },
             ]}
           >
-            <MapPin size={11} color={THEME.COLORS.brand.primary} style={styles.locationPin} />
+            <MapPin size={11} color="#e20a22" style={styles.locationPin} />
             <Text
               numberOfLines={1}
               style={[
                 styles.locationText,
-                { color: colors.textPrimary },
+                { color: isDarkMode ? '#fafafa' : '#0f172a' },
               ]}
             >
               {formatHeaderAddress(selectedLocation)}
             </Text>
-            <ChevronDown size={9} color={colors.textSecondary} />
+            <ChevronDown size={9} color={isDarkMode ? '#cbd5e1' : '#64748b'} />
           </ScalePressable>
         ) : null}
       </View>
@@ -177,22 +174,22 @@ const styles = StyleSheet.create({
     width: '100%',
     zIndex: 50,
     borderBottomWidth: 1,
-    paddingHorizontal: THEME.SPACING.lg,
-    paddingVertical: THEME.SPACING.sm,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
   },
   contentRow: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    gap: THEME.SPACING.sm,
+    gap: 8,
   },
   leftSection: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: THEME.SPACING.sm,
+    gap: 6,
     flex: 1,
     flexShrink: 1,
-    paddingRight: THEME.SPACING.xs,
+    paddingRight: 4,
   },
   backBtn: {
     width: 30,
@@ -212,24 +209,24 @@ const styles = StyleSheet.create({
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    borderRadius: THEME.RADIUS.xs,
+    borderRadius: 8,
     borderWidth: 1,
     flexShrink: 0,
   },
   brandTextWrap: {
-    marginLeft: THEME.SPACING.sm,
+    marginLeft: 5,
     flexShrink: 1,
   },
   brandTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.body,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontSize: 14.5,
+    fontWeight: '900',
     letterSpacing: -0.4,
     lineHeight: 17,
   },
   brandSubtitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    color: THEME.COLORS.brand.success,
+    fontSize: 6.5,
+    fontWeight: '900',
+    color: '#16a34a',
     letterSpacing: 0.2,
     marginTop: 0,
   },
@@ -238,22 +235,22 @@ const styles = StyleSheet.create({
     flexShrink: 1,
   },
   titleText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.body,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontSize: 14.5,
+    fontWeight: '900',
     letterSpacing: -0.2,
   },
   subtitleText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    fontSize: 9.5,
+    fontWeight: '600',
     marginTop: 1,
   },
   locationCapsule: {
     flexDirection: 'row',
     alignItems: 'center',
     borderWidth: 1,
-    borderRadius: THEME.RADIUS.pill,
-    paddingHorizontal: THEME.SPACING.sm,
-    paddingVertical: THEME.SPACING.xs + 1,
+    borderRadius: 99,
+    paddingHorizontal: 8,
+    paddingVertical: 4.5,
     maxWidth: '48%',
     flexShrink: 0,
   },
@@ -262,8 +259,8 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   locationText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
+    fontSize: 10,
+    fontWeight: '800',
     marginRight: 2,
     flexShrink: 1,
   },

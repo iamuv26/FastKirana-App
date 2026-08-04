@@ -26,6 +26,7 @@ export const API_BASE_URL = getApiUrl();
 
 export const FREE_DELIVERY_THRESHOLD = 199
 export const GROCERY_FREE_DELIVERY_THRESHOLD = 199
+export const CAFE_FREE_DELIVERY_THRESHOLD = 199
 export const DELIVERY_FEE = 25
 export const TAX_RATE = 0.05 // 5% GST
 
@@ -64,7 +65,7 @@ export const ORDER_STATUS_COLORS: Record<string, string> = {
   CANCELLED: 'bg-red-100 text-red-800',
 }
 
-export interface MenuSection {
+export interface CafeMenuSection {
   tag: string
   matchTags: string[]
   title: string
@@ -75,7 +76,136 @@ export interface MenuSection {
   disabled?: boolean
 }
 
-export const DEFAULT_RESTAURANT_MENU_SECTIONS: MenuSection[] = [
+export const DEFAULT_CAFE_MENU_SECTIONS: CafeMenuSection[] = [
+  {
+    tag: 'hot-beverage',
+    matchTags: ['hot-beverage', 'tea', 'coffee'],
+    title: 'Hot Brews',
+    emoji: '☕',
+    description: 'Chai, coffee, and fresh brewing mixes',
+  },
+  {
+    tag: 'hot-bite',
+    matchTags: ['hot-bite', 'snacks'],
+    title: 'Quick Bites',
+    emoji: '🥟',
+    description: 'Samosas, Momos, and warm treats',
+  },
+  {
+    tag: 'sandwiches',
+    matchTags: ['sandwiches', 'sandwich'],
+    title: 'Sandwiches',
+    emoji: '🥪',
+    description: 'Freshly grilled sandwiches loaded with cheese, paneer, and veggies',
+  },
+  {
+    tag: 'frankie-rolls',
+    matchTags: ['frankie-rolls', 'frankie rolls', 'frankie-roll', 'frankie roll', 'rolls', 'roll', 'kathi roll', 'kathi-roll'],
+    title: 'Frankie & Rolls',
+    emoji: '🌯',
+    description: 'Fresh rolls stuffed with paneer, cheese, and veg patties',
+  },
+  {
+    tag: 'chinese',
+    matchTags: ['chinese', 'chinese-cuisine', 'chinese cuisine'],
+    title: 'Chinese',
+    emoji: '🥡',
+    description: 'Momos, noodles, fried dishes & sauces',
+  },
+  {
+    tag: 'italian-pasta',
+    matchTags: ['italian-pasta', 'italian-pastas', 'italian pasta\'s', 'pasta'],
+    title: "Pasta & Italian",
+    emoji: '🍝',
+    description: 'Fresh penne tossed in aromatic red & white sauces',
+  },
+  {
+    tag: 'bombay-bites',
+    matchTags: ['bombay-bites', 'bombay bites', 'bombay-bite', 'bombay bite'],
+    title: 'Bombay Bites',
+    emoji: '🥪',
+    description: 'Vada Pav, special Bombay Masala Toast, and street snacks',
+  },
+  {
+    tag: 'rice-dishes',
+    matchTags: ['rice-dishes', 'rice dishes', 'rice-dish', 'rice dish', 'biryani', 'pulav'],
+    title: 'Rice & Biryani',
+    emoji: '🍚',
+    description: 'Flavourful biryani, fried rice, and combos',
+  },
+  {
+    tag: 'shakes',
+    matchTags: ['shakes', 'shake', 'milkshake', 'milkshakes'],
+    title: 'Thick Shakes',
+    emoji: '🥤',
+    description: 'Creamy strawberry, chocolate, and Oreo sips',
+  },
+  {
+    tag: 'mocktails',
+    matchTags: ['mocktails', 'mocktail', 'coolers', 'cooler'],
+    title: 'Mocktails',
+    emoji: '🍹',
+    description: 'Iced coolers, Virgin Mojito, and summer drinks',
+  },
+  {
+    tag: 'cold-coffee',
+    matchTags: ['cold-coffee', 'cold coffee', 'iced coffee', 'iced-coffee'],
+    title: 'Cold Coffee',
+    emoji: '🧋',
+    description: 'Classic cold brews, hazelnut cold coffee & iced sips',
+  },
+  {
+    tag: 'south-indian',
+    matchTags: ['south-indian', 'south indian'],
+    title: 'South Indian',
+    emoji: '🍛',
+    description: 'Dosa, Idli, Vada, Uttapam & more',
+  },
+  {
+    tag: 'cafe-bakery',
+    matchTags: ['bakery'],
+    title: 'Bakery & Sweets',
+    emoji: '🥐',
+    description: 'Freshly baked croissants, muffins, and sweet nibbles',
+  },
+  {
+    tag: 'chilled',
+    matchTags: ['chilled', 'cold-drink', 'beverages', 'beverage', 'drinks', 'drink'],
+    title: 'Chilled Drinks',
+    emoji: '🥤',
+    description: 'Carbonated soft drinks and cold energy boosts',
+  },
+  {
+    tag: 'pizza',
+    matchTags: ['pizza', 'pizzas'],
+    title: 'Pizza',
+    emoji: '🍕',
+    description: 'Fresh oven-baked pizzas with loaded cheese toppings',
+  },
+  {
+    tag: 'garlic-bread',
+    matchTags: ['garlic-bread', 'garlic bread', 'garlic-breads'],
+    title: 'Garlic Bread',
+    emoji: '🧄',
+    description: 'Crispy cheesy garlic bread baked to perfection',
+  },
+  {
+    tag: 'burgers-bites',
+    matchTags: ['burgers', 'burger', 'pav-bhaji', 'pav bhaji', 'pavbhaji'],
+    title: 'Burgers & Pav',
+    emoji: '🍔',
+    description: 'Juicy burgers, cheesy paneer burgers & butter pav bhaji',
+  },
+  {
+    tag: 'desserts',
+    matchTags: ['desserts', 'ice-cream', 'ice cream', 'icecream', 'kulfi', 'dessert', 'sweet'],
+    title: 'Ice Creams',
+    emoji: '🍦',
+    description: 'Chilled premium ice creams, kulfis, and desserts',
+  }
+]
+
+export const DEFAULT_RESTAURANT_MENU_SECTIONS: CafeMenuSection[] = [
   {
     tag: 'main-course',
     matchTags: ['main-course', 'curry', 'paneer-butter-masala', 'paneer'],
@@ -160,8 +290,4 @@ export const DEFAULT_RESTAURANT_MENU_SECTIONS: MenuSection[] = [
     emoji: '🍨',
     description: 'Hot gulab jamuns, premium ice creams, and traditional sweets',
   }
-];
-
-export type CafeMenuSection = MenuSection;
-export const DEFAULT_CAFE_MENU_SECTIONS = DEFAULT_RESTAURANT_MENU_SECTIONS;
-export const CAFE_FREE_DELIVERY_THRESHOLD = FREE_DELIVERY_THRESHOLD;
+]

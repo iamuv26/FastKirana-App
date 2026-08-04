@@ -18,10 +18,9 @@ import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
 import Logo from '../../components/shared/Logo';
 import { ScalePressable } from '../../components/shared/ScalePressable';
-import { BrandedTopHeader } from '../../components/shared/BrandedTopHeader';
+import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 import { BlurView } from 'expo-blur';
 import { formatHeaderAddress, getAppImageSource, getCategoryEmoji, normalizeCategorySlug, isRestaurantProduct } from '../../lib/utils';
-import { THEME } from '../../lib/theme';
 
 
 const GROCERY_CATEGORIES = [
@@ -188,7 +187,6 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
   isDarkMode: boolean;
   onPress: () => void;
 }) {
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const scale = useSharedValue(isActive ? 1.08 : 1.0);
   const dotScale = useSharedValue(isActive ? 1 : 0);
 
@@ -211,11 +209,11 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
       onPress={onPress}
       scaleValue={0.95}
       haptic="light"
-      style={{
-        width: 90,
-        paddingVertical: 12,
-        backgroundColor: isActive
-          ? (isDarkMode ? colors.surfaceElevated : '#ffffff')
+      style={{ 
+        width: 90, 
+        paddingVertical: 12, 
+        backgroundColor: isActive 
+          ? (isDarkMode ? '#18181b' : '#ffffff')
           : 'transparent',
         flexDirection: 'column',
         alignItems: 'center',
@@ -225,29 +223,29 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
     >
       {/* Vertical Brand-Red Accent Bar */}
       {isActive && (
-        <View
+        <View 
           style={{
             position: 'absolute',
             left: 0,
             top: 0,
             bottom: 0,
             width: 4,
-            backgroundColor: THEME.COLORS.brand.primary
+            backgroundColor: '#e20a22'
           }}
         />
       )}
       {/* Animated Emoji / Icon container */}
-      <Animated.View
+      <Animated.View 
         style={[
-          {
-            width: 34,
-            height: 34,
-            borderRadius: 17,
-            alignItems: 'center',
+          { 
+            width: 34, 
+            height: 34, 
+            borderRadius: 17, 
+            alignItems: 'center', 
             justifyContent: 'center',
-            backgroundColor: isActive
-              ? `${THEME.COLORS.brand.primary}20`
-              : (isDarkMode ? colors.surface : THEME.COLORS.light.borderLight)
+            backgroundColor: isActive 
+              ? (isDarkMode ? 'rgba(225, 29, 72, 0.2)' : 'rgba(225, 29, 72, 0.12)')
+              : (isDarkMode ? '#1c1c1e' : '#f1f5f9')
           },
           animatedIconStyle
         ]}
@@ -257,12 +255,12 @@ const SubcategoryItem = React.memo(function SubcategoryItem({
         </Text>
       </Animated.View>
       {/* Text Label */}
-      <Text
-        style={{
-          fontSize: 9,
+      <Text 
+        style={{ 
+          fontSize: 9, 
           lineHeight: 12,
-          fontWeight: isActive ? '900' : '700',
-          color: isActive ? THEME.COLORS.brand.primary : colors.textMuted,
+          fontWeight: isActive ? '900' : '700', 
+          color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#475569'),
           textAlign: 'center',
           marginTop: 5,
           width: '94%',
@@ -285,7 +283,6 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   isDarkMode,
   screenWidth
 }: CategoryProductPageProps) {
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const normalizedSlug = useMemo(() => normalizeCategorySlug(categorySlug), [categorySlug]);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
@@ -307,16 +304,17 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 5000,
-    refetchInterval: 10000,
+    staleTime: 5000, // 5s short cache
+    refetchInterval: 10000, // Auto-refetch every 10s for real-time stock sync
   });
 
+  // Prefetch category products images in the background to speed up image loading
   useEffect(() => {
     if (products && products.length > 0) {
       const urls = products
         .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
         .filter((url): url is string => !!url)
-        .slice(0, 30);
+        .slice(0, 30); // Prefetch first 30 product images in this category
       if (urls.length > 0) {
         ExpoImage.prefetch(urls);
       }
@@ -330,16 +328,18 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   const [activeSub, setActiveSub] = useState('All');
   const sidebarScrollViewRef = useRef<ScrollView>(null);
 
+  // Reset activeSub when categorySlug changes
   useEffect(() => {
     setActiveSub('All');
   }, [categorySlug]);
 
+  // Synchronize left sidebar vertical scroll offset to center the active subcategory item
   useEffect(() => {
     if (sidebarScrollViewRef.current) {
       const activeIdx = subcategoryList.findIndex(s => s.name === activeSub);
       if (activeIdx !== -1) {
-        const itemHeight = 72;
-        const targetY = Math.max(0, (activeIdx * itemHeight) - 150);
+        const itemHeight = 72; // scroll element item height (approximate padding + content)
+        const targetY = Math.max(0, (activeIdx * itemHeight) - 150); // center target y offset
         sidebarScrollViewRef.current.scrollTo({ y: targetY, animated: true });
       }
     }
@@ -359,7 +359,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       if (!hasVariants) {
         return p.stock !== undefined && p.stock !== null && p.stock <= 0;
       }
-      const hasAvailableVariant = (p.variants as any[]).some((v: any) =>
+      const hasAvailableVariant = (p.variants as any[]).some((v: any) => 
         v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0)
       );
       return !hasAvailableVariant;
@@ -367,6 +367,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
 
     let list = products.filter(p => p.isAvailable !== false);
 
+    // If it's a cafe section, filter out restaurant products and match tags
     if (isCafeSection) {
       list = list.filter(p => !isRestaurantProduct(p));
       const cafeSec = DEFAULT_CAFE_MENU_SECTIONS.find(c => c.tag === categorySlug || c.tag === normalizedSlug);
@@ -380,6 +381,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       }
     }
 
+    // Apply primary sorting (pushing out-of-stock to bottom, then sorting by chosen criteria)
     const listWithIndex = list.map((p, index) => ({ product: p, index }));
 
     listWithIndex.sort((itemA, itemB) => {
@@ -387,10 +389,19 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       const b = itemB.product;
       const aOut = isProductOutOfStock(a);
       const bOut = isProductOutOfStock(b);
+      
+      // Out-of-stock items are always pushed to the bottom
       if (aOut && !bOut) return 1;
       if (!aOut && bOut) return -1;
-      if (sortBy === 'PRICE_LOW') return getProductPrice(a) - getProductPrice(b);
-      else if (sortBy === 'PRICE_HIGH') return getProductPrice(b) - getProductPrice(a);
+
+      // Secondary sorting by price
+      if (sortBy === 'PRICE_LOW') {
+        return getProductPrice(a) - getProductPrice(b);
+      } else if (sortBy === 'PRICE_HIGH') {
+        return getProductPrice(b) - getProductPrice(a);
+      }
+      
+      // Relevance/Default: Preserve the exact order returned by the API server
       return itemA.index - itemB.index;
     });
 
@@ -401,6 +412,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       return list;
     }
 
+    // Default filters
     if (activeSubItem.name === 'Deals') {
       return list.filter(p => p.discount > 0);
     } else if (activeSubItem.name === 'Trending') {
@@ -409,14 +421,16 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       return list.filter(p => (p.tags && p.tags.includes('popular')) || p.discount > 10);
     }
 
+    // Keyword matching
     return list.filter(p => {
       const nameLower = (p.name || '').toLowerCase();
       const slugLower = (p.slug || '').toLowerCase();
       const pTags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+
       return activeSubItem.tags.some(tag => {
         const tagLower = tag.toLowerCase();
-        return nameLower.includes(tagLower) ||
-               slugLower.includes(tagLower) ||
+        return nameLower.includes(tagLower) || 
+               slugLower.includes(tagLower) || 
                pTags.includes(tagLower);
       });
     });
@@ -425,17 +439,17 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   return (
     <View style={{ width: screenWidth, flex: 1, flexDirection: 'row' }}>
       {/* Left Sidebar (Subcategories) */}
-      <View
-        style={{
-          width: 94,
-          borderRightWidth: 1,
-          borderColor: colors.borderLight,
-          backgroundColor: colors.surface
+      <View 
+        style={{ 
+          width: 94, 
+          borderRightWidth: 1, 
+          borderColor: isDarkMode ? '#27272a' : '#f1f5f9', 
+          backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' 
         }}
       >
-        <ScrollView
+        <ScrollView 
           ref={sidebarScrollViewRef}
-          showsVerticalScrollIndicator={false}
+          showsVerticalScrollIndicator={false} 
           contentContainerStyle={{ paddingVertical: 12, gap: 10, alignItems: 'center' }}
         >
           {subcategoryList.map((sub, index) => {
@@ -463,11 +477,9 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
       {/* Right Product Grid */}
       <View style={{ flex: 1, paddingHorizontal: 8 }}>
         {isLoading ? (
-          <View style={styles.skeletonWrap}>
+          <View className="flex-1 flex-row flex-wrap justify-between pt-3">
             {[1, 2, 3, 4].map((i) => (
-              <View key={i} style={{ width: '48%' }}>
-                <ProductCardSkeleton />
-              </View>
+              <ProductCardSkeleton key={i} style={{ width: '48%' }} />
             ))}
           </View>
         ) : (() => {
@@ -483,19 +495,17 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
               style={{ flex: 1, width: '100%' }}
               showsVerticalScrollIndicator={false}
               renderItem={({ item, index }: { item: Product; index: number }) => (
-                <View style={{
-                  width: '100%',
-                  paddingHorizontal: 4,
-                  marginBottom: 12
+                <View style={{ 
+                  width: '100%', 
+                  paddingHorizontal: 4, 
+                  marginBottom: 12 
                 }}>
-                  <ProductCard product={item} index={index} isCategoryGrid={true} />
+                  <ProductCard product={item} index={index} className="w-full" isCategoryGrid={true} />
                 </View>
               )}
               ListEmptyComponent={
-                <View style={styles.emptyWrap}>
-                  <Text style={[styles.emptyText, { color: colors.textMuted }]}>
-                    No products in this subcategory
-                  </Text>
+                <View className="flex-1 justify-center items-center py-20">
+                  <Text className="text-slate-400 dark:text-zinc-500 font-bold text-sm">No products in this subcategory</Text>
                 </View>
               }
             />
@@ -523,7 +533,6 @@ const CategoryItem = React.memo(function CategoryItem({
   config: any;
   onPress: () => void;
 }) {
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const scale = useSharedValue(isActive ? 1.08 : 1.0);
   const borderOpacity = useSharedValue(isActive ? 1 : 0);
   const dotScale = useSharedValue(isActive ? 1 : 0);
@@ -570,19 +579,19 @@ const CategoryItem = React.memo(function CategoryItem({
         >
           {hasImage ? (
             Platform.OS === 'web' ? (
-              <RNImage
+              <RNImage 
                 source={config.image}
                 style={{ width: '100%', height: '100%' }}
                 resizeMode="cover"
               />
             ) : (
-              <ExpoImage
+              <ExpoImage 
                 source={config.image}
                 style={{ width: '100%', height: '100%' }}
                 contentFit="cover"
                 transition={200}
                 cachePolicy="memory-disk"
-                placeholder={isDarkMode ? 'rgba(39,39,42,0.4)' : 'rgba(241,245,249,0.6)'}
+                placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
               />
             )
           ) : (
@@ -596,7 +605,7 @@ const CategoryItem = React.memo(function CategoryItem({
               {
                 borderRadius: 29,
                 borderWidth: 2.5,
-                borderColor: THEME.COLORS.brand.primary,
+                borderColor: '#e20a22',
               },
               animatedBorderStyle,
             ]}
@@ -612,11 +621,11 @@ const CategoryItem = React.memo(function CategoryItem({
             fontSize: 8.5,
             lineHeight: 11,
             fontWeight: isActive ? '900' : '700',
-            color: isActive ? THEME.COLORS.brand.primary : colors.textMuted,
+            color: isActive ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b'),
             marginTop: 6,
             textAlign: 'center',
             width: '100%',
-            height: 24,
+            height: 24, // Fix height to ensure vertical alignment is identical!
             letterSpacing: -0.1
           }}
         >
@@ -624,13 +633,13 @@ const CategoryItem = React.memo(function CategoryItem({
         </Text>
 
         {/* Animated Active Indicator Dot */}
-        <Animated.View
+        <Animated.View 
           style={[
             {
               width: 4,
               height: 4,
               borderRadius: 2,
-              backgroundColor: THEME.COLORS.brand.primary,
+              backgroundColor: '#e20a22',
               marginTop: 3,
               alignSelf: 'center'
             },
@@ -647,15 +656,15 @@ export default function CategoryDetailScreen() {
   const screenWidth = rawWidth > 768 ? 540 : (rawWidth > 0 ? rawWidth : 390);
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { getTotalItems, getSubtotal } = useCart();
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
-
+  
   const [sortBy, setSortBy] = useState<'RELEVANCE' | 'PRICE_LOW' | 'PRICE_HIGH'>('RELEVANCE');
   const [activeSlug, setActiveSlug] = useState(slug);
   const [initialRenderDone, setInitialRenderDone] = useState(false);
   const normalizedSlug = useMemo(() => normalizeCategorySlug(slug), [slug]);
 
+  // Fetch live categories from database
   const { data: serverCategories = [] } = useQuery<any[]>({
     queryKey: ['categories-list-all'],
     queryFn: async () => {
@@ -663,9 +672,10 @@ export default function CategoryDetailScreen() {
       if (!res.ok) throw new Error('API failed');
       return res.json();
     },
-    staleTime: 1000 * 60 * 15,
+    staleTime: 1000 * 60 * 15, // 15 mins cache validity
   });
 
+  // If slug is main cafe (e.g. /category/cafe or /category/fastkirana-cafe), redirect to /cafe page
   useEffect(() => {
     const s = slug?.toLowerCase().trim();
     if (s === 'cafe' || s === 'fastkirana-cafe' || s === 'as-cafe' || s === 'café' || normalizedSlug === 'cafe') {
@@ -685,7 +695,7 @@ export default function CategoryDetailScreen() {
 
   const isCafe = slug && (
     DEFAULT_CAFE_MENU_SECTIONS.some(c => c.tag === slug) ||
-    slug.startsWith('cafe-') ||
+    slug.startsWith('cafe-') || 
     slug === 'cafe'
   );
 
@@ -697,7 +707,7 @@ export default function CategoryDetailScreen() {
         emoji: c.emoji
       }));
     }
-
+    
     if (serverCategories && serverCategories.length > 0) {
       const groceryServerCategories = serverCategories.filter(c => c.slug !== 'cafe' && c.slug !== 'fastkirana-cafe' && c.slug !== 'restaurant');
       return groceryServerCategories.map(c => {
@@ -719,17 +729,19 @@ export default function CategoryDetailScreen() {
     return idx !== -1 ? idx : 0;
   }, [slug, categoriesList]);
 
+  // Synchronize top categories selector offset to center the active category item
   useEffect(() => {
     if (tabScrollViewRef.current) {
       const activeIdx = categoriesList.findIndex(c => c.slug === activeSlug);
       if (activeIdx !== -1) {
-        const itemWidth = 84;
+        const itemWidth = 84; // scroll element item width + margin spacing
         const targetX = Math.max(0, (activeIdx * itemWidth) - (screenWidth / 2) + (itemWidth / 2));
         tabScrollViewRef.current.scrollTo({ x: targetX, animated: true });
       }
     }
   }, [activeSlug, categoriesList]);
 
+  // If path slug parameter changes externally, sync swiper active page
   useEffect(() => {
     if (slug && slug !== activeSlug) {
       setActiveSlug(slug);
@@ -777,15 +789,15 @@ export default function CategoryDetailScreen() {
   const getCategoryBgColor = (categorySlug: string) => {
     const config = CATEGORIES_MAPPING[categorySlug];
     if (config) {
-      return isDarkMode ? `${THEME.COLORS.brand.primary}12` : config.color;
+      return isDarkMode ? 'rgba(255,255,255,0.08)' : config.color;
     }
-    return isDarkMode ? `${THEME.COLORS.brand.primary}12` : THEME.COLORS.light.borderLight;
+    return isDarkMode ? 'rgba(255,255,255,0.08)' : '#f8fafc';
   };
 
   const formattedSlug = activeSlug ? activeSlug.replace(/-/g, ' ') : 'Category';
   const selectedLocation = useUIStore((s) => s.selectedLocation);
 
-  const categoryInfo = CATEGORIES.find(c => c.slug === activeSlug) ||
+  const categoryInfo = CATEGORIES.find(c => c.slug === activeSlug) || 
                        DEFAULT_CAFE_MENU_SECTIONS.find(c => c.tag === activeSlug);
   const categoryName = categoryInfo ? ((categoryInfo as any).name || (categoryInfo as any).title) : formattedSlug;
 
@@ -800,31 +812,40 @@ export default function CategoryDetailScreen() {
 
   if (isMainCafe) {
     return (
-      <View style={styles.cafeRedirectWrap}>
-        <ActivityIndicator size="large" color={THEME.COLORS.brand.primary} />
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: isDarkMode ? '#09090b' : '#ffffff' }}>
+        <ActivityIndicator size="large" color="#e20a22" />
       </View>
     );
   }
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+    <SafeAreaView className="flex-1 bg-white dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Header */}
-      <View style={[styles.header, { borderBottomColor: colors.border }]}>
+      <View style={{
+        paddingHorizontal: 12,
+        paddingTop: 12,
+        paddingBottom: 10,
+        borderBottomWidth: 1,
+        borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
+        backgroundColor: 'transparent',
+        zIndex: 20,
+        overflow: 'hidden'
+      }}>
         {Platform.OS !== 'android' ? (
-          <BlurView
+          <BlurView 
             intensity={95}
             tint={isDarkMode ? 'dark' : 'light'}
             style={StyleSheet.absoluteFill}
           />
         ) : (
-          <View style={[StyleSheet.absoluteFill, { backgroundColor: colors.surface }]} />
+          <View style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(9,9,11,0.95)' : 'rgba(255,255,255,0.95)' }]} />
         )}
-
+        {/* Standardized Branded Header & Location */}
         <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
 
-        {/* Row 2: Search input placeholder */}
-        <ScalePressable
+        {/* Row 2: Search input placeholder (Matched with Landing Page) */}
+        <ScalePressable 
           onPress={() => {
             router.push({
               pathname: '/search',
@@ -835,31 +856,66 @@ export default function CategoryDetailScreen() {
             });
           }}
           scaleValue={0.99}
-          style={[styles.searchBar, { borderColor: colors.border }]}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            borderWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+            borderRadius: 18,
+            paddingHorizontal: 16,
+            height: 36,
+            width: '100%',
+            marginTop: 10,
+            ...Platform.select({
+              ios: {
+                shadowColor: '#000',
+                shadowOffset: { width: 0, height: 2 },
+                shadowOpacity: 0.04,
+                shadowRadius: 6,
+              },
+              android: {
+                elevation: 2,
+              },
+            }),
+          }}
         >
-          <Search size={16} color={THEME.COLORS.brand.primary} style={{ marginRight: 10 }} />
-          <Text style={[styles.searchBarText, { color: colors.textMuted }]}>
+          <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+          <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
             Search in {categoryName}
           </Text>
-
+          
           {/* Vertical Divider */}
-          <View style={[styles.searchDivider, { backgroundColor: colors.border }]} />
-
-          <Mic size={16} color={THEME.COLORS.brand.accent} />
+          <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+          
+          <Mic size={16} color="#16a34a" />
         </ScalePressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
-        <View style={[styles.breadcrumbWrap, { backgroundColor: colors.borderLight, borderColor: colors.border }]}>
-          <ScalePressable
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          borderRadius: 99,
+          paddingHorizontal: 10,
+          paddingVertical: 4.5,
+          marginTop: 10,
+          marginBottom: 2,
+          backgroundColor: isDarkMode ? 'rgba(255,255,255,0.03)' : '#f8fafc',
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+        }}>
+          <ScalePressable 
             onPress={() => {
               router.replace('/(tabs)');
             }}
             scaleValue={0.96}
+            style={{}}
           >
-            <Text allowFontScaling={false} style={[styles.breadcrumbText, { color: THEME.COLORS.brand.primary }]}>HOME</Text>
+            <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
           </ScalePressable>
-          <ChevronRight size={8} color={colors.textMuted} style={{ marginHorizontal: 6 }} />
-          <ScalePressable
+          <ChevronRight size={8} color="#94a3b8" style={{ marginHorizontal: 6 }} />
+          <ScalePressable 
             onPress={() => {
               if (isCafe) {
                 router.push('/cafe');
@@ -868,29 +924,37 @@ export default function CategoryDetailScreen() {
               }
             }}
             scaleValue={0.96}
+            style={{}}
           >
-            <Text allowFontScaling={false} style={[styles.breadcrumbText, { color: THEME.COLORS.brand.primary }]}>
+            <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>
               {isCafe ? 'FASTKIRANA CAFE 🍩' : 'FASTKIRANA MART 🛒'}
             </Text>
           </ScalePressable>
-          <ChevronRight size={8} color={colors.textMuted} style={{ marginHorizontal: 6 }} />
-          <Text allowFontScaling={false} style={[styles.breadcrumbText, { color: colors.textMuted }]} numberOfLines={1}>
+          <ChevronRight size={8} color="#94a3b8" style={{ marginHorizontal: 6 }} />
+          <Text allowFontScaling={false} style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#64748b', letterSpacing: 0.5, textTransform: 'uppercase' }} numberOfLines={1}>
             {categoryName}
           </Text>
         </View>
+
+
       </View>
 
-      {/* Row 5: Horizontal Category Selection strip */}
-      <View style={{ backgroundColor: colors.background, borderBottomWidth: 1, borderBottomColor: colors.border }}>
-        <ScrollView
+      {/* Row 5: Horizontal Category Selection strip (web style parity) */}
+      <View>
+        <ScrollView 
           ref={tabScrollViewRef}
-          horizontal
+          horizontal 
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{
+          contentContainerStyle={{ 
             paddingHorizontal: 16,
             paddingVertical: 12,
             gap: 12,
             alignItems: 'center'
+          }}
+          style={{
+            backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+            borderBottomWidth: 1,
+            borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
           }}
         >
           {categoriesList.map((cat) => {
@@ -916,8 +980,8 @@ export default function CategoryDetailScreen() {
       </View>
 
       {/* Sort/Filter Bar */}
-      <View style={[styles.sortBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <View style={{ flexDirection: 'row', gap: THEME.SPACING.xs + 1 }}>
+      <View className="bg-white/80 dark:bg-zinc-900/80 border-b border-slate-100/65 dark:border-zinc-800/80 px-4 py-2 flex-row justify-between items-center z-10">
+        <View className="flex-row gap-1.5">
           {[
             { id: 'RELEVANCE', label: 'Relevance' },
             { id: 'PRICE_LOW', label: 'Price: Low' },
@@ -925,46 +989,43 @@ export default function CategoryDetailScreen() {
           ].map((option) => (
             <ScalePressable
               key={option.id}
-              onPress={() => setSortBy(option.id as any)}
+              onPress={() => {
+                setSortBy(option.id as any);
+              }}
               scaleValue={0.94}
               haptic="light"
-              style={[
-                styles.sortChip,
-                {
-                  borderColor: sortBy === option.id
-                    ? (isDarkMode ? `${THEME.COLORS.brand.primary}80` : '#fecdd3')
-                    : colors.borderLight,
-                  backgroundColor: sortBy === option.id
-                    ? (isDarkMode ? `${THEME.COLORS.brand.primary}20` : '#fff5f5')
-                    : (isDarkMode ? colors.surfaceElevated : colors.surface),
-                }
-              ]}
+              className={`px-3 py-1.5 rounded-full border ${
+                sortBy === option.id 
+                  ? 'bg-rose-50 dark:bg-rose-950/20 border-rose-250 dark:border-rose-900/50' 
+                  : 'bg-slate-50/50 dark:bg-zinc-800/40 border-slate-100/50 dark:border-zinc-800/60'
+              }`}
             >
-              <Text style={[
-                styles.sortChipText,
-                {
-                  color: sortBy === option.id ? THEME.COLORS.brand.primary : colors.textMuted
-                }
-              ]}>
+              <Text className={`text-[9px] font-black uppercase tracking-wider ${
+                sortBy === option.id ? 'text-primary' : 'text-slate-500 dark:text-zinc-400'
+              }`}>
                 {option.label}
               </Text>
             </ScalePressable>
           ))}
         </View>
 
-        <ScalePressable
+        <ScalePressable 
           scaleValue={0.95}
           haptic="light"
-          style={[
-            styles.filterChip,
-            {
-              borderColor: colors.border,
-              backgroundColor: colors.borderLight,
-            }
-          ]}
+          style={{
+            flexDirection: 'row',
+            alignItems: 'center',
+            gap: 6,
+            paddingHorizontal: 12,
+            paddingVertical: 6,
+            borderRadius: 99,
+            borderWidth: 1,
+            borderColor: isDarkMode ? 'rgba(39, 39, 42, 0.8)' : 'rgba(241, 245, 249, 0.8)',
+            backgroundColor: isDarkMode ? 'rgba(39, 39, 42, 0.3)' : 'rgba(248, 250, 252, 0.5)',
+          }}
         >
-          <SlidersHorizontal size={12} color={colors.textMuted} />
-          <Text style={[styles.filterChipText, { color: colors.textMuted }]}>Filters</Text>
+          <SlidersHorizontal size={12} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
+          <Text className="text-slate-500 dark:text-zinc-400 font-extrabold text-[9px] uppercase tracking-wider">Filters</Text>
         </ScalePressable>
       </View>
 
@@ -1002,118 +1063,3 @@ export default function CategoryDetailScreen() {
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  cafeRedirectWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  header: {
-    borderBottomWidth: 1,
-    paddingHorizontal: 12,
-    paddingTop: 12,
-    paddingBottom: 10,
-    zIndex: 20,
-    overflow: 'hidden',
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    borderRadius: 18,
-    paddingHorizontal: 16,
-    height: 36,
-    width: '100%',
-    marginTop: 10,
-    borderWidth: 1,
-    ...Platform.select({
-      ios: {
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.04,
-        shadowRadius: 6,
-      },
-      android: {
-        elevation: 2,
-      },
-    }),
-  },
-  searchBarText: {
-    fontSize: 13,
-    fontWeight: '500',
-    flex: 1,
-  },
-  searchDivider: {
-    width: 1,
-    height: 16,
-    marginRight: 10,
-  },
-  breadcrumbWrap: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderRadius: 99,
-    paddingHorizontal: 10,
-    paddingVertical: 4.5,
-    marginTop: 10,
-    borderWidth: 1,
-  },
-  breadcrumbText: {
-    fontSize: 9.5,
-    fontWeight: '800',
-    letterSpacing: 0.5,
-  },
-  skeletonWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'space-between',
-    paddingTop: 12,
-    paddingHorizontal: 8,
-  },
-  emptyWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-  },
-  emptyText: {
-    fontWeight: '700',
-    fontSize: 14,
-  },
-  sortBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: THEME.SPACING.md,
-    paddingVertical: THEME.SPACING.sm + 2,
-    borderBottomWidth: 1,
-    zIndex: 10,
-  },
-  sortChip: {
-    paddingHorizontal: THEME.SPACING.sm + 2,
-    paddingVertical: THEME.SPACING.xs + 1,
-    borderRadius: 99,
-    borderWidth: 1,
-  },
-  sortChipText: {
-    fontSize: 9,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-  filterChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 99,
-    borderWidth: 1,
-  },
-  filterChipText: {
-    fontWeight: '800',
-    fontSize: 9,
-    textTransform: 'uppercase',
-    letterSpacing: 0.4,
-  },
-});

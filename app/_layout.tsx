@@ -303,6 +303,7 @@ export default function RootLayout() {
           ) {
             useUIStore.getState().setStoreStatus(
               finalGroceryOpen,
+              finalCafeOpen,
               radius,
               storeLat,
               storeLng,
@@ -317,7 +318,6 @@ export default function RootLayout() {
               miscFeeLabelSetting,
               deliveryFeeBaseSetting,
               groceryThresholdSetting,
-              finalCafeOpen,
               cafeThresholdSetting
             );
           }
@@ -361,7 +361,7 @@ export default function RootLayout() {
     } else if (isLoggedIn && user && user.role !== 'USER') {
       redirectTimer = setTimeout(() => {
         if (user.role === 'PICKER') router.replace('/picker');
-        else if (user.role === 'CHEF' || user.role === 'RESTAURANT_OWNER') router.replace('/restaurant-chef');
+        else if (user.role === 'CHEF') router.replace(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
         else if (user.role === 'DELIVERY') router.replace('/rider');
         else router.replace('/operations');
       }, 200);
@@ -412,19 +412,20 @@ function AppQuerySync() {
                   gestureEnabled: true, 
                   gestureDirection: 'horizontal', 
                   animation: 'slide_from_right',
-                  fullScreenGestureEnabled: true,
-                  headerBackVisible: false,
-                  freezeOnBlur: true,
+                  animationDuration: 160,
+                  headerBackVisible: false 
                 }}>
-                  <Stack.Screen name="(tabs)" options={{ headerShown: false, animation: 'fade' }} />
-                  <Stack.Screen name="(auth)" options={{ headerShown: false, animation: 'fade' }} />
-                  <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="product/[slug]" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="category/[slug]" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="cart" options={{ headerShown: false, presentation: 'containedTransparentModal', animation: 'slide_from_bottom' }} />
-                  <Stack.Screen name="checkout" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="order/[id]" options={{ headerShown: false, animation: 'slide_from_right' }} />
-                  <Stack.Screen name="restaurants" options={{ headerShown: false, animation: 'slide_from_right' }} />
+                  <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+                  <Stack.Screen name="(auth)" options={{ headerShown: false }} />
+                  <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'none' }} />
+                  <Stack.Screen name="cafe-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
+                  <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
+                  <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
+                  <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
+                  <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 180 }} />
+                  <Stack.Screen name="checkout" options={{ headerShown: false }} />
+                  <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
+                  <Stack.Screen name="restaurants" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                 </Stack>
                   <VariantSelectorDrawer />
                   <CartConflictDrawer />

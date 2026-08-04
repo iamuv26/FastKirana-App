@@ -1,5 +1,3 @@
-import { TextStyle } from 'react-native';
-
 export const THEME = {
   COLORS: {
     // Brand Colors
@@ -16,9 +14,6 @@ export const THEME = {
       warning: '#f59e0b',       // Amber/Yellow
       warningLight: '#fffbeb',  // Light amber tint
       warningDark: '#b45309',   // Dark amber
-      error: '#ef4444',         // Red Error
-      errorLight: '#fef2f2',    // Light Red Tint
-      errorDark: '#991b1b',     // Dark Red
     },
     // Gradients
     gradients: {
@@ -64,13 +59,13 @@ export const THEME = {
       hero: 28,        // Large hero titles
     },
     weights: {
-      light: '300' as TextStyle['fontWeight'],
-      regular: '400' as TextStyle['fontWeight'],
-      medium: '500' as TextStyle['fontWeight'],
-      semibold: '600' as TextStyle['fontWeight'],
-      bold: '700' as TextStyle['fontWeight'],
-      extrabold: '800' as TextStyle['fontWeight'],
-      black: '900' as TextStyle['fontWeight'],
+      light: '300',
+      regular: '400',
+      medium: '500',
+      semibold: '600',
+      bold: '700',
+      extrabold: '800',
+      black: '850',    // Extra weight for premium titles if supported
     }
   },
 

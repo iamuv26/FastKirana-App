@@ -43,6 +43,7 @@ interface UIState {
   setShopDetails: (name: string, phone: string) => void;
   setStoreStatus: (
     groceryOpen: boolean, 
+    cafeOpen: boolean, 
     radius: number, 
     storeLat?: number, 
     storeLng?: number,
@@ -57,12 +58,11 @@ interface UIState {
     miscFeeLabel?: string,
     deliveryFeeBase?: number,
     groceryFreeDeliveryThreshold?: number,
-    cafeOpen?: boolean,
     cafeFreeDeliveryThreshold?: number
   ) => void;
   setActiveVariantProduct: (product: any | null) => void;
   setPendingConflictProduct: (product: any | null) => void;
-  setAssignedStore: (store: { id: string; name: string; surgeCharge: number; groceryOpen: boolean } | null) => void;
+  setAssignedStore: (store: { id: string; name: string; surgeCharge: number; groceryOpen: boolean; cafeOpen: boolean } | null) => void;
 }
 
 export const useUIStore = create<UIState>()(
@@ -103,6 +103,7 @@ export const useUIStore = create<UIState>()(
       setShopDetails: (name, phone) => set({ shopName: name, shopPhone: phone }),
       setStoreStatus: (
         groceryOpen, 
+        cafeOpen, 
         radius, 
         storeLat, 
         storeLng,
@@ -116,12 +117,15 @@ export const useUIStore = create<UIState>()(
         miscFee,
         miscFeeLabel,
         deliveryFeeBase,
-        groceryFreeDeliveryThreshold
+        groceryFreeDeliveryThreshold,
+        cafeFreeDeliveryThreshold
       ) => 
         set((state) => {
           const finalGroceryOpen = groceryOpen;
+          const finalCafeOpen = cafeOpen;
           const updates: Partial<UIState> = { 
             groceryMartOpen: finalGroceryOpen, 
+            cafeOpen: finalCafeOpen, 
             deliveryRadius: radius 
           };
           if (storeLat !== undefined) updates.storeLat = storeLat;
@@ -137,7 +141,7 @@ export const useUIStore = create<UIState>()(
           if (miscFeeLabel !== undefined) updates.miscFeeLabel = miscFeeLabel;
           if (deliveryFeeBase !== undefined) updates.deliveryFeeBase = deliveryFeeBase;
           if (groceryFreeDeliveryThreshold !== undefined) updates.groceryFreeDeliveryThreshold = groceryFreeDeliveryThreshold;
-
+          if (cafeFreeDeliveryThreshold !== undefined) updates.cafeFreeDeliveryThreshold = cafeFreeDeliveryThreshold;
           return updates;
         }),
       setActiveVariantProduct: (product) => set({ activeVariantProduct: product }),
@@ -146,7 +150,8 @@ export const useUIStore = create<UIState>()(
         assignedStoreId: store ? store.id : null,
         shopName: store ? store.name : 'FastKirana',
         surgeCharge: store ? store.surgeCharge : 0.0,
-        groceryMartOpen: store ? (store.groceryOpen ?? true) : true
+        groceryMartOpen: store ? (store.groceryOpen ?? true) : true,
+        cafeOpen: store ? (store.cafeOpen ?? true) : true
       }),
     }),
     {
@@ -189,7 +194,7 @@ export const useUIStore = create<UIState>()(
           miscFeeLabel: typeof persistedState.miscFeeLabel === 'string' ? persistedState.miscFeeLabel : currentState.miscFeeLabel,
           deliveryFeeBase: typeof persistedState.deliveryFeeBase === 'number' ? persistedState.deliveryFeeBase : currentState.deliveryFeeBase,
           groceryFreeDeliveryThreshold: typeof persistedState.groceryFreeDeliveryThreshold === 'number' ? persistedState.groceryFreeDeliveryThreshold : currentState.groceryFreeDeliveryThreshold,
-
+          cafeFreeDeliveryThreshold: typeof persistedState.cafeFreeDeliveryThreshold === 'number' ? persistedState.cafeFreeDeliveryThreshold : currentState.cafeFreeDeliveryThreshold,
         };
       }
     }

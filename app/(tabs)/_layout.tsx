@@ -7,7 +7,6 @@ import { useTheme } from '../context/ThemeContext';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import { useResponsive } from '../../lib/responsive';
 import { useUIStore } from '../../stores/ui-store';
-import { THEME } from '../../lib/theme';
 import Animated, {
   useSharedValue,
   SharedValue,
@@ -19,6 +18,7 @@ import Animated, {
   runOnJS,
 } from 'react-native-reanimated';
 
+// Helper to map route name to corresponding Lucide icon
 const getIconComponent = (routeName: string) => {
   switch (routeName) {
     case 'index':
@@ -39,17 +39,20 @@ interface TabButtonProps {
   isFocused: boolean;
   onPress: () => void;
   onLongPress: () => void;
-  inactiveColor: string;
+  isDarkMode: boolean;
   progress: SharedValue<number>;
   index: number;
 }
 
-function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, progress, index }: TabButtonProps) {
+function TabButton({ route, isFocused, onPress, onLongPress, isDarkMode, progress, index }: TabButtonProps) {
   const IconComponent = getIconComponent(route.name);
+  const inactiveColor = isDarkMode ? '#94a3b8' : '#64748b';
 
+  // Animated progress (0 to 1) for smooth cross-fade between tabs
   const isActive = useSharedValue(isFocused ? 1 : 0);
 
   useEffect(() => {
+    // Snappy spring for instant feel on switch, but still smooth
     isActive.value = withSpring(isFocused ? 1 : 0, {
       damping: 18,
       stiffness: 320,
@@ -59,10 +62,10 @@ function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, prog
 
   const iconContainerStyle = useAnimatedStyle(() => ({
     backgroundColor: isActive.value > 0.5
-      ? `${THEME.COLORS.brand.primary}${Math.round((0.08 + isActive.value * 0.92) * 255).toString(16).padStart(2, '0')}`
+      ? `rgba(226, 10, 34, ${0.08 + isActive.value * 0.92})` // full red when active, tinted when inactive
       : 'transparent',
     transform: [
-      { scale: 1 + isActive.value * 0.08 },
+      { scale: 1 + isActive.value * 0.08 }, // subtle size pop on active
       { translateY: -isActive.value * 1.5 },
     ],
   }));
@@ -74,6 +77,7 @@ function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, prog
     ],
   }));
 
+  // Inactive icon fades out as active fades in
   const inactiveIconStyle = useAnimatedStyle(() => ({
     opacity: 1 - isActive.value,
     position: 'absolute',
@@ -86,6 +90,7 @@ function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, prog
     ],
   }));
 
+  // Capitalized display label
   const label = route.name === 'index'
     ? 'Home'
     : route.name.charAt(0).toUpperCase() + route.name.slice(1);
@@ -101,8 +106,10 @@ function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, prog
       accessibilityState={{ selected: isFocused }}
     >
       <View style={styles.tabItemContainer}>
+        {/* Animated Icon capsule */}
         <View style={styles.iconWrapper}>
           <Animated.View style={[styles.iconContainer, iconContainerStyle]}>
+            {/* Inactive version (fades out) */}
             <Animated.View style={inactiveIconStyle}>
               <IconComponent
                 size={20}
@@ -111,21 +118,23 @@ function TabButton({ route, isFocused, onPress, onLongPress, inactiveColor, prog
                 fill="none"
               />
             </Animated.View>
+            {/* Active version (fades in) */}
             <Animated.View style={iconColorStyle}>
               <IconComponent
                 size={21}
                 color="#ffffff"
                 strokeWidth={2.5}
-                fill={isFocused ? THEME.COLORS.brand.primary : "none"}
+                fill={isFocused ? "#e20a22" : "none"}
               />
             </Animated.View>
           </Animated.View>
         </View>
 
+        {/* Text Label */}
         <Animated.Text
           style={[
             styles.tabLabel,
-            { color: isFocused ? THEME.COLORS.brand.primary : inactiveColor },
+            { color: isFocused ? '#e20a22' : inactiveColor },
             labelStyle,
           ]}
         >
@@ -142,14 +151,17 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   const isDarkMode = theme === 'dark';
   const { width: screenWidth } = useWindowDimensions();
   const responsive = useResponsive();
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   const isTabBarVisible = useUIStore((s) => s.isTabBarVisible);
   const setTabBarVisible = useUIStore((s) => s.setTabBarVisible);
 
+  // Floating margin calculations: sit neatly above home indicator on iOS
   const bottomMargin = insets.bottom > 0 ? insets.bottom + 6 : 16;
+
+  // On large screens, the tab bar should not stretch — cap it
   const tabBarMaxWidth = responsive.isDesktop ? 560 : responsive.isTablet ? 420 : undefined;
 
+  // Smoother indicator tracking — slight delay for premium feel
   const activeIndexShared = useSharedValue(state.index);
   const prevIndexRef = useRef(state.index);
   const translateYShared = useSharedValue(0);
@@ -157,6 +169,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
   useEffect(() => {
     const prev = prevIndexRef.current;
     prevIndexRef.current = state.index;
+    // Skip animation when direction hasn't changed — avoids double-spring visual
     if (prev !== state.index) {
       activeIndexShared.value = withSpring(state.index, {
         damping: 16,
@@ -187,6 +200,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     transform: [{ translateY: translateYShared.value }],
   }));
 
+  // Don't render children when fully hidden to free GPU work
   const isVisible = useSharedValue(isTabBarVisible ? 1 : 0);
   useEffect(() => {
     isVisible.value = withTiming(isTabBarVisible ? 1 : 0, {
@@ -199,8 +213,6 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
     opacity: isVisible.value,
   }));
 
-  const inactiveColor = isDarkMode ? colors.textMuted : THEME.COLORS.light.textSecondary;
-
   return (
     <Animated.View
       style={[
@@ -209,18 +221,21 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
           bottom: bottomMargin,
           maxWidth: tabBarMaxWidth,
           alignSelf: tabBarMaxWidth ? 'center' : undefined,
-          backgroundColor: isDarkMode ? `${THEME.COLORS.dark.background}E6` : `${THEME.COLORS.light.surface}EB`,
-          borderColor: isDarkMode ? `${THEME.COLORS.dark.border}4D` : `${THEME.COLORS.light.border}99`,
-          shadowColor: isDarkMode ? THEME.COLORS.brand.primary : '#000000',
+          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.9)' : 'rgba(255, 255, 255, 0.92)',
+          borderColor: isDarkMode ? 'rgba(63, 63, 70, 0.3)' : 'rgba(228, 228, 231, 0.6)',
+          shadowColor: isDarkMode ? '#e20a22' : '#000000',
           shadowOpacity: isDarkMode ? 0.12 : 0.06,
         },
         animatedContainerStyle,
       ]}
       onTouchStart={() => setTabBarVisible(true)}
     >
-      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? `${THEME.COLORS.dark.surface}EC` : `${THEME.COLORS.light.surface}EB` }]} />
+      {/* Translucent backdrop — cheaper than BlurView, identical visual on AMOLED */}
+      <View pointerEvents="none" style={[StyleSheet.absoluteFill, { backgroundColor: isDarkMode ? 'rgba(24,24,27,0.92)' : 'rgba(255,255,255,0.92)' }]} />
+      {/* Hairline top border */}
       <View pointerEvents="none" style={{ position:'absolute', top:0, left:0, right:0, height: StyleSheet.hairlineWidth, backgroundColor: isDarkMode ? 'rgba(255,255,255,0.07)' : 'rgba(15,23,42,0.06)' }} />
 
+      {/* Tab Buttons — fade out when hidden to free GPU */}
       <Animated.View style={[styles.buttonsContainer, childrenVisibilityStyle]}>
         {state.routes.map((route: any, index: number) => {
           const isFocused = state.index === index;
@@ -251,7 +266,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
               isFocused={isFocused}
               onPress={onPress}
               onLongPress={onLongPress}
-              inactiveColor={inactiveColor}
+              isDarkMode={isDarkMode}
               progress={activeIndexShared}
               index={index}
             />
@@ -259,6 +274,7 @@ function CustomTabBar({ state, descriptors, navigation }: any) {
         })}
       </Animated.View>
 
+      {/* Sliding Active Indicator Line */}
       <Animated.View style={[styles.activeLine, indicatorStyle]} />
     </Animated.View>
   );
@@ -270,6 +286,7 @@ export default function TabsLayout() {
       tabBar={(props) => <CustomTabBar {...props} />}
       screenOptions={{
         headerShown: false,
+        // Lighter, snappier animation on iOS
         animation: 'fade',
       }}
     >
@@ -307,7 +324,7 @@ const styles = StyleSheet.create({
     left: 16,
     right: 16,
     height: 68,
-    borderRadius: THEME.RADIUS.xl,
+    borderRadius: 34,
     borderWidth: 1,
     overflow: 'hidden',
     width: 'auto',
@@ -338,27 +355,28 @@ const styles = StyleSheet.create({
   tabItemContainer: {
     alignItems: 'center',
     justifyContent: 'center',
-    paddingTop: THEME.SPACING.xs,
-    paddingBottom: THEME.SPACING.xxs,
+    paddingTop: 4,
+    paddingBottom: 2,
   },
   iconWrapper: {
     height: 30,
     justifyContent: 'center',
     alignItems: 'center',
-    marginBottom: THEME.SPACING.xxs,
+    marginBottom: 2,
   },
   iconContainer: {
     width: 48,
     height: 28,
-    borderRadius: THEME.RADIUS.lg,
+    borderRadius: 14,
     justifyContent: 'center',
     alignItems: 'center',
     backgroundColor: 'transparent',
     overflow: 'hidden',
   },
   tabLabel: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+    fontSize: 10,
+    fontWeight: '600',
+    fontFamily: 'PlusJakartaSans_600SemiBold',
     letterSpacing: 0.2,
   },
   activeLine: {
@@ -366,11 +384,12 @@ const styles = StyleSheet.create({
     bottom: 5,
     height: 2.5,
     borderRadius: 1.25,
-    backgroundColor: THEME.COLORS.brand.primary,
+    backgroundColor: '#e20a22',
     zIndex: 3,
     width: 16,
     alignSelf: 'center',
-    shadowColor: THEME.COLORS.brand.primary,
+    // Soft glow on the indicator
+    shadowColor: '#e20a22',
     shadowOffset: { width: 0, height: 0 },
     shadowOpacity: 0.35,
     shadowRadius: 3,

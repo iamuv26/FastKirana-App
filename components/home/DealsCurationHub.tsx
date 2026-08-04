@@ -148,11 +148,10 @@ interface DealsCurationHubProps {
 export default function DealsCurationHub({ products, isLoading }: DealsCurationHubProps) {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { width: windowWidth } = useWindowDimensions();
   const [activeCuration, setActiveCuration] = useState<'all' | 'flash-deals' | 'best-sellers' | 'trending' | 'dynamic-craving'>('all');
   const [expandedCategories, setExpandedCategories] = useState<Record<string, boolean>>({});
-
+  
   // Live Countdown Timer for Flash Deals (starts at 2h 14m 45s and ticks down)
   const [timeLeft, setTimeLeft] = useState({ hours: 2, minutes: 14, seconds: 45 });
 
@@ -324,13 +323,13 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
   if (isLoading) {
     return (
-      <View style={{ marginHorizontal: THEME.SPACING.md, marginVertical: THEME.SPACING.sm }}>
+      <View className="my-5 mx-4">
         {/* Title & Subtitle */}
-        <View style={{ marginBottom: THEME.SPACING.md }}>
-          <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.title, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, letterSpacing: -0.3 }}>
+        <View className="mb-4">
+          <Text className="text-lg font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
             Curated For You
           </Text>
-          <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, marginTop: 2, color: colors.textSecondary }}>
+          <Text className="text-[10px] font-bold mt-0.5" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
             Handpicked collections for every mood
           </Text>
         </View>
@@ -339,35 +338,26 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
         <ScrollView
           horizontal
           showsHorizontalScrollIndicator={false}
-          contentContainerStyle={{ gap: THEME.SPACING.sm, paddingBottom: THEME.SPACING.sm, paddingTop: 4 }}
+          contentContainerStyle={{ gap: 20, paddingBottom: 12, paddingTop: 4 }}
         >
           {curations.map((c) => {
             const isActive = activeCuration === c.id;
             const IconComponent = c.icon;
             return (
-              <View key={c.id} style={{ opacity: 0.4, alignItems: 'center' }}>
+              <View key={c.id} className="items-center opacity-40">
                 <View
+                  className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900 border flex items-center justify-center shadow-xs"
                   style={{
-                    width: 56,
-                    height: 56,
-                    borderRadius: 28,
-                    backgroundColor: colors.surface,
-                    borderWidth: 1,
-                    alignItems: 'center',
-                    justifyContent: 'center',
-                    borderColor: isActive ? c.activeBorderColor : colors.border,
+                    borderColor: isActive ? c.activeBorderColor : (isDarkMode ? '#27272a' : '#e2e8f0'),
                     borderWidth: isActive ? 2 : 1,
                   }}
                 >
                   <IconComponent width={44} height={44} />
                 </View>
                 <Text
+                  className="text-[10px] font-black mt-2 text-center"
                   style={{
-                    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-                    fontWeight: THEME.TYPOGRAPHY.weights.black,
-                    marginTop: 6,
-                    textAlign: 'center',
-                    color: isActive ? colors.textPrimary : colors.textMuted,
+                    color: isActive ? (isDarkMode ? '#fff' : '#0f172a') : (isDarkMode ? '#a1a1aa' : '#64748b'),
                   }}
                 >
                   {c.title}
@@ -377,13 +367,13 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
           })}
         </ScrollView>
 
-        <View style={{ marginTop: THEME.SPACING.md }}>
+        <View className="mt-4">
           {['Fruits & Vegetables', 'Snacks & Beverages'].map((categoryName) => (
-            <View key={categoryName} style={{ marginBottom: THEME.SPACING.md }}>
+            <View key={categoryName} className="mb-6">
               {/* Category subheader row */}
-              <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: THEME.SPACING.sm }}>
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>
+              <View className="flex-row items-center justify-between mb-3">
+                <View className="flex-row items-center gap-1.5">
+                  <Text className="text-base font-black" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                     {categoryName}
                   </Text>
                 </View>
@@ -396,7 +386,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                 contentContainerStyle={{ gap: 12, paddingBottom: 4 }}
               >
                 {[1, 2, 3].map((id) => (
-                  <View key={id} style={{ width: 155, height: 290 }}>
+                  <View key={id} className="w-[155px]" style={{ height: 290 }}>
                     <ProductCardSkeleton />
                   </View>
                 ))}
@@ -411,13 +401,13 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
   if (products.length === 0) return null;
 
   return (
-    <View style={{ marginHorizontal: THEME.SPACING.md, marginVertical: THEME.SPACING.sm }}>
+    <View className="my-5 mx-4">
       {/* Title & Subtitle */}
-      <View style={{ marginBottom: THEME.SPACING.md }}>
-        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.title, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, letterSpacing: -0.3 }}>
+      <View className="mb-4">
+        <Text className="text-lg font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>
           Curated For You
         </Text>
-        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, marginTop: 2, color: colors.textSecondary }}>
+        <Text className="text-[10px] font-bold mt-0.5" style={{ color: isDarkMode ? '#a1a1aa' : '#64748b' }}>
           Handpicked collections for every mood
         </Text>
       </View>
@@ -426,7 +416,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
-        contentContainerStyle={{ gap: THEME.SPACING.sm, paddingBottom: THEME.SPACING.sm, paddingTop: 4 }}
+        contentContainerStyle={{ gap: 20, paddingBottom: 12, paddingTop: 4 }}
         decelerationRate="fast"
       >
         {curations.map((c) => {
@@ -446,15 +436,9 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
             >
               {/* Circular Icon container */}
               <View
+                className="w-14 h-14 rounded-full bg-white dark:bg-zinc-900 border flex items-center justify-center shadow-xs"
                 style={{
-                  width: 56,
-                  height: 56,
-                  borderRadius: 28,
-                  backgroundColor: colors.surface,
-                  borderWidth: 1,
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  borderColor: isActive ? c.activeBorderColor : colors.border,
+                  borderColor: isActive ? c.activeBorderColor : (isDarkMode ? '#27272a' : '#e2e8f0'),
                   borderWidth: isActive ? 2 : 1,
                 }}
               >
@@ -463,12 +447,9 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
               {/* Title Text */}
               <Text
+                className="text-[10px] font-black mt-2 text-center"
                 style={{
-                  fontSize: THEME.TYPOGRAPHY.sizes.micro,
-                  fontWeight: THEME.TYPOGRAPHY.weights.black,
-                  marginTop: 6,
-                  textAlign: 'center',
-                  color: isActive ? colors.textPrimary : colors.textMuted,
+                  color: isActive ? (isDarkMode ? '#fff' : '#0f172a') : (isDarkMode ? '#a1a1aa' : '#64748b'),
                 }}
               >
                 {c.title}
@@ -476,11 +457,8 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
 
               {/* Bottom active underline indicator */}
               <View
+                className="h-[3px] w-6 rounded-full mt-1.5"
                 style={{
-                  height: 3,
-                  width: 24,
-                  borderRadius: 1.5,
-                  marginTop: 4,
                   backgroundColor: isActive ? c.activeBorderColor : 'transparent',
                 }}
               />
@@ -496,11 +474,11 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 0 }}
           style={{
-            paddingHorizontal: THEME.SPACING.sm,
-            paddingVertical: THEME.SPACING.sm,
-            borderRadius: THEME.RADIUS.md,
+            paddingHorizontal: 14,
+            paddingVertical: 12,
+            borderRadius: 16,
             marginTop: 4,
-            marginBottom: THEME.SPACING.md,
+            marginBottom: 16,
             borderWidth: 1,
             borderColor: isDarkMode ? '#881337' : '#fca5a5',
             flexDirection: 'row',
@@ -509,19 +487,19 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
           }}
         >
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-            <Text style={{ fontSize: 16 }}>{'⚡'}</Text>
+            <Text style={{ fontSize: 16 }}>⚡</Text>
             <View>
-              <Text style={{ fontSize: 11, fontWeight: THEME.TYPOGRAPHY.weights.black, color: isDarkMode ? '#fda4af' : '#e11d48', letterSpacing: 0.5 }}>
+              <Text style={{ fontSize: 11, fontWeight: '900', color: isDarkMode ? '#fda4af' : '#e11d48', letterSpacing: 0.5 }}>
                 FLASH SALE ACTIVE
               </Text>
-              <Text style={{ fontSize: 9.5, fontWeight: THEME.TYPOGRAPHY.weights.semibold, color: isDarkMode ? colors.textSecondary : '#475569', marginTop: 1 }}>
+              <Text style={{ fontSize: 9.5, fontWeight: '600', color: isDarkMode ? '#cbd5e1' : '#475569', marginTop: 1 }}>
                 Grab top deals before they run out!
               </Text>
             </View>
           </View>
-
+          
           {/* Timer capsule */}
-          <View
+          <View 
             style={{
               backgroundColor: '#e11d48',
               borderRadius: 20,
@@ -532,8 +510,8 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
               gap: 3.5,
             }}
           >
-            <Clock size={10} color="#ffffff" />
-            <Text style={{ fontSize: 10.5, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', fontVariant: ['tabular-nums'] }}>
+            <Clock size={10} color="#fff" />
+            <Text style={{ fontSize: 10.5, fontWeight: '900', color: '#fff', fontVariant: ['tabular-nums'] }}>
               {String(timeLeft.hours).padStart(2, '0')}h : {String(timeLeft.minutes).padStart(2, '0')}m : {String(timeLeft.seconds).padStart(2, '0')}s
             </Text>
           </View>
@@ -541,10 +519,10 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
       )}
 
       {/* Grouped Product List */}
-      <View>
+      <View className="mt-4">
         {groupedProducts.length === 0 ? (
-          <View style={{ paddingVertical: THEME.SPACING.xxxl, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderStyle: 'dashed', borderRadius: THEME.RADIUS.lg, borderColor: isDarkMode ? colors.border : '#e2e8f0' }}>
-            <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>No deals available</Text>
+          <View className="py-12 items-center justify-center border border-dashed border-slate-200 dark:border-zinc-800 rounded-2xl">
+            <Text className="text-slate-400 dark:text-zinc-500 text-xs font-bold">No deals available</Text>
           </View>
         ) : (
           groupedProducts.map((group) => {
@@ -556,11 +534,11 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                 {/* Category subheader row */}
                 <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                   <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textPrimary }}>
+                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                       {group.categoryName}
                     </Text>
-                    <View style={{ backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}26` : '#ffe4e6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.pill }}>
-                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>
+                    <View style={{ backgroundColor: isDarkMode ? 'rgba(239,68,68,0.15)' : '#ffe4e6', paddingHorizontal: 8, paddingVertical: 2, borderRadius: THEME.RADIUS.pill }}>
+                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }}>
                         {group.products.length} {group.products.length === 1 ? 'item' : 'items'}
                       </Text>
                     </View>
@@ -578,26 +556,26 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                     style={{
                       flexDirection: 'row',
                       alignItems: 'center',
-                      backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1F` : '#fff1f2',
+                      backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
                       paddingHorizontal: 9,
                       paddingVertical: 4.5,
                       borderRadius: 12,
                       borderWidth: 1,
-                      borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}40` : '#ffe4e6',
+                      borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
                       gap: 2,
                     }}
                   >
-                    <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 10, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, textTransform: 'uppercase', letterSpacing: 0.2 }}>
+                    <Text style={{ color: THEME.COLORS.brand.primary, fontSize: 10, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.2 }}>
                       See All
                     </Text>
-                    <ChevronRight
-                      size={11}
-                      color={THEME.COLORS.brand.primary}
+                    <ChevronRight 
+                      size={11} 
+                      color={THEME.COLORS.brand.primary} 
                       strokeWidth={3}
                     />
                   </ScalePressable>
                 </View>
-
+ 
                 {/* Conditional Layout: 2-Column Vertical Grid when expanded, else Horizontal scroll track */}
                 {isExpanded ? (
                   <View>
@@ -625,14 +603,14 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                         backgroundColor: isDarkMode ? THEME.COLORS.dark.surfaceElevated : '#fcf8f8',
                         borderRadius: THEME.RADIUS.sm,
                         borderWidth: 1,
-                        borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}33` : 'rgba(226,10,34,0.1)',
+                        borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : 'rgba(226,10,34,0.1)',
                         alignItems: 'center',
                         justifyContent: 'center',
                         marginTop: 4,
                         marginBottom: 12,
                       }}
                     >
-                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.bold }}>Show Less {'▴'}</Text>
+                      <Text style={{ color: THEME.COLORS.brand.primary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: '700' }}>Show Less ▴</Text>
                     </ScalePressable>
                   </View>
                 ) : (
@@ -655,7 +633,7 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                             <ProductCard product={product} index={idx} className="w-full" />
                           </View>
                         ))}
-
+                        
                         {/* See More Card toggles expansion */}
                         <ScalePressable
                           onPress={() => {
@@ -694,19 +672,19 @@ export default function DealsCurationHub({ products, isLoading }: DealsCurationH
                             width: 40,
                             height: 40,
                             borderRadius: 20,
-                            backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1F` : '#fff1f2',
+                            backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
                             borderWidth: 1,
-                            borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}40` : '#ffe4e6',
+                            borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
                             alignItems: 'center',
                             justifyContent: 'center',
                             marginBottom: 10,
                           }}>
                             <ChevronRight size={16} color={THEME.COLORS.brand.primary} strokeWidth={3} />
                           </View>
-                          <Text style={{ fontSize: 13, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, textAlign: 'center', letterSpacing: 0.1 }}>
+                          <Text style={{ fontSize: 13, fontWeight: '900', color: isDarkMode ? '#fafafa' : '#0f172a', textAlign: 'center', letterSpacing: 0.1 }}>
                             See More
                           </Text>
-                          <Text style={{ fontSize: 9.5, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, color: THEME.COLORS.brand.primary, marginTop: 4, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.2 }}>
+                          <Text style={{ fontSize: 9.5, fontWeight: '800', color: THEME.COLORS.brand.primary, marginTop: 4, textAlign: 'center', textTransform: 'uppercase', letterSpacing: 0.2 }}>
                             {`+${group.products.length - 10} Items`}
                           </Text>
                         </ScalePressable>

@@ -1,4 +1,4 @@
-import { View, Text, Pressable, ScrollView, ActivityIndicator, Platform, Image as RNImage, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Dimensions, ActivityIndicator, Alert, Platform, Image as RNImage } from 'react-native';
 import Animated from 'react-native-reanimated';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -6,21 +6,23 @@ import { Image as ExpoImage } from 'expo-image';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useState, useEffect, useMemo } from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { ShoppingBag, ShieldCheck, ChevronRight, Search, Star, Mic, Clock, Minus, Plus } from 'lucide-react-native';
+import { queryKeys } from '../../lib/query-keys';
+import { ArrowLeft, ShoppingBag, Share2, ShieldCheck, Heart, Truck, ChevronDown, ChevronRight, Search, Star, MapPin, Sun, Moon, Mic, Clock, Minus, Plus } from 'lucide-react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCart } from '../../hooks/use-cart';
-import { formatPrice, getAppImageSource, isCafeProduct, isRestaurantProduct } from '../../lib/utils';
+import { formatPrice, getAppImageSource, formatHeaderAddress, isCafeProduct, isRestaurantProduct } from '../../lib/utils';
 import ProductCard, { Product } from '../../components/product/ProductCard';
 import { triggerHaptic } from '../../lib/haptic';
 import { playCartPop } from '../../lib/audio';
 import FloatingCartBar from '../../components/shared/FloatingCartBar';
 import AlertModal from '../../components/shared/AlertModal';
 import { API_BASE_URL } from '../../lib/constants';
+import { BlurView } from 'expo-blur';
 import { useTheme } from '../context/ThemeContext';
 import { useUIStore } from '../../stores/ui-store';
+import Logo from '../../components/shared/Logo';
 import { ScalePressable } from '../../components/shared/ScalePressable';
 import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
-import { THEME } from '../../lib/theme';
 
 const CATEGORY_IMAGES: Record<string, any> = {
   'fruits-vegetables': require('../../assets/fruits_vegetables_category.webp'),
@@ -48,17 +50,16 @@ const DEFAULT_MOCK_DETAIL = {
   origin: '',
   expiry: '',
   fssai: '',
-  variants: [] as any[],
+  variants: [] as any[]
 };
 
 export default function ProductDetailScreen() {
   const { slug } = useLocalSearchParams<{ slug: string }>();
   const { getItemQuantity, addItem, updateQuantity, getTotalItems, getSubtotal } = useCart();
   const [selectedVariantId, setSelectedVariantId] = useState('default');
-  const { theme } = useTheme();
+  const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
-
+  
   const [notified, setNotified] = useState(false);
   const [isAlertVisible, setIsAlertVisible] = useState(false);
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
@@ -109,23 +110,23 @@ export default function ProductDetailScreen() {
         id: v.id || `v-${idx}`,
         unit: v.unit || v.name || product.unit,
         price: v.price || product.price,
-        mrp: v.mrp || product.mrp || v.price || product.price,
+        mrp: v.mrp || product.mrp || v.price || product.price
       }));
     }
-
+    
     if (!product || !product.id || product.id === '') return [];
-
+    
     const baseUnit = product.unit || '1 unit';
     const basePrice = product.price || 0;
     const baseMrp = product.mrp || basePrice;
-
+    
     return [
       {
         id: 'default',
         unit: baseUnit,
         price: basePrice,
         mrp: baseMrp,
-      },
+      }
     ];
   }, [product?.id, product?.variants, product?.price, product?.mrp, product?.unit]);
 
@@ -146,14 +147,14 @@ export default function ProductDetailScreen() {
   const activeVariant = variantsList.find((v: any) => v.id === selectedVariantId) || {
     price: product.price,
     mrp: product.mrp,
-    unit: product.unit,
+    unit: product.unit
   };
 
   const isOutOfStock = useMemo(() => {
     if (product.isAvailable === false) return true;
     const hasVariants = product.variants && Array.isArray(product.variants) && product.variants.length > 0;
     if (hasVariants) {
-      const hasAvailableVariant = product.variants.some((v: any) =>
+      const hasAvailableVariant = product.variants.some((v: any) => 
         v.isAvailable !== false && (v.stock === undefined || v.stock === null || v.stock > 0)
       );
       return !hasAvailableVariant;
@@ -172,11 +173,11 @@ export default function ProductDetailScreen() {
     discount: (activeVariant.mrp ?? 0) - (activeVariant.price ?? 0),
     unit: activeVariant.unit,
     stock: product.stock,
-    isAvailable: product.isAvailable ?? true,
+    isAvailable: product.isAvailable ?? true
   };
 
   const quantity = getItemQuantity(cartProduct.id);
-  const discountPercent = activeVariant.mrp > 0
+  const discountPercent = activeVariant.mrp > 0 
     ? Math.round(((activeVariant.mrp - activeVariant.price) / activeVariant.mrp) * 100)
     : 0;
 
@@ -187,13 +188,13 @@ export default function ProductDetailScreen() {
     if (product.imageUrl) {
       return getAppImageSource(product.imageUrl);
     }
-
+    
     // Fallback to Category slug matching
     const slug = product.category?.slug || '';
     if (slug && CATEGORY_IMAGES[slug]) {
       return CATEGORY_IMAGES[slug];
     }
-
+    
     // Fallback to ID prefixes just in case
     const prefix = product.id?.slice(0, 2) || '';
     let categoryKey = '';
@@ -205,21 +206,29 @@ export default function ProductDetailScreen() {
     else if (prefix === 'hh') categoryKey = 'household';
     else if (prefix === 'bb') categoryKey = 'bakery';
     else if (prefix === 'de' || prefix === 'oi') categoryKey = 'grocery-essential';
-
+    
     return CATEGORY_IMAGES[categoryKey] || null;
   };
 
   const imageSource = getProductImage();
 
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
-      <StatusBar style={isDarkMode ? 'light' : 'dark'} />
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
+      <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* ── Web-Parity Header Redesign ── */}
-      <View style={[styles.headerContainer, { borderBottomColor: colors.border, backgroundColor: colors.background }]}>
+      <View style={{
+        paddingHorizontal: 16,
+        paddingTop: 10,
+        paddingBottom: 12,
+        borderBottomWidth: 1,
+        borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+        backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
+        zIndex: 20
+      }}>
         {/* Standardized Branded Header & Location */}
-        <BrandedTopHeader showBack={true} title={product?.name || 'Product Details'} subtitle={product?.category?.name || 'FastKirana'} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 8 }} />
+        <BrandedTopHeader showBack={true} title={product?.name || "Product Details"} subtitle={product?.category?.name || "FastKirana"} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 8 }} />
 
-        <ScalePressable
+        <ScalePressable 
           onPress={() => {
             router.push('/search');
           }}
@@ -237,32 +246,45 @@ export default function ProductDetailScreen() {
             width: '100%',
           } : { marginTop: 10, width: '100%' }}
         >
-          <View style={styles.searchBar}>
-            <Search size={16} color={THEME.COLORS.brand.primary} style={{ marginRight: THEME.SPACING.sm }} />
-            <Text style={styles.searchText}>
+          <View className="flex-row items-center bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full">
+            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+            <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
               Search for vegetables, dairy, snacks...
             </Text>
-
+            
             {/* Vertical Divider */}
-            <View style={styles.searchDivider} />
-
-            <Mic size={16} color={THEME.COLORS.brand.primary} />
+            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginRight: 10 }} />
+            
+            <Mic size={16} color="#e20a22" />
           </View>
         </ScalePressable>
 
         {/* Row 3: Breadcrumbs Capsule */}
-        <View style={[styles.breadcrumbCapsule, { borderColor: colors.border, backgroundColor: colors.background }]}>
-          <ScalePressable
+        <View style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          alignSelf: 'flex-start',
+          borderWidth: 1,
+          borderColor: isDarkMode ? '#2c2c2e' : '#e2e8f0',
+          borderRadius: 99,
+          paddingHorizontal: 12,
+          paddingVertical: 5,
+          marginTop: 12,
+          marginBottom: 2,
+          backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+          maxWidth: '100%',
+        }}>
+          <ScalePressable 
             onPress={() => {
               router.replace('/(tabs)');
             }}
             scaleValue={0.96}
             style={{}}
           >
-            <Text style={styles.breadcrumbHome}>HOME</Text>
+            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5 }}>HOME</Text>
           </ScalePressable>
-          <ChevronRight size={8} color={colors.textSecondary} style={styles.breadcrumbChevron} />
-          <ScalePressable
+          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6, flexShrink: 0 }} />
+          <ScalePressable 
             onPress={() => {
               if (product.category?.slug) {
                 router.push(`/category/${product.category.slug}`);
@@ -272,43 +294,50 @@ export default function ProductDetailScreen() {
             style={{ flexShrink: 0 }}
             disabled={!product.category?.slug}
           >
-            <Text style={styles.breadcrumbCategory}>
+            <Text style={{ fontSize: 9.5, fontWeight: '800', color: '#e20a22', letterSpacing: 0.5, textTransform: 'uppercase' }}>
               {product.category?.name || 'MART'}
             </Text>
           </ScalePressable>
-          <ChevronRight size={8} color={colors.textSecondary} style={styles.breadcrumbChevron} />
-          <Text style={[styles.breadcrumbCurrent, { color: colors.textMuted }]} numberOfLines={1}>
+          <ChevronRight size={8} color="#64748b" style={{ marginHorizontal: 6, flexShrink: 0 }} />
+          <Text style={{ fontSize: 9.5, fontWeight: '800', color: isDarkMode ? '#71717a' : '#94a3b8', letterSpacing: 0.5, textTransform: 'uppercase', flexShrink: 1 }} numberOfLines={1}>
             {product.name}
           </Text>
         </View>
       </View>
 
       {isLoading ? (
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={THEME.COLORS.brand.primary} />
+        <View className="flex-1 justify-center items-center">
+          <ActivityIndicator size="large" color="#e20a22" />
         </View>
       ) : (
-        <ScrollView
-          style={{ flex: 1 }}
+        <ScrollView 
+          className="flex-1" 
           contentContainerStyle={{ paddingBottom: 110 }}
           showsVerticalScrollIndicator={false}
         >
-          {/* ── Main Product Card Container ── */}
-          <View style={[styles.productCard, {
-            backgroundColor: colors.surface,
-            borderColor: isDarkMode ? `${colors.border}cc` : `${THEME.COLORS.light.border}80`,
-          }]}>
+          {/* ── Main Product Card Container (Matches web screenshot layout) ── */}
+          <View className="mx-4 mt-4 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 p-5 rounded-3xl shadow-sm">
+            
             {/* Image Box Container with Inner Border */}
-            <View
-              style={[
-                styles.imageBox,
-                {
-                  backgroundColor: isDarkMode ? `${colors.surface}66` : colors.background,
-                  borderColor: isDarkMode ? '#3f3f4680' : `${colors.borderLight}80`,
-                },
-              ]}
+            <View 
+              style={{
+                width: '100%',
+                aspectRatio: 1.1,
+                maxHeight: 280,
+                backgroundColor: isDarkMode ? 'rgba(24,24,27,0.4)' : '#f8fafc',
+                alignItems: 'center',
+                justifyContent: 'center',
+                position: 'relative',
+                borderWidth: 1,
+                borderColor: isDarkMode ? 'rgba(63,63,70,0.5)' : 'rgba(241,245,249,0.5)',
+                overflow: 'hidden',
+                borderRadius: 16,
+                marginLeft: 'auto',
+                marginRight: 'auto',
+                marginBottom: 16,
+              }}
             >
-
+              
               {/* Product Image */}
               <Animated.View
                 style={{ width: '90%', height: '90%' }}
@@ -327,44 +356,41 @@ export default function ProductDetailScreen() {
                     style={{ width: '90%', height: '90%' }}
                     transition={250}
                     cachePolicy="memory-disk"
-                    placeholder={isDarkMode ? `${colors.surfaceElevated}66` : `${colors.borderLight}99`}
+                    placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
                   />
                 )}
               </Animated.View>
 
               {/* Discount flat tag top-left */}
               {discountPercent > 0 && (
-                <View style={styles.discountTag}>
-                  <Text style={styles.discountTagText}>{discountPercent}% OFF</Text>
+                <View className="absolute top-0 left-0 bg-[#FF6B00] px-3.5 py-1.5 rounded-br-xl rounded-tl-2xl">
+                  <Text className="text-white font-black text-[11px] uppercase tracking-wider">{discountPercent}% OFF</Text>
                 </View>
               )}
             </View>
 
             {/* Category Pill Tag */}
             {product.category?.name && (
-              <View style={[styles.categoryPill, {
-                backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primaryDark}33` : `${THEME.COLORS.brand.primaryLight}80`,
-                borderColor: isDarkMode ? `${THEME.COLORS.brand.primaryDark}33` : `${THEME.COLORS.brand.primary}26`,
-              }]}>
-                <Text style={[styles.categoryPillText, { color: THEME.COLORS.brand.primary }]}>
+              <View className="self-start px-2.5 py-1 bg-pink-50/50 dark:bg-pink-950/20 border border-pink-100/30 dark:border-pink-900/30 rounded-full mb-2">
+                <Text className="text-[9px] font-black text-rose-600 uppercase tracking-wider">
                   {product.category.name}
                 </Text>
               </View>
             )}
 
             {/* Title & Underline */}
-            <Text style={[styles.productTitle, { color: colors.textPrimary }]}>
+            <Text className="text-slate-855 dark:text-zinc-100 font-black text-2xl tracking-tight leading-8">
               {product.name}
             </Text>
-            <View style={[styles.titleUnderline, { backgroundColor: THEME.COLORS.brand.primary }]} />
+            <View className="w-12 h-1 bg-[#e20a22] rounded-full mt-2.5 mb-4" />
 
             {/* Select Size / Option Row (Styled like Blinkit/Zepto) */}
             {variantsList.length > 1 && (
-              <View style={styles.variantSelector}>
-                <Text style={[styles.variantLabel, { color: colors.textPrimary }]}>
+              <View className="mb-6">
+                <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-sm mb-3">
                   Select Size
                 </Text>
-                <View style={styles.variantGrid}>
+                <View className="flex-row flex-wrap gap-3">
                   {variantsList.map((v: any) => {
                     const isSelected = selectedVariantId === v.id;
                     return (
@@ -376,28 +402,27 @@ export default function ProductDetailScreen() {
                           scaleValue={0.96}
                           style={{ width: '100%', height: '100%' }}
                         >
-                          <View style={[
-                            styles.variantCard,
-                            isSelected ? styles.variantCardSelected : styles.variantCardUnselected,
-                            {
-                              borderColor: isSelected ? THEME.COLORS.brand.success : colors.border,
-                              backgroundColor: isSelected
-                                ? `${THEME.COLORS.brand.success}33`
-                                : colors.surface,
-                            },
-                          ]}>
+                          <View
+                            className={`w-full h-full rounded-2xl border-2 items-center justify-center ${
+                              isSelected
+                                ? 'bg-emerald-50/20 border-emerald-600 dark:bg-emerald-950/20 dark:border-emerald-500'
+                                : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-800'
+                            }`}
+                          >
                             {/* Variant Unit */}
-                            <Text style={[
-                              styles.variantUnit,
-                              { color: isSelected ? THEME.COLORS.brand.successDark : colors.textPrimary },
-                            ]}>
+                            <Text
+                              className={`text-xs font-black text-center ${
+                                isSelected ? 'text-emerald-700 dark:text-emerald-400' : 'text-slate-750 dark:text-zinc-300'
+                              }`}
+                            >
                               {v.unit}
                             </Text>
                             {/* Variant Price */}
-                            <Text style={[
-                              styles.variantPrice,
-                              { color: isSelected ? THEME.COLORS.brand.success : colors.textSecondary },
-                            ]}>
+                            <Text
+                              className={`text-xs font-bold text-center mt-1 ${
+                                isSelected ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-zinc-400'
+                              }`}
+                            >
                               {formatPrice(v.price)}
                             </Text>
                           </View>
@@ -410,17 +435,17 @@ export default function ProductDetailScreen() {
             )}
 
             {/* Price section with green percentage capsule */}
-            <View style={styles.priceRow}>
-              <Text style={[styles.priceText, { color: colors.textPrimary }]}>
+            <View className="flex-row items-baseline gap-2.5 mb-5">
+              <Text className="text-slate-800 dark:text-zinc-200 font-black text-2xl">
                 {formatPrice(activeVariant.price)}
               </Text>
               {activeVariant.mrp > activeVariant.price && (
                 <>
-                  <Text style={[styles.mrpText, { color: colors.textMuted }]}>
+                  <Text className="text-slate-400 dark:text-zinc-500 line-through text-sm font-semibold">
                     {formatPrice(activeVariant.mrp)}
                   </Text>
-                  <View style={[styles.discountBadge, { backgroundColor: `${THEME.COLORS.brand.success}1A` }]}>
-                    <Text style={[styles.discountBadgeText, { color: THEME.COLORS.brand.success }]}>
+                  <View className="bg-emerald-50 dark:bg-emerald-950/20 px-2 py-0.5 rounded-md">
+                    <Text className="text-emerald-600 dark:text-emerald-400 text-[10px] font-black">
                       {discountPercent}% OFF
                     </Text>
                   </View>
@@ -430,8 +455,8 @@ export default function ProductDetailScreen() {
 
             {/* Add to Cart Actions */}
             {isStoreClosed ? (
-              <View style={[styles.storeClosed, { backgroundColor: colors.borderLight, borderColor: colors.border }]}>
-                <Text style={[styles.storeClosedText, { color: colors.textMuted }]}>STORE CLOSED</Text>
+              <View className="bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 py-3.5 rounded-xl items-center justify-center mb-6 w-full">
+                <Text className="font-black text-xs tracking-wider text-slate-400 dark:text-zinc-500 uppercase">STORE CLOSED</Text>
               </View>
             ) : isOutOfStock ? (
               <ScalePressable
@@ -441,22 +466,20 @@ export default function ProductDetailScreen() {
                 scaleValue={0.96}
                 style={{ width: '100%' }}
               >
-                <View style={[
-                  styles.notifyCard,
-                  notified
-                    ? { backgroundColor: `${THEME.COLORS.brand.success}26`, borderColor: THEME.COLORS.brand.success }
-                    : { backgroundColor: `${THEME.COLORS.brand.warning}26`, borderColor: THEME.COLORS.brand.warning },
-                ]}>
-                  <Text style={[
-                    styles.notifyText,
-                    { color: notified ? THEME.COLORS.brand.success : THEME.COLORS.brand.warning },
-                  ]}>
+                <View className={`py-3.5 rounded-xl border flex items-center justify-center mb-6 w-full ${
+                  notified 
+                    ? 'bg-emerald-950/15 border-emerald-600 dark:border-emerald-500'
+                    : 'bg-amber-950/15 border-amber-500 dark:border-amber-400'
+                }`}>
+                  <Text className={`font-black text-xs uppercase tracking-wider ${
+                    notified ? 'text-emerald-500' : 'text-amber-550 dark:text-amber-500'
+                  }`}>
                     {notified ? '✓ Alerted' : '🔔 Notify Me'}
                   </Text>
                 </View>
               </ScalePressable>
             ) : quantity === 0 ? (
-              <View style={{ width: '100%', marginBottom: THEME.SPACING.xxl }}>
+              <View style={{ width: '100%', marginBottom: 24 }}>
                 <ScalePressable
                   onPress={() => {
                     playCartPop();
@@ -466,28 +489,54 @@ export default function ProductDetailScreen() {
                   haptic="success"
                   style={{ width: '100%' }}
                 >
-                  <View style={styles.addToCartOuter}>
+                  <View style={{
+                    width: '100%',
+                    borderRadius: 16,
+                    backgroundColor: '#047857',
+                    paddingBottom: 4,
+                    shadowColor: '#10b981',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.3,
+                    shadowRadius: 8,
+                    elevation: 5,
+                  }}>
                     <LinearGradient
-                      colors={THEME.COLORS.gradients.success}
+                      colors={['#10b981', '#059669']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 1 }}
-                      style={styles.addToCartGradient}
+                      style={{
+                        width: '100%',
+                        height: 52,
+                        borderRadius: 16,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 10,
+                        paddingHorizontal: 20,
+                      }}
                     >
                       <ShoppingBag size={20} color="#ffffff" strokeWidth={2.8} />
-                      <Text style={styles.addToCartText}>ADD TO CART</Text>
+                      <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 15, letterSpacing: 0.5, textTransform: 'uppercase' }}>
+                        ADD TO CART
+                      </Text>
                     </LinearGradient>
                   </View>
                 </ScalePressable>
               </View>
             ) : (
-              <View style={{ width: '100%', marginBottom: THEME.SPACING.xxl }}>
-                <View style={[
-                  styles.quantityContainer,
-                  {
-                    backgroundColor: isDarkMode ? THEME.COLORS.brand.successDark : THEME.COLORS.brand.successLight,
-                    borderColor: THEME.COLORS.brand.success,
-                  },
-                ]}>
+              <View style={{ width: '100%', marginBottom: 24 }}>
+                <View style={{
+                  height: 52,
+                  borderRadius: 16,
+                  backgroundColor: isDarkMode ? '#064e3b' : '#f0fdf4',
+                  borderWidth: 2,
+                  borderColor: '#10b981',
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  justifyContent: 'space-between',
+                  paddingHorizontal: 6,
+                  width: '100%',
+                }}>
                   <Pressable
                     onPress={() => {
                       playCartPop();
@@ -497,19 +546,19 @@ export default function ProductDetailScreen() {
                       width: 48,
                       height: 42,
                       borderRadius: 12,
-                      backgroundColor: pressed ? `${THEME.COLORS.brand.success}4D` : 'transparent',
+                      backgroundColor: pressed ? (isDarkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.15)') : 'transparent',
                       alignItems: 'center',
                       justifyContent: 'center',
                     })}
                   >
-                    <Minus size={22} color={isDarkMode ? THEME.COLORS.brand.success : THEME.COLORS.brand.successDark} strokeWidth={3} />
+                    <Minus size={22} color={isDarkMode ? '#34d399' : '#059669'} strokeWidth={3} />
                   </Pressable>
 
-                  <View style={styles.quantityCount}>
-                    <Text style={[styles.quantityCountNumber, { color: isDarkMode ? THEME.COLORS.brand.success : THEME.COLORS.brand.successDark }]}>
+                  <View style={{ alignItems: 'center', justifyContent: 'center', paddingHorizontal: 12 }}>
+                    <Text style={{ fontSize: 17, fontWeight: '900', color: isDarkMode ? '#34d399' : '#047857' }}>
                       {quantity}
                     </Text>
-                    <Text style={[styles.quantityLabel, { color: colors.textSecondary }]}>
+                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isDarkMode ? '#a7f3d0' : '#15803d', textTransform: 'uppercase', marginTop: -2 }}>
                       in cart
                     </Text>
                   </View>
@@ -523,65 +572,59 @@ export default function ProductDetailScreen() {
                       width: 48,
                       height: 42,
                       borderRadius: 12,
-                      backgroundColor: pressed ? `${THEME.COLORS.brand.success}4D` : 'transparent',
+                      backgroundColor: pressed ? (isDarkMode ? 'rgba(16,185,129,0.3)' : 'rgba(16,185,129,0.15)') : 'transparent',
                       alignItems: 'center',
                       justifyContent: 'center',
                     })}
                   >
-                    <Plus size={22} color={isDarkMode ? THEME.COLORS.brand.success : THEME.COLORS.brand.successDark} strokeWidth={3} />
+                    <Plus size={22} color={isDarkMode ? '#34d399' : '#059669'} strokeWidth={3} />
                   </Pressable>
                 </View>
               </View>
             )}
 
             {/* Delivery Info Capsule */}
-            <View style={[styles.deliveryCapsule, {
-              backgroundColor: isDarkMode ? `${colors.surface}4D` : `${colors.background}80`,
-              borderColor: colors.borderLight,
-            }]}>
+            <View className="flex-row items-center gap-2 bg-slate-50/50 dark:bg-zinc-900/30 border border-slate-100 dark:border-zinc-900 p-3 rounded-xl mb-3">
               <Text style={{ fontSize: 13 }}>⚡</Text>
-              <Text style={[styles.deliveryText, { color: colors.textSecondary }]}>
+              <Text className="text-[10.5px] font-black text-slate-700 dark:text-zinc-300">
                 Lightning-fast doorstep delivery from our nearest darkstore
               </Text>
             </View>
 
             {/* Fresh Verified Card */}
-            <View style={[styles.freshVerified, {
-              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.successDark}0D` : `${THEME.COLORS.brand.successLight}33`,
-              borderColor: isDarkMode ? `${THEME.COLORS.brand.success}33` : `${THEME.COLORS.brand.success}80`,
-            }]}>
-              <View style={styles.freshVerifiedRow}>
-                <ShieldCheck size={14} color={THEME.COLORS.brand.success} />
-                <Text style={[styles.freshVerifiedTitle, { color: isDarkMode ? THEME.COLORS.brand.success : THEME.COLORS.brand.successDark }]}>
+            <View className="bg-emerald-50/20 dark:bg-emerald-950/5 border border-emerald-100/50 dark:border-emerald-900/20 p-3.5 rounded-xl mb-5">
+              <View className="flex-row items-center gap-1.5 mb-1">
+                <ShieldCheck size={14} color="#10b981" />
+                <Text className="text-emerald-700 dark:text-emerald-400 text-[11px] font-black">
                   FastKirana DarkStore Fresh Verified
                 </Text>
               </View>
-              <Text style={[styles.freshVerifiedDesc, { color: isDarkMode ? `${THEME.COLORS.brand.success}CC` : `${THEME.COLORS.brand.success}E6` }]}>
+              <Text className="text-[9.5px] text-emerald-600/90 dark:text-emerald-500/80 leading-4 font-medium">
                 Sourced directly, sorted in hygienic, controlled environment, and packed under strict guidelines. Freshness guaranteed with zero small shelf-store.
               </Text>
             </View>
 
             {/* Delivery in 15-20 min text */}
-            <View style={styles.deliveryTimeRow}>
-              <Clock size={14} color={THEME.COLORS.brand.success} />
-              <Text style={[styles.deliveryTimeText, { color: THEME.COLORS.brand.success }]}>
+            <View className="flex-row items-center gap-1.5 mb-6 ml-1">
+              <Clock size={14} color="#16a34a" />
+              <Text className="text-emerald-600 dark:text-emerald-400 font-extrabold text-xs">
                 Delivery in 15-20 min
               </Text>
             </View>
 
             {/* Collapsible Accordions Details lists */}
-            <View style={[styles.accordionContainer, { borderTopColor: colors.borderLight }]}>
+            <View className="border-t border-slate-100 dark:border-zinc-900 pt-3">
               {/* Accordion 1: Product Description */}
               <Pressable
                 onPress={() => setDescOpen(!descOpen)}
-                style={styles.accordionItem}
+                className="flex-row justify-between items-center py-3 border-b border-slate-100 dark:border-zinc-900"
               >
-                <Text style={[styles.accordionTitle, { color: colors.textPrimary }]}>Product Description</Text>
-                <Text style={[styles.accordionToggle, { color: colors.textMuted }]}>{descOpen ? '▴' : '▾'}</Text>
+                <Text className="text-xs font-black text-slate-750 dark:text-zinc-350">Product Description</Text>
+                <Text className="text-slate-400 font-extrabold text-sm">{descOpen ? '▴' : '▾'}</Text>
               </Pressable>
               {descOpen && (
-                <View style={styles.accordionContent}>
-                  <Text style={[styles.accordionBodyText, { color: colors.textSecondary }]}>
+                <View className="py-2.5">
+                  <Text className="text-[12px] text-slate-550 dark:text-zinc-405 leading-5 font-semibold">
                     {product.description || 'No description available for this product.'}
                   </Text>
                 </View>
@@ -590,14 +633,14 @@ export default function ProductDetailScreen() {
               {/* Accordion 2: Storage & Care */}
               <Pressable
                 onPress={() => setStorageOpen(!storageOpen)}
-                style={styles.accordionItem}
+                className="flex-row justify-between items-center py-3 border-b border-slate-100 dark:border-zinc-900"
               >
-                <Text style={[styles.accordionTitle, { color: colors.textPrimary }]}>Storage & Care</Text>
-                <Text style={[styles.accordionToggle, { color: colors.textMuted }]}>{storageOpen ? '▴' : '▾'}</Text>
+                <Text className="text-xs font-black text-slate-750 dark:text-zinc-350">Storage & Care</Text>
+                <Text className="text-slate-400 font-extrabold text-sm">{storageOpen ? '▴' : '▾'}</Text>
               </Pressable>
               {storageOpen && (
-                <View style={styles.accordionContent}>
-                  <Text style={[styles.accordionBodyText, { color: colors.textSecondary }]}>
+                <View className="py-2.5">
+                  <Text className="text-[12px] text-slate-550 dark:text-zinc-405 leading-5 font-semibold">
                     Store in a cool and dry place. Keep away from direct sunlight. {product.origin ? `Country of Origin: ${product.origin}.` : ''}
                   </Text>
                 </View>
@@ -606,18 +649,18 @@ export default function ProductDetailScreen() {
               {/* Accordion 3: Seller Information */}
               <Pressable
                 onPress={() => setSellerOpen(!sellerOpen)}
-                style={styles.accordionItem}
+                className="flex-row justify-between items-center py-3 border-b border-slate-100 dark:border-zinc-900"
               >
-                <Text style={[styles.accordionTitle, { color: colors.textPrimary }]}>Seller Information</Text>
-                <Text style={[styles.accordionToggle, { color: colors.textMuted }]}>{sellerOpen ? '▴' : '▾'}</Text>
+                <Text className="text-xs font-black text-slate-750 dark:text-zinc-350">Seller Information</Text>
+                <Text className="text-slate-400 font-extrabold text-sm">{sellerOpen ? '▴' : '▾'}</Text>
               </Pressable>
               {sellerOpen && (
-                <View style={styles.accordionContent}>
-                  <Text style={[styles.accordionBodyText, { color: colors.textSecondary }]}>
+                <View className="py-2.5 gap-2">
+                  <Text className="text-[12px] text-slate-550 dark:text-zinc-405 leading-5 font-semibold">
                     Sold by FastKirana Retail DarkStore.
                   </Text>
                   {product.fssai && (
-                    <Text style={[styles.accordionSubText, { color: colors.textMuted }]}>
+                    <Text className="text-[10px] text-slate-400 dark:text-zinc-500 font-bold">
                       FSSAI License No: {product.fssai}
                     </Text>
                   )}
@@ -629,19 +672,19 @@ export default function ProductDetailScreen() {
 
           {/* ── Related Products scroller section ── */}
           {relatedProducts.length > 0 && (
-            <View style={styles.relatedSection}>
-              <Text style={[styles.relatedTitle, { color: colors.textPrimary }]}>Related Products</Text>
-              <Text style={[styles.relatedSubtitle, { color: colors.textMuted }]}>
+            <View className="px-4 mt-6">
+              <Text className="text-slate-800 dark:text-zinc-200 font-black text-lg">Related Products</Text>
+              <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-bold mt-0.5">
                 Customers buy this in this category
               </Text>
               <ScrollView
                 horizontal
                 showsHorizontalScrollIndicator={false}
-                contentContainerStyle={{ gap: THEME.SPACING.md, paddingTop: THEME.SPACING.md, paddingBottom: THEME.SPACING.xs }}
+                contentContainerStyle={{ gap: 12, paddingTop: 12, paddingBottom: 4 }}
                 decelerationRate="fast"
               >
                 {relatedProducts.map((p: any, idx: number) => (
-                  <View key={p.id} style={{ width: 144 }}>
+                  <View key={p.id} className="w-36">
                     <ProductCard product={p} index={idx} className="w-full" isCafeStyle={isCafe} />
                   </View>
                 ))}
@@ -650,17 +693,14 @@ export default function ProductDetailScreen() {
           )}
 
           {/* ── Customer Reviews Section Card ── */}
-          <View style={[styles.reviewsCard, {
-            backgroundColor: colors.surface,
-            borderColor: isDarkMode ? `${colors.border}cc` : `${THEME.COLORS.light.border}80`,
-          }]}>
-            <Text style={[styles.reviewsTitle, { color: colors.textPrimary }]}>Customer Reviews</Text>
-            <View style={styles.reviewsEmpty}>
-              <Star size={36} color={colors.textMuted} strokeWidth={1.5} />
-              <Text style={[styles.reviewsEmptyText, { color: colors.textMuted }]}>
+          <View className="mx-4 mt-6 bg-white dark:bg-zinc-900 border border-slate-200/50 dark:border-zinc-800/80 p-5 rounded-3xl shadow-sm mb-6">
+            <Text className="text-slate-800 dark:text-zinc-200 font-black text-lg mb-4">Customer Reviews</Text>
+            <View className="items-center justify-center py-6">
+              <Star size={36} color="#d1d5db" strokeWidth={1.5} />
+              <Text className="text-slate-400 dark:text-zinc-500 text-xs font-bold mt-3 text-center">
                 No reviews yet for this product.
               </Text>
-              <Text style={[styles.reviewsEmptySubtext, { color: colors.textMuted }]}>
+              <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-1 text-center">
                 Be the first to order and review this item!
               </Text>
             </View>
@@ -682,422 +722,3 @@ export default function ProductDetailScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  // ── Header ──
-  headerContainer: {
-    paddingHorizontal: THEME.SPACING.lg,
-    paddingTop: 10,
-    paddingBottom: 12,
-    borderBottomWidth: 1,
-    zIndex: 20,
-  },
-  searchBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: THEME.COLORS.light.surface,
-    borderWidth: 1,
-    borderColor: THEME.COLORS.light.border,
-    borderRadius: THEME.RADIUS.pill,
-    paddingHorizontal: THEME.SPACING.lg,
-    height: 44,
-    width: '100%',
-  },
-  searchText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    color: THEME.COLORS.light.textMuted,
-    fontWeight: THEME.TYPOGRAPHY.weights.medium,
-    flex: 1,
-  },
-  searchDivider: {
-    width: 1,
-    height: 16,
-    backgroundColor: THEME.COLORS.light.border,
-    marginRight: THEME.SPACING.lg,
-  },
-  breadcrumbCapsule: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    alignSelf: 'flex-start',
-    borderWidth: 1,
-    borderRadius: THEME.RADIUS.pill,
-    paddingHorizontal: THEME.SPACING.lg,
-    paddingVertical: 5,
-    marginTop: THEME.SPACING.md,
-    marginBottom: 2,
-    maxWidth: '100%',
-  },
-  breadcrumbHome: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    color: THEME.COLORS.brand.primary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  breadcrumbChevron: {
-    marginHorizontal: 6,
-    flexShrink: 0,
-  },
-  breadcrumbCategory: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    color: THEME.COLORS.brand.primary,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  breadcrumbCurrent: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-    flexShrink: 1,
-  },
-
-  // ── Product Card ──
-  productCard: {
-    marginHorizontal: THEME.SPACING.lg,
-    marginTop: THEME.SPACING.lg,
-    borderWidth: 1,
-    padding: THEME.SPACING.xl,
-    borderRadius: THEME.RADIUS.xl,
-    ...THEME.SHADOWS.sm,
-  },
-  imageBox: {
-    width: '100%',
-    aspectRatio: 1.1,
-    maxHeight: 280,
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    borderWidth: 1,
-    overflow: 'hidden',
-    borderRadius: 16,
-    marginLeft: 'auto',
-    marginRight: 'auto',
-    marginBottom: THEME.SPACING.lg,
-  },
-  discountTag: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    backgroundColor: '#FF6B00',
-    paddingHorizontal: 14,
-    paddingVertical: 6,
-    borderBottomRightRadius: THEME.RADIUS.lg,
-    borderTopLeftRadius: THEME.RADIUS.xl,
-  },
-  discountTagText: {
-    color: '#ffffff',
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  categoryPill: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: 10,
-    paddingVertical: THEME.SPACING.xs,
-    borderWidth: 1,
-    borderRadius: THEME.RADIUS.pill,
-    marginBottom: THEME.SPACING.sm,
-  },
-  categoryPillText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  productTitle: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.heroSm,
-    letterSpacing: -0.5,
-    lineHeight: 32,
-  },
-  titleUnderline: {
-    width: 48,
-    height: THEME.SPACING.xs,
-    borderRadius: THEME.RADIUS.pill,
-    marginTop: 10,
-    marginBottom: THEME.SPACING.md,
-  },
-
-  // ── Variants ──
-  variantSelector: {
-    marginBottom: THEME.SPACING.xxl,
-  },
-  variantLabel: {
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    marginBottom: THEME.SPACING.md,
-  },
-  variantGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: THEME.SPACING.md,
-  },
-  variantCard: {
-    width: '100%',
-    height: '100%',
-    borderRadius: THEME.RADIUS.lg,
-    borderWidth: 2,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  variantCardSelected: {
-    // backgroundColor set conditionally
-  },
-  variantCardUnselected: {
-    // backgroundColor set conditionally
-  },
-  variantUnit: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    textAlign: 'center',
-  },
-  variantPrice: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-    textAlign: 'center',
-    marginTop: 4,
-  },
-
-  // ── Price ──
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    gap: THEME.SPACING.md,
-    marginBottom: THEME.SPACING.xl,
-  },
-  priceText: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.heroSm,
-  },
-  mrpText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
-    textDecorationLine: 'line-through',
-  },
-  discountBadge: {
-    paddingHorizontal: THEME.SPACING.sm,
-    paddingVertical: 2,
-    borderRadius: THEME.RADIUS.sm,
-  },
-  discountBadgeText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-  },
-
-  // ── Cart Actions ──
-  storeClosed: {
-    borderWidth: 1,
-    paddingVertical: THEME.SPACING.lg,
-    borderRadius: THEME.RADIUS.md,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: THEME.SPACING.xxl,
-    width: '100%',
-  },
-  storeClosedText: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  notifyCard: {
-    paddingVertical: THEME.SPACING.lg,
-    borderRadius: THEME.RADIUS.md,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginBottom: THEME.SPACING.xxl,
-    width: '100%',
-  },
-  notifyText: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  addToCartOuter: {
-    width: '100%',
-    borderRadius: 16,
-    backgroundColor: THEME.COLORS.brand.successDark,
-    paddingBottom: 4,
-    shadowColor: THEME.COLORS.brand.success,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 8,
-    elevation: 5,
-  },
-  addToCartGradient: {
-    width: '100%',
-    height: 52,
-    borderRadius: 16,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: THEME.SPACING.lg,
-    paddingHorizontal: THEME.SPACING.xl,
-  },
-  addToCartText: {
-    color: '#ffffff',
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: 15,
-    letterSpacing: 0.5,
-    textTransform: 'uppercase',
-  },
-  quantityContainer: {
-    height: 52,
-    borderRadius: 16,
-    borderWidth: 2,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: 6,
-    width: '100%',
-  },
-  quantityCount: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingHorizontal: THEME.SPACING.md,
-  },
-  quantityCountNumber: {
-    fontSize: 17,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-  },
-  quantityLabel: {
-    fontSize: 8.5,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    textTransform: 'uppercase',
-    marginTop: -2,
-  },
-
-  // ── Info Sections ──
-  deliveryCapsule: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.sm,
-    borderWidth: 1,
-    padding: THEME.SPACING.md,
-    borderRadius: THEME.RADIUS.md,
-    marginBottom: THEME.SPACING.sm,
-  },
-  deliveryText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-  },
-  freshVerified: {
-    borderWidth: 1,
-    padding: THEME.SPACING.lg,
-    borderRadius: THEME.RADIUS.md,
-    marginBottom: THEME.SPACING.xxl,
-  },
-  freshVerifiedRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.xs,
-    marginBottom: THEME.SPACING.xs,
-  },
-  freshVerifiedTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-  },
-  freshVerifiedDesc: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    lineHeight: 16,
-    fontWeight: THEME.TYPOGRAPHY.weights.medium,
-  },
-  deliveryTimeRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.xs,
-    marginBottom: THEME.SPACING.xxl,
-    marginLeft: 4,
-  },
-  deliveryTimeText: {
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-  },
-
-  // ── Accordions ──
-  accordionContainer: {
-    borderTopWidth: 1,
-    paddingTop: THEME.SPACING.md,
-  },
-  accordionItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingVertical: THEME.SPACING.md,
-    borderBottomWidth: 1,
-  },
-  accordionTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-  },
-  accordionToggle: {
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-  },
-  accordionContent: {
-    paddingVertical: THEME.SPACING.sm,
-    gap: THEME.SPACING.sm,
-  },
-  accordionBodyText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    lineHeight: 20,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
-  },
-  accordionSubText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-  },
-
-  // ── Related Products ──
-  relatedSection: {
-    paddingHorizontal: THEME.SPACING.lg,
-    marginTop: THEME.SPACING.xxl,
-  },
-  relatedTitle: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
-  },
-  relatedSubtitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-    marginTop: 2,
-  },
-
-  // ── Reviews ──
-  reviewsCard: {
-    marginHorizontal: THEME.SPACING.lg,
-    marginTop: THEME.SPACING.xxl,
-    borderWidth: 1,
-    padding: THEME.SPACING.xl,
-    borderRadius: THEME.RADIUS.xl,
-    marginBottom: THEME.SPACING.xxl,
-    ...THEME.SHADOWS.sm,
-  },
-  reviewsTitle: {
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
-    marginBottom: THEME.SPACING.md,
-  },
-  reviewsEmpty: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    paddingVertical: THEME.SPACING.xxl,
-  },
-  reviewsEmptyText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-    marginTop: THEME.SPACING.md,
-    textAlign: 'center',
-  },
-  reviewsEmptySubtext: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
-    marginTop: THEME.SPACING.xs,
-    textAlign: 'center',
-  },
-});

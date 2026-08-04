@@ -29,7 +29,6 @@
     "expo-splash-screen": "~56.0.13",
     "expo-status-bar": "~56.0.4",
     "expo-web-browser": "~56.0.5",
-    "firebase": "^12.17.0",
     "lucide-react-native": "^1.18.0",
     "nativewind": "^4.2.5",
     "pg": "^8.22.0",

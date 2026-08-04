@@ -1,4 +1,4 @@
-import { View, Text, TextInput, FlatList, Pressable, ActivityIndicator, Modal, ScrollView, StyleSheet } from 'react-native';
+import { View, Text, TextInput,  FlatList, Pressable, ActivityIndicator, Modal, ScrollView } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useState, useEffect, useRef } from 'react';
 import { useQuery } from '@tanstack/react-query';
@@ -41,7 +41,6 @@ const ALL_SEARCHABLE_PRODUCTS: Product[] = [];
 export default function SearchScreen() {
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
   const { categorySlug, categoryName } = useLocalSearchParams<{ categorySlug?: string; categoryName?: string }>();
   const [searchQueryVal, setSearchQuery] = useState('');
@@ -85,7 +84,7 @@ export default function SearchScreen() {
       return Array.isArray(data) ? data : (data.products || []);
     },
   });
-
+  
   // Voice Search Simulation States
   const [isVoiceModalVisible, setIsVoiceModalVisible] = useState(false);
   const [voiceStatus, setVoiceStatus] = useState('Listening...');
@@ -94,11 +93,12 @@ export default function SearchScreen() {
   const recognitionRef = useRef<any | null>(null);
 
   useEffect(() => {
+    // Instantiate speech recognition safely to prevent crashes in Expo Go
     let recognition: any = null;
     try {
       recognition = new ExpoWebSpeechRecognition();
       recognition.lang = 'en-IN';
-
+      
       recognition.onstart = () => {
         setVoiceStatus('Listening...');
         setIsVoiceModalVisible(true);
@@ -111,12 +111,12 @@ export default function SearchScreen() {
           true
         );
       };
-
+      
       recognition.onend = () => {
         cancelAnimation(pulseScale);
         pulseScale.value = 1;
       };
-
+      
       recognition.onresult = (event: any) => {
         if (event.results && event.results[0]) {
           const transcriptText = event.results[0].transcript || event.results[0][0]?.transcript || '';
@@ -128,7 +128,7 @@ export default function SearchScreen() {
           }, 1000);
         }
       };
-
+      
       recognition.onerror = (error: any) => {
         console.warn('Speech recognition error:', error);
         setVoiceStatus('Recognition failed. Try again.');
@@ -158,10 +158,12 @@ export default function SearchScreen() {
     triggerHaptic('medium');
     setVoiceStatus('Initializing mic...');
     setIsVoiceModalVisible(true);
-
+    
+    // If the native module is not available in the client, run the mock search simulation directly
     const isNativeModuleAvailable = typeof ExpoSpeechRecognitionModule !== 'undefined' && ExpoSpeechRecognitionModule !== null;
     if (!isNativeModuleAvailable || !recognitionRef.current) {
       console.log('Using simulated voice search fallback (Expo Go / Web)');
+      // Simulation fallback if native code is missing (e.g. in Expo Go / Web)
       setVoiceStatus('Listening...');
       pulseScale.value = withRepeat(
         withSequence(
@@ -171,14 +173,14 @@ export default function SearchScreen() {
         -1,
         true
       );
-
+      
       setTimeout(() => {
         const speechSuggestions = ['milk', 'fresh tomatoes', 'cold coffee', 'lays chips'];
         const randomQuery = speechSuggestions[Math.floor(Math.random() * speechSuggestions.length)];
         setSearchQuery(randomQuery);
         setVoiceStatus(`Searching for "${randomQuery}"...`);
         triggerHaptic('success');
-
+        
         setTimeout(() => {
           setIsVoiceModalVisible(false);
           cancelAnimation(pulseScale);
@@ -198,10 +200,11 @@ export default function SearchScreen() {
         }, 1500);
         return;
       }
-
+      
       recognitionRef.current?.start();
     } catch (e) {
       console.warn('Failed starting voice recognition:', e);
+      // Simulation fallback if permission or start fails
       setVoiceStatus('Listening...');
       pulseScale.value = withRepeat(
         withSequence(
@@ -211,14 +214,14 @@ export default function SearchScreen() {
         -1,
         true
       );
-
+      
       setTimeout(() => {
         const speechSuggestions = ['milk', 'fresh tomatoes', 'cold coffee', 'lays chips'];
         const randomQuery = speechSuggestions[Math.floor(Math.random() * speechSuggestions.length)];
         setSearchQuery(randomQuery);
         setVoiceStatus(`Searching for "${randomQuery}"...`);
         triggerHaptic('success');
-
+        
         setTimeout(() => {
           setIsVoiceModalVisible(false);
           cancelAnimation(pulseScale);
@@ -244,7 +247,7 @@ export default function SearchScreen() {
     transform: [{ scale: pulseScale.value }],
     opacity: withTiming(voiceStatus === 'Listening...' ? 1 : 0.4),
   }));
-
+  
   const { getTotalItems, getSubtotal, addItem, updateQuantity, getItemQuantity } = useCart();
   const [isListParserVisible, setIsListParserVisible] = useState(false);
   const [listInputText, setListInputText] = useState('');
@@ -259,12 +262,12 @@ export default function SearchScreen() {
       .split(/[\n,;]+/)
       .map(it => it.trim().toLowerCase())
       .filter(it => it.length > 0);
-
+      
     const matches: Product[] = [];
     const sourceProducts = allProducts.length > 0 ? allProducts : ALL_SEARCHABLE_PRODUCTS;
     for (const query of phrases) {
-      const bestMatch = sourceProducts.find(p =>
-        p.name.toLowerCase().includes(query) ||
+      const bestMatch = sourceProducts.find(p => 
+        p.name.toLowerCase().includes(query) || 
         p.slug.toLowerCase().includes(query)
       );
       if (bestMatch && !matches.find(m => m.id === bestMatch.id)) {
@@ -299,7 +302,7 @@ export default function SearchScreen() {
     queryKey: ['search-products', debouncedQuery, categorySlug, validStoreId],
     queryFn: async () => {
       if (!debouncedQuery || !debouncedQuery.trim()) return [];
-      const url = categorySlug
+      const url = categorySlug 
         ? `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&category=${encodeURIComponent(categorySlug)}&limit=100${validStoreId ? `&storeId=${validStoreId}` : ''}`
         : `${API_BASE_URL}/products?search=${encodeURIComponent(debouncedQuery)}&limit=100${validStoreId ? `&storeId=${validStoreId}` : ''}`;
       const response = await fetch(url);
@@ -319,8 +322,8 @@ export default function SearchScreen() {
     if (categorySlug) {
       sourceProducts = sourceProducts.filter(p => p.category?.slug === categorySlug);
     }
-    return sourceProducts.filter((p) =>
-      p.name.toLowerCase().includes(lowerQuery) ||
+    return sourceProducts.filter((p) => 
+      p.name.toLowerCase().includes(lowerQuery) || 
       p.slug.toLowerCase().includes(lowerQuery)
     );
   };
@@ -332,32 +335,30 @@ export default function SearchScreen() {
   const trendingTags = ['Mangoes', 'Amul', 'Chai', 'Milk', 'Maggi', 'Chocolate'];
 
   return (
-    <SafeAreaView style={[styles.container, { backgroundColor: colors.background }]}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? THEME.COLORS.dark.background : THEME.COLORS.light.background }}>
       {/* Search Header */}
-      <View style={[styles.header, { borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.06)' : THEME.COLORS.light.borderLight, backgroundColor: colors.background }]}>
-        <View style={[styles.searchBar, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
-          <Search size={18} color={isDarkMode ? colors.textSecondary : THEME.COLORS.light.textSecondary} />
+      <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)', flexDirection: 'row', alignItems: 'center', gap: 12, backgroundColor: isDarkMode ? THEME.COLORS.dark.background : '#ffffff' }}>
+
+        <View style={{ flex: 1, backgroundColor: isDarkMode ? '#1e1e24' : '#f1f5f9', flexDirection: 'row', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderRadius: THEME.RADIUS.pill, borderWidth: 1, borderColor: isDarkMode ? '#2d2d34' : '#e2e8f0' }} className="px-3 py-2.5">
+          <Search size={18} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
           <View style={{ flex: 1, position: 'relative', justifyContent: 'center' }}>
             <TextInput
               placeholder=""
               autoFocus
               value={searchQueryVal}
               onChangeText={setSearchQuery}
-              style={[styles.searchInput, { color: colors.textPrimary }]}
+              className="w-full ml-2 text-slate-800 dark:text-zinc-100 text-sm font-semibold p-0 z-10"
             />
             {searchQueryVal.length === 0 && (
               <Animated.Text
-                style={[
-                  {
-                    position: 'absolute',
-                    left: 8,
-                    fontSize: 13,
-                    color: isDarkMode ? colors.textSecondary : colors.textMuted,
-                    fontWeight: '500',
-                    pointerEvents: 'none',
-                  },
-                  placeholderStyle
-                ]}
+                style={[{
+                  position: 'absolute',
+                  left: 8,
+                  fontSize: 13,
+                  color: isDarkMode ? '#71717a' : '#94a3b8',
+                  fontWeight: '500',
+                  pointerEvents: 'none',
+                }, placeholderStyle]}
               >
                 {categoryName ? `Search in ${categoryName}...` : SUGGESTION_PLACEHOLDERS[placeholderIndex]}
               </Animated.Text>
@@ -365,15 +366,15 @@ export default function SearchScreen() {
           </View>
           {searchQueryVal.length > 0 ? (
             <Pressable onPress={() => setSearchQuery('')}>
-              <X size={18} color={isDarkMode ? colors.textSecondary : THEME.COLORS.light.textSecondary} />
+              <X size={18} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
             </Pressable>
           ) : (
-            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-              <Pressable onPress={handleStartVoiceSearch} style={styles.iconBtn}>
+            <View className="flex-row items-center gap-2">
+              <Pressable onPress={handleStartVoiceSearch} className="p-1 active:scale-90 transition-transform">
                 <Mic size={18} color={THEME.COLORS.brand.primary} />
               </Pressable>
-              <Pressable onPress={() => setIsListParserVisible(true)} style={styles.iconBtn}>
-                <Text style={{ fontSize: 16 }}>📋</Text>
+              <Pressable onPress={() => setIsListParserVisible(true)} className="p-1 active:scale-90 transition-transform">
+                <Text className="text-base">📋</Text>
               </Pressable>
             </View>
           )}
@@ -381,30 +382,24 @@ export default function SearchScreen() {
       </View>
 
       {/* Content Area */}
-      <View style={[styles.contentArea, { backgroundColor: colors.surface }]}>
+      <View className="flex-1 bg-slate-50 dark:bg-zinc-950">
         {isLoading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color={THEME.COLORS.brand.primary} />
+          <View className="flex-1 justify-center items-center">
+            <ActivityIndicator size="large" color="#e20a22" />
           </View>
         ) : searchQueryVal.length === 0 ? (
           // Suggestions screen
-          <View style={[styles.suggestionsWrap, { backgroundColor: colors.background }]}>
-            <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Trending Searches</Text>
-            <View style={styles.tagsWrap}>
+          <View className="p-4 bg-white dark:bg-zinc-900 flex-1">
+            <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider mb-3">Trending Searches</Text>
+            <View className="flex-row flex-wrap gap-2 mb-6">
               {trendingTags.map((tag) => (
                 <Pressable
                   key={tag}
                   onPress={() => setSearchQuery(tag)}
-                  style={[
-                    styles.tagChip,
-                    {
-                      backgroundColor: colors.surfaceElevated,
-                      borderColor: colors.border,
-                    }
-                  ]}
+                  className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 px-3.5 py-2 rounded-xl flex-row items-center gap-1 active:bg-primary-light active:border-primary/20"
                 >
-                  <Search size={12} color={THEME.COLORS.brand.primary} />
-                  <Text style={[styles.tagText, { color: colors.textSecondary }]}>{tag}</Text>
+                  <Search size={12} color="#e20a22" />
+                  <Text className="text-slate-600 dark:text-zinc-300 text-xs font-bold">{tag}</Text>
                 </Pressable>
               ))}
             </View>
@@ -421,12 +416,10 @@ export default function SearchScreen() {
             showsVerticalScrollIndicator={false}
             renderItem={({ item, index }) => <ProductCard product={item} index={index} />}
             ListEmptyComponent={
-              <View style={styles.emptyWrap}>
-                <Text style={{ fontSize: 48 }}>🔍</Text>
-                <Text style={[styles.emptyTitle, { color: colors.textPrimary }]}>
-                  No results for "{searchQueryVal}"
-                </Text>
-                <Text style={[styles.emptySub, { color: colors.textMuted }]}>
+              <View className="flex-1 justify-center items-center py-20 px-8">
+                <Text className="text-4xl">🔍</Text>
+                <Text className="text-slate-800 dark:text-zinc-200 font-black text-base mt-4">No results for "{searchQueryVal}"</Text>
+                <Text className="text-slate-400 dark:text-zinc-500 text-xs mt-1 text-center leading-4">
                   Check for typos, or browse categories for matching products.
                 </Text>
               </View>
@@ -449,10 +442,10 @@ export default function SearchScreen() {
           setParsedResults([]);
         }}
       >
-        <View style={styles.modalOverlay}>
-          <View style={[styles.modalSheet, { backgroundColor: colors.background, borderTopColor: colors.border }]}>
-            <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: colors.textPrimary }]}>
+        <View className="flex-1 justify-end bg-black/60">
+          <View className="bg-white dark:bg-zinc-900 rounded-t-3xl p-6 min-h-[50%] max-h-[85%] border-t border-slate-100 dark:border-zinc-800 shadow-2xl">
+            <View className="flex-row justify-between items-center mb-4">
+              <Text className="text-slate-900 dark:text-zinc-100 font-extrabold text-lg">
                 📋 Quick List Parser
               </Text>
               <Pressable
@@ -461,14 +454,14 @@ export default function SearchScreen() {
                   setListInputText('');
                   setParsedResults([]);
                 }}
-                style={[styles.modalCloseBtn, { backgroundColor: colors.surfaceElevated }]}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center"
               >
-                <X size={16} color={isDarkMode ? colors.textSecondary : THEME.COLORS.light.textSecondary} />
+                <X size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
               </Pressable>
             </View>
 
-            <ScrollView showsVerticalScrollIndicator={false} style={styles.modalScroll}>
-              <Text style={[styles.modalDesc, { color: colors.textSecondary }]}>
+            <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+              <Text className="text-slate-500 dark:text-zinc-400 text-xs leading-relaxed mb-4">
                 Paste your grocery list separated by lines or commas (e.g. "milk, Atta, mangoes"). We will automatically search and match them to our catalog.
               </Text>
 
@@ -478,52 +471,51 @@ export default function SearchScreen() {
                 value={listInputText}
                 onChangeText={setListInputText}
                 placeholder={`Milk\nAashirvaad Atta\nLays Classic`}
-                placeholderTextColor={isDarkMode ? colors.textSecondary : colors.textMuted}
-                style={[styles.listInput, { backgroundColor: colors.surfaceElevated, borderColor: colors.border, color: colors.textPrimary }]}
+                placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
+                className="w-full bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl p-3 text-slate-800 dark:text-zinc-100 text-sm font-semibold mb-4 text-start min-h-[100px]"
+                style={{ textAlignVertical: 'top' }}
               />
 
               <Pressable
                 onPress={handleParseList}
-                style={[styles.parseBtn, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}
+                className="w-full bg-slate-900 dark:bg-zinc-800 py-3 rounded-xl items-center mb-6 active:bg-slate-800 dark:active:bg-zinc-705 border border-transparent dark:border-zinc-700"
               >
-                <Text style={[styles.parseBtnText, { color: colors.textPrimary }]}>Find Matches</Text>
+                <Text className="text-white font-extrabold text-sm">Find Matches</Text>
               </Pressable>
 
               {parsedResults.length > 0 ? (
-                <View style={styles.resultsSection}>
-                  <Text style={[styles.resultsTitle, { color: colors.textPrimary }]}>
+                <View className="mb-6">
+                  <Text className="text-slate-700 dark:text-zinc-300 font-extrabold text-xs uppercase tracking-wider mb-3">
                     Matched Products ({parsedResults.length})
                   </Text>
-                  <View style={[styles.resultsBox, { backgroundColor: colors.surfaceElevated, borderColor: colors.border }]}>
+                  <View className="bg-slate-50 dark:bg-zinc-800 rounded-2xl border border-slate-200 dark:border-zinc-700 p-2 gap-2">
                     {parsedResults.map((item) => (
-                      <View key={item.id} style={[styles.resultItem, { borderBottomColor: colors.border }]}>
-                        <View style={{ flex: 1, paddingRight: 12 }}>
-                          <Text style={[styles.resultName, { color: colors.textPrimary }]} numberOfLines={1}>
+                      <View key={item.id} className="flex-row justify-between items-center p-2 border-b border-slate-100 dark:border-zinc-800 last:border-b-0">
+                        <View className="flex-1 pr-3">
+                          <Text className="text-slate-800 dark:text-zinc-200 font-bold text-xs" numberOfLines={1}>
                             {item.name}
                           </Text>
-                          <Text style={[styles.resultUnit, { color: colors.textMuted }]}>
+                          <Text className="text-slate-400 dark:text-zinc-400 text-[10px] mt-0.5">
                             {item.unit} • {formatPrice(item.price)}
                           </Text>
                         </View>
-                        <Text style={[styles.matchedBadge, { color: THEME.COLORS.brand.success }]}>Matched ✓</Text>
+                        <Text className="text-emerald-600 dark:text-emerald-400 text-xs font-black">Matched ✓</Text>
                       </View>
                     ))}
                   </View>
 
                   <Pressable
                     onPress={handleAddAllParsed}
-                    style={[styles.addAllBtn, { backgroundColor: THEME.COLORS.brand.success }]}
+                    className="w-full bg-emerald-600 py-3.5 rounded-xl items-center mt-4 active:bg-emerald-700 shadow-md border border-emerald-500"
                   >
-                    <Text style={[styles.addAllBtnText, { color: '#ffffff' }]}>
+                    <Text className="text-white font-black text-sm uppercase tracking-wider">
                       Add All ({parsedResults.length}) to Cart
                     </Text>
                   </Pressable>
                 </View>
               ) : listInputText.trim().length > 0 ? (
-                <View style={styles.hintWrap}>
-                  <Text style={[styles.hintText, { color: colors.textMuted }]}>
-                    Tap "Find Matches" to parse your list
-                  </Text>
+                <View className="items-center py-6">
+                  <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">Tap "Find Matches" to parse your list</Text>
                 </View>
               ) : null}
             </ScrollView>
@@ -538,38 +530,35 @@ export default function SearchScreen() {
         animationType="fade"
         onRequestClose={() => setIsVoiceModalVisible(false)}
       >
-        <View style={styles.voiceOverlay}>
-          <View style={[styles.voiceCard, { backgroundColor: colors.background, borderColor: colors.border }]}>
-            <Text style={[styles.voiceTitle, { color: colors.textPrimary }]}>Voice Search</Text>
-
-            <View style={{ marginVertical: 32, justifyContent: 'center', alignItems: 'center', position: 'relative' }}>
+        <View className="flex-1 justify-center items-center bg-black/60 px-6">
+          <View className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full max-w-sm items-center shadow-2xl border border-slate-100 dark:border-zinc-800">
+            <Text className="text-slate-800 dark:text-zinc-100 font-black text-sm uppercase tracking-widest mb-4">Voice Search</Text>
+            
+            <View className="my-8 justify-center items-center relative">
               {/* Pulsing glow background */}
-              <Animated.View
-                style={[
-                  animatedPulseStyle,
-                  styles.voicePulse,
-                  { backgroundColor: `${THEME.COLORS.brand.primary}33` }
-                ]}
+              <Animated.View 
+                style={animatedPulseStyle}
+                className="w-20 h-20 rounded-full bg-rose-500/20 absolute"
               />
               {/* Red mic button */}
-              <View style={[styles.micBtn, { backgroundColor: THEME.COLORS.brand.primary }]}>
+              <View className="w-16 h-16 rounded-full bg-rose-600 items-center justify-center shadow-lg z-10">
                 <Mic size={28} color="#ffffff" />
               </View>
             </View>
 
-            <Text style={[styles.voiceStatus, { color: colors.textPrimary }]}>
+            <Text className="text-slate-800 dark:text-zinc-100 font-black text-lg text-center mt-2 h-8">
               {voiceStatus}
             </Text>
-
-            <Text style={[styles.voiceHint, { color: colors.textMuted }]}>
-              Try saying <Text style={{ fontWeight: '800', color: THEME.COLORS.brand.primary }}>"cold coffee"</Text> or <Text style={{ fontWeight: '800', color: THEME.COLORS.brand.primary }}>"crispy momos"</Text>
+            
+            <Text className="text-slate-400 dark:text-zinc-400 text-xs text-center mt-4 leading-5 px-4">
+              Try saying <Text className="font-extrabold text-rose-600 dark:text-rose-400">"cold coffee"</Text> or <Text className="font-extrabold text-rose-600 dark:text-rose-400">"crispy momos"</Text>
             </Text>
 
             <Pressable
               onPress={handleCancelVoiceSearch}
-              style={[styles.voiceCancelBtn, { backgroundColor: colors.surfaceElevated }]}
+              className="mt-8 px-6 py-2.5 bg-slate-100 dark:bg-zinc-800 rounded-xl active:bg-slate-200"
             >
-              <Text style={[styles.voiceCancelText, { color: colors.textSecondary }]}>Cancel</Text>
+              <Text className="text-slate-650 dark:text-zinc-350 font-bold text-xs uppercase">Cancel</Text>
             </Pressable>
           </View>
         </View>
@@ -577,270 +566,3 @@ export default function SearchScreen() {
     </SafeAreaView>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  header: {
-    paddingHorizontal: THEME.SPACING.lg,
-    paddingVertical: 12,
-    borderBottomWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 12,
-  },
-  searchBar: {
-    flex: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    borderRadius: THEME.RADIUS.pill,
-    borderWidth: 1,
-  },
-  searchInput: {
-    flex: 1,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
-    padding: 0,
-    marginLeft: 8,
-  },
-  iconBtn: {
-    padding: 4,
-  },
-  contentArea: {
-    flex: 1,
-  },
-  loadingWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  suggestionsWrap: {
-    padding: 16,
-    flex: 1,
-  },
-  sectionTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.8,
-    marginBottom: 12,
-  },
-  tagsWrap: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 8,
-    marginBottom: 24,
-  },
-  tagChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: THEME.RADIUS.lg,
-    borderWidth: 1,
-  },
-  tagText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-  },
-  emptyWrap: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    paddingVertical: 80,
-    paddingHorizontal: 32,
-  },
-  emptyTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.body,
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    marginTop: 16,
-    textAlign: 'center',
-  },
-  emptySub: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    marginTop: 8,
-    textAlign: 'center',
-    lineHeight: 20,
-  },
-  modalOverlay: {
-    flex: 1,
-    justifyContent: 'flex-end',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-  },
-  modalSheet: {
-    borderTopLeftRadius: 24,
-    borderTopRightRadius: 24,
-    padding: 24,
-    minHeight: '50%',
-    maxHeight: '85%',
-    borderTopWidth: 1,
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 16,
-  },
-  modalTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-  },
-  modalCloseBtn: {
-    width: 32,
-    height: 32,
-    borderRadius: 16,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  modalScroll: {
-    flex: 1,
-  },
-  modalDesc: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    lineHeight: 20,
-    marginBottom: 16,
-  },
-  listInput: {
-    width: '100%',
-    borderWidth: 1,
-    borderRadius: THEME.RADIUS.lg,
-    padding: 12,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.semibold,
-    minHeight: 100,
-    textAlignVertical: 'top',
-  },
-  parseBtn: {
-    width: '100%',
-    paddingVertical: 12,
-    borderRadius: THEME.RADIUS.lg,
-    alignItems: 'center',
-    marginTop: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-  },
-  parseBtnText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-  },
-  resultsSection: {
-    marginBottom: 24,
-  },
-  resultsTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-    marginBottom: 12,
-  },
-  resultsBox: {
-    borderRadius: THEME.RADIUS.xl,
-    borderWidth: 1,
-    padding: 8,
-  },
-  resultItem: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 8,
-    borderBottomWidth: 1,
-  },
-  resultName: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: THEME.TYPOGRAPHY.weights.bold,
-  },
-  resultUnit: {
-    fontSize: 10,
-    marginTop: 2,
-  },
-  matchedBadge: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: '900',
-  },
-  addAllBtn: {
-    width: '100%',
-    paddingVertical: 14,
-    borderRadius: THEME.RADIUS.lg,
-    alignItems: 'center',
-    marginTop: 16,
-  },
-  addAllBtnText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
-  },
-  hintWrap: {
-    alignItems: 'center',
-    paddingVertical: 24,
-  },
-  hintText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: '600',
-  },
-  voiceOverlay: {
-    flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
-    backgroundColor: 'rgba(0,0,0,0.6)',
-    paddingHorizontal: 24,
-  },
-  voiceCard: {
-    borderRadius: 24,
-    padding: 24,
-    width: '100%',
-    maxWidth: 320,
-    alignItems: 'center',
-    borderWidth: 1,
-  },
-  voiceTitle: {
-    fontSize: THEME.TYPOGRAPHY.sizes.body,
-    fontWeight: '900',
-    textTransform: 'uppercase',
-    letterSpacing: 2,
-    marginBottom: 16,
-  },
-  voicePulse: {
-    position: 'absolute',
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
-  micBtn: {
-    width: 64,
-    height: 64,
-    borderRadius: 32,
-    alignItems: 'center',
-    justifyContent: 'center',
-    zIndex: 10,
-  },
-  voiceStatus: {
-    fontSize: THEME.TYPOGRAPHY.sizes.body,
-    fontWeight: '900',
-    textAlign: 'center',
-    marginTop: 8,
-    minHeight: 32,
-  },
-  voiceHint: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    textAlign: 'center',
-    marginTop: 16,
-    lineHeight: 20,
-    paddingHorizontal: 16,
-  },
-  voiceCancelBtn: {
-    marginTop: 32,
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: THEME.RADIUS.lg,
-  },
-  voiceCancelText: {
-    fontSize: THEME.TYPOGRAPHY.sizes.micro,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-  },
-});

@@ -14,6 +14,8 @@ import { triggerHaptic } from '../../lib/haptic';
 import { LinearGradient } from 'expo-linear-gradient';
 import { formatHeaderAddress } from '../../lib/utils';
 import { THEME } from '../../lib/theme';
+
+
 import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
 import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 
@@ -21,7 +23,6 @@ export default function AccountScreen() {
   const { isLoggedIn, user, token, setAuth, logout } = useAuthStore();
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const selectedLocation = useUIStore((s) => s.selectedLocation);
 
@@ -33,14 +34,44 @@ export default function AccountScreen() {
   const [isLogoutModalVisible, setIsLogoutModalVisible] = useState(false);
   const [focusedInput, setFocusedInput] = useState<'name' | 'phone' | null>(null);
   const [showFaqModal, setShowFaqModal] = useState(false);
+  const [expandedFaq, setExpandedFaq] = useState<number | null>(0);
 
   const FAQ_ITEMS = [
-    { q: 'What payment methods are supported?', a: 'We accept UPI (PhonePe, Google Pay, Paytm), Cash on Delivery (COD), and Net Banking.', icon: '💳' },
-    { q: 'What if an item is missing or damaged?', a: 'Please call customer support immediately. We provide instant replacement or refund.', icon: '📦' },
-    { q: 'What are the store operating hours?', a: 'FastKirana Dark Store & Cafe operate every day from 6:00 AM to 12:00 AM (Midnight).', icon: '🕒' },
-    { q: 'Are there any delivery charges?', a: 'Delivery is 100% FREE for orders above ₹199. A nominal fee of ₹25 applies for smaller orders.', icon: '🚚' },
-    { q: 'Can I order food & groceries together?', a: 'Yes! You can add dark store grocery items and hot Wedson Restaurant meals in a single cart order.', icon: '🍱' },
-    { q: 'How do I track my order?', a: 'Go to "My Orders" in the app to track your delivery in real-time with live status updates.', icon: '📍' },
+    {
+      q: 'How fast is delivery?',
+      a: 'FastKirana delivers in 10-15 minutes across Ghatampur Dark Store areas for both fresh groceries and food items.',
+      icon: '⚡'
+    },
+    {
+      q: 'What are the customer support details?',
+      a: 'You can call our instant support helpline at +91 70544 70303 or email help@fastkirana.com. Operating hours are 6:00 AM - 12:00 AM daily.',
+      icon: '📞'
+    },
+    {
+      q: 'What payment methods are supported?',
+      a: 'We accept UPI (PhonePe, Google Pay, Paytm), Cash on Delivery (COD), and Net Banking.',
+      icon: '💳'
+    },
+    {
+      q: 'What if an item is missing or damaged?',
+      a: 'Please call customer support at +91 70544 70303 immediately. We provide instant replacement or refund.',
+      icon: '📦'
+    },
+    {
+      q: 'What are the store operating hours?',
+      a: 'FastKirana Dark Store & Cafe operate every day from 6:00 AM to 12:00 AM (Midnight).',
+      icon: '🕒'
+    },
+    {
+      q: 'Are there any delivery charges?',
+      a: 'Delivery is 100% FREE for orders above ₹199. A nominal fee of ₹25 applies for smaller orders.',
+      icon: '🚚'
+    },
+    {
+      q: 'Can I order food & groceries together?',
+      a: 'Yes! You can add dark store grocery items and hot Wedson Restaurant meals in a single cart order.',
+      icon: '🍱'
+    }
   ];
 
   const getAuthHeaders = (): Record<string, string> => {
@@ -90,6 +121,7 @@ export default function AccountScreen() {
       const data = await res.json();
 
       if (res.ok) {
+        // Update local auth store
         if (user && token) {
           setAuth(token, {
             ...user,
@@ -131,72 +163,64 @@ export default function AccountScreen() {
     return email;
   };
 
-  const sectionTitleStyle = { color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.5, textTransform: 'uppercase' as const };
-  const cardSubtitleStyle = (iconColor: string) => ({ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.semibold, marginTop: 3 });
-
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: colors.background }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}>
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       {/* Premium Header */}
-      <View
+      <View 
         style={{
           width: '100%',
-          backgroundColor: colors.background,
+          backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
           zIndex: 50,
           borderBottomWidth: 1,
-          borderColor: colors.borderLight,
+          borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.05)',
         }}
       >
-        <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: THEME.SPACING.sm, paddingBottom: THEME.SPACING.sm }}>
-          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} />
+        <View style={{ paddingHorizontal: 16, paddingTop: 12, paddingBottom: 12 }}>
+          {/* Top Row: Standardized Branded Header & Location */}
+          <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 12 }} />
 
-          {/* Search Box */}
-          <Pressable
+          {/* Bottom Row: Search Box Shortcut */}
+          <Pressable 
             onPress={() => {
               triggerHaptic('light');
               router.push('/search');
             }}
-            style={{
-              flexDirection: 'row',
-              alignItems: 'center',
-              backgroundColor: colors.surface,
-              borderWidth: 1,
-              borderColor: colors.border,
-              borderRadius: THEME.RADIUS.pill,
-              paddingHorizontal: THEME.SPACING.lg,
-              height: 44,
-              marginTop: THEME.SPACING.sm,
+            className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-full px-4 h-11 w-full active:scale-[0.99]"
+            style={Platform.OS === 'ios' ? {
               shadowColor: '#000',
-              shadowOffset: { width: 0, height: 1 },
-              shadowOpacity: isDarkMode ? 0.1 : 0.02,
-              shadowRadius: 2,
-              elevation: 1
-            }}
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: 0.02,
+              shadowRadius: 4,
+            } : Platform.OS === 'android' ? {
+              elevation: 1,
+            } : undefined}
           >
-            <Search size={16} color={THEME.COLORS.brand.primary} style={{ marginRight: THEME.SPACING.sm }} />
-            <Text style={{ flex: 1, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, color: colors.textSecondary, fontWeight: THEME.TYPOGRAPHY.weights.semibold }}>
+            <Search size={16} color="#e20a22" style={{ marginRight: 10 }} />
+            <Text style={{ fontSize: 13, color: '#94a3b8', fontWeight: '500', flex: 1 }}>
               Search for products...
             </Text>
           </Pressable>
         </View>
       </View>
 
-      <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={{ paddingBottom: 120 }}
+      <ScrollView 
+        style={{ flex: 1 }} 
+        contentContainerStyle={{ paddingBottom: 120 }} 
         showsVerticalScrollIndicator={false}
         onScroll={onTabBarScroll}
         onTouchStart={onTabBarTouchStart}
         scrollEventThrottle={16}
       >
-        {/* Profile Card Header */}
-        <View style={{ paddingHorizontal: THEME.SPACING.lg, paddingTop: THEME.SPACING.lg, paddingBottom: THEME.SPACING.lg }}>
+        {/* Profile Card Header with Gradient */}
+        {/* Profile Card Header - Premium Minimal Design */}
+        <View style={{ paddingHorizontal: 16, paddingTop: 16, paddingBottom: 16 }}>
           <View
             style={{
-              borderRadius: THEME.RADIUS.xl,
+              borderRadius: 24,
               borderWidth: 1,
-              borderColor: isDarkMode ? colors.border : THEME.COLORS.brand.primaryLight,
-              shadowColor: THEME.COLORS.brand.primary,
+              borderColor: isDarkMode ? '#2d2d30' : '#ffe4e6',
+              shadowColor: '#e20a22',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: isDarkMode ? 0.2 : 0.04,
               shadowRadius: 16,
@@ -206,55 +230,55 @@ export default function AccountScreen() {
             }}
           >
             <LinearGradient
-              colors={isDarkMode ? [`${THEME.COLORS.brand.primary}26`, colors.surface] : [THEME.COLORS.brand.primaryLight, colors.surface]}
+              colors={isDarkMode ? ['#1e1415', '#121214'] : ['#fff5f5', '#ffffff']}
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 1 }}
               style={StyleSheet.absoluteFill}
             />
-            <View style={{ padding: THEME.SPACING.lg, zIndex: 10 }}>
+            <View style={{ padding: 24, zIndex: 10 }}>
               {isLoggedIn && user ? (
                 <View>
                   <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.md, flex: 1 }}>
+                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 16, flex: 1 }}>
                       {/* Premium Sleek Avatar */}
                       <View style={{
-                        width: 56,
-                        height: 56,
-                        borderRadius: 28,
-                        backgroundColor: colors.surfaceElevated,
+                        width: 60,
+                        height: 60,
+                        borderRadius: 30,
+                        backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
                         borderWidth: 1,
-                        borderColor: colors.border,
+                        borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
                         justifyContent: 'center',
                         alignItems: 'center'
                       }}>
-                        <User size={24} color={colors.textSecondary} />
+                        <User size={24} color={isDarkMode ? '#a1a1aa' : '#64748b'} />
                       </View>
 
                       <View style={{ flex: 1 }}>
                         <Pressable onPress={handleEditToggle}>
-                          <Text style={{ color: colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: -0.4 }}>
+                          <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 18, fontWeight: '900', letterSpacing: -0.4 }}>
                             {user?.name || 'FastKirana User'}
                           </Text>
                         </Pressable>
-                        <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.caption, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
+                        <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 12, fontWeight: '600', marginTop: 2 }}>
                           {formatEmailForDisplay(user?.email || '')}
                         </Text>
-
-                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: THEME.SPACING.sm }}>
+                        
+                        <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 8 }}>
                           <View style={{
                             flexDirection: 'row',
                             alignItems: 'center',
-                            gap: 5,
-                            backgroundColor: isDarkMode ? `${THEME.COLORS.brand.error}1A` : `${THEME.COLORS.brand.primary}12`,
+                            gap: 4.5,
+                            backgroundColor: isDarkMode ? 'rgba(239,68,68,0.1)' : 'rgba(226,10,34,0.05)',
                             borderWidth: 1,
-                            borderColor: isDarkMode ? `${THEME.COLORS.brand.error}35` : `${THEME.COLORS.brand.primary}20`,
-                            paddingHorizontal: THEME.SPACING.sm,
-                            paddingVertical: THEME.SPACING.xs,
-                            borderRadius: THEME.RADIUS.pill,
+                            borderColor: isDarkMode ? 'rgba(239,68,68,0.25)' : 'rgba(226,10,34,0.12)',
+                            paddingHorizontal: 10,
+                            paddingVertical: 4,
+                            borderRadius: 99,
                             alignSelf: 'flex-start'
                           }}>
-                            <ShieldCheck size={11} color={THEME.COLORS.brand.error} />
-                            <Text style={{ color: THEME.COLORS.brand.error, fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+                            <ShieldCheck size={11} color={isDarkMode ? '#ef4444' : '#e20a22'} />
+                            <Text style={{ color: isDarkMode ? '#ef4444' : '#e20a22', fontSize: 9.5, fontWeight: '800', textTransform: 'uppercase', letterSpacing: 0.8 }}>
                               {user?.role || 'user'} Member
                             </Text>
                           </View>
@@ -266,60 +290,75 @@ export default function AccountScreen() {
                       onPress={handleEditToggle}
                       style={({ pressed }) => [{
                         transform: [{ scale: pressed ? 0.92 : 1 }],
-                        width: 36,
-                        height: 36,
-                        borderRadius: 18,
-                        backgroundColor: colors.surfaceElevated,
+                        width: 38,
+                        height: 38,
+                        borderRadius: 19,
+                        backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
                         borderWidth: 1,
-                        borderColor: colors.border,
+                        borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
                         justifyContent: 'center',
                         alignItems: 'center'
                       }]}
                     >
-                      <Edit3 size={15} color={colors.textSecondary} />
+                      <Edit3 size={15} color={isDarkMode ? '#d4d4d8' : '#64748b'} />
                     </Pressable>
                   </View>
                 </View>
               ) : (
-                <View style={{ flexDirection: 'column', width: '100%', gap: THEME.SPACING.md }}>
+                <View style={{ flexDirection: 'column', width: '100%', gap: 16 }}>
                   <View>
-                    <Text style={{ color: colors.textPrimary, fontSize: THEME.TYPOGRAPHY.sizes.heroSm, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: -0.5 }}>
+                    <Text style={{ color: isDarkMode ? '#ffffff' : '#0f172a', fontSize: 22, fontWeight: '900', letterSpacing: -0.5 }}>
                       Welcome to FastKirana
                     </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: THEME.SPACING.sm, lineHeight: 18 }}>
+                    <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 13, fontWeight: '500', marginTop: 8, lineHeight: 18 }}>
                       Log in to view order history, track deliveries, and manage your delivery addresses.
                     </Text>
                   </View>
-                  <ScalePressable
-                    onPress={() => {
-                      router.push('/(auth)/login');
-                    }}
-                    scaleValue={0.96}
-                    haptic="medium"
-                    style={{
-                      width: '100%',
-                      borderRadius: THEME.RADIUS.lg,
-                      overflow: 'hidden',
-                      elevation: 3,
-                      shadowColor: THEME.COLORS.brand.primary,
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: 0.2,
-                      shadowRadius: 8,
-                      position: 'relative'
-                    }}
-                  >
+                  <View style={{
+                    width: '100%',
+                    backgroundColor: '#e20a22',
+                    borderRadius: 14,
+                    overflow: 'hidden',
+                    elevation: 3,
+                    shadowColor: '#e20a22',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: 0.2,
+                    shadowRadius: 8,
+                    position: 'relative'
+                  }}>
                     <LinearGradient
-                      colors={[THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]}
+                      colors={['#e20a22', '#ff2d55']}
                       start={{ x: 0, y: 0 }}
                       end={{ x: 1, y: 0 }}
-                      style={{ width: '100%', paddingVertical: THEME.SPACING.md, flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 8 }}
+                      style={StyleSheet.absoluteFill}
+                    />
+                    <ScalePressable
+                      onPress={() => {
+                        router.push('/(auth)/login');
+                      }}
+                      scaleValue={0.96}
+                      haptic="medium"
+                      style={{
+                        width: '100%',
+                        paddingVertical: 14,
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        gap: 8,
+                      }}
                     >
                       <LogIn size={15} color="#ffffff" strokeWidth={2.5} />
-                      <Text style={{ color: '#ffffff', fontWeight: THEME.TYPOGRAPHY.weights.extrabold, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      <Text style={{
+                        color: '#ffffff',
+                        fontWeight: '800',
+                        fontSize: 13,
+                        textTransform: 'uppercase',
+                        letterSpacing: 0.5,
+                      }}>
                         Login
                       </Text>
-                    </LinearGradient>
-                  </ScalePressable>
+                    </ScalePressable>
+                  </View>
                 </View>
               )}
             </View>
@@ -328,25 +367,19 @@ export default function AccountScreen() {
 
         {/* Quick Action Cards Grid */}
         <View style={{ paddingHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.lg }}>
-          <Text style={{ ...sectionTitleStyle, color: colors.textPrimary, textTransform: 'none', letterSpacing: -0.2 }}>
+          <Text style={{ color: isDarkMode ? '#e4e4e7' : '#1e293b', fontWeight: '700', fontSize: 15, letterSpacing: -0.2 }}>
             Quick Actions
           </Text>
-          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: THEME.SPACING.md, marginTop: THEME.SPACING.md }}>
+          <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: THEME.SPACING.md, marginTop: 12 }}>
             {/* My Orders */}
-            <Pressable
+            <Pressable 
               onPress={() => isLoggedIn ? router.push('/orders') : router.push('/(auth)/login')}
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
               style={{
-                width: '48%',
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
                 borderRadius: THEME.RADIUS.lg,
-                paddingVertical: THEME.SPACING.lg,
-                paddingHorizontal: THEME.SPACING.sm,
-                alignItems: 'center',
                 ...Platform.select({
                   ios: {
-                    shadowColor: THEME.COLORS.brand.primary,
+                    shadowColor: '#e20a22',
                     shadowOffset: { width: 0, height: 6 },
                     shadowOpacity: isDarkMode ? 0.25 : 0.04,
                     shadowRadius: 12,
@@ -358,16 +391,16 @@ export default function AccountScreen() {
               }}
             >
               <LinearGradient
-                colors={[THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]}
+                colors={['#ff416c', '#ff4b2b']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: THEME.RADIUS.md,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: THEME.COLORS.brand.primary,
+                  shadowColor: '#ff416c',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.25,
                   shadowRadius: 8,
@@ -376,29 +409,23 @@ export default function AccountScreen() {
               >
                 <ShoppingBag size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, marginTop: THEME.SPACING.md, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 My Orders
               </Text>
-              <Text style={{ ...cardSubtitleStyle(colors.textSecondary), color: colors.textSecondary }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Order History
               </Text>
             </Pressable>
 
             {/* Saved Addresses */}
-            <Pressable
+            <Pressable 
               onPress={() => isLoggedIn ? router.push('/addresses') : router.push('/(auth)/login')}
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
               style={{
-                width: '48%',
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
                 borderRadius: THEME.RADIUS.lg,
-                paddingVertical: THEME.SPACING.lg,
-                paddingHorizontal: THEME.SPACING.sm,
-                alignItems: 'center',
                 ...Platform.select({
                   ios: {
-                    shadowColor: THEME.COLORS.brand.success,
+                    shadowColor: '#10b981',
                     shadowOffset: { width: 0, height: 6 },
                     shadowOpacity: isDarkMode ? 0.25 : 0.04,
                     shadowRadius: 12,
@@ -410,16 +437,16 @@ export default function AccountScreen() {
               }}
             >
               <LinearGradient
-                colors={[THEME.COLORS.brand.success, THEME.COLORS.brand.successDark]}
+                colors={['#10b981', '#059669']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: THEME.RADIUS.md,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: THEME.COLORS.brand.success,
+                  shadowColor: '#10b981',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.25,
                   shadowRadius: 8,
@@ -428,29 +455,23 @@ export default function AccountScreen() {
               >
                 <MapPin size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, marginTop: THEME.SPACING.md, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 Addresses
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 3 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Manage Locations
               </Text>
             </Pressable>
 
             {/* Contact Support */}
-            <Pressable
-              onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert('Support', `Call us at ${SUPPORT_PHONE}`))}
+            <Pressable 
+              onPress={() => Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => Alert.alert('Support', `Call us at ${SUPPORT_PHONE}`)) }
+              className="w-[48%] bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 py-5 px-3.5 items-center active:scale-95"
               style={{
-                width: '48%',
-                backgroundColor: colors.surface,
-                borderWidth: 1,
-                borderColor: colors.border,
                 borderRadius: THEME.RADIUS.lg,
-                paddingVertical: THEME.SPACING.lg,
-                paddingHorizontal: THEME.SPACING.sm,
-                alignItems: 'center',
                 ...Platform.select({
                   ios: {
-                    shadowColor: THEME.COLORS.brand.accent,
+                    shadowColor: '#3b82f6',
                     shadowOffset: { width: 0, height: 6 },
                     shadowOpacity: isDarkMode ? 0.25 : 0.04,
                     shadowRadius: 12,
@@ -462,16 +483,16 @@ export default function AccountScreen() {
               }}
             >
               <LinearGradient
-                colors={[THEME.COLORS.brand.accent, THEME.COLORS.brand.accentDark]}
+                colors={['#3b82f6', '#2563eb']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
                   width: 48,
                   height: 48,
-                  borderRadius: THEME.RADIUS.md,
+                  borderRadius: 24,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  shadowColor: THEME.COLORS.brand.accent,
+                  shadowColor: '#3b82f6',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.25,
                   shadowRadius: 8,
@@ -480,10 +501,10 @@ export default function AccountScreen() {
               >
                 <PhoneCall size={20} color="#ffffff" strokeWidth={2.2} />
               </LinearGradient>
-              <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, marginTop: THEME.SPACING.md, textTransform: 'uppercase', letterSpacing: 0.6 }}>
+              <Text style={{ color: isDarkMode ? '#f4f4f5' : '#0f172a', fontWeight: '700', fontSize: 11.5, marginTop: 14, textTransform: 'uppercase', letterSpacing: 0.6 }}>
                 Support
               </Text>
-              <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 3 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: '500', marginTop: 4 }}>
                 Instant Call Support
               </Text>
             </Pressable>
@@ -491,369 +512,362 @@ export default function AccountScreen() {
         </View>
 
         {/* Staff Operations Console Banner */}
+        {/* Staff Operations Console Banner */}
         {isLoggedIn && user && user.role !== 'USER' && (
-          <View style={{ paddingHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.lg }}>
+          <View style={{ paddingHorizontal: 16, marginBottom: 16 }}>
             {user.role === 'ADMIN' ? (
-              <View style={{ gap: THEME.SPACING.md }}>
-                <Text style={{ color: colors.textSecondary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.micro, textTransform: 'uppercase', letterSpacing: 0.8, paddingLeft: 4, marginBottom: THEME.SPACING.xs }}>
-                  Admin Control Hub
+              <View style={{ gap: 10 }}>
+                <Text style={{ color: isDarkMode ? '#a1a1aa' : '#475569', fontWeight: '900', fontSize: 10, textTransform: 'uppercase', letterSpacing: 0.8, paddingLeft: 4, marginBottom: 2 }}>
+                  🛠️ Admin Control Hub
                 </Text>
-
-                {[
-                  { route: '/operations', icon: ShieldCheck, label: 'Operations Console', sub: 'Store configuration & live analytics', color: THEME.COLORS.brand.primary, bg: isDarkMode ? 'rgba(99,102,241,0.12)' : '#e0e7ff' },
-                  { route: '/picker', icon: Package, label: 'Picker Console', sub: 'Packhouse inventory & dispatch queue', color: THEME.COLORS.brand.accent, bg: isDarkMode ? 'rgba(217,119,6,0.12)' : '#fef3c7' },
-                  { route: '/rider', icon: Truck, label: 'Rider Console', sub: 'Delivery dispatch list & location tracking', color: '#8b5cf6', bg: isDarkMode ? 'rgba(139,92,246,0.12)' : '#f3e8ff' },
-                  { route: '/restaurant-chef', icon: ChefHat, label: 'Restaurant Console', sub: 'Food prep & kitchen cooking queue', color: THEME.COLORS.brand.primary, bg: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2' },
-                ].map((item) => (
-                  <Pressable
-                    key={item.route}
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      router.push(item.route as any);
-                    }}
-                    style={({ pressed }) => [{
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      padding: THEME.SPACING.md,
-                      borderWidth: 1,
-                      borderColor: colors.borderLight,
-                      borderRadius: THEME.RADIUS.lg,
-                      backgroundColor: colors.surface,
-                      opacity: pressed ? 0.92 : 1,
-                      shadowColor: '#000',
-                      shadowOffset: { width: 0, height: 4 },
-                      shadowOpacity: isDarkMode ? 0.15 : 0.02,
-                      shadowRadius: 8,
-                      elevation: 2,
-                    }]}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm, flex: 1, paddingRight: THEME.SPACING.sm }}>
-                      <View style={{
-                        width: 36,
-                        height: 36,
-                        borderRadius: THEME.RADIUS.sm,
-                        backgroundColor: item.bg,
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        flexShrink: 0,
-                      }}>
-                        <item.icon size={18} color={item.color} strokeWidth={2.5} />
-                      </View>
-                      <View style={{ flex: 1, flexShrink: 1 }}>
-                        <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>
-                          {item.label}
-                        </Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }} numberOfLines={1}>
-                          {item.sub}
-                        </Text>
-                      </View>
+                
+                {/* 1. Operations & Settings */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/operations');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-indigo-50 dark:bg-indigo-950/20 items-center justify-center flex-shrink-0">
+                      <ShieldCheck size={18} color="#4f46e5" strokeWidth={2.5} />
                     </View>
-                    <ChevronRight size={14} color={colors.textMuted} />
-                  </Pressable>
-                ))}
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Operations Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Store configuration & live analytics</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
+
+                {/* 2. Picker Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/picker');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-amber-50 dark:bg-amber-950/20 items-center justify-center flex-shrink-0">
+                      <Package size={18} color="#d97706" strokeWidth={2.5} />
+                    </View>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Picker Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Packhouse inventory & dispatch queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
+
+                {/* 3. Rider Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/rider');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-purple-50 dark:bg-purple-950/20 items-center justify-center flex-shrink-0">
+                      <Truck size={18} color="#8b5cf6" strokeWidth={2.5} />
+                    </View>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Rider Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Delivery dispatch list & location tracking</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
+
+                {/* 4. Restaurant Chef Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/restaurant-chef');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-rose-50 dark:bg-rose-950/20 items-center justify-center flex-shrink-0">
+                      <ChefHat size={18} color="#e20a22" strokeWidth={2.5} />
+                    </View>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Restaurant Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Restaurant food prep & kitchen cooking queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
+
+                {/* 5. Cafe Chef Console */}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    router.push('/cafe-chef');
+                  }}
+                  className="flex-row items-center justify-between p-4 border border-slate-100 dark:border-zinc-800 rounded-[20px]"
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
+                    shadowColor: '#000',
+                    shadowOffset: { width: 0, height: 4 },
+                    shadowOpacity: isDarkMode ? 0.2 : 0.02,
+                    shadowRadius: 8,
+                    elevation: 2,
+                    opacity: pressed ? 0.95 : 1
+                  }]}
+                >
+                  <View className="flex-row items-center gap-3 flex-1 pr-3">
+                    <View className="w-9 h-9 rounded-xl bg-orange-50 dark:bg-orange-950/20 items-center justify-center flex-shrink-0">
+                      <Coffee size={18} color="#ea580c" strokeWidth={2.5} />
+                    </View>
+                    <View className="flex-1 flex-shrink">
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">Cafe Console</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[10px] font-semibold mt-0.5" numberOfLines={1}>Cafe items, beverages & baking queue</Text>
+                    </View>
+                  </View>
+                  <ChevronRight size={14} color="#94a3b8" />
+                </Pressable>
               </View>
             ) : (
-              <View
+              <LinearGradient
+                colors={isDarkMode ? ['#312e81', '#1e1b4b'] : ['#e0e7ff', '#c7d2fe']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 0 }}
                 style={{
-                  borderRadius: THEME.RADIUS.xl,
+                  borderRadius: 24,
                   padding: 1.5,
-                  shadowColor: THEME.COLORS.brand.primary,
+                  shadowColor: '#4f46e5',
                   shadowOffset: { width: 0, height: 6 },
                   shadowOpacity: isDarkMode ? 0.25 : 0.08,
                   shadowRadius: 16,
                   elevation: 3
                 }}
               >
-                <LinearGradient
-                  colors={isDarkMode ? [THEME.COLORS.brand.primary, '#312e81'] : [THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 0 }}
-                  style={{ borderRadius: THEME.RADIUS.xl - 1.5, overflow: 'hidden' }}
+                <Pressable 
+                  onPress={() => {
+                    triggerHaptic('medium');
+                    if (user.role === 'PICKER') router.push('/picker');
+                    else if (user.role === 'CHEF') router.push(user.email?.toLowerCase().startsWith('restaurant') ? '/restaurant-chef' : '/cafe-chef');
+                    else if (user.role === 'DELIVERY') router.push('/rider');
+                    else router.push('/operations');
+                  }}
+                  style={({ pressed }) => [{
+                    backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                    borderRadius: 22.5,
+                    padding: 16,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    justifyContent: 'space-between',
+                    opacity: pressed ? 0.95 : 1
+                  }]}
                 >
-                  <Pressable
-                    onPress={() => {
-                      triggerHaptic('medium');
-                      const role = user.role;
-                      if (role === 'PICKER') router.push('/picker');
-                      else if (role === 'CHEF' || role === 'RESTAURANT_OWNER') router.push('/restaurant-chef');
-                      else if (role === 'DELIVERY') router.push('/rider');
-                      else router.push('/operations');
-                    }}
-                    style={({ pressed }) => ({
-                      backgroundColor: colors.surface,
-                      borderRadius: THEME.RADIUS.xl - 3,
-                      padding: THEME.SPACING.md,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      justifyContent: 'space-between',
-                      opacity: pressed ? 0.92 : 1
-                    })}
-                  >
-                    <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
-                      <View style={{
+                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
+                    <LinearGradient
+                      colors={['#e0e7ff', '#c7d2fe']}
+                      style={{
                         width: 40,
                         height: 40,
-                        borderRadius: THEME.RADIUS.sm,
-                        backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}2A` : THEME.COLORS.brand.primaryLight,
+                        borderRadius: 12,
                         alignItems: 'center',
                         justifyContent: 'center'
-                      }}>
-                        <ShieldCheck size={20} color={THEME.COLORS.brand.primary} strokeWidth={2.5} />
-                      </View>
-                      <View>
-                        <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm, letterSpacing: -0.2 }}>
-                          Operations Console
-                        </Text>
-                        <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
-                          Manage tasks & store controls
-                        </Text>
-                      </View>
-                    </View>
-                    <View style={{
-                      backgroundColor: THEME.COLORS.brand.primary,
-                      paddingHorizontal: THEME.SPACING.md,
-                      paddingVertical: THEME.SPACING.xs,
-                      borderRadius: THEME.RADIUS.sm,
-                      flexDirection: 'row',
-                      alignItems: 'center',
-                      gap: 4
-                    }}>
-                      <Text style={{ color: '#ffffff', fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, textTransform: 'uppercase', letterSpacing: 0.5 }}>
-                        {user.role} Console
+                      }}
+                    >
+                      <ShieldCheck size={20} color="#4f46e5" strokeWidth={2.5} />
+                    </LinearGradient>
+                    <View style={{ flexDirection: 'column' }}>
+                      <Text style={{ color: isDarkMode ? '#c7d2fe' : '#312e81', fontWeight: '800', fontSize: 13, letterSpacing: -0.2 }}>
+                        Operations Console
                       </Text>
-                      <ChevronRight size={11} color="#ffffff" strokeWidth={2.5} />
+                      <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
+                        Manage tasks & store controls
+                      </Text>
                     </View>
-                  </Pressable>
-                </LinearGradient>
-              </View>
+                  </View>
+                  <View style={{
+                    backgroundColor: '#4f46e5',
+                    paddingHorizontal: 12,
+                    paddingVertical: 6,
+                    borderRadius: 12,
+                    flexDirection: 'row',
+                    alignItems: 'center',
+                    gap: 4
+                  }}>
+                    <Text style={{ color: '#ffffff', fontWeight: '900', fontSize: 9, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                      {user.role} Console
+                    </Text>
+                    <ChevronRight size={11} color="#ffffff" strokeWidth={2.5} />
+                  </View>
+                </Pressable>
+              </LinearGradient>
             )}
           </View>
         )}
 
         {/* Menu Options Group Card */}
-        <View style={{ paddingHorizontal: THEME.SPACING.lg, marginBottom: THEME.SPACING.xxl }}>
+        <View style={{ paddingHorizontal: 16, marginBottom: 24 }}>
           <View style={{
-            backgroundColor: colors.surface,
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
             borderWidth: 1,
-            borderColor: colors.borderLight,
-            borderRadius: THEME.RADIUS.xl,
+            borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
+            borderRadius: 24,
             overflow: 'hidden',
-            shadowColor: '#000',
+            shadowColor: '#0f172a',
             shadowOffset: { width: 0, height: 6 },
-            shadowOpacity: isDarkMode ? 0.15 : 0.03,
+            shadowOpacity: isDarkMode ? 0.2 : 0.03,
             shadowRadius: 12,
             elevation: 2
           }}>
             {/* App Settings */}
-            <Pressable
+            <Pressable 
               onPress={() => Alert.alert('Settings', 'Settings screen coming soon!')}
-              style={({ pressed }) => [{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: THEME.SPACING.md,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.borderLight,
-                backgroundColor: pressed ? (isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc') : colors.surface,
-              }]}
+              className="flex-row items-center justify-between p-4 border-b border-slate-100 dark:border-zinc-800 active:bg-slate-50 dark:active:bg-zinc-800"
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <LinearGradient
-                  colors={[THEME.COLORS.brand.primaryLight, THEME.COLORS.brand.primaryDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                  colors={['#e0e7ff', '#c7d2fe']}
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: THEME.RADIUS.sm,
+                    borderRadius: 12,
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
                 >
-                  <Settings size={18} color={THEME.COLORS.brand.primary} strokeWidth={2.2} />
+                  <Settings size={18} color="#4f46e5" strokeWidth={2.2} />
                 </LinearGradient>
-                <View>
-                  <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={{ color: isDarkMode ? '#f4f4f5' : '#1e293b', fontWeight: '800', fontSize: 13 }}>
                     App Settings
                   </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
                     Preferences and settings
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.5} />
+              <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
             </Pressable>
 
             {/* Help & FAQs */}
-            <Pressable
+            <Pressable 
               onPress={() => {
                 triggerHaptic('light');
                 setShowFaqModal(true);
               }}
-              style={({ pressed }) => [{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: THEME.SPACING.md,
-                borderBottomWidth: isLoggedIn ? 1 : 0,
-                borderBottomColor: colors.borderLight,
-                backgroundColor: pressed ? (isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc') : colors.surface,
-              }]}
+              className={`flex-row items-center justify-between p-4 active:bg-slate-50 dark:active:bg-zinc-800 ${isLoggedIn ? 'border-b border-slate-100 dark:border-zinc-800' : ''}`}
             >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                 <LinearGradient
-                  colors={[THEME.COLORS.brand.accentLight, THEME.COLORS.brand.accentDark]}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
+                  colors={['#e0f2fe', '#bae6fd']}
                   style={{
                     width: 38,
                     height: 38,
-                    borderRadius: THEME.RADIUS.sm,
+                    borderRadius: 12,
                     alignItems: 'center',
                     justifyContent: 'center'
                   }}
                 >
-                  <HelpCircle size={18} color={THEME.COLORS.brand.accent} strokeWidth={2.2} />
+                  <HelpCircle size={18} color="#0ea5e9" strokeWidth={2.2} />
                 </LinearGradient>
-                <View>
-                  <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>
+                <View style={{ flexDirection: 'column' }}>
+                  <Text style={{ color: isDarkMode ? '#f4f4f5' : '#1e293b', fontWeight: '800', fontSize: 13 }}>
                     Help & FAQs
                   </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
+                  <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
                     Instant answers & support helpline
                   </Text>
                 </View>
               </View>
-              <ChevronRight size={16} color={colors.textMuted} strokeWidth={2.5} />
+              <ChevronRight size={16} color={isDarkMode ? '#52525b' : '#cbd5e1'} strokeWidth={2.5} />
             </Pressable>
 
-            {/* Theme Toggle */}
-            <Pressable
-              onPress={() => {
-                triggerHaptic('light');
-                toggleTheme();
-              }}
-              style={({ pressed }) => [{
-                flexDirection: 'row',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: THEME.SPACING.md,
-                borderBottomWidth: 1,
-                borderBottomColor: colors.borderLight,
-                backgroundColor: pressed ? (isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc') : colors.surface,
-              }]}
-            >
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
-                <LinearGradient
-                  colors={[isDarkMode ? '#fef3c7' : '#c7d2fe', isDarkMode ? '#fde68a' : '#a5b4fc']}
-                  start={{ x: 0, y: 0 }}
-                  end={{ x: 1, y: 1 }}
-                  style={{
-                    width: 38,
-                    height: 38,
-                    borderRadius: THEME.RADIUS.sm,
-                    alignItems: 'center',
-                    justifyContent: 'center'
-                  }}
-                >
-                  {isDarkMode ? (
-                    <Sun size={18} color="#d97706" strokeWidth={2.2} />
-                  ) : (
-                    <Moon size={18} color="#6366f1" strokeWidth={2.2} />
-                  )}
-                </LinearGradient>
-                <View>
-                  <Text style={{ color: colors.textPrimary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>
-                    {isDarkMode ? 'Light Mode' : 'Dark Mode'}
-                  </Text>
-                  <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
-                    {isDarkMode ? 'Switch to light theme' : 'Switch to dark theme'}
-                  </Text>
-                </View>
-              </View>
-              <View style={{
-                width: 44,
-                height: 26,
-                borderRadius: 13,
-                backgroundColor: isDarkMode ? THEME.COLORS.brand.warning : colors.border,
-                justifyContent: 'center',
-                alignItems: isDarkMode ? 'flex-end' : 'flex-start',
-                paddingHorizontal: 3,
-                borderWidth: 1,
-                borderColor: isDarkMode ? 'rgba(255,255,255,0.2)' : colors.borderLight,
-              }}>
-                <View style={{
-                  width: 20,
-                  height: 20,
-                  borderRadius: 10,
-                  backgroundColor: '#ffffff',
-                  shadowColor: '#000',
-                  shadowOffset: { width: 0, height: 1 },
-                  shadowOpacity: 0.15,
-                  shadowRadius: 2,
-                  elevation: 2,
-                }} />
-              </View>
-            </Pressable>
-
-            {/* Logout Row */}
+            {/* Logout Row (integrated into card) */}
             {isLoggedIn && (
-              <Pressable
+              <Pressable 
                 onPress={handleLogout}
-                style={({ pressed }) => ({
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  padding: THEME.SPACING.md,
-                  backgroundColor: pressed ? `${THEME.COLORS.brand.error}0A` : colors.surface,
-                })}
+                className="flex-row items-center justify-between p-4 active:bg-slate-50 dark:active:bg-zinc-800"
               >
-                <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm, flex: 1 }}>
+                <View style={{ flexDirection: 'row', alignItems: 'center', gap: 12 }}>
                   <LinearGradient
-                    colors={[THEME.COLORS.brand.errorLight, THEME.COLORS.brand.error]}
-                    start={{ x: 0, y: 0 }}
-                    end={{ x: 1, y: 1 }}
+                    colors={['#ffe4e6', '#fecdd3']}
                     style={{
                       width: 38,
                       height: 38,
-                      borderRadius: THEME.RADIUS.sm,
+                      borderRadius: 12,
                       alignItems: 'center',
                       justifyContent: 'center'
                     }}
                   >
-                    <LogOut size={18} color="#ffffff" strokeWidth={2.2} />
+                    <LogOut size={18} color="#ef4444" strokeWidth={2.2} />
                   </LinearGradient>
-                  <View>
-                    <Text style={{ color: THEME.COLORS.brand.error, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.bodySm }}>
+                  <View style={{ flexDirection: 'column' }}>
+                    <Text style={{ color: '#ef4444', fontWeight: '800', fontSize: 13 }}>
                       Logout
                     </Text>
-                    <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 2 }}>
+                    <Text style={{ color: '#94a3b8', fontSize: 9.5, fontWeight: '500', marginTop: 2 }}>
                       Sign out from your account
                     </Text>
                   </View>
                 </View>
-                <ChevronRight size={16} color={THEME.COLORS.brand.error} strokeWidth={2.5} />
+                <ChevronRight size={16} color="#ef4444" strokeWidth={2.5} />
               </Pressable>
             )}
           </View>
         </View>
 
         {/* App Version Info */}
-        <View style={{ alignItems: 'center', marginBottom: THEME.SPACING.xxl, marginTop: THEME.SPACING.xs }}>
-          <View style={{ height: 1, backgroundColor: colors.borderLight, width: '80%', marginBottom: THEME.SPACING.lg }} />
+        <View style={{ alignItems: 'center', marginBottom: 24, marginTop: 8 }}>
+          <View style={{ height: 1, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', width: '80%', marginBottom: 20 }} />
           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm }}>⚡</Text>
-            <Text style={{ color: colors.textSecondary, fontWeight: THEME.TYPOGRAPHY.weights.black, fontSize: THEME.TYPOGRAPHY.sizes.caption, letterSpacing: 2 }}>
+            <Text style={{ fontSize: 14 }}>⚡</Text>
+            <Text style={{ color: isDarkMode ? '#cbd5e1' : '#475569', fontWeight: '900', fontSize: 13, letterSpacing: 2 }}>
               FASTKIRANA
             </Text>
           </View>
-          <Text style={{ color: colors.textMuted, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
+          <Text style={{ color: '#94a3b8', fontSize: 9, fontWeight: '700', marginTop: 6, textTransform: 'uppercase', letterSpacing: 0.8 }}>
             Version 1.0.0 (Expo SDK 56)
           </Text>
         </View>
       </ScrollView>
 
-      {/* Premium Logout Modal */}
+      {/* Premium Custom Logout Modal */}
       <Modal
         visible={isLogoutModalVisible}
         transparent={true}
@@ -862,21 +876,21 @@ export default function AccountScreen() {
       >
         <View style={{
           flex: 1,
-          backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.55)',
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: THEME.SPACING.lg
+          padding: 24
         }}>
           <View style={{
-            backgroundColor: colors.surface,
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
             borderWidth: 1,
-            borderColor: isDarkMode ? colors.border : THEME.COLORS.brand.errorLight,
-            borderRadius: THEME.RADIUS.xxl,
+            borderColor: isDarkMode ? '#27272a' : '#ffe4e6',
+            borderRadius: 32,
             width: '100%',
             maxWidth: 320,
-            padding: THEME.SPACING.lg,
+            padding: 24,
             alignItems: 'center',
-            shadowColor: THEME.COLORS.brand.error,
+            shadowColor: '#ef4444',
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: isDarkMode ? 0.35 : 0.08,
             shadowRadius: 24,
@@ -884,50 +898,49 @@ export default function AccountScreen() {
           }}>
             {/* Warning Circle Icon */}
             <LinearGradient
-              colors={[THEME.COLORS.brand.errorLight, '#fecdd3']}
+              colors={['#ffe4e6', '#fecdd3']}
               style={{
                 width: 64,
                 height: 64,
                 borderRadius: 32,
                 alignItems: 'center',
                 justifyContent: 'center',
-                marginBottom: THEME.SPACING.md
+                marginBottom: 16
               }}
             >
-              <LogOut size={28} color={THEME.COLORS.brand.error} strokeWidth={2.5} />
+              <LogOut size={28} color="#ef4444" strokeWidth={2.5} />
             </LinearGradient>
 
             {/* Title */}
             <Text style={{
-              color: colors.textPrimary,
-              fontWeight: THEME.TYPOGRAPHY.weights.black,
-              fontSize: THEME.TYPOGRAPHY.sizes.title,
+              color: isDarkMode ? '#ffffff' : '#1e293b',
+              fontWeight: '900',
+              fontSize: 18,
               textAlign: 'center',
-              marginBottom: THEME.SPACING.sm
+              marginBottom: 8
             }}>
               Logout Account
             </Text>
 
             {/* Description */}
             <Text style={{
-              color: colors.textSecondary,
-              fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-              fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
+              fontSize: 12.5,
+              fontWeight: '600',
               textAlign: 'center',
               lineHeight: 18,
-              marginBottom: THEME.SPACING.lg
+              marginBottom: 24
             }}>
               Are you sure you want to log out from FastKirana? You will need to sign in again to access your orders and settings.
             </Text>
 
             {/* Action Buttons Row */}
-            <View style={{
-              flexDirection: 'row',
+            <View style={{ 
+              flexDirection: 'row', 
               width: '100%',
               justifyContent: 'space-between',
               alignItems: 'center',
-              marginTop: THEME.SPACING.md,
-              gap: THEME.SPACING.md
+              marginTop: 16
             }}>
               {/* Cancel Button */}
               <ScalePressable
@@ -937,20 +950,20 @@ export default function AccountScreen() {
                 scaleValue={0.96}
                 haptic="light"
                 style={{
-                  flex: 1,
+                  width: '48%',
                   height: 46,
                   borderWidth: 1.5,
-                  borderColor: colors.border,
-                  borderRadius: THEME.RADIUS.md,
+                  borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: colors.surface,
+                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
                 }}
               >
                 <Text style={{
-                  color: colors.textSecondary,
-                  fontWeight: THEME.TYPOGRAPHY.weights.black,
-                  fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+                  color: isDarkMode ? '#cbd5e1' : '#475569',
+                  fontWeight: '800',
+                  fontSize: 13,
                   textTransform: 'uppercase',
                   letterSpacing: 0.5
                 }}>
@@ -967,23 +980,18 @@ export default function AccountScreen() {
                 scaleValue={0.96}
                 haptic="medium"
                 style={{
-                  flex: 1,
+                  width: '48%',
                   height: 46,
-                  borderRadius: THEME.RADIUS.md,
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: THEME.COLORS.brand.error,
-                  shadowColor: THEME.COLORS.brand.error,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  backgroundColor: '#ef4444',
                 }}
               >
                 <Text style={{
                   color: '#ffffff',
-                  fontWeight: THEME.TYPOGRAPHY.weights.black,
-                  fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+                  fontWeight: '900',
+                  fontSize: 13,
                   textTransform: 'uppercase',
                   letterSpacing: 0.5
                 }}>
@@ -995,7 +1003,7 @@ export default function AccountScreen() {
         </View>
       </Modal>
 
-      {/* Edit Profile Modal */}
+      {/* Premium Custom Edit Profile Modal */}
       <Modal
         visible={isEditing}
         transparent={true}
@@ -1004,31 +1012,29 @@ export default function AccountScreen() {
       >
         <View style={{
           flex: 1,
-          backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.55)',
+          backgroundColor: 'rgba(0, 0, 0, 0.65)',
           justifyContent: 'center',
           alignItems: 'center',
-          padding: THEME.SPACING.lg
+          padding: 20
         }}>
           <View style={{
-            backgroundColor: colors.surface,
+            backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff',
             borderWidth: 1,
-            borderColor: isDarkMode ? colors.border : THEME.COLORS.brand.errorLight,
-            borderRadius: THEME.RADIUS.xxl,
+            borderColor: isDarkMode ? '#2c2c2e' : '#ffe4e6',
+            borderRadius: 28,
             width: '100%',
             maxWidth: 340,
-            padding: THEME.SPACING.lg,
-            shadowColor: THEME.COLORS.brand.primary,
+            padding: 24,
+            shadowColor: '#e20a22',
             shadowOffset: { width: 0, height: 12 },
             shadowOpacity: isDarkMode ? 0.35 : 0.08,
             shadowRadius: 24,
             elevation: 8,
           }}>
             {/* Header Icon */}
-            <View style={{ alignItems: 'center', marginBottom: THEME.SPACING.md }}>
+            <View style={{ alignItems: 'center', marginBottom: 16 }}>
               <LinearGradient
-                colors={isDarkMode ? [`${THEME.COLORS.brand.primary}30`, `${THEME.COLORS.brand.primary}15`] : [THEME.COLORS.brand.primaryLight, THEME.COLORS.brand.errorLight]}
-                start={{ x: 0, y: 0 }}
-                end={{ x: 1, y: 1 }}
+                colors={isDarkMode ? ['#3e1619', '#1a0d0e'] : ['#fff1f2', '#ffe4e6']}
                 style={{
                   width: 56,
                   height: 56,
@@ -1036,28 +1042,28 @@ export default function AccountScreen() {
                   alignItems: 'center',
                   justifyContent: 'center',
                   borderWidth: 1,
-                  borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}30` : '#fecdd3'
+                  borderColor: isDarkMode ? 'rgba(226,10,34,0.15)' : '#fecdd3'
                 }}
               >
-                <User size={24} color={THEME.COLORS.brand.primary} strokeWidth={2.5} />
+                <User size={24} color="#e20a22" strokeWidth={2.5} />
               </LinearGradient>
             </View>
 
             {/* Title */}
             <Text style={{
-              color: colors.textPrimary,
-              fontWeight: THEME.TYPOGRAPHY.weights.black,
-              fontSize: THEME.TYPOGRAPHY.sizes.title,
+              color: isDarkMode ? '#ffffff' : '#0f172a',
+              fontWeight: '900',
+              fontSize: 18,
               textAlign: 'center',
-              marginBottom: THEME.SPACING.lg,
+              marginBottom: 20,
               letterSpacing: -0.3
             }}>
               Edit Profile
             </Text>
 
             {/* Full Name Input */}
-            <View style={{ gap: THEME.SPACING.xs, marginBottom: THEME.SPACING.md }}>
-              <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <View style={{ gap: 6, marginBottom: 16 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Full Name
               </Text>
               <TextInput
@@ -1066,26 +1072,26 @@ export default function AccountScreen() {
                 onFocus={() => setFocusedInput('name')}
                 onBlur={() => setFocusedInput(null)}
                 placeholder="Enter your name"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
                 style={{
-                  backgroundColor: colors.surfaceElevated,
+                  backgroundColor: isDarkMode ? '#2c2c2e' : '#f8fafc',
                   borderWidth: 1.5,
-                  borderColor: focusedInput === 'name'
-                    ? THEME.COLORS.brand.primary
-                    : colors.border,
-                  borderRadius: THEME.RADIUS.md,
-                  paddingHorizontal: THEME.SPACING.md,
-                  paddingVertical: THEME.SPACING.sm,
-                  color: colors.textPrimary,
-                  fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-                  fontWeight: THEME.TYPOGRAPHY.weights.semibold
+                  borderColor: focusedInput === 'name' 
+                    ? '#e20a22' 
+                    : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  fontSize: 13,
+                  fontWeight: '600'
                 }}
               />
             </View>
 
             {/* Phone Number Input */}
-            <View style={{ gap: THEME.SPACING.xs, marginBottom: THEME.SPACING.lg }}>
-              <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+            <View style={{ gap: 6, marginBottom: 20 }}>
+              <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '700', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                 Phone Number
               </Text>
               <TextInput
@@ -1095,30 +1101,29 @@ export default function AccountScreen() {
                 onBlur={() => setFocusedInput(null)}
                 keyboardType="phone-pad"
                 placeholder="Enter 10-digit mobile"
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
                 style={{
-                  backgroundColor: colors.surfaceElevated,
+                  backgroundColor: isDarkMode ? '#2c2c2e' : '#f8fafc',
                   borderWidth: 1.5,
-                  borderColor: focusedInput === 'phone'
-                    ? THEME.COLORS.brand.primary
-                    : colors.border,
-                  borderRadius: THEME.RADIUS.md,
-                  paddingHorizontal: THEME.SPACING.md,
-                  paddingVertical: THEME.SPACING.sm,
-                  color: colors.textPrimary,
-                  fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-                  fontWeight: THEME.TYPOGRAPHY.weights.semibold
+                  borderColor: focusedInput === 'phone' 
+                    ? '#e20a22' 
+                    : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                  borderRadius: 14,
+                  paddingHorizontal: 16,
+                  paddingVertical: 12,
+                  color: isDarkMode ? '#ffffff' : '#0f172a',
+                  fontSize: 13,
+                  fontWeight: '600'
                 }}
               />
             </View>
 
             {/* Actions Row */}
-            <View style={{
-              flexDirection: 'row',
+            <View style={{ 
+              flexDirection: 'row', 
               width: '100%',
               justifyContent: 'space-between',
-              alignItems: 'center',
-              gap: THEME.SPACING.md
+              alignItems: 'center'
             }}>
               {/* Cancel Button */}
               <ScalePressable
@@ -1126,20 +1131,20 @@ export default function AccountScreen() {
                 scaleValue={0.96}
                 haptic="light"
                 style={{
-                  flex: 1,
+                  width: '48%',
                   height: 46,
                   borderWidth: 1.5,
-                  borderColor: colors.border,
-                  borderRadius: THEME.RADIUS.md,
+                  borderColor: isDarkMode ? '#27272a' : '#cbd5e1',
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: colors.surface,
+                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
                 }}
               >
                 <Text style={{
-                  color: colors.textSecondary,
-                  fontWeight: THEME.TYPOGRAPHY.weights.black,
-                  fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+                  color: isDarkMode ? '#cbd5e1' : '#475569',
+                  fontWeight: '800',
+                  fontSize: 13,
                   textTransform: 'uppercase',
                   letterSpacing: 0.5
                 }}>
@@ -1154,19 +1159,14 @@ export default function AccountScreen() {
                 scaleValue={0.96}
                 haptic="medium"
                 style={{
-                  flex: 1,
+                  width: '48%',
                   height: 46,
-                  borderRadius: THEME.RADIUS.md,
+                  borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: THEME.COLORS.brand.primary,
+                  backgroundColor: '#e20a22',
                   flexDirection: 'row',
-                  gap: 6,
-                  shadowColor: THEME.COLORS.brand.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 4,
+                  gap: 6
                 }}
               >
                 {isSaving ? (
@@ -1176,8 +1176,8 @@ export default function AccountScreen() {
                     <Save size={15} color="#ffffff" strokeWidth={2.5} />
                     <Text style={{
                       color: '#ffffff',
-                      fontWeight: THEME.TYPOGRAPHY.weights.black,
-                      fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+                      fontWeight: '900',
+                      fontSize: 13,
                       textTransform: 'uppercase',
                       letterSpacing: 0.5
                     }}>
@@ -1198,97 +1198,101 @@ export default function AccountScreen() {
         animationType="slide"
         onRequestClose={() => setShowFaqModal(false)}
       >
-        <View style={{ flex: 1, backgroundColor: isDarkMode ? 'rgba(0,0,0,0.7)' : 'rgba(0,0,0,0.55)', justifyContent: 'flex-end' }}>
+        <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' }}>
           <View style={{
-            backgroundColor: colors.surface,
-            borderTopLeftRadius: THEME.RADIUS.xl,
-            borderTopRightRadius: THEME.RADIUS.xl,
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+            borderTopLeftRadius: 28,
+            borderTopRightRadius: 28,
             maxHeight: '85%',
-            padding: THEME.SPACING.lg,
+            padding: 20,
             borderWidth: 1,
-            borderColor: colors.borderLight,
+            borderColor: isDarkMode ? '#27272a' : '#f1f5f9',
           }}>
             {/* Header */}
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: THEME.SPACING.md, borderBottomWidth: 1, borderBottomColor: colors.borderLight, paddingBottom: THEME.SPACING.sm }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
-                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDarkMode ? `${THEME.COLORS.brand.accent}24` : THEME.COLORS.brand.accentLight, alignItems: 'center', justifyContent: 'center' }}>
-                  <HelpCircle size={20} color={THEME.COLORS.brand.accent} />
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 16, borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#f1f5f9', paddingBottom: 12 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
+                <View style={{ width: 36, height: 36, borderRadius: 18, backgroundColor: isDarkMode ? 'rgba(14,165,233,0.2)' : '#e0f2fe', alignItems: 'center', justifyContent: 'center' }}>
+                  <HelpCircle size={20} color="#0ea5e9" />
                 </View>
                 <View>
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>Help & FAQs</Text>
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textMuted }}>FastKirana Support Center</Text>
+                  <Text style={{ fontSize: 16, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Help & FAQs</Text>
+                  <Text style={{ fontSize: 10, fontWeight: '700', color: '#94a3b8' }}>FastKirana Support Center</Text>
                 </View>
               </View>
-              <Pressable
+              <Pressable 
                 onPress={() => setShowFaqModal(false)}
-                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: colors.surfaceElevated, alignItems: 'center', justifyContent: 'center', borderWidth: 1, borderColor: colors.border }}
+                style={{ width: 32, height: 32, borderRadius: 16, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', alignItems: 'center', justifyContent: 'center' }}
               >
-                <X size={18} color={colors.textPrimary} />
+                <X size={18} color={isDarkMode ? '#ffffff' : '#0f172a'} />
               </Pressable>
             </View>
 
             {/* FAQs List */}
-            <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: THEME.SPACING.md }}>
+            <ScrollView showsVerticalScrollIndicator={false} style={{ marginBottom: 16 }}>
               {FAQ_ITEMS.map((faq, idx) => {
-                const isExpanded = false;
+                const isExpanded = expandedFaq === idx;
                 return (
-                  <View
+                  <View 
                     key={idx}
                     style={{
-                      backgroundColor: colors.surfaceElevated,
-                      borderRadius: THEME.RADIUS.md,
+                      backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+                      borderRadius: 16,
                       borderWidth: 1,
-                      borderColor: colors.border,
-                      marginBottom: THEME.SPACING.sm,
+                      borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0',
+                      marginBottom: 10,
                       overflow: 'hidden',
                     }}
                   >
                     <Pressable
                       onPress={() => {
                         triggerHaptic('light');
+                        setExpandedFaq(isExpanded ? null : idx);
                       }}
                       style={{
-                        padding: THEME.SPACING.md,
+                        padding: 14,
                         flexDirection: 'row',
                         justifyContent: 'space-between',
                         alignItems: 'center',
                       }}
                     >
-                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm, flex: 1, paddingRight: THEME.SPACING.sm }}>
+                      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, paddingRight: 10 }}>
                         <Text style={{ fontSize: 16 }}>{faq.icon}</Text>
-                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, flex: 1 }}>{faq.q}</Text>
+                        <Text style={{ fontSize: 12.5, fontWeight: '800', color: isDarkMode ? '#ffffff' : '#0f172a', flex: 1 }}>{faq.q}</Text>
                       </View>
-                      <ChevronDown size={16} color={colors.textMuted} />
+                      <ChevronDown size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ transform: [{ rotate: isExpanded ? '180deg' : '0deg' }] }} />
                     </Pressable>
+
+                    {isExpanded && (
+                      <View style={{ paddingHorizontal: 14, paddingBottom: 14, paddingTop: 4, borderTopWidth: 1, borderTopColor: isDarkMode ? '#3f3f46' : '#edf2f7' }}>
+                        <Text style={{ fontSize: 11.5, fontWeight: '600', color: isDarkMode ? '#d4d4d8' : '#475569', lineHeight: 18, marginTop: 4 }}>
+                          {faq.a}
+                        </Text>
+                      </View>
+                    )}
                   </View>
                 );
               })}
             </ScrollView>
 
             {/* Direct Support Call Footer */}
-            <View style={{ gap: THEME.SPACING.sm }}>
+            <View style={{ gap: 8 }}>
               <Pressable
                 onPress={() => {
                   setShowFaqModal(false);
                   Linking.openURL(`tel:${SUPPORT_PHONE}`).catch(() => {});
                 }}
                 style={{
-                  backgroundColor: THEME.COLORS.brand.primary,
-                  borderRadius: THEME.RADIUS.md,
-                  paddingVertical: THEME.SPACING.md,
+                  backgroundColor: '#e20a22',
+                  borderRadius: 16,
+                  paddingVertical: 14,
                   alignItems: 'center',
                   justifyContent: 'center',
                   flexDirection: 'row',
                   gap: 8,
-                  shadowColor: THEME.COLORS.brand.primary,
-                  shadowOffset: { width: 0, height: 4 },
-                  shadowOpacity: 0.25,
-                  shadowRadius: 8,
-                  elevation: 4,
                 }}
               >
                 <PhoneCall size={16} color="#ffffff" strokeWidth={2.5} />
-                <Text style={{ color: '#ffffff', fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, textTransform: 'uppercase', letterSpacing: 0.5 }}>
+                <Text style={{ color: '#ffffff', fontSize: 12, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 0.5 }}>
                   Call Customer Support ({SUPPORT_PHONE})
                 </Text>
               </Pressable>
@@ -1303,18 +1307,18 @@ export default function AccountScreen() {
 const styles = StyleSheet.create({
   loginBtnContainer: {
     width: '100%',
-    backgroundColor: THEME.COLORS.brand.primary,
-    borderRadius: THEME.RADIUS.lg,
+    backgroundColor: '#e20a22',
+    borderRadius: 14,
     overflow: 'hidden',
     elevation: 3,
-    shadowColor: THEME.COLORS.brand.primary,
+    shadowColor: '#e20a22',
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
   },
   loginBtnPressable: {
     width: '100%',
-    paddingVertical: THEME.SPACING.md,
+    paddingVertical: 14,
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'center',
@@ -1322,8 +1326,8 @@ const styles = StyleSheet.create({
   },
   loginBtnText: {
     color: '#ffffff',
-    fontWeight: THEME.TYPOGRAPHY.weights.black,
-    fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
+    fontWeight: '800',
+    fontSize: 13,
     textTransform: 'uppercase',
     letterSpacing: 0.5,
   },

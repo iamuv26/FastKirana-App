@@ -9,6 +9,7 @@ import { Image as ExpoImage } from 'expo-image';
 import { LinearGradient } from 'expo-linear-gradient';
 import Animated, { useSharedValue, useAnimatedStyle, useAnimatedScrollHandler, withSpring, withRepeat, withTiming, withSequence, withDelay, Easing, FadeIn, FadeInDown, FadeInUp, FadeOut, ZoomIn, interpolate, runOnJS, cancelAnimation } from 'react-native-reanimated';
 import CategoryGrid from '../../components/home/CategoryGrid';
+import CafeFlashDeals from '../../components/home/CafeFlashDeals';
 import StoreSelectorHeader from '../../components/shared/StoreSelectorHeader';
 import Logo from '../../components/shared/Logo';
 import ProductCard, { Product } from '../../components/product/ProductCard';
@@ -22,20 +23,20 @@ import { useCartActions } from '../../hooks/use-cart';
 import DealsCurationHub from '../../components/home/DealsCurationHub';
 import DeliveryBanner from '../../components/home/DeliveryBanner';
 import TimeGreetingHero from '../../components/home/TimeGreetingHero';
+import CafeCategoriesStrip from '../../components/home/CafeCategoriesStrip';
 import GroceryPromoCarousel from '../../components/home/GroceryPromoCarousel';
 import AppFooter from '../../components/home/AppFooter';
 import AddressQuickSwitcherSheet from '../../components/shared/AddressQuickSwitcherSheet';
 import BrandedTopHeader from '../../components/shared/BrandedTopHeader';
 import { useAuthStore } from '../../stores/auth-store';
 import { useUIStore } from '../../stores/ui-store';
-import { API_BASE_URL, ORDER_STATUS_LABELS } from '../../lib/constants';
+import { API_BASE_URL, ORDER_STATUS_LABELS, DEFAULT_CAFE_MENU_SECTIONS } from '../../lib/constants';
 import { sendLocalNotification } from '../../lib/push-notifications';
 import { triggerHaptic } from '../../lib/haptic';
 import { toast } from '../../lib/toast';
 import { useResponsive, getCenteredContainerStyle } from '../../lib/responsive';
 import { useScrollTabBar } from '../../hooks/use-scroll-tab-bar';
 import { formatPrice, formatHeaderAddress, getAppImageSource, isRestaurantProduct, formatDisplayOrderId } from '../../lib/utils';
-import { THEME } from '../../lib/theme';
 import Svg, { Path } from 'react-native-svg';
 
 // ─── Premium Store Closed View ──────────────────────────────────────
@@ -62,14 +63,14 @@ function PulsingRedDot() {
   }));
 
   return (
-    <Animated.View
+    <Animated.View 
       style={[
         {
           width: 8,
           height: 8,
           borderRadius: 4,
-          backgroundColor: THEME.COLORS.brand.error,
-          shadowColor: THEME.COLORS.brand.error,
+          backgroundColor: '#ef4444',
+          shadowColor: '#ef4444',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.6,
           shadowRadius: 4,
@@ -77,7 +78,7 @@ function PulsingRedDot() {
           marginRight: 6,
         },
         animatedStyle
-      ]}
+      ]} 
     />
   );
 }
@@ -94,9 +95,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   const storeOpenHour = useUIStore((s) => s.storeOpenHour);
   const storeCloseHour = useUIStore((s) => s.storeCloseHour);
   const responsive = useResponsive();
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
 
   useEffect(() => {
+    // Clock pulse animation
     pulse.value = withRepeat(
       withSequence(
         withTiming(1.08, { duration: 1500, easing: Easing.inOut(Easing.ease) }),
@@ -105,6 +106,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
       -1,
       true
     );
+    // Glow ring animation
     glow.value = withRepeat(
       withSequence(
         withTiming(0.5, { duration: 2000, easing: Easing.inOut(Easing.ease) }),
@@ -113,6 +115,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
       -1,
       true
     );
+    // Blob drift animations
     blob1X.value = withRepeat(
       withSequence(
         withTiming(30, { duration: 5000, easing: Easing.inOut(Easing.ease) }),
@@ -182,17 +185,17 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   const closeTimeStr = formatHour(storeCloseHour ?? 24);
 
   const hours = [
-    {
-      label: 'Grocery Mart',
-      time: `${openTimeStr} – ${closeTimeStr}`,
-      lucideIcon: <ShoppingBag size={15} color={THEME.COLORS.brand.primary} />,
-      colorBg: isDarkMode ? `${THEME.COLORS.brand.primary}26` : THEME.COLORS.brand.primaryLight
+    { 
+      label: 'Grocery Mart', 
+      time: `${openTimeStr} – ${closeTimeStr}`, 
+      lucideIcon: <ShoppingBag size={15} color="#e20a22" />,
+      colorBg: isDarkMode ? 'rgba(226, 10, 34, 0.15)' : '#fff1f2'
     },
-    {
-      label: 'FastKirana Food',
-      time: '7:00 AM – 11:00 PM',
-      lucideIcon: <Utensils size={15} color={THEME.COLORS.brand.accent} />,
-      colorBg: isDarkMode ? `${THEME.COLORS.brand.accent}26` : THEME.COLORS.brand.warningLight
+    { 
+      label: 'FastKirana Food', 
+      time: '7:00 AM – 11:00 PM', 
+      lucideIcon: <Utensils size={15} color="#d97706" />,
+      colorBg: isDarkMode ? 'rgba(217, 119, 6, 0.15)' : '#fef3c7'
     },
   ];
 
@@ -207,8 +210,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
   };
 
   return (
-    <View style={{ flex: 1, backgroundColor: colors.background }}>
+    <View style={{ flex: 1, backgroundColor: isDarkMode ? '#09090b' : '#fafbfe' }}>
       {/* Background blobs - full width */}
+      {/* Gradient mesh background blobs */}
       <Animated.View
         style={[blob1Style, {
           position: 'absolute',
@@ -221,7 +225,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? [THEME.COLORS.brand.primary, '#ff8787', THEME.COLORS.brand.primary] : [THEME.COLORS.brand.primaryLight, '#fda4af', THEME.COLORS.brand.primaryLight]}
+          colors={(isDarkMode ? ['#e20a22', '#ff8787', '#e20a22'] : ['#fecdd3', '#fda4af', '#fecdd3']) as any}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={{ width: '100%', height: '100%', borderRadius: 160 }}
@@ -239,7 +243,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         }]}
       >
         <LinearGradient
-          colors={isDarkMode ? [THEME.COLORS.brand.accent, '#c084fc', THEME.COLORS.brand.accent] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']}
+          colors={(isDarkMode ? ['#7c3aed', '#c084fc', '#7c3aed'] : ['#ddd6fe', '#d8b4fe', '#ddd6fe']) as any}
           style={{ width: 240, height: 240, borderRadius: 120 }}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
@@ -260,7 +264,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         showsVerticalScrollIndicator={false}
       >
         {/* Animated Clock with glow ring */}
-        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: THEME.SPACING.md }}>
+        <Animated.View entering={ZoomIn.duration(600).springify()} style={{ alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
           {/* Glow ring */}
           <Animated.View
             style={[glowStyle, {
@@ -268,7 +272,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               width: 110,
               height: 110,
               borderRadius: 55,
-              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}24` : `${THEME.COLORS.brand.primary}0F`,
+              backgroundColor: isDarkMode ? 'rgba(226,10,34,0.14)' : 'rgba(226,10,34,0.06)',
             }]}
           />
           {/* Clock container */}
@@ -277,19 +281,19 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               width: 76,
               height: 76,
               borderRadius: 38,
-              backgroundColor: colors.surfaceElevated,
+              backgroundColor: isDarkMode ? '#1c1c1f' : '#ffffff',
               justifyContent: 'center',
               alignItems: 'center',
               borderWidth: 1.5,
-              borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}4D` : '#fda4af',
-              shadowColor: THEME.COLORS.brand.primary,
+              borderColor: isDarkMode ? 'rgba(226,10,34,0.3)' : '#fda4af',
+              shadowColor: '#e20a22',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: isDarkMode ? 0.3 : 0.08,
               shadowRadius: 15,
               elevation: 5,
             }]}
           >
-            <Clock size={32} color={THEME.COLORS.brand.primary} strokeWidth={2.2} />
+            <Clock size={32} color="#e20a22" strokeWidth={2.2} />
           </Animated.View>
         </Animated.View>
 
@@ -301,15 +305,15 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               alignItems: 'center',
               paddingHorizontal: 12,
               paddingVertical: 5,
-              borderRadius: THEME.RADIUS.md,
-              backgroundColor: isDarkMode ? `${THEME.COLORS.brand.error}1F` : '#fee2e2',
+              borderRadius: 16,
+              backgroundColor: isDarkMode ? 'rgba(239,68,68,0.12)' : '#fee2e2',
               borderWidth: 1,
-              borderColor: isDarkMode ? `${THEME.COLORS.brand.error}33` : '#fca5a5',
-              marginBottom: THEME.SPACING.md,
+              borderColor: isDarkMode ? 'rgba(239,68,68,0.2)' : '#fca5a5',
+              marginBottom: 12,
             }}
           >
             <PulsingRedDot />
-            <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.error, letterSpacing: 1, textTransform: 'uppercase' }}>
+            <Text style={{ fontSize: 10, fontWeight: '800', color: '#ef4444', letterSpacing: 1, textTransform: 'uppercase' }}>
               Currently Closed
             </Text>
           </View>
@@ -319,9 +323,9 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View entering={FadeInDown.delay(200).duration(400).springify()} style={{ alignItems: 'center' }}>
           <Text
             style={{
-              fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-              fontWeight: THEME.TYPOGRAPHY.weights.bold,
-              color: colors.textSecondary,
+              fontSize: 14,
+              fontWeight: '700',
+              color: isDarkMode ? '#8e8e93' : '#64748b',
               textAlign: 'center',
               letterSpacing: 0.5,
               textTransform: 'uppercase',
@@ -329,18 +333,18 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           >
             {"We'll be back at"}
           </Text>
-
+          
           {/* Elegant Time Capsule */}
           <LinearGradient
-            colors={[THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]}
+            colors={['#e20a22', '#f43f5e']}
             start={{ x: 0, y: 0 }}
             end={{ x: 1, y: 0 }}
             style={{
-              borderRadius: THEME.RADIUS.xl,
+              borderRadius: 24,
               paddingHorizontal: 26,
               paddingVertical: 10,
               marginTop: 10,
-              shadowColor: THEME.COLORS.brand.primary,
+              shadowColor: '#e20a22',
               shadowOffset: { width: 0, height: 6 },
               shadowOpacity: 0.3,
               shadowRadius: 12,
@@ -355,8 +359,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
             <Text
               style={{
                 fontSize: 26,
-                fontWeight: THEME.TYPOGRAPHY.weights.black,
-                color: THEME.COLORS.light.surface,
+                fontWeight: '900',
+                color: '#ffffff',
                 textAlign: 'center',
                 letterSpacing: 0.5,
               }}
@@ -364,19 +368,19 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               {openTimeStr}
             </Text>
           </LinearGradient>
-
+          
           <Text
             style={{
-              fontSize: THEME.TYPOGRAPHY.sizes.bodySm,
-              color: colors.textSecondary,
+              fontSize: 13,
+              color: isDarkMode ? '#a1a1aa' : '#475569',
               textAlign: 'center',
-              marginTop: THEME.SPACING.md,
+              marginTop: 16,
               lineHeight: 18,
               maxWidth: 270,
-              fontWeight: THEME.TYPOGRAPHY.weights.semibold,
+              fontWeight: '600',
             }}
           >
-            Our team is resting up to bring you the freshest groceries & treats tomorrow!
+            Our team is resting up to bring you the freshest groceries & cafe treats tomorrow!
           </Text>
         </Animated.View>
 
@@ -384,28 +388,28 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         <Animated.View
           entering={FadeInUp.delay(300).duration(400).springify()}
           style={{
-            marginTop: THEME.SPACING.xxl,
+            marginTop: 22,
             width: '100%',
             maxWidth: 320,
-            borderRadius: THEME.RADIUS.xl,
+            borderRadius: 24,
             overflow: 'hidden',
             borderWidth: 1.5,
-            borderColor: colors.borderLight,
+            borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#f1f5f9',
             shadowColor: '#000',
             shadowOffset: { width: 0, height: 8 },
             shadowOpacity: isDarkMode ? 0.3 : 0.04,
             shadowRadius: 16,
             elevation: 4,
-            backgroundColor: colors.surface,
+            backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
           }}
         >
-          <View style={{ paddingHorizontal: THEME.SPACING.md, paddingVertical: THEME.SPACING.sm }}>
+          <View style={{ paddingHorizontal: 16, paddingVertical: 14 }}>
             <View style={{ flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 10 }}>
               <Text
                 style={{
-                  fontSize: THEME.TYPOGRAPHY.sizes.micro,
-                  fontWeight: THEME.TYPOGRAPHY.weights.black,
-                  color: colors.textSecondary,
+                  fontSize: 10,
+                  fontWeight: '800',
+                  color: isDarkMode ? '#8e8e93' : '#64748b',
                   letterSpacing: 1,
                   textTransform: 'uppercase',
                 }}
@@ -415,22 +419,22 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
               <View style={{
                 paddingHorizontal: 6,
                 paddingVertical: 2,
-                borderRadius: THEME.RADIUS.xs,
-                backgroundColor: colors.borderLight,
+                borderRadius: 6,
+                backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : '#f1f5f9',
               }}>
-                <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, fontWeight: THEME.TYPOGRAPHY.weights.bold, color: colors.textSecondary }}>Daily</Text>
+                <Text style={{ fontSize: 8, fontWeight: '700', color: isDarkMode ? '#cbd5e1' : '#475569' }}>Daily</Text>
               </View>
             </View>
 
             {hours.map((item, idx) => (
-              <View
-                key={idx}
-                style={{
-                  flexDirection: 'row',
-                  alignItems: 'center',
-                  paddingVertical: THEME.SPACING.xs,
+              <View 
+                key={idx} 
+                style={{ 
+                  flexDirection: 'row', 
+                  alignItems: 'center', 
+                  paddingVertical: 8,
                   borderBottomWidth: idx < hours.length - 1 ? 1 : 0,
-                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : colors.borderLight,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.03)',
                 }}
               >
                 <View style={{
@@ -444,12 +448,12 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 }}>
                   {item.lucideIcon}
                 </View>
-
+                
                 <View style={{ flex: 1 }}>
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }}>
                     {item.label}
                   </Text>
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.caption, color: colors.textSecondary, marginTop: 1, fontWeight: THEME.TYPOGRAPHY.weights.medium }}>
+                  <Text style={{ fontSize: 11, color: isDarkMode ? '#8e8e93' : '#64748b', marginTop: 1, fontWeight: '500' }}>
                     {item.time}
                   </Text>
                 </View>
@@ -458,13 +462,13 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                   width: 20,
                   height: 20,
                   borderRadius: 10,
-                  backgroundColor: colors.borderLight,
+                  backgroundColor: isDarkMode ? 'rgba(255,255,255,0.04)' : '#f8fafc',
                   justifyContent: 'center',
                   alignItems: 'center',
                   borderWidth: 1,
-                  borderColor: colors.border,
+                  borderColor: isDarkMode ? 'rgba(255,255,255,0.08)' : '#e2e8f0',
                 }}>
-                  <Clock size={10} color={colors.textMuted} />
+                  <Clock size={10} color={isDarkMode ? '#71717a' : '#94a3b8'} />
                 </View>
               </View>
             ))}
@@ -472,17 +476,17 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
         </Animated.View>
 
         {/* Notify me button */}
-        <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: THEME.SPACING.lg, width: '100%', maxWidth: 320 }}>
+        <Animated.View entering={FadeInUp.delay(400).duration(400).springify()} style={{ marginTop: 18, width: '100%', maxWidth: 320 }}>
           <ScalePressable
             onPress={handleNotify}
             disabled={notified}
             scaleValue={0.98}
             haptic="success"
             style={({ pressed }) => ({
-              borderRadius: THEME.RADIUS.xl,
+              borderRadius: 24,
               opacity: pressed ? 0.88 : 1,
               elevation: 4,
-              shadowColor: notified ? THEME.COLORS.brand.success : THEME.COLORS.brand.primary,
+              shadowColor: notified ? '#15803d' : '#e20a22',
               shadowOffset: { width: 0, height: 4 },
               shadowOpacity: 0.25,
               shadowRadius: 8,
@@ -490,8 +494,8 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
           >
             <LinearGradient
               colors={notified
-                ? (isDarkMode ? [THEME.COLORS.brand.success, THEME.COLORS.brand.successDark] : [THEME.COLORS.brand.successLight, '#bbf7d0'])
-                : [THEME.COLORS.brand.primary, THEME.COLORS.brand.primaryDark]
+                ? (isDarkMode ? ['#15803d', '#16a34a'] : ['#dcfce7', '#bbf7d0'])
+                : ['#e20a22', '#f43f5e']
               }
               start={{ x: 0, y: 0 }}
               end={{ x: 1, y: 0 }}
@@ -501,21 +505,21 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
                 alignItems: 'center',
                 justifyContent: 'center',
                 flexDirection: 'row',
-                borderRadius: THEME.RADIUS.xl,
+                borderRadius: 24,
                 gap: 8,
               }}
             >
               {notified ? (
                 <>
-                  <Check size={16} color={isDarkMode ? '#bbf7d0' : THEME.COLORS.brand.successDark} strokeWidth={3} />
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: isDarkMode ? '#bbf7d0' : THEME.COLORS.brand.successDark, letterSpacing: 0.5 }}>
+                  <Check size={16} color={isDarkMode ? '#bbf7d0' : '#15803d'} strokeWidth={3} />
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: isDarkMode ? '#bbf7d0' : '#15803d', letterSpacing: 0.5 }}>
                     {"You'll be Notified!"}
                   </Text>
                 </>
               ) : (
                 <>
                   <Bell size={16} color="#ffffff" strokeWidth={2.2} />
-                  <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', letterSpacing: 1.0, textTransform: 'uppercase' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', letterSpacing: 1.0, textTransform: 'uppercase' }}>
                     Notify Me When Open
                   </Text>
                 </>
@@ -526,7 +530,7 @@ function StoreClosedPremiumView({ isDarkMode, paddingTop = 0 }: { isDarkMode: bo
 
         {/* Subtle bottom text */}
         <Animated.View entering={FadeIn.delay(500).duration(500)}>
-          <Text style={{ marginTop: 14, fontSize: THEME.TYPOGRAPHY.sizes.micro, color: colors.textMuted, textAlign: 'center', fontWeight: THEME.TYPOGRAPHY.weights.medium }}>
+          <Text style={{ marginTop: 14, fontSize: 10, color: isDarkMode ? '#3f3f46' : '#94a3b8', textAlign: 'center', fontWeight: '500' }}>
             FastKirana · Delivery in 10 minutes
           </Text>
         </Animated.View>
@@ -558,20 +562,20 @@ function PulsingStatusDot() {
   }));
 
   return (
-    <Animated.View
+    <Animated.View 
       style={[
         {
           width: 7,
           height: 7,
           borderRadius: 3.5,
-          backgroundColor: THEME.COLORS.light.surface,
-          shadowColor: THEME.COLORS.light.surface,
+          backgroundColor: '#ffffff',
+          shadowColor: '#ffffff',
           shadowOffset: { width: 0, height: 0 },
           shadowOpacity: 0.8,
           shadowRadius: 3,
         },
         animatedStyle
-      ]}
+      ]} 
     />
   );
 }
@@ -592,7 +596,6 @@ export default function HomeScreen() {
     : (insets.top > 0
       ? insets.top + (responsive.isTablet ? 230 : responsive.isLargeScreen ? 245 : 215)
       : (responsive.isLargeScreen ? 245 : 220));
-
   const searchSuggestions = [
     'Search "milk"',
     'Search "fresh paneer"',
@@ -612,17 +615,16 @@ export default function HomeScreen() {
       transform: [{ translateY }],
     };
   });
-
   const groceryMartOpen = useUIStore((s) => s.groceryMartOpen);
+  const cafeOpen = useUIStore((s) => s.cafeOpen);
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const assignedStoreId = useUIStore((s) => s.assignedStoreId);
-  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
   const [showAddressSheet, setShowAddressSheet] = useState(false);
   const [showCartSheet, setShowCartSheet] = useState(false);
 
+  // Home states and refs
   const { theme, toggleTheme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { onScroll: onTabBarScroll, onTouchStart: onTabBarTouchStart } = useScrollTabBar();
   const scrollViewRef = useRef<any>(null);
   const horizontalTabsRef = useRef<ScrollView>(null);
@@ -663,11 +665,12 @@ export default function HomeScreen() {
 
       const timer = setTimeout(() => {
         setIsSwitching('none');
-      }, 400);
+      }, 400); // Hold for 400ms for a smooth transition!
       return () => clearTimeout(timer);
     }, [])
   );
 
+  // ── Stable renderItem for both FlashLists (prevents scroll jitter) ──
   const renderProductCard = useCallback(({ item, index }: any) => (
     <ProductCard product={item} className="w-full" index={index} />
   ), []);
@@ -689,6 +692,12 @@ export default function HomeScreen() {
     transform: [{ translateY: loaderTranslateY.value }],
   }));
 
+  // Cafe UI conditional states
+  const [activeCategory, setActiveCategory] = useState<string>('');
+  const [vegOnly, setVegOnly] = useState<boolean>(false);
+  const [showFloatingMenuBtn, setShowFloatingMenuBtn] = useState<boolean>(false);
+  const [isMenuOpen, setIsMenuOpen] = useState<boolean>(false);
+  const [sectionOffsets, setSectionOffsets] = useState<Record<string, number>>({});
   const [isReady, setIsReady] = useState(false);
 
   useEffect(() => {
@@ -697,6 +706,12 @@ export default function HomeScreen() {
     }, 200);
     return () => clearTimeout(timer);
   }, []);
+
+  // Reanimated layout tracking for gliding tab indicator
+  const [tabLayouts, setTabLayouts] = useState<Record<string, { x: number; width: number }>>({});
+  const indicatorLeft = useSharedValue(0);
+  const indicatorWidth = useSharedValue(0);
+  const hasLayouts = useSharedValue(0);
 
   // Collapsible sticky header scroll tracking
   const scrollY = useSharedValue(0);
@@ -740,14 +755,256 @@ export default function HomeScreen() {
     };
   });
 
-  const handleGroceryScroll = (event: any) => {
+  useEffect(() => {
+    const layoutKeys = Object.keys(tabLayouts);
+    if (layoutKeys.length > 0) {
+      hasLayouts.value = 1;
+    } else {
+      hasLayouts.value = 0;
+    }
+    if (activeCategory && tabLayouts[activeCategory]) {
+      const layout = tabLayouts[activeCategory];
+      indicatorLeft.value = withSpring(layout.x, { damping: 15, stiffness: 120 });
+      indicatorWidth.value = withSpring(layout.width, { damping: 15, stiffness: 120 });
+    }
+  }, [activeCategory, tabLayouts]);
+
+  const animatedIndicatorStyle = useAnimatedStyle(() => ({
+    position: 'absolute',
+    left: indicatorLeft.value,
+    width: indicatorWidth.value,
+    height: 32,
+    top: 10,
+    borderRadius: 16,
+    backgroundColor: '#e11d48',
+    zIndex: 0,
+    opacity: hasLayouts.value,
+  }));
+
+  const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
+
+  // Query Cafe Products from Server
+  // Fetch ALL fastkirana-cafe products from API
+  const { data: cafeProducts = [], refetch: refetchCafe } = useQuery<any[]>({
+    queryKey: ['cafe-products-v3', validStoreId],
+    queryFn: async () => {
+      const response = await fetch(`${API_BASE_URL}/products?category=fastkirana-cafe&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
+      if (!response.ok) throw new Error('API Failed');
+      const data = await response.json();
+      return Array.isArray(data) ? data : (data.products || []);
+    },
+    staleTime: 60000, // 60s cache — prevents refetch on tab switch
+  });
+
+  const getIsNonVeg = (item: any) => {
+    const tagsLower = item.tags?.map((t: string) => t.toLowerCase()) || [];
+    const nameLower = (item.name || item.slug || '').toLowerCase();
+    return (
+      tagsLower.includes('nonveg') || 
+      tagsLower.includes('non-veg') || 
+      tagsLower.includes('chicken') || 
+      tagsLower.includes('egg') ||
+      nameLower.includes('chicken') ||
+      nameLower.includes('egg')
+    );
+  };
+
+  const filteredCafeProducts = useMemo(() => {
+    return cafeProducts.filter((p) => {
+      if (p.isAvailable === false) return false;
+      if (vegOnly && getIsNonVeg(p)) return false;
+      return true;
+    });
+  }, [cafeProducts, vegOnly]);
+
+  const categorySections = useMemo(() => {
+    const PREDEFINED_CATEGORIES = DEFAULT_CAFE_MENU_SECTIONS;
+    const sectionsMap = new Map<string, any>();
+    PREDEFINED_CATEGORIES.forEach((cat) => {
+      sectionsMap.set(cat.tag, {
+        tag: cat.tag,
+        title: cat.title,
+        emoji: cat.emoji,
+        description: cat.description,
+        products: [],
+        matchedIds: new Set<string>()
+      });
+    });
+
+    const assignedIds = new Set<string>();
+
+    filteredCafeProducts.forEach((product) => {
+      const catSlug = product.category?.slug?.toLowerCase() || '';
+      for (const cat of PREDEFINED_CATEGORIES) {
+        const hasMatch = product.tags?.some((t: string) => 
+          cat.matchTags.includes(t.toLowerCase())
+        ) || cat.matchTags.some((mt: string) => catSlug === mt.toLowerCase()) || (cat.tag === 'bakery' && ['croissant-butter', 'muffin-chocolate'].includes(product.slug));
+
+        if (hasMatch) {
+          const sec = sectionsMap.get(cat.tag);
+          if (sec && !sec.matchedIds.has(product.id)) {
+            sec.products.push(product);
+            sec.matchedIds.add(product.id);
+            assignedIds.add(product.id);
+          }
+        }
+      }
+    });
+
+    const excludeTags = new Set([
+      'cafe', 'popular', 'veg', 'paneer', 'cheese', 'spicy', 'protein', 
+      'breakfast', 'essential', 'cooking', 'staple', 'premium', 'garnish', 'salad'
+    ]);
+
+    const dynamicTagsMap = new Map<string, any[]>();
+    filteredCafeProducts.forEach((product) => {
+      if (assignedIds.has(product.id)) return;
+
+      product.tags?.forEach((t: string) => {
+        const lowerTag = t.toLowerCase();
+        if (excludeTags.has(lowerTag)) return;
+
+        if (!dynamicTagsMap.has(lowerTag)) {
+          dynamicTagsMap.set(lowerTag, []);
+        }
+        dynamicTagsMap.get(lowerTag)?.push(product);
+      });
+    });
+
+    const dynamicSections: any[] = [];
+    dynamicTagsMap.forEach((prods, tag) => {
+      const title = tag
+        .split(/[-_ ]+/)
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ');
+
+      dynamicSections.push({
+        tag,
+        title,
+        emoji: '✨',
+        description: `Fresh items tagged under ${title}`,
+        products: prods
+      });
+    });
+
+    const finalSections: any[] = [];
+    PREDEFINED_CATEGORIES.forEach((cat) => {
+      const sec = sectionsMap.get(cat.tag);
+      if (sec && sec.products.length > 0) {
+        finalSections.push({
+          tag: sec.tag,
+          title: sec.title,
+          emoji: sec.emoji,
+          description: sec.description,
+          products: sec.products
+        });
+      }
+    });
+
+    finalSections.push(...dynamicSections);
+
+    const allGroupedIds = new Set<string>();
+    finalSections.forEach((sec) => sec.products.forEach((p: any) => allGroupedIds.add(p.id)));
+    const moreItems = filteredCafeProducts.filter((p) => !allGroupedIds.has(p.id));
+
+    return {
+      sections: finalSections,
+      moreItems
+    };
+  }, [filteredCafeProducts]);
+
+  const menuCategories = useMemo(() => {
+    const list = categorySections.sections.map((sec) => ({
+      tag: sec.tag,
+      title: sec.title,
+      emoji: sec.emoji,
+      count: sec.products.length
+    }));
+    if (categorySections.moreItems.length > 0) {
+      list.push({
+        tag: 'more',
+        title: 'More Specials',
+        emoji: '🍽️',
+        count: categorySections.moreItems.length
+      });
+    }
+    return list;
+  }, [categorySections]);
+
+  useEffect(() => {
+    if (menuCategories.length > 0 && !activeCategory) {
+      setActiveCategory(menuCategories[0].tag);
+    }
+  }, [menuCategories]);
+
+  useEffect(() => {
+    if (activeCategory && horizontalTabsRef.current) {
+      const activeIdx = menuCategories.findIndex((c) => c.tag === activeCategory);
+      if (activeIdx !== -1) {
+        const layout = tabLayouts[activeCategory];
+        const targetX = layout 
+          ? Math.max(0, layout.x - (width / 2) + (layout.width / 2))
+          : Math.max(0, (activeIdx * 130) - (width / 2) + 65);
+        horizontalTabsRef.current.scrollTo({ x: targetX, animated: true });
+      }
+    }
+  }, [activeCategory, menuCategories, tabLayouts, width]);
+
+  const handleScroll = (event: any) => {
     const scrollYVal = event.nativeEvent.contentOffset.y;
     scrollY.value = scrollYVal;
 
+    // Update isCollapsed state
     if (scrollYVal > 40 && !isCollapsed) {
       setIsCollapsed(true);
     } else if (scrollYVal <= 40 && isCollapsed) {
       setIsCollapsed(false);
+    }
+
+    const shouldShowBtn = scrollYVal > 200;
+    if (shouldShowBtn !== showFloatingMenuBtn) {
+      setShowFloatingMenuBtn(shouldShowBtn);
+    }
+
+    // Throttle category tracking loop to run once every 120ms (saving scroll frame rates)
+    const now = Date.now();
+    if (now - lastScrollCheck.current > 120) {
+      lastScrollCheck.current = now;
+      let currentActive = '';
+      const buffer = 130;
+
+      for (const cat of menuCategories) {
+        const top = sectionOffsets[cat.tag];
+        if (top !== undefined && scrollYVal >= top - buffer) {
+          currentActive = cat.tag;
+        }
+      }
+
+      if (currentActive && currentActive !== activeCategory) {
+        setActiveCategory(currentActive);
+      }
+    }
+  };
+
+  const handleGroceryScroll = (event: any) => {
+    const scrollYVal = event.nativeEvent.contentOffset.y;
+    scrollY.value = scrollYVal;
+
+    // Update isCollapsed state
+    if (scrollYVal > 40 && !isCollapsed) {
+      setIsCollapsed(true);
+    } else if (scrollYVal <= 40 && isCollapsed) {
+      setIsCollapsed(false);
+    }
+  };
+
+  const scrollToCategory = (tag: string) => {
+    const offset = sectionOffsets[tag];
+    if (offset !== undefined && scrollViewRef.current) {
+      scrollViewRef.current.scrollTo({ y: offset - 110, animated: true });
+      setActiveCategory(tag);
+      setIsMenuOpen(false);
+      triggerHaptic('light');
     }
   };
 
@@ -809,12 +1066,12 @@ export default function HomeScreen() {
 
   const handleReorderLast = () => {
     if (!lastCompletedOrder || !lastCompletedOrder.items) return;
-
+    
     triggerHaptic('success');
-
+    
     lastCompletedOrder.items.forEach((item: any) => {
       const matchedProd = products.find(p => p.id === item.productId || p.slug === item.productSlug);
-
+      
       addItem({
         id: item.productId || matchedProd?.id || '',
         name: item.name || matchedProd?.name || '',
@@ -830,8 +1087,12 @@ export default function HomeScreen() {
       });
     });
 
-    toast.success("Reordered! All items from your previous order have been added to your cart.");
+    toast.success("Reordered! 🛍️ All items from your previous order have been added to your cart.");
   };
+
+
+
+  // Redundant 8s refetch interval removed as useQuery('active-orders') already polls every 5 seconds.
 
   const prevStatusRef = useRef<string | null>(null);
 
@@ -840,18 +1101,18 @@ export default function HomeScreen() {
       prevStatusRef.current = null;
       return;
     }
-
+    
     if (prevStatusRef.current !== null && prevStatusRef.current !== activeOrder.status) {
       const statusLabel = ORDER_STATUS_LABELS[activeOrder.status] || activeOrder.status;
       sendLocalNotification(
-        `Order Status: ${statusLabel}`,
+        `⚡ Order Status: ${statusLabel}`,
         `Your order #${formatDisplayOrderId(activeOrder.id, activeOrder.readableId)} is now ${statusLabel.toLowerCase()}!`
       );
     }
     prevStatusRef.current = activeOrder.status;
   }, [activeOrder]);
 
-  // Fetch ALL live products from Next.js backend
+  // Fetch ALL live products from Next.js backend (no hardcoded fallback)
   const { data: products = [], isLoading, refetch: refetchAllProducts } = useQuery<Product[]>({
     queryKey: ['home-products', validStoreId],
     queryFn: async () => {
@@ -860,8 +1121,8 @@ export default function HomeScreen() {
       const data = await response.json();
       return Array.isArray(data) ? data : (data.products || []);
     },
-    staleTime: 60000,
-    refetchInterval: 90000,
+    staleTime: 60000, // 60s cache validity
+    refetchInterval: 90000, // Auto-refetch every 90s for stock sync
   });
 
   const foodProducts = useMemo(() => {
@@ -871,7 +1132,9 @@ export default function HomeScreen() {
       const name = (p.name || '').toLowerCase();
       return (
         catSlug.includes('restaurant') ||
+        catSlug.includes('cafe') ||
         tags.includes('restaurant') ||
+        tags.includes('cafe') ||
         tags.includes('food') ||
         tags.includes('wedson') ||
         name.includes('momo') ||
@@ -885,7 +1148,7 @@ export default function HomeScreen() {
     }).slice(0, 10);
   }, [products]);
 
-  // Pull-to-refresh
+  // Pull-to-refresh implementation
   const [isRefreshing, setIsRefreshing] = useState(false);
   const onRefresh = async () => {
     setIsRefreshing(true);
@@ -893,6 +1156,7 @@ export default function HomeScreen() {
     try {
       await Promise.all([
         refetchOrders(),
+        refetchCafe(),
         refetchAllProducts(),
       ]);
     } catch (e) {
@@ -904,11 +1168,12 @@ export default function HomeScreen() {
 
   const [showModeSwitchLoader, setShowModeSwitchLoader] = useState(true);
 
+  // We should hide the loader only when products are loaded AND we are not transitioning
   useEffect(() => {
     if (!isLoading && isSwitching === 'none') {
       const timer = setTimeout(() => {
         setShowModeSwitchLoader(false);
-      }, 500);
+      }, 500); // 500ms minimum display duration for premium feeling
       return () => clearTimeout(timer);
     } else {
       setShowModeSwitchLoader(true);
@@ -938,34 +1203,47 @@ export default function HomeScreen() {
     transform: [{ scale: pulseScale.value }],
   }));
 
-  // Prefetch product images
+  // Prefetch top products and categories images in the background to speed up image loading
   useEffect(() => {
     if (products && products.length > 0) {
       const urls = products
         .map((p) => (p.imageUrl ? getAppImageSource(p.imageUrl)?.uri : null))
         .filter((url): url is string => !!url)
-        .slice(0, 24);
+        .slice(0, 24); // Prefetch first 24 product images (was 40; reduce RAM/IO during scrolling)
       if (urls.length > 0) {
         ExpoImage.prefetch(urls);
       }
     }
   }, [products]);
 
+  // Helper to identify if a product is a Cafe product
+  // Covers all categories fetched by the cafe page: cafe, ice-cream
+  // Beverages category is shared between grocery and cafe, so only tag-based checks apply
+  const isCafeProduct = (product: Product) => {
+    const catSlug = product.category?.slug || '';
+    const cafeCategories = ['cafe', 'fastkirana-cafe'];
+    if (cafeCategories.includes(catSlug)) return true;
+    const tagsLower = product.tags?.map((t: string) => t.toLowerCase()) || [];
+    if (tagsLower.includes('cafe') || tagsLower.includes('restaurant')) return true;
+    if (/^c\d+$/.test(product.id)) return true;
+    return false;
+  };
+
   const trendingProducts = useMemo(() => {
-    const list = products.filter(p => p.isAvailable !== false && !isRestaurantProduct(p));
+    const list = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && !isRestaurantProduct(p));
     if (list.length > 0) return list.slice(0, 8);
     return [];
   }, [products]);
 
   const topPicksProducts = useMemo(() => {
-    const list = products.filter(p => p.isAvailable !== false && !isRestaurantProduct(p));
+    const list = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && !isRestaurantProduct(p));
     if (list.length > 0) return list.slice(4, 12);
     return [];
   }, [products]);
 
-  // Dynamic Hour-based suggestion filter
+  // Dynamic Hour-based suggestion filter (IST equivalent)
   const currentHour = new Date().getHours();
-
+  
   const timeDetails = useMemo(() => {
     if (currentHour >= 6 && currentHour < 11) {
       return {
@@ -997,11 +1275,12 @@ export default function HomeScreen() {
   const suggestionProducts = useMemo(() => {
     return products.filter((p) => {
       if (p.isAvailable === false) return false;
-
+      if (isCafeProduct(p)) return false;
       const categorySlug = p.category?.slug || '';
       if (categorySlug && timeDetails.categories.includes(categorySlug)) {
         return true;
       }
+      // Fallback for mock prefix IDs
       const prefix = p.id.slice(0, 2);
       if (prefix === 'db' && timeDetails.categories.includes('dairy-breakfast')) return true;
       if (prefix === 'bb' && timeDetails.categories.includes('bakery')) return true;
@@ -1009,49 +1288,50 @@ export default function HomeScreen() {
       if (prefix === 'de' && timeDetails.categories.includes('grocery-essential')) return true;
       if (prefix === 'sm' && timeDetails.categories.includes('snacks-biscuits')) return true;
       if (prefix === 'bv' && timeDetails.categories.includes('beverages')) return true;
-
+      
       return false;
     }).slice(0, 10);
   }, [products, timeDetails]);
 
-  // Best Sellers
+  // Best Sellers (overall top rated or explicitly flagged as bestseller)
   const bestSellers = useMemo(() => {
-    const dbBestsellers = products.filter(p => p.isAvailable !== false && (p.tags?.includes('popular') || p.tags?.includes('essential')));
+    const dbBestsellers = products.filter(p => p.isAvailable !== false && !isCafeProduct(p) && (p.tags?.includes('popular') || p.tags?.includes('essential')));
     if (dbBestsellers.length > 0) return dbBestsellers.slice(0, 6);
 
+    // Fallback to static selection for mock products
     return products.filter(p => p.isAvailable !== false && (p.id === 'db1' || p.id === 'sm2' || p.id === 'fv1' || p.id === 'def2' || p.id === 'db3' || p.id === 'bv2'));
   }, [products]);
 
   return (
-    <View style={{ flex: 1 }} className="flex-1 relative">
+    <View style={{ flex: 1 }} className="flex-1 bg-white dark:bg-zinc-950 relative">
       {/* Status Bar Solid Blocker */}
-      <View
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          height: insets.top,
-          backgroundColor: colors.background,
-          zIndex: 25
-        }}
+      <View 
+        style={{ 
+          position: 'absolute', 
+          top: 0, 
+          left: 0, 
+          right: 0, 
+          height: insets.top, 
+          backgroundColor: isDarkMode ? '#09090b' : '#ffffff', 
+          zIndex: 25 
+        }} 
       />
 
       {/* Gradient Mesh Blobs */}
       <View className="absolute inset-0 overflow-hidden pointer-events-none z-0" style={{ pointerEvents: 'none' }}>
         <LinearGradient
-          colors={isDarkMode ? [`${THEME.COLORS.brand.primary}1F`, `${THEME.COLORS.brand.primary}00`] : [`${THEME.COLORS.brand.primary}14`, `${THEME.COLORS.brand.primary}00`]}
+          colors={isDarkMode ? ['rgba(226,10,34,0.12)', 'rgba(226,10,34,0)'] : ['rgba(226,10,34,0.08)', 'rgba(226,10,34,0)']}
           style={{ position: 'absolute', top: -50, left: -50, width: 250, height: 250, borderRadius: 125 }}
         />
         <LinearGradient
-          colors={isDarkMode ? [`${THEME.COLORS.brand.success}14`, `${THEME.COLORS.brand.success}00`] : [`${THEME.COLORS.brand.success}0F`, `${THEME.COLORS.brand.success}00`]}
+          colors={isDarkMode ? ['rgba(0,177,64,0.08)', 'rgba(0,177,64,0)'] : ['rgba(0,177,64,0.06)', 'rgba(0,177,64,0)']}
           style={{ position: 'absolute', top: 300, right: -80, width: 280, height: 280, borderRadius: 140 }}
         />
       </View>
 
       {/* Header Container */}
       <Animated.View style={[headerAnimatedStyle, { position: 'absolute', top: 0, left: 0, right: 0, zIndex: 20 }]}>
-        <View
+        <View 
           onLayout={(e) => {
             const h = e.nativeEvent.layout.height;
             if (h > 0 && Math.abs(h - headerHeight) > 1) {
@@ -1059,27 +1339,27 @@ export default function HomeScreen() {
             }
           }}
           style={{
-            paddingHorizontal: THEME.SPACING.lg,
+            paddingHorizontal: 16,
             paddingTop: insets.top > 0 ? insets.top + 5 : 8,
-            paddingBottom: 8,
-            backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
-            ...Platform.select({
-              ios: {
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: isDarkMode ? 0.15 : 0.02,
-                shadowRadius: 6,
-              },
-              android: {
-                elevation: 1,
-              },
-            }),
-          }}>
+          paddingBottom: 8,
+          backgroundColor: isDarkMode ? 'rgba(9, 9, 11, 0.94)' : 'rgba(255, 255, 255, 0.94)',
+          ...Platform.select({
+            ios: {
+              shadowColor: '#000',
+              shadowOffset: { width: 0, height: 2 },
+              shadowOpacity: isDarkMode ? 0.15 : 0.02,
+              shadowRadius: 6,
+            },
+            android: {
+              elevation: 1,
+            },
+          }),
+        }}>
           {/* Top Row: Branded Header & Location Capsule */}
           <BrandedTopHeader style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0 }} onLocationPress={() => setShowAddressSheet(true)} />
 
           {/* Search Box Shortcut right under Branding */}
-          <ScalePressable
+          <ScalePressable 
             onPress={() => {
               router.push('/search');
             }}
@@ -1087,9 +1367,9 @@ export default function HomeScreen() {
             style={{
               flexDirection: 'row',
               alignItems: 'center',
-              backgroundColor: colors.surface,
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
               borderWidth: 1,
-              borderColor: colors.border,
+              borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
               borderRadius: 22,
               paddingHorizontal: 16,
               height: 42,
@@ -1109,19 +1389,19 @@ export default function HomeScreen() {
               }),
             }}
           >
-            <Search size={16} color={colors.textSecondary} style={{ marginRight: 10 }} />
-            <Animated.Text style={[{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, color: colors.textMuted, fontWeight: THEME.TYPOGRAPHY.weights.semibold, flex: 1 }, placeholderStyle]}>
+            <Search size={16} color={isDarkMode ? '#a1a1aa' : '#64748b'} style={{ marginRight: 10 }} />
+            <Animated.Text style={[{ fontSize: 13, color: '#94a3b8', fontWeight: '600', flex: 1 }, placeholderStyle]}>
               {currentSuggestion}
             </Animated.Text>
-
+            
             {/* Vertical Divider */}
-            <View style={{ width: 1, height: 16, backgroundColor: colors.border, marginHorizontal: 10 }} />
-
-            <Mic size={16} color={THEME.COLORS.brand.primary} />
+            <View style={{ width: 1, height: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0', marginHorizontal: 10 }} />
+            
+            <Mic size={16} color="#e20a22" />
           </ScalePressable>
 
-          {/* Store Switcher Tab Pills */}
-          <View
+          {/* Store Switcher Tab Pills - Zepto / Swiggy Gliding Segmented Control matching media__1785285067014.png */}
+          <View 
             onLayout={(e) => {
               const w = e.nativeEvent.layout.width;
               if (w > 0 && Math.abs(w - measuredPillWidth) > 0.5) {
@@ -1136,8 +1416,8 @@ export default function HomeScreen() {
               height: 48,
               borderRadius: 24,
               borderWidth: 1,
-              borderColor: colors.border,
-              backgroundColor: colors.surface,
+              borderColor: isDarkMode ? '#27272a' : 'rgba(0,0,0,0.06)',
+              backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
               padding: 3,
               marginTop: 2,
               marginBottom: 6,
@@ -1163,8 +1443,8 @@ export default function HomeScreen() {
               bottom: 3,
               left: 3,
               borderRadius: 21,
-              backgroundColor: localActiveSegment === 'grocery' ? THEME.COLORS.brand.primary : THEME.COLORS.brand.accent,
-              shadowColor: localActiveSegment === 'grocery' ? THEME.COLORS.brand.primary : THEME.COLORS.brand.accent,
+              backgroundColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
+              shadowColor: localActiveSegment === 'grocery' ? '#e20a22' : '#ea580c',
               shadowOffset: { width: 0, height: 3 },
               shadowOpacity: 0.35,
               shadowRadius: 6,
@@ -1191,12 +1471,12 @@ export default function HomeScreen() {
                 gap: 8,
               }}
             >
-              <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textSecondary} strokeWidth={2.2} />
+              <ShoppingBag size={18} color={localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
               <View>
-                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textPrimary, lineHeight: 15 }}>
+                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'grocery' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
                   Grocery
                 </Text>
-                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? THEME.COLORS.light.surface : colors.textSecondary, textTransform: 'uppercase' }}>
+                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'grocery' ? '#ffffff' : '#64748b', textTransform: 'uppercase' }}>
                   FAST DELIVERY
                 </Text>
               </View>
@@ -1220,13 +1500,13 @@ export default function HomeScreen() {
                 gap: 8,
               }}
             >
-              <Utensils size={18} color={localActiveSegment === 'food' ? THEME.COLORS.light.surface : colors.textSecondary} strokeWidth={2.2} />
+              <Utensils size={18} color={localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#a1a1aa' : '#475569')} strokeWidth={2.2} />
               <View>
-                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: localActiveSegment === 'food' ? THEME.COLORS.light.surface : colors.textPrimary, lineHeight: 15 }}>
+                <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: localActiveSegment === 'food' ? '#ffffff' : (isDarkMode ? '#fafafa' : '#1e293b'), lineHeight: 15 }}>
                   Food
                 </Text>
-                <Text allowFontScaling={false} style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, letterSpacing: 0.5, color: localActiveSegment === 'food' ? THEME.COLORS.brand.warning : THEME.COLORS.brand.accent, textTransform: 'uppercase' }}>
-                  RESTAURANT
+                <Text allowFontScaling={false} style={{ fontSize: 7.5, fontWeight: '900', letterSpacing: 0.5, color: localActiveSegment === 'food' ? '#fde047' : '#ea580c', textTransform: 'uppercase' }}>
+                  CAFE & RESTAURANT
                 </Text>
               </View>
             </Pressable>
@@ -1234,15 +1514,15 @@ export default function HomeScreen() {
         </View>
         {/* Hairline underline & Top Loading Progress Bar */}
         {isSwitching !== 'none' ? (
-          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? colors.border : THEME.COLORS.brand.primaryLight, overflow: 'hidden' }}>
-            <Animated.View
-              style={[{ height: '100%', width: '45%', backgroundColor: THEME.COLORS.brand.primary, borderRadius: 2 }, loaderAnimatedStyle]}
+          <View style={{ height: 3, width: '100%', backgroundColor: isDarkMode ? '#27272a' : '#fecdd3', overflow: 'hidden' }}>
+            <Animated.View 
+              style={[{ height: '100%', width: '45%', backgroundColor: '#e20a22', borderRadius: 2 }, loaderAnimatedStyle]} 
             />
           </View>
         ) : (
           <LinearGradient
-            colors={isDarkMode
-              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)']
+            colors={isDarkMode 
+              ? ['rgba(255,255,255,0.08)', 'rgba(255,255,255,0.02)', 'rgba(255,255,255,0.08)'] 
               : ['rgba(226,232,240,0.8)', 'rgba(226,232,240,0.2)', 'rgba(226,232,240,0.8)']
             }
             start={{ x: 0, y: 0 }}
@@ -1253,9 +1533,307 @@ export default function HomeScreen() {
       </Animated.View>
 
       {/* Scrollable Content */}
+      {false && (
+        // Cafe Storefront View when Grocery is Closed
+        <>
+          {/* Warning Banner: Grocery is closed, Cafe is open */}
+          <LinearGradient
+            colors={['#f97316', '#e11d48']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 1, y: 0 }}
+            style={{ marginHorizontal: 16, marginTop: 12, borderRadius: 12 }}
+          >
+            <View className="flex-row items-center justify-center py-2.5 px-4">
+              <Text className="text-white text-xs font-black text-center">
+                ⚠️ Grocery Mart is temporarily closed. Food is open! 🍔
+              </Text>
+            </View>
+          </LinearGradient>
 
-      {/* Grocery Storefront View */}
-         <Animated.ScrollView
+          {/* Sticky Horizontal Categories Tab Bar */}
+          {menuCategories.length > 0 && (
+            <View className="border-b border-slate-100 dark:border-zinc-800 bg-white dark:bg-zinc-900 mt-4 shadow-xs">
+              <ScrollView 
+                ref={horizontalTabsRef}
+                horizontal 
+                showsHorizontalScrollIndicator={false}
+                contentContainerStyle={{ paddingHorizontal: 16, paddingVertical: 10, gap: 8, position: 'relative' }}
+              >
+                {/* Gliding background pill */}
+                <Animated.View style={animatedIndicatorStyle} />
+
+                {menuCategories.map((cat) => {
+                  const isActive = activeCategory === cat.tag;
+                  return (
+                    <ScalePressable
+                      key={cat.tag}
+                      onLayout={(e) => {
+                        const { x, width } = e.nativeEvent.layout;
+                        setTabLayouts(prev => ({ ...prev, [cat.tag]: { x, width } }));
+                      }}
+                      onPress={() => scrollToCategory(cat.tag)}
+                      scaleValue={0.95}
+                      style={{
+                        paddingHorizontal: 14,
+                        paddingVertical: 6,
+                        borderRadius: 99,
+                        borderWidth: 1,
+                        borderColor: isActive ? 'transparent' : (isDarkMode ? '#27272a' : '#e2e8f0'),
+                        backgroundColor: isActive ? 'transparent' : (isDarkMode ? '#27272a' : '#f8fafc'),
+                        flexDirection: 'row',
+                        alignItems: 'center',
+                        gap: 6,
+                        zIndex: 10,
+                      }}
+                    >
+                      <Text className="text-xs">{cat.emoji}</Text>
+                      <Text className={`text-xs font-black shrink-0 ${
+                        isActive ? 'text-white' : 'text-slate-600 dark:text-zinc-300'
+                      }`}>
+                        {cat.title}
+                      </Text>
+                      <View className={`rounded-full px-1.5 py-0.5 ${
+                        isActive ? 'bg-white/20' : 'bg-slate-200 dark:bg-zinc-700'
+                      }`}>
+                        <Text className={`text-[8px] font-black ${
+                          isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                        }`}>{cat.count}</Text>
+                      </View>
+                    </ScalePressable>
+                  );
+                })}
+              </ScrollView>
+            </View>
+          )}
+
+          <Animated.ScrollView 
+            ref={scrollViewRef}
+            onScroll={handleScroll}
+            scrollEventThrottle={16}
+            showsVerticalScrollIndicator={false}
+            className="flex-1 bg-white dark:bg-zinc-950"
+            contentContainerStyle={{ paddingTop: scrollViewPaddingTop, paddingBottom: 160 }}
+            entering={FadeIn.duration(220)}
+            refreshControl={
+              <RefreshControl
+                refreshing={isRefreshing}
+                onRefresh={onRefresh}
+                tintColor={isDarkMode ? "#ffffff" : "#e20a22"}
+                colors={["#e20a22"]}
+              />
+            }
+          >
+
+            {/* Food Visual Cover Banner */}
+            <View className="mx-4 mt-4 mb-6 rounded-3xl border border-[#3e241b] dark:border-amber-500/20 shadow-lg relative overflow-hidden">
+              <LinearGradient
+                colors={['#2a1711', '#1d0e0a', '#120805']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0 }}
+              />
+              <View className="p-5 flex-row justify-between items-center w-full">
+                <View className="absolute right-[-10px] top-[-10px] opacity-10">
+                  <Text className="text-8xl">🍔</Text>
+                </View>
+                <View className="z-10 flex-1 pr-4">
+                  <View className="flex-row items-center gap-1.5 bg-amber-500/20 border border-amber-500/20 px-2.5 py-0.5 rounded-full self-start">
+                    <Text className="text-amber-300 text-[8px] font-black uppercase tracking-wider">FastKirana Food 🍔</Text>
+                  </View>
+                  <Text className="text-white text-xl font-black mt-3 leading-6">Freshly Prepared.{"\n"}Fast Delivered.</Text>
+                  <Text className="text-amber-100/70 text-[10px] mt-1.5 font-bold leading-4">Warm sandwiches, crispy rolls, momos & thick shakes dispatched instantly from our local store kitchen.</Text>
+                </View>
+                <View className="w-20 h-20 bg-white/5 border border-white/10 rounded-2xl items-center justify-center shadow-xs">
+                  <Text className="text-4xl">🥪</Text>
+                </View>
+              </View>
+            </View>
+
+            {/* Render Food grouped sections */}
+            {categorySections.sections.map((section) => (
+              <View 
+                key={section.tag}
+                onLayout={(e) => {
+                  const y = e.nativeEvent.layout.y;
+                  setSectionOffsets(prev => ({ ...prev, [section.tag]: y }));
+                }}
+                className="mb-6 bg-white dark:bg-zinc-900 border-y border-slate-100 dark:border-zinc-800/80 px-4 py-4"
+              >
+                {/* Section Header */}
+                <View className="flex-row items-center gap-2 mb-4">
+                  <Text className="text-xl">{section.emoji}</Text>
+                  <View>
+                    <Text className="text-slate-800 dark:text-zinc-200 font-black text-sm uppercase tracking-wider">{section.title}</Text>
+                    <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold">{section.description}</Text>
+                  </View>
+                </View>
+
+                {/* Food Product Grid — FlashList for performance */}
+                <View style={{ marginTop: 8, minHeight: 280 }}>
+                  <FlashList
+                    data={section.products}
+                    numColumns={responsive.gridColumns}
+                    keyExtractor={productKeyExtractor}
+                    renderItem={renderProductCard}
+                    ItemSeparatorComponent={ItemSeparator}
+                    scrollEnabled={false} // parent ScrollView owns scroll
+                    removeClippedSubviews
+                  />
+                </View>
+              </View>
+            ))}
+
+            {/* Catch-all More Specials */}
+            {categorySections.moreItems.length > 0 && (
+              <View
+                onLayout={(e) => {
+                  const y = e.nativeEvent.layout.y;
+                  setSectionOffsets(prev => ({ ...prev, more: y }));
+                }}
+                className="mb-6 bg-white dark:bg-zinc-900 border-y border-slate-100 dark:border-zinc-800/80 px-4 py-4"
+              >
+                <View className="flex-row items-center gap-2 mb-4">
+                  <Text className="text-xl">🍽️</Text>
+                  <View>
+                    <Text className="text-slate-800 dark:text-zinc-200 font-black text-sm uppercase tracking-wider">More Specials</Text>
+                    <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-semibold">Additional food items and specials</Text>
+                  </View>
+                </View>
+
+                {/* Food Product Grid — FlashList */}
+                <View style={{ marginTop: 8, minHeight: 280 }}>
+                  <FlashList
+                    data={categorySections.moreItems}
+                    numColumns={responsive.gridColumns}
+                    keyExtractor={productKeyExtractor}
+                    renderItem={renderProductCard}
+                    ItemSeparatorComponent={ItemSeparator}
+                    scrollEnabled={false}
+                    removeClippedSubviews
+                  />
+                </View>
+              </View>
+            )}
+
+            <View className="h-28" />
+          </Animated.ScrollView>
+
+          {/* Floating Menu Button (Swiggy Style FAB) */}
+          {showFloatingMenuBtn && menuCategories.length > 0 && !isMenuOpen && (
+            <View className="absolute bottom-24 left-0 right-0 items-center z-30">
+              <ScalePressable
+                onPress={() => {
+                  setIsMenuOpen(true);
+                }}
+                scaleValue={0.95}
+                style={{
+                  backgroundColor: '#0f172a',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? '#1e293b' : '#334155',
+                  paddingHorizontal: 20,
+                  paddingVertical: 12,
+                  borderRadius: 99,
+                  flexDirection: 'row',
+                  alignItems: 'center',
+                  gap: 8,
+                  ...Platform.select({
+                    ios: {
+                      shadowColor: '#000',
+                      shadowOffset: { width: 0, height: 6 },
+                      shadowOpacity: 0.15,
+                      shadowRadius: 10,
+                    },
+                    android: {
+                      elevation: 6,
+                    }
+                  })
+                }}
+              >
+                <Menu size={14} color="#fff" strokeWidth={3} />
+                <Text className="text-white font-black text-xs uppercase tracking-wider">Menu</Text>
+              </ScalePressable>
+            </View>
+          )}
+
+          {/* Quick Menu Bottom Drawer Sheet Overlay */}
+          {isMenuOpen && (
+            <>
+              {/* Dark Backdrop */}
+              <Pressable 
+                onPress={() => setIsMenuOpen(false)}
+                className="absolute inset-0 bg-black/50 z-40"
+              />
+
+              {/* Sliding Categories Drawer */}
+              <View className="absolute bottom-0 left-0 right-0 bg-white dark:bg-zinc-900 rounded-t-3xl shadow-2xl z-50 p-5 max-h-[60%] flex-col border-t border-slate-100 dark:border-zinc-800">
+                <View className="flex-row justify-between items-center pb-3 border-b border-slate-100 dark:border-zinc-800 mb-3 shrink-0">
+                  <Text className="text-slate-800 dark:text-zinc-100 font-black text-xs uppercase tracking-wider">Browse Food Categories</Text>
+                  <ScalePressable 
+                    onPress={() => setIsMenuOpen(false)}
+                    scaleValue={0.9}
+                    style={{
+                      width: 28,
+                      height: 28,
+                      borderRadius: 14,
+                      backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                    }}
+                  >
+                    <X size={16} color={isDarkMode ? "#a1a1aa" : "#64748b"} />
+                  </ScalePressable>
+                </View>
+
+                <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
+                  <View className="gap-2 pb-6">
+                    {menuCategories.map((cat) => {
+                      const isActive = activeCategory === cat.tag;
+                      return (
+                        <ScalePressable
+                          key={cat.tag}
+                          onPress={() => scrollToCategory(cat.tag)}
+                          scaleValue={0.97}
+                          style={{
+                            flexDirection: 'row',
+                            justifyContent: 'space-between',
+                            alignItems: 'center',
+                            padding: 12,
+                            borderRadius: 12,
+                            borderWidth: 1,
+                            borderColor: isActive 
+                              ? (isDarkMode ? 'rgba(244,63,94,0.3)' : '#fecdd3')
+                              : (isDarkMode ? '#27272a' : '#f1f5f9'),
+                            backgroundColor: isActive
+                              ? (isDarkMode ? 'rgba(244,63,94,0.1)' : '#fff5f5')
+                              : (isDarkMode ? '#18181b' : '#ffffff'),
+                          }}
+                        >
+                          <View className="flex-row items-center gap-3">
+                            <Text className="text-lg">{cat.emoji}</Text>
+                            <Text className={`text-sm font-extrabold ${isActive ? 'text-rose-600 dark:text-rose-400' : 'text-slate-800 dark:text-zinc-200'}`}>
+                              {cat.title}
+                            </Text>
+                          </View>
+                          <View className={`rounded-full px-2.5 py-0.5 ${
+                            isActive ? 'bg-rose-600' : 'bg-slate-200 dark:bg-zinc-800'
+                          }`}>
+                            <Text className={`text-[10px] font-black ${
+                              isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                            }`}>{cat.count}</Text>
+                          </View>
+                        </ScalePressable>
+                      );
+                    })}
+                  </View>
+                </ScrollView>
+              </View>
+            </>
+          )}
+        </>
+      )}
+
+      {/* Grocery Storefront View (matching the screenshot exactly) */}
+         <Animated.ScrollView 
           ref={scrollViewRef}
           onScroll={(e) => {
             scrollY.value = e.nativeEvent.contentOffset.y;
@@ -1264,16 +1842,16 @@ export default function HomeScreen() {
           onTouchStart={onTabBarTouchStart}
           scrollEventThrottle={16}
           style={{ flex: 1 }}
-          className="flex-1"
-          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: insets.bottom + 195 }}
+          className="flex-1 bg-white dark:bg-zinc-950" 
+          contentContainerStyle={{ backgroundColor: 'transparent', paddingTop: scrollViewPaddingTop, paddingBottom: insets.bottom + 195 }} 
           showsVerticalScrollIndicator={false}
           entering={FadeIn.duration(220)}
           refreshControl={
             <RefreshControl
               refreshing={isRefreshing}
               onRefresh={onRefresh}
-              tintColor={isDarkMode ? THEME.COLORS.light.surface : THEME.COLORS.brand.primary}
-              colors={[THEME.COLORS.brand.primary]}
+              tintColor={isDarkMode ? "#ffffff" : "#e20a22"}
+              colors={["#e20a22"]}
             />
           }
         >
@@ -1282,8 +1860,8 @@ export default function HomeScreen() {
 
           {/* Category Grid Section Title */}
           <View className="px-4 flex-row justify-between items-center mb-3 mt-1">
-            <Text className="text-base font-black tracking-tight" style={{ color: colors.textPrimary }}>Trending Categories</Text>
-            <ScalePressable
+            <Text className="text-base font-black tracking-tight" style={{ color: isDarkMode ? '#fafafa' : '#1e293b' }}>Trending Categories</Text>
+            <ScalePressable 
               onPress={() => {
                 router.push('/(tabs)/categories');
               }}
@@ -1291,17 +1869,17 @@ export default function HomeScreen() {
               style={{
                 flexDirection: 'row',
                 alignItems: 'center',
-                backgroundColor: isDarkMode ? `${THEME.COLORS.brand.primary}1F` : THEME.COLORS.brand.primaryLight,
+                backgroundColor: isDarkMode ? 'rgba(226,10,34,0.12)' : '#fff1f2',
                 paddingHorizontal: 9,
                 paddingVertical: 4.5,
-                borderRadius: THEME.RADIUS.md,
+                borderRadius: 12,
                 borderWidth: 1,
-                borderColor: isDarkMode ? `${THEME.COLORS.brand.primary}40` : '#ffe4e6',
+                borderColor: isDarkMode ? 'rgba(226,10,34,0.25)' : '#ffe4e6',
                 gap: 2,
               }}
             >
-              <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.extrabold, color: THEME.COLORS.brand.primary, textTransform: 'uppercase', letterSpacing: 0.5 }}>See all</Text>
-              <ChevronRight size={11} color={THEME.COLORS.brand.primary} strokeWidth={3} />
+              <Text className="text-rose-600 dark:text-rose-450 font-extrabold text-[10px] uppercase tracking-wider">See all</Text>
+              <ChevronRight size={11} color="#e20a22" strokeWidth={3} />
             </ScalePressable>
           </View>
 
@@ -1310,24 +1888,24 @@ export default function HomeScreen() {
 
           {/* Active Order Tracker */}
           {activeOrder && (
-            <ScalePressable
+            <ScalePressable 
               onPress={() => {
                 router.push(`/order/${activeOrder.id}`);
               }}
               scaleValue={0.98}
               style={{
                 alignSelf: 'stretch',
-                marginHorizontal: THEME.SPACING.md,
-                marginBottom: THEME.SPACING.md,
-                borderRadius: THEME.RADIUS.lg,
+                marginHorizontal: 16,
+                marginBottom: 16,
+                borderRadius: 16,
                 overflow: 'hidden',
               }}
             >
               <LinearGradient
-                colors={[THEME.COLORS.brand.success, THEME.COLORS.brand.successDark]}
+                colors={['#10b981', '#047857']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
-                style={{ width: '100%', padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: THEME.RADIUS.lg }}
+                style={{ width: '100%', padding: 14, borderWidth: 1, borderColor: '#34d399', borderRadius: 16 }}
               >
                 <View className="flex-row items-center justify-between">
                   <View className="flex-row items-center gap-2 flex-1 pr-2">
@@ -1347,7 +1925,7 @@ export default function HomeScreen() {
                   </View>
                   <ChevronRight size={16} color="#fff" />
                 </View>
-
+                
                 {/* Timeline Progress Bar */}
                 <View className="flex-row items-center gap-1.5 mt-3 pt-2 border-t border-emerald-500/30">
                   {['PENDING', 'CONFIRMED', 'PACKED', 'SHIPPED', 'DELIVERED'].map((step, idx) => {
@@ -1355,8 +1933,8 @@ export default function HomeScreen() {
                     const currentIdx = stepOrder.indexOf(activeOrder.status);
                     const isCompleted = idx <= currentIdx;
                     return (
-                      <View
-                        key={step}
+                      <View 
+                        key={step} 
                         className={`flex-1 h-1 rounded-full ${
                           isCompleted ? 'bg-white' : 'bg-emerald-800'
                         }`}
@@ -1367,20 +1945,20 @@ export default function HomeScreen() {
               </LinearGradient>
             </ScalePressable>
           )}
-
+ 
           {/* Reorder Last Order Banner */}
           {!activeOrder && lastCompletedOrder && (
-            <ScalePressable
+            <ScalePressable 
               onPress={handleReorderLast}
               scaleValue={0.97}
               haptic="medium"
               style={{
                 alignSelf: 'stretch',
-                marginHorizontal: THEME.SPACING.md,
+                marginHorizontal: 16,
                 marginBottom: 18,
-                borderRadius: THEME.RADIUS.lg,
+                borderRadius: 18,
                 overflow: 'hidden',
-                shadowColor: THEME.COLORS.brand.accent,
+                shadowColor: isDarkMode ? '#e11d48' : '#fda4af',
                 shadowOffset: { width: 0, height: 4 },
                 shadowOpacity: isDarkMode ? 0.15 : 0.25,
                 shadowRadius: 10,
@@ -1388,7 +1966,7 @@ export default function HomeScreen() {
               }}
             >
               <LinearGradient
-                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : [THEME.COLORS.brand.accentLight, THEME.COLORS.brand.primaryLight]}
+                colors={isDarkMode ? ['#1e1b4b', '#0f172a'] : ['#fff7ed', '#fff1f2']}
                 start={{ x: 0, y: 0 }}
                 end={{ x: 1, y: 1 }}
                 style={{
@@ -1396,35 +1974,35 @@ export default function HomeScreen() {
                   paddingHorizontal: 18,
                   paddingVertical: 15,
                   borderWidth: 1.2,
-                  borderColor: isDarkMode ? '#312e81' : THEME.COLORS.brand.primaryLight,
-                  borderRadius: THEME.RADIUS.lg,
+                  borderColor: isDarkMode ? '#312e81' : '#fecdd3',
+                  borderRadius: 18,
                   flexDirection: 'row',
                   justifyContent: 'space-between',
                   alignItems: 'center',
                 }}
               >
                 <View style={{ flexDirection: 'row', alignItems: 'center', gap: 14, flex: 1, paddingRight: 20 }}>
-                  <View className="w-11 h-11 rounded-full items-center justify-center border shrink-0" style={{ backgroundColor: `${THEME.COLORS.brand.primary}1A`, borderColor: `${THEME.COLORS.brand.primary}33` }}>
-                    <RefreshCw size={18} color={THEME.COLORS.brand.accent} strokeWidth={2.5} />
+                  <View className="w-11 h-11 rounded-full bg-rose-500/10 dark:bg-rose-500/15 items-center justify-center border border-rose-500/20 shrink-0">
+                    <RefreshCw size={18} color="#e11d48" strokeWidth={2.5} />
                   </View>
                   <View style={{ flex: 1 }}>
                     <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6, flexWrap: 'wrap' }}>
-                      <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.bodySm, fontWeight: THEME.TYPOGRAPHY.weights.black, color: colors.textPrimary, letterSpacing: 0.1 }} numberOfLines={1}>
+                      <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#f4f4f5' : '#1e293b', letterSpacing: 0.1 }} numberOfLines={1}>
                         Reorder Last Order
                       </Text>
-                      <View className="px-1.5 py-0.5 rounded-md shrink-0" style={{ backgroundColor: `${THEME.COLORS.brand.primary}1A` }}>
-                        <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro - 1, fontWeight: THEME.TYPOGRAPHY.weights.black, color: THEME.COLORS.brand.primary, textTransform: 'uppercase' }}>Quick</Text>
+                      <View className="bg-rose-500/10 px-1.5 py-0.5 rounded-md shrink-0">
+                        <Text className="text-rose-600 dark:text-rose-400 text-[8px] font-black uppercase">Quick</Text>
                       </View>
                     </View>
-                    <Text style={{ color: colors.textSecondary, fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.medium, marginTop: 3 }} numberOfLines={1}>
+                    <Text style={{ color: isDarkMode ? '#a1a1aa' : '#64748b', fontSize: 10, fontWeight: '500', marginTop: 3 }} numberOfLines={1}>
                       {lastCompletedOrder.items?.map((it: any) => it.name).join(', ')}
                     </Text>
                   </View>
                 </View>
-
+                
                 <View style={{ overflow: 'hidden', borderRadius: 99 }}>
                   <LinearGradient
-                    colors={[THEME.COLORS.brand.accent, THEME.COLORS.brand.primary]}
+                    colors={['#ea580c', '#e11d48']}
                     start={{ x: 0, y: 0 }}
                     end={{ x: 1, y: 0 }}
                     style={{
@@ -1435,7 +2013,7 @@ export default function HomeScreen() {
                       gap: 4
                     }}
                   >
-                    <Text style={{ fontSize: THEME.TYPOGRAPHY.sizes.micro, fontWeight: THEME.TYPOGRAPHY.weights.black, color: '#ffffff', textTransform: 'uppercase', letterSpacing: 0.5 }}>Reorder</Text>
+                    <Text className="text-white font-black text-[10px] uppercase tracking-wider">Reorder</Text>
                     <ChevronRight size={12} color="#fff" strokeWidth={3.5} />
                   </LinearGradient>
                 </View>
@@ -1443,6 +2021,7 @@ export default function HomeScreen() {
             </ScalePressable>
           )}
 
+          {/* Curated For You (Deals Curation Hub) */}
           {/* Curated For You (Deals Curation Hub) */}
           {isReady ? (
             <>
@@ -1452,7 +2031,7 @@ export default function HomeScreen() {
             </>
           ) : (
             <View style={{ height: 300, alignItems: 'center', justifyContent: 'center' }}>
-              <ActivityIndicator size="small" color={THEME.COLORS.brand.accent} />
+              <ActivityIndicator size="small" color="#e11d48" />
             </View>
           )}
           </Animated.ScrollView>
@@ -1462,7 +2041,7 @@ export default function HomeScreen() {
       <AddressQuickSwitcherSheet visible={showAddressSheet} onClose={() => setShowAddressSheet(false)} />
       <CartQuickPreviewSheet visible={showCartSheet} onClose={() => setShowCartSheet(false)} />
 
-      {/* Branded Mode Switch Doorstep Loader Screen Overlay */}
+      {/* 4. Branded Mode Switch Doorstep Loader Screen Overlay */}
       {showModeSwitchLoader && (
         <Animated.View
           entering={FadeIn.duration(150)}
@@ -1474,7 +2053,7 @@ export default function HomeScreen() {
               left: 0,
               right: 0,
               bottom: 0,
-              backgroundColor: colors.background,
+              backgroundColor: isDarkMode ? '#09090b' : '#ffffff',
               zIndex: 99999,
               justifyContent: 'center',
               alignItems: 'center',
@@ -1495,7 +2074,7 @@ export default function HomeScreen() {
                   alignItems: 'center',
                   borderWidth: 1,
                   borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.04)',
-                  shadowColor: colors.border,
+                  shadowColor: isDarkMode ? '#000000' : '#e2e8f0',
                   shadowOffset: { width: 0, height: 4 },
                   shadowOpacity: 0.1,
                   shadowRadius: 8,
@@ -1518,20 +2097,20 @@ export default function HomeScreen() {
               </View>
             </Animated.View>
 
-            {/* Doorstep Message */}
+            {/* Doorstep Message matching user's splash screen typography */}
             <View style={{ paddingHorizontal: 40, alignItems: 'center', marginTop: 12 }}>
-              <Text
+              <Text 
                 style={{
-                  fontSize: THEME.TYPOGRAPHY.sizes.body,
-                  fontWeight: THEME.TYPOGRAPHY.weights.bold,
-                  color: colors.textSecondary,
+                  fontSize: 14.5,
+                  fontWeight: '700',
+                  color: isDarkMode ? '#a1a1aa' : '#64748b',
                   textAlign: 'center',
                   lineHeight: 22,
                   letterSpacing: -0.2,
                 }}
               >
                 {isSwitching === 'food' || (isSwitching === 'none' && localActiveSegment === 'food')
-                  ? "Cooking fresh food, delivered at your doorstep"
+                  ? "Cooking fresh food, delivered at your doorstep" 
                   : "Everything you need, delivered at your doorstep"}
               </Text>
             </View>

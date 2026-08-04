@@ -1,8 +1,7 @@
-import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useWindowDimensions, TouchableOpacity, InteractionManager } from 'react-native';
-import { StyleSheet } from 'react-native';
-import { THEME } from '../../lib/theme';
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useColorScheme, useWindowDimensions, TouchableOpacity, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
+import { useState, useMemo, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Minus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon, Send, MessageSquare, Edit2, Trash2, LogOut } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle as SvgCircle, Line, Text as SvgText, G } from 'react-native-svg';
@@ -2351,6 +2350,8 @@ export default function OperationsScreen() {
           hero_subtitle_evening_cafe_closed: heroSubtitleEveningCafeClosed.trim(),
           hero_subtitle_evening_both_open: heroSubtitleEveningBothOpen.trim(),
           hero_greeting_night: heroGreetingNight.trim(),
+          hero_subtitle_night_mart_closed: heroSubtitleNightMartClosed.trim(),
+          hero_subtitle_night_cafe_closed: heroSubtitleNightCafeClosed.trim(),
           hero_subtitle_night_both_open: heroSubtitleNightBothOpen.trim(),
           ...categorySettingsPayload,
         })
@@ -2360,6 +2361,7 @@ export default function OperationsScreen() {
         // Sync local client Zustand store instantly!
         setLocalStoreStatus(
           groceryOpenState, 
+          cafeOpenState, 
           radiusNum, 
           parseFloat(storeLat), 
           parseFloat(storeLng),
@@ -2374,7 +2376,6 @@ export default function OperationsScreen() {
           miscFeeLabel,
           parseFloat(deliveryFeeState) || 25,
           parseFloat(groceryThresholdState) || 199,
-          cafeOpenState,
           parseFloat(cafeThresholdState) || 199
         );
         toast.success('Settings saved successfully!');
@@ -2413,6 +2414,7 @@ export default function OperationsScreen() {
         // Sync Zustand store
         setLocalStoreStatus(
           type === 'grocery' ? nextValue : groceryOpenState,
+          type === 'cafe' ? nextValue : cafeOpenState,
           parseFloat(radiusState) || 5,
           parseFloat(storeLat),
           parseFloat(storeLng),
@@ -2421,13 +2423,12 @@ export default function OperationsScreen() {
           parseInt(storeCloseHourState) || 23,
           holidaysState.split(',').map(h => h.trim()),
           parseFloat(surgeMultiplierState) || 1,
-          parseFloat(taxRate) || 5,
+          parseFloat(taxRate) || 0,
           onlyCod,
           parseFloat(miscFee) || 0,
           miscFeeLabel,
           parseFloat(deliveryFeeState) || 25,
           parseFloat(groceryThresholdState) || 199,
-          type === 'cafe' ? nextValue : cafeOpenState,
           parseFloat(cafeThresholdState) || 199
         );
         toast.success(`${type === 'grocery' ? 'Grocery' : 'Cafe'} status updated!`);
@@ -3279,7 +3280,8 @@ export default function OperationsScreen() {
       tabs: [
         { id: 'LIVEOPS', label: 'LiveOps', emoji: '🚨' },
         { id: 'ORDERS', label: 'Store Orders', emoji: '📋' },
-        { id: 'CHEF_RESTAURANT', label: 'Kitchen Console', emoji: '🍳' },
+        { id: 'CHEF', label: 'Cafe Console', emoji: '☕' },
+        { id: 'CHEF_RESTAURANT', label: 'Rest. Console', emoji: '🍳' },
         { id: 'USERS', label: 'Customers', emoji: '👥' },
         { id: 'REVIEWS', label: 'Reviews', emoji: '⭐' }
       ]
@@ -8628,7 +8630,8 @@ export default function OperationsScreen() {
                     { id: 'REVIEWS', label: 'Reviews Moderation', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '⭐', keywords: 'ratings, comments, comments delete, moderate' },
                     { id: 'PICKER', label: 'Picker Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '📦', keywords: 'packhouse, worker, confirm, pick list' },
                     { id: 'RIDER', label: 'Rider Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '🛵', keywords: 'logistics, fleet, delivery, route, map' },
-                    { id: 'CHEF_RESTAURANT', label: 'Kitchen Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '🍳', keywords: 'chef, cook, food, dinner, curry, north indian' },
+                    { id: 'CHEF', label: 'Cafe Kitchen Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '☕', keywords: 'chef, cook, food, tea, burger' },
+                    { id: 'CHEF_RESTAURANT', label: 'Restaurant Kitchen Console', hub: 'OPS', hubTitle: 'Ops & Fulfillment', emoji: '🍳', keywords: 'chef, cook, food, dinner, curry, north indian' },
                   ];
 
                   const q = launcherSearchQuery.toLowerCase().trim();

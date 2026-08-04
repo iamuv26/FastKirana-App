@@ -1,18 +1,20 @@
-import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, Animated, TextInput, Platform, StyleSheet } from 'react-native';
+import { View, Text, Pressable, ScrollView, Alert, ActivityIndicator, Linking, PanResponder, Animated, TouchableOpacity, TextInput, Platform, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { router, Stack } from 'expo-router';
-import { Home, MapPin, CreditCard, Check, Plus, ArrowRight, Briefcase, Coins, QrCode } from 'lucide-react-native';
+import { useState, useEffect, useRef, useMemo, useCallback } from 'react';
+import { router, usePathname, Stack, useFocusEffect } from 'expo-router';
+import { Home, MapPin, CreditCard, ChevronRight, Check, Plus, ArrowRight, Briefcase, ArrowLeft, Coins, QrCode } from 'lucide-react-native';
 import * as Location from 'expo-location';
 import { useCart } from '../hooks/use-cart';
 import { formatPrice, isCafeProduct, formatDisplayOrderId } from '../lib/utils';
 import { useResponsive, getCenteredContainerStyle } from '../lib/responsive';
 import { useAuthStore } from '../stores/auth-store';
 import { useUIStore } from '../stores/ui-store';
+import { API_BASE_URL, FREE_DELIVERY_THRESHOLD, GROCERY_FREE_DELIVERY_THRESHOLD, CAFE_FREE_DELIVERY_THRESHOLD, DELIVERY_FEE, TAX_RATE } from '../lib/constants';
 import { api } from '../lib/api-client';
 import { getDeliveryRules } from '../lib/distance';
+import { toast } from '../lib/toast';
 import { triggerHaptic } from '../lib/haptic';
 import { playSuccessChime } from '../lib/audio';
 import { useTheme } from './context/ThemeContext';
@@ -35,172 +37,12 @@ interface Address {
   lng?: number;
 }
 
-// Static styles that never depend on theme
-const staticStyles = StyleSheet.create({
-  scrollContent: {
-    paddingBottom: 120,
-  },
-  fulfillmentBtnRow: {
-    flexDirection: 'row',
-    gap: THEME.SPACING.sm,
-  },
-  fulfillmentBtnInner: {
-    flex: 1,
-    padding: THEME.SPACING.sm,
-    borderRadius: THEME.RADIUS.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: THEME.SPACING.xs,
-  },
-  addressLoading: {
-    paddingVertical: THEME.SPACING.lg,
-  },
-  addressEmptyContainer: {
-    alignItems: 'center',
-    paddingVertical: THEME.SPACING.lg,
-  },
-  addressList: {
-    gap: THEME.SPACING.sm,
-  },
-  addressItemInner: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: THEME.SPACING.sm + 4,
-    borderRadius: THEME.RADIUS.md,
-    borderWidth: 1,
-  },
-  addressItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    flex: 1,
-    paddingRight: THEME.SPACING.sm,
-  },
-  addressIconCircle: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: THEME.SPACING.sm,
-  },
-  addressManageText: {
-    marginTop: THEME.SPACING.sm,
-  },
-  distanceRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.xs,
-    paddingVertical: 4,
-  },
-  distanceBannerInner: {
-    padding: THEME.SPACING.sm + 2,
-    borderRadius: THEME.RADIUS.md,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: THEME.SPACING.sm,
-  },
-  paymentInner: {
-    gap: THEME.SPACING.sm,
-  },
-  paymentItemInner: {
-    padding: THEME.SPACING.sm + 2,
-    borderRadius: THEME.RADIUS.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  paymentItemContent: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.sm,
-  },
-  paymentDesc: {
-    fontSize: 9,
-    marginTop: 2,
-  },
-  minOrderBannerInner: {
-    padding: THEME.SPACING.sm + 2,
-    borderRadius: THEME.RADIUS.lg,
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: THEME.SPACING.sm,
-    marginTop: THEME.SPACING.sm,
-  },
-  slotScrollContent: {
-    gap: THEME.SPACING.sm,
-    paddingVertical: 2,
-  },
-  slotChipInner: {
-    paddingHorizontal: THEME.SPACING.md,
-    paddingVertical: THEME.SPACING.xs + 2,
-    borderRadius: THEME.RADIUS.md,
-    borderWidth: 1,
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: THEME.SPACING.xs,
-  },
-  chipsContainer: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: THEME.SPACING.sm,
-    marginTop: THEME.SPACING.xs + 2,
-  },
-  chipBtn: {
-    paddingHorizontal: THEME.SPACING.sm,
-    paddingVertical: 6,
-    borderRadius: THEME.RADIUS.sm,
-  },
-  chipText: {
-    fontWeight: '700',
-    fontSize: 9,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
-  },
-  successParticlesContainer: {
-    position: 'absolute',
-    left: 0,
-    right: 0,
-    top: 0,
-    bottom: 0,
-    alignItems: 'center',
-    justifyContent: 'center',
-    pointerEvents: 'none',
-  },
-  successCheckInner: {
-    width: 96,
-    height: 96,
-    borderRadius: 48,
-    borderWidth: 4,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  slideGradient: {
-    width: '100%',
-    height: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-    flexDirection: 'row',
-    gap: 6,
-  },
-  slideBtnTextWhite: {
-    fontSize: 13,
-    fontWeight: '900',
-    color: '#ffffff',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-  },
-});
-
 export default function CheckoutScreen() {
   const insets = useSafeAreaInsets();
   const responsive = useResponsive();
+  const pathname = usePathname();
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
   const { items, getSubtotal, clearCart, updateQuantity, updateCartProduct } = useCart();
   const { isLoggedIn, user } = useAuthStore();
   const [paymentMethod, setPaymentMethod] = useState<'COD' | 'UPI' | 'CARD'>('COD');
@@ -210,6 +52,7 @@ export default function CheckoutScreen() {
   const [selectedAddressId, setSelectedAddressId] = useState<string>('');
   const [isAddressesLoading, setIsAddressesLoading] = useState(true);
 
+  // Delivery distance validation states
   const storeLat = useUIStore((s) => s.storeLat);
   const storeLng = useUIStore((s) => s.storeLng);
   const deliveryRadius = useUIStore((s) => s.deliveryRadius);
@@ -232,12 +75,12 @@ export default function CheckoutScreen() {
   }, [onlyCod]);
 
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
-    const R = 6371;
+    const R = 6371; // Radius of earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a =
+    const a = 
       Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
       Math.sin(dLon / 2) * Math.sin(dLon / 2);
     const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
@@ -318,7 +161,7 @@ export default function CheckoutScreen() {
         useNativeDriver: true,
       }).start();
 
-      const confettiColors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6'];
+      const colors = ['#f59e0b', '#10b981', '#3b82f6', '#ec4899', '#8b5cf6', '#ef4444', '#14b8a6'];
       const newParticles = Array.from({ length: 30 }).map((_, i) => {
         const angle = Math.random() * Math.PI * 2;
         const distance = Math.random() * 100 + 40;
@@ -326,7 +169,7 @@ export default function CheckoutScreen() {
           id: i,
           x: Math.cos(angle) * distance,
           y: Math.sin(angle) * distance - 30,
-          color: confettiColors[Math.floor(Math.random() * confettiColors.length)],
+          color: colors[Math.floor(Math.random() * colors.length)],
           size: Math.random() * 8 + 6,
           rotate: `${Math.random() * 360}deg`,
         };
@@ -337,16 +180,18 @@ export default function CheckoutScreen() {
     }
   }, [showSuccessOverlay]);
 
+
+
   const subtotal = getSubtotal();
   const tax = Math.round(subtotal * (taxRate / 100));
 
   const groceryItems = useMemo(() => items.filter(item => !isCafeProduct(item.product)), [items]);
   const cafeItems = useMemo(() => items.filter(item => isCafeProduct(item.product)), [items]);
 
-  const grocerySubtotal = useMemo(() =>
+  const grocerySubtotal = useMemo(() => 
     groceryItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [groceryItems]);
 
-  const cafeSubtotal = useMemo(() =>
+  const cafeSubtotal = useMemo(() => 
     cafeItems.reduce((sum, item) => sum + item.product.price * item.quantity, 0), [cafeItems]);
 
   const surgeMultiplier = useUIStore((s) => s.surgeMultiplier || 1.0);
@@ -381,7 +226,6 @@ export default function CheckoutScreen() {
       'x-user-phone': user.phone || '',
     };
   };
-
   const loadAddresses = async () => {
     setIsAddressesLoading(true);
     let localList: Address[] = [];
@@ -400,6 +244,7 @@ export default function CheckoutScreen() {
 
     if (!isLoggedIn || !user || user?.id?.startsWith('mock-')) {
       if (localList.length === 0) {
+        // Create default fallback address for guests / demo users
         const defaultFallback: Address = {
           id: 'guest-address-1',
           label: 'Home',
@@ -477,7 +322,7 @@ export default function CheckoutScreen() {
         localList = [defaultFallback];
       }
       setAddresses(localList);
-      const def = localList.find((a: any) => a.isDefault);
+      const def = localList.find((a) => a.isDefault);
       setSelectedAddressId(def ? def.id : localList[0].id);
     } finally {
       setIsAddressesLoading(false);
@@ -505,6 +350,7 @@ export default function CheckoutScreen() {
     triggerHaptic('light');
 
     try {
+      // 1. Validate cart against live database stock & prices
       try {
         const validateData = await api.post('/products/validate-cart', { items });
         if (validateData.hasChanges && validateData.updates?.length > 0) {
@@ -522,7 +368,7 @@ export default function CheckoutScreen() {
           });
 
           Alert.alert(
-            'Cart Updated \u{1F6D2}',
+            'Cart Updated 🛒',
             'Some items in your cart had stock or price changes. We have adjusted your cart. Please review and try again.',
             [{ text: 'Review Cart' }]
           );
@@ -533,9 +379,11 @@ export default function CheckoutScreen() {
         console.warn('Cart validation failed, skipping directly to order placement:', validationErr);
       }
 
+      // 2. Resolve target address
       const activeAddress = addresses.find((a) => a.id === selectedAddressId) || addresses[0];
       const addressId = deliveryMethod === 'PICKUP' ? 'STORE_PICKUP' : (selectedAddressId || activeAddress?.id || 'STORE_PICKUP');
 
+      // 3. Prepare payload items
       const payloadItems = items.map((i) => ({
         productId: i.product.id,
         quantity: i.quantity,
@@ -544,6 +392,7 @@ export default function CheckoutScreen() {
         product: i.product,
       }));
 
+      // 4. Resolve order data
       const isMockUser = !isLoggedIn || !user || user?.id?.startsWith('mock-');
       let orderData: any;
 
@@ -618,6 +467,7 @@ export default function CheckoutScreen() {
         }
       }
 
+      // 5. Always persist order to MMKV local storage for instant offline/online tracking
       try {
         const { mmkvStorage } = require('../lib/storage');
         const localKey = `local_orders_${user?.id || 'guest'}`;
@@ -636,6 +486,7 @@ export default function CheckoutScreen() {
         console.warn('Failed to persist order in local MMKV:', storageErr);
       }
 
+      // Success
       triggerHaptic('success');
       playSuccessChime();
       clearCart();
@@ -649,7 +500,7 @@ export default function CheckoutScreen() {
           return;
         } else {
           Alert.alert(
-            'UPI Apps Not Found \u{1F4F1}',
+            'UPI Apps Not Found 📱',
             'No UPI payment apps (Google Pay, PhonePe, Paytm) were found on this device. Please pay the delivery rider via QR code upon receipt.',
             [{ text: 'Track Order', onPress: () => router.replace(`/order/${orderData.id}?celebrate=true`) }]
           );
@@ -657,6 +508,7 @@ export default function CheckoutScreen() {
         }
       }
 
+      // Trigger success overlay screen
       setShowSuccessOverlay(true);
       setTimeout(() => {
         router.replace(`/order/${orderData.id}?celebrate=true`);
@@ -669,344 +521,77 @@ export default function CheckoutScreen() {
     }
   };
 
-  useEffect(() => {
-    loadAddresses();
-  }, []);
-
-  // Dynamic styles that reference `colors`
-  const themedStyles = StyleSheet.create({
-    rootContainer: {
-      flex: 1,
-      backgroundColor: colors.background,
-    },
-    headerContainer: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      paddingHorizontal: THEME.SPACING.lg,
-      paddingVertical: 14,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.border,
-      backgroundColor: colors.surface,
-    },
-    headerTitle: {
-      fontSize: THEME.TYPOGRAPHY.sizes.titleSm,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      color: colors.textPrimary,
-      letterSpacing: -0.5,
-    },
-    fulfillmentCard: {
-      backgroundColor: colors.surface,
-      borderRadius: THEME.RADIUS.lg,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      padding: THEME.SPACING.md,
-      marginBottom: THEME.SPACING.sm,
-      ...THEME.SHADOWS.sm,
-    },
-    fulfillmentTitle: {
-      color: colors.textPrimary,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      textTransform: 'uppercase',
-      letterSpacing: 1.2,
-      marginBottom: THEME.SPACING.sm,
-    },
-    fulfillmentBtnText: {
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    },
-    fulfillmentBtnTextActive: {
-      color: THEME.COLORS.brand.primary,
-    },
-    fulfillmentBtnTextInactive: {
-      color: colors.textSecondary,
-    },
-    addressCard: {
-      backgroundColor: colors.surface,
-      borderRadius: THEME.RADIUS.lg,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      padding: THEME.SPACING.md,
-      marginBottom: THEME.SPACING.sm,
-      ...THEME.SHADOWS.sm,
-    },
-    addressHeaderRow: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      marginBottom: THEME.SPACING.sm,
-      paddingBottom: THEME.SPACING.xs,
-      borderBottomWidth: 1,
-      borderBottomColor: colors.borderLight,
-    },
-    addressTitle: {
-      color: colors.textPrimary,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    addNewBtn: {
-      backgroundColor: `${THEME.COLORS.brand.primaryLight}66`,
-      borderWidth: 1,
-      borderColor: `${THEME.COLORS.brand.primary}1A`,
-      paddingHorizontal: THEME.SPACING.sm,
-      paddingVertical: 6,
-      borderRadius: THEME.RADIUS.sm,
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: 4,
-    },
-    addNewBtnText: {
-      color: THEME.COLORS.brand.primary,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: 9,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    addressEmptyText: {
-      color: colors.textMuted,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: '600',
-    },
-    addressLabel: {
-      color: colors.textPrimary,
-      fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      marginBottom: 2,
-    },
-    addressText: {
-      color: colors.textSecondary,
-      fontSize: 10,
-      lineHeight: 14,
-      fontWeight: '600',
-    },
-    distanceValidatingText: {
-      color: '#6366f1',
-      fontWeight: '700',
-      fontSize: 10,
-      textTransform: 'uppercase',
-    },
-    outsideZoneTitle: {
-      color: `${THEME.COLORS.brand.error}E6`,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: 11,
-    },
-    outsideZoneText: {
-      color: `${THEME.COLORS.brand.error}CC`,
-      fontSize: 9,
-      fontWeight: '700',
-      marginTop: 2,
-      lineHeight: 14,
-    },
-    insideZoneTitle: {
-      color: `${THEME.COLORS.brand.success}E6`,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: 11,
-    },
-    insideZoneText: {
-      color: `${THEME.COLORS.brand.success}CC`,
-      fontSize: 9,
-      fontWeight: '700',
-      marginTop: 2,
-      lineHeight: 14,
-    },
-    unableVerifyTitle: {
-      color: `${THEME.COLORS.brand.warning}E6`,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: 11,
-    },
-    unableVerifyText: {
-      color: `${THEME.COLORS.brand.warning}CC`,
-      fontSize: 9,
-      fontWeight: '700',
-      marginTop: 2,
-      lineHeight: 14,
-    },
-    paymentCard: {
-      backgroundColor: colors.surface,
-      borderRadius: THEME.RADIUS.lg,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      padding: THEME.SPACING.md,
-      marginBottom: THEME.SPACING.sm,
-      ...THEME.SHADOWS.sm,
-    },
-    paymentTitle: {
-      color: colors.textPrimary,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      textTransform: 'uppercase',
-      letterSpacing: 1.2,
-      marginBottom: THEME.SPACING.sm,
-    },
-    paymentLabel: {
-      fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    },
-    paymentLabelActive: {
-      color: THEME.COLORS.brand.primary,
-    },
-    paymentLabelInactive: {
-      color: colors.textPrimary,
-    },
-    minOrderTitle: {
-      color: `${THEME.COLORS.brand.warning}E6`,
-      fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    },
-    minOrderText: {
-      color: `${THEME.COLORS.brand.warning}CC`,
-      fontSize: 10,
-      fontWeight: '600',
-      marginTop: 2,
-      lineHeight: 16,
-    },
-    slotCard: {
-      backgroundColor: colors.surface,
-      borderRadius: THEME.RADIUS.lg,
-      borderWidth: 1,
-      borderColor: colors.borderLight,
-      padding: THEME.SPACING.md,
-      marginBottom: THEME.SPACING.sm,
-      ...THEME.SHADOWS.sm,
-    },
-    slotTitle: {
-      color: colors.textPrimary,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-      marginBottom: THEME.SPACING.sm,
-    },
-    slotChipText: {
-      fontSize: 11,
-    },
-    slotChipTextActive: {
-      color: THEME.COLORS.brand.primary,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-    },
-    slotChipTextInactive: {
-      color: colors.textSecondary,
-      fontWeight: THEME.TYPOGRAPHY.weights.bold,
-    },
-    instructionTitle: {
-      color: colors.textPrimary,
-      fontSize: THEME.TYPOGRAPHY.sizes.caption,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-      marginBottom: THEME.SPACING.sm,
-    },
-    chipText: {
-      color: colors.textSecondary,
-    },
-    bottomBar: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingHorizontal: THEME.SPACING.lg,
-      paddingTop: 12,
-      paddingBottom: 14,
-      borderTopWidth: 1,
-      borderTopColor: colors.border,
-      ...THEME.SHADOWS.md,
-    },
-    totalLabel: {
-      fontSize: 9,
-      color: colors.textMuted,
-      fontWeight: '800',
-      textTransform: 'uppercase',
-      letterSpacing: 0.8,
-    },
-    totalValue: {
-      fontSize: 20,
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      marginTop: 1,
-    },
-    successContent: {
-      alignItems: 'center',
-    },
-    successTitle: {
-      fontWeight: THEME.TYPOGRAPHY.weights.black,
-      fontSize: 26,
-      textAlign: 'center',
-      letterSpacing: -0.5,
-    },
-    successSubtitle: {
-      fontWeight: '600',
-      fontSize: 12.5,
-      textAlign: 'center',
-      marginTop: 8,
-      paddingHorizontal: 32,
-      lineHeight: 18,
-    },
-  });
-
   return (
-    <SafeAreaView style={themedStyles.rootContainer}>
+    <SafeAreaView className="flex-1 bg-slate-50 dark:bg-zinc-950">
       <StatusBar style={isDarkMode ? "light" : "dark"} />
       <Stack.Screen options={{ headerShown: false }} />
 
       {/* Sticky Custom Premium Header with Back Button */}
-      <View style={themedStyles.headerContainer}>
-        <Pressable
+      <View 
+        style={{
+          flexDirection: 'row',
+          alignItems: 'center',
+          paddingHorizontal: 16,
+          paddingVertical: 14,
+          borderBottomWidth: 1,
+          borderColor: isDarkMode ? '#27272a' : '#e2e8f0',
+          backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+        }}
+      >
+        <Pressable 
           onPress={() => {
             triggerHaptic('light');
             router.back();
-          }}
-          style={{ marginRight: THEME.SPACING.sm, padding: 4 }}
+          }} 
+          style={{ marginRight: 12, padding: 4 }}
         >
-          <ArrowLeft size={20} color={colors.textPrimary} />
+          <ArrowLeft size={20} color={isDarkMode ? '#fafafa' : '#0f172a'} />
         </Pressable>
-        <Text style={themedStyles.headerTitle}>Checkout</Text>
+        <Text style={{ fontSize: 18, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', letterSpacing: -0.5 }}>
+          Checkout
+        </Text>
       </View>
 
       <ScrollView
-        style={{ flex: 1 }}
-        contentContainerStyle={[
-          staticStyles.scrollContent,
-          { paddingHorizontal: responsive.spacing.page, paddingVertical: responsive.spacing.card },
-          getCenteredContainerStyle(responsive),
-        ]}
+        className="flex-1"
+        style={{
+          paddingHorizontal: responsive.spacing.page,
+          paddingVertical: responsive.spacing.card,
+        }}
+        contentContainerStyle={{
+          paddingBottom: 120,
+          ...getCenteredContainerStyle(responsive),
+        }}
         showsVerticalScrollIndicator={false}
       >
         {/* Fulfillment Option */}
-        <View style={themedStyles.fulfillmentCard}>
-          <Text style={themedStyles.fulfillmentTitle}>Fulfillment Options</Text>
-          <View style={staticStyles.fulfillmentBtnRow}>
-            <Pressable
+        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
+          <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-3">Fulfillment Options</Text>
+          <View className="flex-row gap-3">
+            <Pressable 
               onPress={() => setDeliveryMethod('DELIVERY')}
-              style={[
-                staticStyles.fulfillmentBtnInner,
-                deliveryMethod === 'DELIVERY'
-                  ? { backgroundColor: `${THEME.COLORS.brand.primaryLight}80`, borderColor: `${THEME.COLORS.brand.primary}33` }
-                  : { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
+              className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
+                deliveryMethod === 'DELIVERY' 
+                  ? 'bg-primary-light dark:bg-rose-950/20 border-primary/20 dark:border-rose-900/30' 
+                  : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700'
+              }`}
             >
-              <Home size={16} color={deliveryMethod === 'DELIVERY' ? THEME.COLORS.brand.primary : colors.textSecondary} />
-              <Text style={[
-                themedStyles.fulfillmentBtnText,
-                deliveryMethod === 'DELIVERY' ? themedStyles.fulfillmentBtnTextActive : themedStyles.fulfillmentBtnTextInactive,
-              ]}>
+              <Home size={16} color={deliveryMethod === 'DELIVERY' ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b')} />
+              <Text className={`font-black text-xs ${deliveryMethod === 'DELIVERY' ? 'text-primary' : 'text-slate-500 dark:text-zinc-400'}`}>
                 Home Delivery
               </Text>
             </Pressable>
 
-            <Pressable
+            <Pressable 
               onPress={() => setDeliveryMethod('PICKUP')}
-              style={[
-                staticStyles.fulfillmentBtnInner,
-                deliveryMethod === 'PICKUP'
-                  ? { backgroundColor: `${THEME.COLORS.brand.primaryLight}80`, borderColor: `${THEME.COLORS.brand.primary}33` }
-                  : { backgroundColor: colors.surface, borderColor: colors.border },
-              ]}
+              className={`flex-1 p-3 rounded-xl border flex-row items-center justify-center gap-1.5 ${
+                deliveryMethod === 'PICKUP' 
+                  ? 'bg-primary-light dark:bg-rose-950/20 border-primary/20 dark:border-rose-900/30' 
+                  : 'bg-white dark:bg-zinc-900 border-slate-200 dark:border-zinc-700'
+              }`}
             >
-              <MapPin size={16} color={deliveryMethod === 'PICKUP' ? THEME.COLORS.brand.primary : colors.textSecondary} />
-              <Text style={[
-                themedStyles.fulfillmentBtnText,
-                deliveryMethod === 'PICKUP' ? themedStyles.fulfillmentBtnTextActive : themedStyles.fulfillmentBtnTextInactive,
-              ]}>
+              <MapPin size={16} color={deliveryMethod === 'PICKUP' ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b')} />
+              <Text className={`font-black text-xs ${deliveryMethod === 'PICKUP' ? 'text-primary' : 'text-slate-500 dark:text-zinc-400'}`}>
                 Self-Pickup
               </Text>
             </Pressable>
@@ -1015,72 +600,68 @@ export default function CheckoutScreen() {
 
         {/* Shipping Address list selection */}
         {deliveryMethod === 'DELIVERY' && (
-          <View style={themedStyles.addressCard}>
-            <View style={themedStyles.addressHeaderRow}>
-              <Text style={themedStyles.addressTitle}>Select Delivery Address</Text>
-              <Pressable
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
+            <View className="flex-row justify-between items-center mb-3 pb-2 border-b border-slate-50 dark:border-zinc-800">
+              <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider">Select Delivery Address</Text>
+              <Pressable 
                 onPress={() => router.push('/addresses')}
-                style={themedStyles.addNewBtn}
+                className="bg-rose-50 dark:bg-rose-950/35 border border-rose-100 dark:border-rose-900/40 px-3 py-1.5 rounded-lg active:bg-rose-100 flex-row items-center gap-1"
               >
-                <Plus size={10} color={THEME.COLORS.brand.primary} strokeWidth={3} />
-                <Text style={themedStyles.addNewBtnText}>Add New</Text>
+                <Plus size={10} color="#e20a22" strokeWidth={3} />
+                <Text className="text-primary font-black text-[9px] uppercase tracking-wider">Add New</Text>
               </Pressable>
             </View>
 
             {isAddressesLoading ? (
-              <View style={staticStyles.addressLoading}>
-                <ActivityIndicator size="small" color={THEME.COLORS.brand.primary} />
-              </View>
+               <ActivityIndicator size="small" color="#e20a22" className="py-4" />
             ) : addresses.length === 0 ? (
-              <View style={staticStyles.addressEmptyContainer}>
-                <Text style={themedStyles.addressEmptyText}>No saved addresses found</Text>
-                <Pressable onPress={() => router.push('/addresses')}>
-                  <Text style={[styles.addressManageText, { color: THEME.COLORS.brand.primary }]}>Manage Addresses</Text>
+               <View className="items-center py-4">
+                 <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">No saved addresses found</Text>
+
+                 <Pressable onPress={() => router.push('/addresses')} className="mt-3">
+                   <Text className="text-rose-600 font-extrabold text-xs underline">Manage Addresses</Text>
                 </Pressable>
               </View>
             ) : (
-              <View style={staticStyles.addressList}>
+              <View className="gap-2.5">
                 {addresses.filter(addr => addr && addr.id).map((addr) => {
                   const isSelected = selectedAddressId === addr.id;
                   const labelLower = (addr.label || '').toLowerCase();
 
                   let AddressIcon = MapPin;
-                  let iconBg: string;
-                  let iconColor: string;
+                  let iconBg = isDarkMode ? 'rgba(113, 113, 122, 0.15)' : 'rgba(113, 113, 122, 0.08)';
+                  let iconColor = isDarkMode ? '#a1a1aa' : '#71717a';
 
                   if (labelLower.includes('home')) {
                     AddressIcon = Home;
-                    iconBg = isDarkMode ? `${THEME.COLORS.brand.primary}26` : `${THEME.COLORS.brand.primary}14`;
-                    iconColor = THEME.COLORS.brand.primary;
+                    iconBg = isDarkMode ? 'rgba(226, 10, 34, 0.15)' : 'rgba(226, 10, 34, 0.08)';
+                    iconColor = '#e20a22';
                   } else if (labelLower.includes('work') || labelLower.includes('office')) {
                     AddressIcon = Briefcase;
-                    iconBg = isDarkMode ? `#2563eb26` : `#2563eb14`;
+                    iconBg = isDarkMode ? 'rgba(37, 99, 235, 0.15)' : 'rgba(37, 99, 235, 0.08)';
                     iconColor = '#2563eb';
-                  } else {
-                    iconBg = isDarkMode ? `${colors.textMuted}26` : `${colors.textMuted}14`;
-                    iconColor = colors.textMuted;
                   }
 
                   return (
                     <Pressable
                       key={addr.id}
                       onPress={() => setSelectedAddressId(addr.id)}
-                      style={[
-                        staticStyles.addressItemInner,
-                        isSelected
-                          ? { backgroundColor: `${THEME.COLORS.brand.primary}14`, borderColor: `${THEME.COLORS.brand.primary}33` }
-                          : { backgroundColor: `${colors.surface}66`, borderColor: colors.borderLight },
-                      ]}
+                      className={`p-3.5 rounded-xl border flex-row justify-between items-center ${
+                        isSelected 
+                          ? 'bg-rose-50/20 dark:bg-rose-950/10 border-rose-200 dark:border-rose-900/30' 
+                          : 'bg-slate-50/40 dark:bg-zinc-800/40 border-slate-100 dark:border-zinc-800'
+                      }`}
                     >
-                      <View style={staticStyles.addressItemContent}>
-                        <View
-                          style={[staticStyles.addressIconCircle, { backgroundColor: iconBg }]}
+                      <View className="flex-row items-center flex-1 pr-3">
+                        <View 
+                          className="w-9 h-9 rounded-full items-center justify-center mr-3"
+                          style={{ backgroundColor: iconBg }}
                         >
                           <AddressIcon size={16} color={iconColor} />
                         </View>
-                        <View>
-                          <Text style={themedStyles.addressLabel}>{addr.label}</Text>
-                          <Text style={themedStyles.addressText}>
+                        <View className="flex-1">
+                          <Text className="text-slate-800 dark:text-zinc-200 font-extrabold text-xs mb-0.5">{addr.label}</Text>
+                          <Text className="text-slate-500 dark:text-zinc-400 text-[10px] leading-relaxed font-semibold">
                             {[
                               addr.houseNo && addr.houseNo !== '-' ? `House ${addr.houseNo}` : '',
                               addr.street && addr.street !== '-' ? addr.street : '',
@@ -1091,13 +672,10 @@ export default function CheckoutScreen() {
                           </Text>
                         </View>
                       </View>
-                      <View style={[
-                        { width: 16, height: 16, borderRadius: 8, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-                        isSelected
-                          ? { borderColor: THEME.COLORS.brand.primary, backgroundColor: THEME.COLORS.brand.primary }
-                          : { borderColor: colors.border, backgroundColor: colors.surface },
-                      ]}>
-                        {isSelected && <Check size={10} color="#ffffff" strokeWidth={3} />}
+                      <View className={`w-4 h-4 rounded-full border items-center justify-center ${
+                        isSelected ? 'border-rose-600 bg-rose-600' : 'border-slate-350 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                      }`}>
+                        {isSelected && <Check size={10} color="#fff" strokeWidth={3} />}
                       </View>
                     </Pressable>
                   );
@@ -1107,40 +685,40 @@ export default function CheckoutScreen() {
 
             {/* Distance Validation Warning Banner */}
             {deliveryMethod === 'DELIVERY' && !!selectedAddressId && (
-              <View style={{ marginTop: THEME.SPACING.sm }}>
+              <View className="mt-3">
                 {isDistanceValidating ? (
-                  <View style={staticStyles.distanceRow}>
+                  <View className="flex-row items-center gap-2 py-1">
                     <ActivityIndicator size="small" color="#6366f1" />
-                    <Text style={themedStyles.distanceValidatingText}>Validating delivery distance...</Text>
+                    <Text className="text-indigo-600 dark:text-indigo-400 font-bold text-[10px] uppercase">Validating delivery distance...</Text>
                   </View>
                 ) : deliveryDistance !== null ? (
                   isOutsideDeliveryZone ? (
-                    <View style={[staticStyles.distanceBannerInner, { backgroundColor: `${THEME.COLORS.brand.error}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.error}33` }]}>
-                      <Text style={{ fontSize: 16 }}>🛑</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={themedStyles.outsideZoneTitle}>Outside Delivery Zone</Text>
-                        <Text style={themedStyles.outsideZoneText}>
+                    <View className="bg-rose-50 dark:bg-rose-950/20 border border-rose-100 dark:border-rose-900/50 p-3 rounded-xl flex-row items-start gap-2.5">
+                      <Text className="text-base">🛑</Text>
+                      <View className="flex-1">
+                        <Text className="text-rose-700 dark:text-rose-300 font-black text-[11px]">Outside Delivery Zone</Text>
+                        <Text className="text-rose-600 dark:text-rose-400 text-[9px] font-bold mt-0.5 leading-4">
                           This address is {deliveryDistance.toFixed(1)} km away, which exceeds our maximum delivery radius of {deliveryRadius} km. Please select Self-Pickup or use another address.
                         </Text>
                       </View>
                     </View>
                   ) : (
-                    <View style={[staticStyles.distanceBannerInner, { backgroundColor: `${THEME.COLORS.brand.success}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.success}33` }]}>
-                      <Text style={{ fontSize: 16 }}>\u{2705}</Text>
-                      <View style={{ flex: 1 }}>
-                        <Text style={themedStyles.insideZoneTitle}>Inside Delivery Zone</Text>
-                        <Text style={themedStyles.insideZoneText}>
+                    <View className="bg-emerald-50 dark:bg-emerald-955/20 border border-emerald-100 dark:border-emerald-900/50 p-3 rounded-xl flex-row items-start gap-2.5">
+                      <Text className="text-base">✅</Text>
+                      <View className="flex-1">
+                        <Text className="text-emerald-700 dark:text-emerald-300 font-black text-[11px]">Inside Delivery Zone</Text>
+                        <Text className="text-emerald-600 dark:text-emerald-400 text-[9px] font-bold mt-0.5 leading-4">
                           Your address is {deliveryDistance.toFixed(1)} km away from the dark store.
                         </Text>
                       </View>
                     </View>
                   )
                 ) : (
-                  <View style={[staticStyles.distanceBannerInner, { backgroundColor: `${THEME.COLORS.brand.warning}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33` }]}>
-                    <Text style={{ fontSize: 16 }}>⚠️</Text>
-                    <View style={{ flex: 1 }}>
-                      <Text style={themedStyles.unableVerifyTitle}>Unable to Verify Distance</Text>
-                      <Text style={themedStyles.unableVerifyText}>
+                  <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-100 dark:border-amber-900/50 p-3 rounded-xl flex-row items-start gap-2.5">
+                    <Text className="text-base">⚠️</Text>
+                    <View className="flex-1">
+                      <Text className="text-amber-700 dark:text-amber-300 font-black text-[11px]">Unable to Verify Distance</Text>
+                      <Text className="text-amber-600 dark:text-amber-450 text-[9px] font-bold mt-0.5 leading-4">
                         We could not verify the exact coordinates for this address. Please make sure your pincode is correct.
                       </Text>
                     </View>
@@ -1150,11 +728,10 @@ export default function CheckoutScreen() {
             )}
           </View>
         )}
+        <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
+          <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-3">Payment Methods</Text>
 
-        <View style={themedStyles.paymentCard}>
-          <Text style={themedStyles.paymentTitle}>Payment Methods</Text>
-
-          <View style={staticStyles.paymentInner}>
+          <View className="gap-3">
             {[
               { id: 'COD', label: 'Cash on Delivery (COD)', desc: 'Pay with cash upon package receipt', icon: 'COINS' },
               { id: 'UPI', label: 'UPI (GPay / PhonePe / Paytm)', desc: 'Scan and pay online instantly', icon: 'UPI' },
@@ -1168,47 +745,37 @@ export default function CheckoutScreen() {
                     setPaymentMethod(method.id as any);
                     triggerHaptic('light');
                   }}
-                  style={[
-                    staticStyles.paymentItemInner,
-                    paymentMethod === method.id
-                      ? { backgroundColor: `${THEME.COLORS.brand.primary}14`, borderColor: `${THEME.COLORS.brand.primary}33`, ...THEME.SHADOWS.sm }
-                      : { backgroundColor: colors.surface, borderColor: colors.borderLight },
-                  ]}
+                  className={`p-3.5 rounded-xl border flex-row justify-between items-center ${
+                    paymentMethod === method.id 
+                      ? 'bg-primary-light/50 dark:bg-rose-950/20 border-primary/20 dark:border-rose-900/30 shadow-xs' 
+                      : 'bg-white dark:bg-zinc-900 border-slate-100 dark:border-zinc-800'
+                  }`}
                 >
-                  <View style={staticStyles.paymentItemContent}>
-                    <IconComponent size={20} color={paymentMethod === method.id ? THEME.COLORS.brand.primary : colors.textSecondary} />
+                  <View className="flex-row items-center gap-3">
+                    <IconComponent size={20} color={paymentMethod === method.id ? '#e20a22' : (isDarkMode ? '#a1a1aa' : '#64748b')} />
                     <View>
-                      <Text style={[
-                        themedStyles.paymentLabel,
-                        paymentMethod === method.id ? themedStyles.paymentLabelActive : themedStyles.paymentLabelInactive,
-                      ]}>
+                      <Text className={`font-extrabold text-xs ${paymentMethod === method.id ? 'text-primary' : 'text-slate-700 dark:text-zinc-300'}`}>
                         {method.label}
                       </Text>
-                      <Text style={[themedStyles.paymentDesc, { color: colors.textMuted }]}>{method.desc}</Text>
+                      <Text className="text-slate-400 dark:text-zinc-500 text-[9px] mt-0.5">{method.desc}</Text>
                     </View>
                   </View>
-                  <View style={[
-                    { width: 20, height: 20, borderRadius: 10, borderWidth: 1.5, alignItems: 'center', justifyContent: 'center' },
-                    paymentMethod === method.id
-                      ? { borderColor: THEME.COLORS.brand.success, backgroundColor: THEME.COLORS.brand.success }
-                      : { borderColor: colors.border, backgroundColor: colors.surface },
-                  ]}>
+                  <View className={`w-5 h-5 rounded-full border items-center justify-center ${
+                    paymentMethod === method.id ? 'border-emerald-500 bg-emerald-500' : 'border-slate-300 dark:border-zinc-700 bg-white dark:bg-zinc-800'
+                  }`}>
                     {paymentMethod === method.id && (
-                      <Check size={11} color="#ffffff" strokeWidth={3} />
+                      <Check size={11} color="#fff" strokeWidth={3} />
                     )}
                   </View>
                 </Pressable>
               );
             })}
           {isLessThanMinOrder && (
-            <View style={[
-              staticStyles.minOrderBannerInner,
-              { backgroundColor: `${THEME.COLORS.brand.warning}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.warning}33` },
-            ]}>
+            <View className="bg-amber-50 dark:bg-amber-955/20 border border-amber-200 dark:border-amber-900/30 p-3.5 rounded-2xl flex-row items-start gap-2.5 mt-4">
               <Text style={{ fontSize: 16 }}>⚠️</Text>
-              <View style={{ flex: 1 }}>
-                <Text style={themedStyles.minOrderTitle}>Minimum Order Amount Required</Text>
-                <Text style={themedStyles.minOrderText}>
+              <View className="flex-1">
+                <Text className="text-amber-800 dark:text-amber-400 font-extrabold text-xs">Minimum Order Amount Required</Text>
+                <Text className="text-amber-600 dark:text-amber-450/80 text-[10px] font-semibold mt-0.5 leading-relaxed">
                   Minimum order value is {formatPrice(minOrderValue)}. Add items worth {formatPrice(minOrderValue - subtotal)} more to place order.
                 </Text>
               </View>
@@ -1219,11 +786,11 @@ export default function CheckoutScreen() {
 
         {/* Delivery Time Slots & Instructions Options */}
         {deliveryMethod === 'DELIVERY' && (
-          <View style={themedStyles.slotCard}>
+          <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 mb-4 shadow-xs">
             {/* Delivery Time Slots */}
-            <View>
-              <Text style={themedStyles.slotTitle}>Preferred Delivery Time</Text>
-              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={staticStyles.slotScrollContent}>
+            <View className="mb-4">
+              <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-2">Preferred Delivery Time</Text>
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 8, paddingVertical: 2 }}>
                 {(() => {
                   const slots = ['Instant'];
                   const now = new Date();
@@ -1247,17 +814,13 @@ export default function CheckoutScreen() {
                         setDeliverySlot(slot);
                         triggerHaptic('light');
                       }}
-                      style={[
-                        staticStyles.slotChipInner,
+                      className={`px-4 py-2 rounded-xl border flex-row items-center gap-1.5 ${
                         isSelected
-                          ? { backgroundColor: `${THEME.COLORS.brand.primary}33`, borderColor: THEME.COLORS.brand.primary }
-                          : { backgroundColor: `${colors.surface}66`, borderColor: colors.border },
-                      ]}
+                          ? 'bg-rose-50/20 dark:bg-rose-950/15 border-rose-500'
+                          : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-800'
+                      }`}
                     >
-                      <Text style={[
-                        themedStyles.slotChipText,
-                        isSelected ? themedStyles.slotChipTextActive : themedStyles.slotChipTextInactive,
-                      ]}>
+                      <Text style={{ fontSize: 11 }} className={isSelected ? 'text-primary font-black' : 'text-slate-500 dark:text-zinc-400 font-bold'}>
                         {slot === 'Instant' ? '⚡ Instant' : slot}
                       </Text>
                     </Pressable>
@@ -1266,28 +829,25 @@ export default function CheckoutScreen() {
               </ScrollView>
             </View>
 
-            <View style={{ height: 1, backgroundColor: colors.borderLight, marginVertical: THEME.SPACING.md }} />
+            <View className="h-px bg-slate-100 dark:bg-zinc-800/80 mb-4" />
 
             {/* Delivery Instructions */}
             <View>
-              <Text style={themedStyles.instructionTitle}>Delivery Instructions</Text>
+              <Text className="text-slate-800 dark:text-zinc-200 font-black text-xs uppercase tracking-wider mb-2">Delivery Instructions</Text>
 
               <TextInput
                 value={deliveryInstructions}
                 onChangeText={setDeliveryInstructions}
                 placeholder="Ring bell, leave package at door, call on arrival, etc..."
-                placeholderTextColor={colors.textMuted}
+                placeholderTextColor="#71717a"
                 maxLength={100}
-                style={[staticStyles.instructionInput, {
-                  backgroundColor: `${colors.surface}66`,
-                  borderColor: colors.border,
-                  color: colors.textPrimary,
-                }]}
+                className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3.5 py-3 text-slate-850 dark:text-zinc-200 font-semibold text-xs min-h-[60px]"
+                style={{ textAlignVertical: 'top' }}
                 multiline
               />
 
               {/* Quick Select instruction chips */}
-              <View style={staticStyles.chipsContainer}>
+              <View className="flex-row flex-wrap gap-2 mt-2.5">
                 {[
                   '🔔 Ring bell',
                   '🚪 Leave at door',
@@ -1299,14 +859,14 @@ export default function CheckoutScreen() {
                     onPress={() => {
                       triggerHaptic('light');
                       setDeliveryInstructions(prev => {
-                        const cleanVal = chip.substring(2);
+                        const cleanVal = chip.substring(2); // Strip emoji
                         if (prev.includes(cleanVal)) return prev;
                         return prev ? `${prev}, ${cleanVal}` : cleanVal;
                       });
                     }}
-                    style={[staticStyles.chipBtn, { backgroundColor: `${colors.surface}66`, borderWidth: 1, borderColor: `${colors.border}99` }]}
+                    className="bg-slate-100 dark:bg-zinc-850 border border-slate-200/60 dark:border-zinc-800 px-3 py-1.5 rounded-lg active:opacity-70"
                   >
-                    <Text style={themedStyles.chipText}>{chip}</Text>
+                    <Text className="text-slate-600 dark:text-zinc-400 font-bold text-[9px] uppercase tracking-wide">{chip}</Text>
                   </Pressable>
                 ))}
               </View>
@@ -1316,10 +876,20 @@ export default function CheckoutScreen() {
       </ScrollView>
 
       {/* Place Order Sticky bottom */}
-      <View style={themedStyles.bottomBar}>
-        <View style={{ flex: 1, marginRight: THEME.SPACING.md }}>
-          <Text style={themedStyles.totalLabel}>Total To Pay</Text>
-          <Text style={themedStyles.totalValue}>{formatPrice(total)}</Text>
+      <View 
+        style={{ 
+          backgroundColor: isDarkMode ? THEME.COLORS.dark.surface : '#ffffff', 
+          borderTopWidth: 1, 
+          borderTopColor: isDarkMode ? THEME.COLORS.dark.border : '#e2e8f0', 
+          paddingHorizontal: 16, 
+          paddingTop: 12,
+          paddingBottom: insets.bottom > 0 ? insets.bottom : 14
+        }} 
+        className="flex-row justify-between items-center shadow-lg"
+      >
+        <View style={{ flex: 1, marginRight: 16 }}>
+          <Text style={{ fontSize: 9, color: isDarkMode ? '#a1a1aa' : '#64748b', fontWeight: '800' }} className="uppercase tracking-wider">Total To Pay</Text>
+          <Text style={{ color: isDarkMode ? THEME.COLORS.dark.textPrimary : THEME.COLORS.light.textPrimary, fontSize: 20, fontWeight: '900', marginTop: 1 }}>{formatPrice(total)}</Text>
         </View>
 
         <View style={{ flex: 2, height: 52 }}>
@@ -1329,32 +899,37 @@ export default function CheckoutScreen() {
             disabled={isCheckoutBlocked}
             totalPrice={total}
             isCafe={cafeItems.length > 0}
-            colors={colors}
+            isDarkMode={isDarkMode}
           />
         </View>
       </View>
 
       {/* Success Overlay Sheet */}
       {showSuccessOverlay && (
-        <View style={[{ ...StyleSheet.absoluteFillObject, backgroundColor: `${colors.surface}F2`, alignItems: 'center', justifyContent: 'center', paddingHorizontal: THEME.SPACING.lg, zIndex: 50 }]}>
+        <View className="absolute inset-0 bg-white/95 dark:bg-zinc-950/95 z-50 items-center justify-center px-6">
           <Confetti count={50} />
-          <View style={themedStyles.successContent}>
+          <View className="items-center">
             {/* Animated Checkmark Circle with Glow */}
-            <View style={[
-              { width: 120, height: 120, borderRadius: 60, alignItems: 'center', justifyContent: 'center', marginBottom: 28 },
-              { backgroundColor: isDarkMode ? `${THEME.COLORS.brand.success}14` : THEME.COLORS.brand.successLight },
-            ]}>
+            <View style={{ 
+              width: 120, height: 120, borderRadius: 60, 
+              backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.08)' : '#ecfdf5',
+              alignItems: 'center', justifyContent: 'center',
+              shadowColor: '#10b981', shadowOffset: { width: 0, height: 0 },
+              shadowOpacity: 0.4, shadowRadius: 18, elevation: 6,
+              marginBottom: 28,
+            }}>
               {/* Inner glow ring */}
-              <View style={[
-                { borderColor: THEME.COLORS.brand.success, shadowColor: THEME.COLORS.brand.success },
-                themedStyles.successCheckInner,
-                { backgroundColor: isDarkMode ? `${THEME.COLORS.brand.success}26` : '#d1fae5' },
-              ]}>
-                <Check size={48} color={THEME.COLORS.brand.success} strokeWidth={4} />
+              <View style={{ 
+                width: 96, height: 96, borderRadius: 48,
+                borderWidth: 4, borderColor: '#10b981',
+                backgroundColor: isDarkMode ? 'rgba(16, 185, 129, 0.15)' : '#d1fae5',
+                alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Check size={48} color="#10b981" strokeWidth={4} />
               </View>
 
               {/* Confetti Particle Burst overlay */}
-              <View style={staticStyles.successParticlesContainer}>
+              <View className="absolute inset-0 items-center justify-center pointer-events-none" style={{ overflow: 'visible' }}>
                 {particles.map((p) => {
                   const translateX = confettiProgress.interpolate({
                     inputRange: [0, 1],
@@ -1397,17 +972,38 @@ export default function CheckoutScreen() {
             </View>
 
             {/* Title */}
-            <Text style={[themedStyles.successTitle, { color: colors.textPrimary }]}>Order Confirmed! 🎯</Text>
+            <Text style={{ 
+              color: isDarkMode ? '#f4f4f5' : '#0f172a',
+              fontWeight: '900', fontSize: 26, textAlign: 'center',
+              letterSpacing: -0.5,
+            }}>Order Confirmed! 🎉</Text>
 
             {/* Subtitle */}
-            <Text style={[themedStyles.successSubtitle, { color: colors.textSecondary }]}>
+            <Text style={{ 
+              color: isDarkMode ? '#71717a' : '#64748b',
+              fontWeight: '600', fontSize: 12.5, textAlign: 'center',
+              marginTop: 8, paddingHorizontal: 32, lineHeight: 18,
+            }}>
               Your delicious items are being prepared with care. Sit tight — they're on their way!
             </Text>
 
+
+
             {/* Pulsing delivery path line */}
-            <View style={[styles.progressLine, { backgroundColor: colors.border }]}>
-              <View style={[styles.progressLineFill, { backgroundColor: THEME.COLORS.brand.success }]} />
-              <View style={[styles.progressDot, { backgroundColor: THEME.COLORS.brand.success, borderColor: '#ffffff' }]} />
+            <View style={{ 
+              width: 200, height: 4, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0',
+              borderRadius: 2, marginTop: 32, position: 'relative', overflow: 'hidden',
+            }}>
+              <View style={{ 
+                position: 'absolute', left: 0, top: 0, bottom: 0, 
+                backgroundColor: '#10b981', width: '66%', borderRadius: 2,
+              }} />
+              {/* Pulsing dot at progress end */}
+              <View style={{ 
+                position: 'absolute', left: '63%', top: -3.5,
+                width: 11, height: 11, borderRadius: 5.5,
+                backgroundColor: '#10b981', borderWidth: 2, borderColor: '#fff',
+              }} />
             </View>
           </View>
         </View>
@@ -1422,18 +1018,16 @@ function SlideToPlaceOrderButton({
   disabled,
   totalPrice,
   isCafe,
-  colors,
+  isDarkMode
 }: {
   onSwipeSuccess: () => void;
   isPlacing: boolean;
   disabled: boolean;
   totalPrice: number;
   isCafe: boolean;
-  colors: typeof THEME.COLORS.light | typeof THEME.COLORS.dark;
+  isDarkMode: boolean;
 }) {
-  const activeColors = isCafe ? (THEME.COLORS.gradients.accent as readonly [string, string]) : (THEME.COLORS.gradients.primary as readonly [string, string]);
-  const isDarkMode = colors === THEME.COLORS.dark;
-  const brandGlowColor = isCafe ? THEME.COLORS.brand.accent : THEME.COLORS.brand.primary;
+  const activeColors = isCafe ? (['#ea580c', '#f97316'] as const) : (['#e20a22', '#ff4d64'] as const);
 
   return (
     <ScalePressable
@@ -1445,35 +1039,49 @@ function SlideToPlaceOrderButton({
       }}
       disabled={disabled || isPlacing}
       scaleValue={0.96}
-      style={{ width: '100%', height: 52, borderRadius: 26, overflow: 'hidden', position: 'relative', opacity: disabled ? 0.6 : 1 }}
+      style={{
+        width: '100%',
+        height: 52,
+        borderRadius: 26,
+        overflow: 'hidden',
+        position: 'relative',
+        opacity: disabled ? 0.6 : 1,
+      }}
     >
       <LinearGradient
-        colors={disabled ? (isDarkMode ? [colors.surfaceElevated, colors.surface] : [colors.border, colors.surfaceElevated]) : activeColors}
+        colors={disabled ? (isDarkMode ? ['#27272a', '#1e293b'] : ['#e2e8f0', '#cbd5e1']) : activeColors}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 0.5 }}
-        style={Platform.select({
-          ios: {
-            shadowColor: brandGlowColor,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: disabled ? 0 : 0.15,
-            shadowRadius: 6,
-          },
-          android: {
-            elevation: disabled ? 0 : 4,
-          },
-        })}
+        style={{
+          width: '100%',
+          height: '100%',
+          alignItems: 'center',
+          justifyContent: 'center',
+          flexDirection: 'row',
+          gap: 6,
+          ...Platform.select({
+            ios: {
+              shadowColor: isCafe ? '#ea580c' : '#e20a22',
+              shadowOffset: { width: 0, height: 4 },
+              shadowOpacity: disabled ? 0 : 0.15,
+              shadowRadius: 6,
+            },
+            android: {
+              elevation: disabled ? 0 : 4,
+            },
+          }),
+        }}
       >
         {isPlacing ? (
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: THEME.SPACING.sm }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
             <ActivityIndicator size="small" color="#ffffff" />
-            <Text allowFontScaling={false} style={staticStyles.slideBtnTextWhite}>Placing Order...</Text>
+            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: '#ffffff', textTransform: 'uppercase', letterSpacing: 1.2 }}>
+              Placing Order...
+            </Text>
           </View>
         ) : (
           <>
-            <Text allowFontScaling={false} style={[
-              { fontSize: 13, fontWeight: '900', textTransform: 'uppercase', letterSpacing: 1.2 },
-              { color: disabled ? colors.textSecondary : '#ffffff' },
-            ]}>
+            <Text allowFontScaling={false} style={{ fontSize: 13, fontWeight: '900', color: disabled ? '#64748b' : '#ffffff', textTransform: 'uppercase', letterSpacing: 1.2 }}>
               {disabled ? 'Order Blocked' : 'Place Order'}
             </Text>
             {!disabled && <ArrowRight size={16} color="#ffffff" strokeWidth={3.5} />}
@@ -1483,54 +1091,3 @@ function SlideToPlaceOrderButton({
     </ScalePressable>
   );
 }
-
-// Styles for elements that appear outside the main component scope or are truly static
-const styles = StyleSheet.create({
-  addressManageText: {
-    fontWeight: THEME.TYPOGRAPHY.weights.extrabold,
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    textDecorationLine: 'underline',
-  },
-  instructionInput: {
-    borderWidth: 1,
-    borderRadius: THEME.RADIUS.md,
-    paddingHorizontal: THEME.SPACING.sm + 2,
-    paddingVertical: THEME.SPACING.sm,
-    fontWeight: '600',
-    fontSize: THEME.TYPOGRAPHY.sizes.caption,
-    minHeight: 60,
-    textAlignVertical: 'top',
-  },
-  progressLine: {
-    width: 200,
-    height: 4,
-    borderRadius: 2,
-    marginTop: 32,
-    position: 'relative',
-    overflow: 'hidden',
-  },
-  progressLineFill: {
-    position: 'absolute',
-    left: 0,
-    top: 0,
-    bottom: 0,
-    borderRadius: 2,
-    width: '66%',
-  },
-  progressDot: {
-    position: 'absolute',
-    left: '63%',
-    top: -3.5,
-    width: 11,
-    height: 11,
-    borderRadius: 5.5,
-    borderWidth: 2,
-  },
-  slideButton: {
-    width: '100%',
-    height: 52,
-    borderRadius: 26,
-    overflow: 'hidden',
-    position: 'relative',
-  },
-});
