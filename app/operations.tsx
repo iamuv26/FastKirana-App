@@ -1,10 +1,8 @@
-import { View, Text, Pres
+import { View, Text, Pressable, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useWindowDimensions, TouchableOpacity, InteractionManager } from 'react-native';
 import { StyleSheet } from 'react-native';
 import { THEME } from '../../lib/theme';
-able, ScrollView, TextInput, ActivityIndicator, Dimensions, Alert, Modal, Switch, Platform, Linking, useWindowDimensions, TouchableOpacity, InteractionManager } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Image } from 'expo-image';
-import { useState, useMemo, useRef, useEffect } from 'react';
 import { router } from 'expo-router';
 import { ArrowLeft, Check, Circle, CheckCircle, Package, Truck, ChefHat, Search, Play, Phone, MapPin, IndianRupee, Camera, QrCode, Sparkles, RefreshCw, Barcode, X, Settings, Ticket, Plus, Minus, Users, ShoppingBag, Star, Zap, AlertTriangle, TrendingUp, Building2, Calendar, Activity, Layers, Hourglass, XCircle, PlusCircle, ChevronRight, Utensils, Clock, ArrowRight, BrainCircuit, RotateCcw, HelpCircle, Undo, Download, Save, Heart, Sliders, ArrowUp, ArrowDown, ChevronDown, Sun, Moon, Send, MessageSquare, Edit2, Trash2, LogOut } from 'lucide-react-native';
 import Svg, { Path, Rect, Circle as SvgCircle, Line, Text as SvgText, G } from 'react-native-svg';
@@ -3244,593 +3242,6 @@ export default function OperationsScreen() {
   const riderActiveDeliveries = useMemo(() => orders.filter(o => o.status === 'SHIPPED'), [orders]);
   const { theme: activeTheme, toggleTheme } = useTheme();
   const isDarkMode = activeTheme === 'dark';
-  const colors = isDarkMode ? THEME.COLORS.dark : THEME.COLORS.light;
-
-  const styles = StyleSheet.create({
-    absolute: {
-        "position": "absolute"
-    },
-    flex1: {
-        "flex": 1
-    },
-    flexRow: {
-        "flexDirection": "row"
-    },
-    flexWrap: {
-        "flexWrap": "wrap"
-    },
-    fontblack: {
-        "fontWeight": "900"
-    },
-    fontbold: {
-        "fontWeight": "700"
-    },
-    fontextrabold: {
-        "fontWeight": "800"
-    },
-    fontmedium: {
-        "fontWeight": "500"
-    },
-    fontmono: {
-        "fontWeight": "mono"
-    },
-    fontsemibold: {
-        "fontWeight": "600"
-    },
-    gap1: {
-        "gap": 4
-    },
-    gap1.5: {
-        "gap": "1.5"
-    },
-    gap2: {
-        "gap": 8
-    },
-    gap2.5: {
-        "gap": "2.5"
-    },
-    gap3: {
-        "gap": 12
-    },
-    gap3.5: {
-        "gap": "3.5"
-    },
-    gap4: {
-        "gap": 16
-    },
-    gap5: {
-        "gap": 20
-    },
-    gap6: {
-        "gap": 24
-    },
-    gapx4: {
-        "gap": "x-4"
-    },
-    gapy2: {
-        "gap": "y-2"
-    },
-    h1.5: {
-        "height": "1.5"
-    },
-    h10: {
-        "height": 10
-    },
-    h11: {
-        "height": 11
-    },
-    h12: {
-        "height": 12
-    },
-    h14: {
-        "height": 14
-    },
-    h16: {
-        "height": 16
-    },
-    h2: {
-        "height": 2
-    },
-    h2.5: {
-        "height": "2.5"
-    },
-    h20: {
-        "height": 20
-    },
-    h24: {
-        "height": 24
-    },
-    h3: {
-        "height": 3
-    },
-    h36: {
-        "height": 36
-    },
-    h48: {
-        "height": 48
-    },
-    h6: {
-        "height": 6
-    },
-    h8: {
-        "height": 8
-    },
-    h9: {
-        "height": 9
-    },
-    hfull: {
-        "height": "100%"
-    },
-    hpx: {
-        "height": "px"
-    },
-    italic: {
-        "fontStyle": "italic"
-    },
-    itemsCenter: {
-        "alignItems": "center"
-    },
-    itemsEnd: {
-        "alignItems": "flex-end"
-    },
-    itemsStart: {
-        "alignItems": "flex-start"
-    },
-    justifyBetween: {
-        "justifyContent": "space-between"
-    },
-    justifyCenter: {
-        "justifyContent": "center"
-    },
-    justifyEnd: {
-        "justifyContent": "flex-end"
-    },
-    leading4: {
-        "lineHeight": 16
-    },
-    leading5: {
-        "lineHeight": 20
-    },
-    leadingnormal: {
-        "lineHeight": "normal"
-    },
-    leadingtight: {
-        "lineHeight": "tight"
-    },
-    lineThrough: {
-        "textDecorationLine": "line-through"
-    },
-    maxh60: {
-        "maxHeight": "-60"
-    },
-    maxh[80%]: {
-        "maxHeight": "-[80%]"
-    },
-    maxh[90%]: {
-        "maxHeight": "-[90%]"
-    },
-    maxw5xl: {
-        "maxWidth": "-5xl"
-    },
-    maxw[120px]: {
-        "maxWidth": "-[120px]"
-    },
-    maxw[140px]: {
-        "maxWidth": "-[140px]"
-    },
-    maxw[240px]: {
-        "maxWidth": "-[240px]"
-    },
-    maxw[288px]: {
-        "maxWidth": "-[288px]"
-    },
-    maxwsm: {
-        "maxWidth": "-sm"
-    },
-    mb1: {
-        "marginBottom": 4
-    },
-    mb1.5: {
-        "marginBottom": "1.5"
-    },
-    mb10: {
-        "marginBottom": 10
-    },
-    mb2: {
-        "marginBottom": 8
-    },
-    mb2.5: {
-        "marginBottom": "2.5"
-    },
-    mb3: {
-        "marginBottom": 12
-    },
-    mb4: {
-        "marginBottom": 16
-    },
-    mb5: {
-        "marginBottom": 20
-    },
-    mb6: {
-        "marginBottom": 24
-    },
-    mb8: {
-        "marginBottom": 32
-    },
-    minh[60px]: {
-        "minHeight": "-[60px]"
-    },
-    minh[80px]: {
-        "minHeight": "-[80px]"
-    },
-    minw0: {
-        "minWidth": "-0"
-    },
-    minw[140px]: {
-        "minWidth": "-[140px]"
-    },
-    minw[160px]: {
-        "minWidth": "-[160px]"
-    },
-    minw[280px]: {
-        "minWidth": "-[280px]"
-    },
-    minw[45%]: {
-        "minWidth": "-[45%]"
-    },
-    ml1: {
-        "marginLeft": 4
-    },
-    ml1.5: {
-        "marginLeft": "1.5"
-    },
-    ml2: {
-        "marginLeft": 8
-    },
-    ml2.5: {
-        "marginLeft": "2.5"
-    },
-    ml3: {
-        "marginLeft": 12
-    },
-    mr1: {
-        "marginRight": 4
-    },
-    mr2: {
-        "marginRight": 8
-    },
-    mr2.5: {
-        "marginRight": "2.5"
-    },
-    mr3: {
-        "marginRight": 12
-    },
-    mt0.5: {
-        "marginTop": "0.5"
-    },
-    mt1: {
-        "marginTop": 4
-    },
-    mt1.5: {
-        "marginTop": "1.5"
-    },
-    mt2: {
-        "marginTop": 8
-    },
-    mt3: {
-        "marginTop": 12
-    },
-    mt3.5: {
-        "marginTop": "3.5"
-    },
-    mt4: {
-        "marginTop": 16
-    },
-    mt5: {
-        "marginTop": 20
-    },
-    mt6: {
-        "marginTop": 24
-    },
-    mt8: {
-        "marginTop": 32
-    },
-    mx2: {
-        "marginHorizontal": 8
-    },
-    mx4: {
-        "marginHorizontal": 16
-    },
-    mxauto: {
-        "marginHorizontal": "auto"
-    },
-    my6: {
-        "marginVertical": 24
-    },
-    opacity75: {
-        "opacity": 0.75
-    },
-    opacity80: {
-        "opacity": 0.8
-    },
-    overflowHidden: {
-        "overflow": "hidden"
-    },
-    p0: {
-        "padding": 0
-    },
-    p1: {
-        "padding": 4
-    },
-    p1.5: {
-        "padding": "1.5"
-    },
-    p2: {
-        "padding": 8
-    },
-    p2.5: {
-        "padding": "2.5"
-    },
-    p3: {
-        "padding": 12
-    },
-    p3.5: {
-        "padding": "3.5"
-    },
-    p4: {
-        "padding": 16
-    },
-    p5: {
-        "padding": 20
-    },
-    p6: {
-        "padding": 24
-    },
-    p8: {
-        "padding": 32
-    },
-    pb2: {
-        "paddingBottom": 8
-    },
-    pb2.5: {
-        "paddingBottom": "2.5"
-    },
-    pb3: {
-        "paddingBottom": 12
-    },
-    pb4: {
-        "paddingBottom": 16
-    },
-    pl3: {
-        "paddingLeft": 12
-    },
-    pr2: {
-        "paddingRight": 8
-    },
-    pr3: {
-        "paddingRight": 12
-    },
-    pr4: {
-        "paddingRight": 16
-    },
-    pt2: {
-        "paddingTop": 8
-    },
-    pt2.5: {
-        "paddingTop": "2.5"
-    },
-    pt3: {
-        "paddingTop": 12
-    },
-    pt4: {
-        "paddingTop": 16
-    },
-    pt5: {
-        "paddingTop": 20
-    },
-    pt8: {
-        "paddingTop": 32
-    },
-    px1.5: {
-        "paddingHorizontal": "1.5"
-    },
-    px2: {
-        "paddingHorizontal": 8
-    },
-    px2.5: {
-        "paddingHorizontal": "2.5"
-    },
-    px3: {
-        "paddingHorizontal": 12
-    },
-    px3.5: {
-        "paddingHorizontal": "3.5"
-    },
-    px4: {
-        "paddingHorizontal": 16
-    },
-    px8: {
-        "paddingHorizontal": 32
-    },
-    py0.5: {
-        "paddingVertical": "0.5"
-    },
-    py1: {
-        "paddingVertical": 4
-    },
-    py1.5: {
-        "paddingVertical": "1.5"
-    },
-    py10: {
-        "paddingVertical": 10
-    },
-    py12: {
-        "paddingVertical": 12
-    },
-    py16: {
-        "paddingVertical": 16
-    },
-    py2: {
-        "paddingVertical": 8
-    },
-    py2.5: {
-        "paddingVertical": "2.5"
-    },
-    py20: {
-        "paddingVertical": 20
-    },
-    py3: {
-        "paddingVertical": 12
-    },
-    py3.5: {
-        "paddingVertical": "3.5"
-    },
-    py4: {
-        "paddingVertical": 16
-    },
-    py6: {
-        "paddingVertical": 24
-    },
-    py8: {
-        "paddingVertical": 32
-    },
-    relative: {
-        "position": "relative"
-    },
-    rounded2Xl: {
-        "borderRadius": 28
-    },
-    rounded3Xl: {
-        "borderRadius": 32
-    },
-    roundedFull: {
-        "borderRadius": 9999
-    },
-    roundedTlG: {
-        "borderRadius": "t-lg"
-    },
-    roundedXl: {
-        "borderRadius": 24
-    },
-    roundedlg: {
-        "borderRadius": 20
-    },
-    roundedmd: {
-        "borderRadius": 14
-    },
-    roundedt3xl: {
-        "borderRadius": "t-3xl"
-    },
-    selfCenter: {
-        "alignSelf": "center"
-    },
-    selfStart: {
-        "alignSelf": "flex-start"
-    },
-    shadow2xl: {
-        "boxShadow": "0 1px 2px 0 rgb(0 0 0 / 0.05)"
-    },
-    shadowLg: {
-        "boxShadow": "0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1)"
-    },
-    shadowMd: {
-        "boxShadow": "0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1)"
-    },
-    shadowSm: {
-        "boxShadow": "0 1px 2px 0 rgb(0 0 0 / 0.05)"
-    },
-    shadowxs: {
-        "boxShadow": "0 1px 2px 0 rgb(0 0 0 / 0.05)"
-    },
-    textCenter: {
-        "textAlign": "center"
-    },
-    textCustom10: {
-        "fontSize": 10
-    },
-    textCustom11: {
-        "fontSize": 11
-    },
-    textCustom7: {
-        "fontSize": 7
-    },
-    textCustom8: {
-        "fontSize": 8
-    },
-    textCustom9: {
-        "fontSize": 9
-    },
-    textLeft: {
-        "textAlign": "left"
-    },
-    trackingwide: {
-        "letterSpacing": 0.25
-    },
-    trackingwider: {
-        "letterSpacing": 0.5
-    },
-    trackingwidest: {
-        "letterSpacing": 1
-    },
-    truncate: {
-        "overflow": "hidden",
-        "whiteSpace": "nowrap"
-    },
-    uppercase: {
-        "textTransform": "uppercase"
-    },
-    w1.5: {
-        "width": "1.5"
-    },
-    w10: {
-        "width": 10
-    },
-    w11: {
-        "width": 11
-    },
-    w12: {
-        "width": 12
-    },
-    w14: {
-        "width": 14
-    },
-    w16: {
-        "width": 16
-    },
-    w2: {
-        "width": 2
-    },
-    w2.5: {
-        "width": "2.5"
-    },
-    w20: {
-        "width": 20
-    },
-    w28: {
-        "width": 28
-    },
-    w4: {
-        "width": 4
-    },
-    w48: {
-        "width": 48
-    },
-    w6: {
-        "width": 6
-    },
-    w8: {
-        "width": 8
-    },
-    w9: {
-        "width": 9
-    },
-    wfull: {
-        "width": "100%"
-    },
-    wpx: {
-        "width": "px"
-    },
-  });
   const selectedLocation = useUIStore((s) => s.selectedLocation);
   const isWeb = Platform.OS === 'web';
   const { width: windowWidth } = useWindowDimensions();
@@ -3846,8 +3257,8 @@ export default function OperationsScreen() {
       color: 'from-blue-500/10 to-cyan-500/10',
       activeBorder: 'border-blue-500/60 ring-2 ring-blue-500/20',
       iconColor: '#3b82f6',
-      nativeGradient: [''#3B82F61E'', ''#06B6D414''] as [string, string],
-      nativeBorder: ''#3B82F666'',
+      nativeGradient: ['rgba(59,130,246,0.12)', 'rgba(6,182,212,0.08)'] as [string, string],
+      nativeBorder: 'rgba(59,130,246,0.4)',
       tabs: [
         { id: 'ANALYTICS', label: 'Analytics', emoji: '📊' },
         { id: 'FORECAST', label: 'AI Forecasting', emoji: '📈' },
@@ -3863,8 +3274,8 @@ export default function OperationsScreen() {
       color: 'from-amber-500/10 to-orange-500/10',
       activeBorder: 'border-amber-500/60 ring-2 ring-amber-500/20',
       iconColor: '#f59e0b',
-      nativeGradient: [''#F59E0B1E'', ''#F9731614''] as [string, string],
-      nativeBorder: ''#F59E0B66'',
+      nativeGradient: ['rgba(245,158,11,0.12)', 'rgba(249,115,22,0.08)'] as [string, string],
+      nativeBorder: 'rgba(245,158,11,0.4)',
       tabs: [
         { id: 'LIVEOPS', label: 'LiveOps', emoji: '🚨' },
         { id: 'ORDERS', label: 'Store Orders', emoji: '📋' },
@@ -3907,7 +3318,7 @@ export default function OperationsScreen() {
       value: formatPrice(analyticsStats.todayRevenue || 0), 
       icon: IndianRupee, 
       color: '#10b981', 
-      bg: ''#10B98114'', 
+      bg: 'rgba(16, 185, 129, 0.08)', 
       subtext: "Today's Earnings" 
     },
     { 
@@ -3915,7 +3326,7 @@ export default function OperationsScreen() {
       value: String(analyticsStats.todayTotalOrders || 0), 
       icon: ShoppingBag, 
       color: '#e11d48', 
-      bg: ''#E11D4814'', 
+      bg: 'rgba(225, 29, 72, 0.08)', 
       subtext: "Total Orders Placed Today" 
     },
     { 
@@ -3923,7 +3334,7 @@ export default function OperationsScreen() {
       value: String(activeOrders), 
       icon: RotateCcw, 
       color: '#f97316', 
-      bg: ''#F9731614'', 
+      bg: 'rgba(249, 115, 22, 0.08)', 
       subtext: "New Placed & Live Queue" 
     }
   ];
@@ -3986,17 +3397,17 @@ export default function OperationsScreen() {
 
   return (
     <SafeAreaView 
-      style={styles.flex1}
-      style={{ backgroundColor: isDarkMode ? 'THEME.COLORS.dark.background' : 'THEME.COLORS.light.background' }}
+      className="flex-1"
+      style={{ backgroundColor: isDarkMode ? '#09090b' : '#f8fafc' }}
     >
       {isLargeScreen ? (
         /* ------------------- WEB VIEW DASHBOARD ------------------- */
-        <ScrollView style={styles.flex1} contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
+        <ScrollView className="flex-1" contentContainerStyle={{ paddingBottom: 80 }} showsVerticalScrollIndicator={false}>
           {/* Header Bar */}
-          <View style={styles.bgwhite, styles.dark:bgzinc900, styles.borderb, styles.borderslate200, styles.dark:borderzinc800, styles.px4, styles.md:px8, styles.py3, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.flexWrap, styles.gap4, styles.shadowxs}>
-            <View style={styles.flexRow, styles.itemsCenter, styles.gap4, styles.md:gap6, styles.flexWrap, styles.flex1, styles.minw[280px]}>
+          <View className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 px-4 md:px-8 py-3 flex-row items-center justify-between flex-wrap gap-4 shadow-xs">
+            <View className="flex-row items-center gap-4 md:gap-6 flex-wrap flex-1 min-w-[280px]">
               {/* App Logo & Geolocation selector (same as Home page design) */}
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap3}>
+              <View className="flex-row items-center gap-3">
                 <Pressable 
                   onPress={() => {
                     triggerHaptic('light');
@@ -4011,17 +3422,17 @@ export default function OperationsScreen() {
                     triggerHaptic('light');
                     router.push('/location-picker');
                   }} 
-                  style={styles.flexRow, styles.itemsCenter, styles.gap2}
+                  className="flex-row items-center gap-2"
                 >
                   <View style={{ justifyContent: 'center', alignItems: 'center', marginTop: 1 }}>
                     <MapPin size={14} color="#e20a22" />
                   </View>
-                  <View style={styles.flexcolumn, styles.itemsStart}>
-                    <Text style={styles.textslate800, styles.dark:textzinc100, styles.fontextrabold, styles.textxs}>
+                  <View className="flex-column items-start">
+                    <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">
                       Fast Delivery
                     </Text>
-                    <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
-                      <Text style={styles.textslate400, styles.dark:textzinc400, styles.textCustom10, styles.fontbold, styles.maxw[140px]} numberOfLines={1}>
+                    <View className="flex-row items-center gap-1">
+                      <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold max-w-[140px]" numberOfLines={1}>
                         {formatHeaderAddress(selectedLocation)}
                       </Text>
                       <ChevronDown size={8} color="#94a3b8" />
@@ -4037,23 +3448,23 @@ export default function OperationsScreen() {
                   setIsLauncherVisible(true);
                   triggerHaptic('light');
                 }}
-                style={styles.flex1, styles.maxw[288px], styles.minw[160px], styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedFull, styles.px4, styles.py1.5, styles.flexRow, styles.itemsCenter, styles.gap2, styles.active:opacity80}
+                className="flex-1 max-w-[288px] min-w-[160px] bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-full px-4 py-1.5 flex-row items-center gap-2 active:opacity-80"
               >
                 <Search size={14} color="#94a3b8" />
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.fontsemibold} numberOfLines={1}>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs font-semibold" numberOfLines={1}>
                   Search admin tabs...
                 </Text>
               </Pressable>
             </View>
 
-            <View style={styles.flexRow, styles.itemsCenter, styles.gap4}>
+            <View className="flex-row items-center gap-4">
               {/* Theme selector toggle (toggles theme dynamically) */}
               <Pressable 
                 onPress={() => {
                   toggleTheme();
                   triggerHaptic('light');
                 }}
-                style={styles.w8, styles.h8, styles.roundedFull, styles.bgslate100, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate200, styles.dark:borderzinc700, styles.active:scale95}
+                className="w-8 h-8 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700 active:scale-95"
               >
                 {isDarkMode ? (
                   <Sun size={14} color="#fbbf24" />
@@ -4063,15 +3474,15 @@ export default function OperationsScreen() {
               </Pressable>
 
               {/* User details */}
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2.5}>
-                <View style={styles.w8, styles.h8, styles.roundedFull, styles.bgslate200, styles.dark:bgzinc850, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate300, styles.dark:borderzinc700}>
-                  <Text style={styles.textslate700, styles.dark:textzinc300, styles.fontbold, styles.textCustom10}>
+              <View className="flex-row items-center gap-2.5">
+                <View className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-850 items-center justify-center border border-slate-300 dark:border-zinc-700">
+                  <Text className="text-slate-700 dark:text-zinc-300 font-bold text-[10px]">
                     {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
                   </Text>
                 </View>
                 <View>
-                  <Text style={styles.textslate700, styles.dark:textzinc200, styles.fontextrabold, styles.textxs}>{user?.name || 'Administrator'}</Text>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider}>{user?.role || 'Admin'}</Text>
+                  <Text className="text-slate-700 dark:text-zinc-200 font-extrabold text-xs">{user?.name || 'Administrator'}</Text>
+                  <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider">{user?.role || 'Admin'}</Text>
                 </View>
               </View>
 
@@ -4083,28 +3494,28 @@ export default function OperationsScreen() {
                   paddingVertical: 6,
                   borderRadius: 99,
                   borderWidth: 1,
-                  borderColor: 'THEME.COLORS.brand.primary',
+                  borderColor: '#e20a22',
                   backgroundColor: 'transparent',
                   zIndex: 9999
                 }}
               >
-                <Text style={{ color: 'THEME.COLORS.brand.primary', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 }}>Log Out</Text>
+                <Text style={{ color: '#e20a22', fontWeight: '800', fontSize: 11, textTransform: 'uppercase', letterSpacing: 0.3 }}>Log Out</Text>
               </TouchableOpacity>
             </View>
           </View>
 
           {/* Main Centered Container */}
-          <View style={styles.maxw5xl, styles.wfull, styles.mxauto, styles.px8, styles.pt8}>
+          <View className="max-w-5xl w-full mx-auto px-8 pt-8">
             {/* Page Title & Store Switches */}
-            <View style={styles.mb6, styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.flexWrap, styles.gap4}>
+            <View className="mb-6 flex-row justify-between items-center flex-wrap gap-4">
               <View style={{ flex: 1, minWidth: 280 }}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.text2xl}>Admin Console</Text>
-                <Text style={styles.textslate500, styles.dark:textzinc400, styles.textxs, styles.fontsemibold, styles.mt1}>Welcome, Admin. Manage store status, pricing, inventory and customers.</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-2xl">Admin Console</Text>
+                <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1">Welcome, Admin. Manage store status, pricing, inventory and customers.</Text>
               </View>
               {/* Toggle Switches */}
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap4, styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.p2, styles.px4, styles.rounded2Xl}>
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
-                  <Text style={styles.textxs, styles.fontextrabold, styles.textslate700, styles.dark:textzinc300}>🛒 Grocery Mart</Text>
+              <View className="flex-row items-center gap-4 bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 p-2 px-4 rounded-2xl">
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">🛒 Grocery Mart</Text>
                   <Switch
                     value={groceryOpenState}
                     onValueChange={(val) => handleToggleStoreStatus('grocery', val)}
@@ -4113,9 +3524,9 @@ export default function OperationsScreen() {
                   />
                 </View>
                 {/* Vertical Divider */}
-                <View style={styles.w[1.2px], styles.h6, styles.bgslate200, styles.dark:bgzinc800} />
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
-                  <Text style={styles.textxs, styles.fontextrabold, styles.textslate700, styles.dark:textzinc300}>☕ Cafe Open</Text>
+                <View className="w-[1.2px] h-6 bg-slate-200 dark:bg-zinc-800" />
+                <View className="flex-row items-center gap-2">
+                  <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">☕ Cafe Open</Text>
                   <Switch
                     value={cafeOpenState}
                     onValueChange={(val) => handleToggleStoreStatus('cafe', val)}
@@ -4127,26 +3538,26 @@ export default function OperationsScreen() {
             </View>
 
             {/* 3 Stats Cards Grid */}
-            <View style={styles.flexRow, styles.flexWrap, styles.gap4, styles.mb8}>
+            <View className="flex-row flex-wrap gap-4 mb-8">
               {statsList.map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
                   <View 
                     key={idx} 
-                    style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.rounded2Xl, styles.p5, styles.flexRow, styles.itemsCenter, styles.gap4, styles.shadowxs}
+                    className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-5 flex-row items-center gap-4 shadow-xs"
                     style={{ width: isWeb ? 'calc(33.333% - 11px)' : '31.5%', minWidth: isWeb ? 160 : 'none' } as any}
                   >
                     <View 
-                      style={styles.w12, styles.h12, styles.rounded2Xl, styles.itemsCenter, styles.justifyCenter}
+                      className="w-12 h-12 rounded-2xl items-center justify-center"
                       style={{ backgroundColor: stat.bg }}
                     >
                       <Icon size={18} color={stat.color} />
                     </View>
                     <View style={{ flex: 1, minWidth: 0 }}>
-                      <Text style={styles.textslate500, styles.dark:textslate400, styles.dark:textzinc500, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider}>{stat.label}</Text>
-                      <Text style={styles.textslate800, styles.dark:textwhite, styles.fontblack, styles.textxl, styles.mt1}>{stat.value}</Text>
+                      <Text className="text-slate-500 dark:text-slate-400 dark:text-zinc-500 font-black text-[9px] uppercase tracking-wider">{stat.label}</Text>
+                      <Text className="text-slate-800 dark:text-white font-black text-xl mt-1">{stat.value}</Text>
                       {stat.subtext && (
-                        <Text style={styles.textslate450, styles.dark:textzinc500, styles.fontbold, styles.text[8.2px], styles.mt1} numberOfLines={1}>{stat.subtext}</Text>
+                        <Text className="text-slate-450 dark:text-zinc-500 font-bold text-[8.2px] mt-1" numberOfLines={1}>{stat.subtext}</Text>
                       )}
                     </View>
                   </View>
@@ -4155,7 +3566,7 @@ export default function OperationsScreen() {
             </View>
 
             {/* 4 Category Hub Grid */}
-            <View style={styles.flexRow, styles.flexWrap, styles.gap4, styles.mb6}>
+            <View className="flex-row flex-wrap gap-4 mb-6">
               {hubCategories.map((hub) => {
                 const isSelected = activeHub === hub.id;
                 const Icon = hub.icon;
@@ -4175,15 +3586,15 @@ export default function OperationsScreen() {
                     style={{ width: isWeb ? 'calc(50% - 8px)' : '48%', cursor: 'pointer' } as any}
                   >
                     <View 
-                      style={w-12 h-12 rounded-2xl items-center justify-center ${
-                        isSelected ? [styles.bgwhite90, styles.dark:bgzinc80080, styles.shadowxs] : [styles.bgslate100, styles.dark:bgzinc800]
-                      }}
+                      className={`w-12 h-12 rounded-2xl items-center justify-center ${
+                        isSelected ? 'bg-white/90 dark:bg-zinc-800/80 shadow-xs' : 'bg-slate-100 dark:bg-zinc-800'
+                      }`}
                     >
                       <Icon size={18} color={isSelected ? hub.iconColor : '#64748b'} />
                     </View>
-                    <View style={styles.flex1}>
-                      <Text style={font-extrabold text-sm leading-tight ${isSelected ? [styles.textslate900, styles.dark:textwhite] : [styles.textslate800, styles.dark:textwhite]}}>{hub.title}</Text>
-                      <Text style={text-[10px] font-semibold mt-1 leading-normal ${isSelected ? [styles.textslate600, styles.dark:textslate300] : [styles.textslate500, styles.dark:textslate400]}} numberOfLines={2}>
+                    <View className="flex-1">
+                      <Text className={`font-extrabold text-sm leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-800 dark:text-white'}`}>{hub.title}</Text>
+                      <Text className={`text-[10px] font-semibold mt-1 leading-normal ${isSelected ? 'text-slate-600 dark:text-slate-300' : 'text-slate-500 dark:text-slate-400'}`} numberOfLines={2}>
                         {hub.description}
                       </Text>
                     </View>
@@ -4194,7 +3605,7 @@ export default function OperationsScreen() {
 
             {/* Sub-Tabs Row */}
             {activeHub !== null && (
-              <View style={styles.bgslate150, styles.dark:bgzinc90060, styles.p1, styles.roundedFull, styles.mb6, styles.flexRow, styles.selfStart, styles.gap1, styles.flexWrap, styles.border, styles.borderslate20030, styles.dark:borderzinc80040}>
+              <View className="bg-slate-150 dark:bg-zinc-900/60 p-1 rounded-full mb-6 flex-row self-start gap-1 flex-wrap border border-slate-200/30 dark:border-zinc-800/40">
                 {activeHubDetails.tabs.map((tab) => {
                   const isActive = activeTab === tab.id;
                   return (
@@ -4204,17 +3615,17 @@ export default function OperationsScreen() {
                         setActiveTab(tab.id as any);
                         triggerHaptic('light');
                       }}
-                      style={px-4 py-1.5 rounded-full flex-row items-center gap-1.5 transition-all ${
+                      className={`px-4 py-1.5 rounded-full flex-row items-center gap-1.5 transition-all ${
                         isActive 
-                          ? [styles.bgindigo600, styles.dark:bgindigo550, styles.shadowSm] 
-                          : [styles.bgtransparent]
-                      }}
+                          ? 'bg-indigo-600 dark:bg-indigo-550 shadow-sm' 
+                          : 'bg-transparent'
+                      }`}
                       style={{ cursor: 'pointer' } as any}
                     >
                       {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
-                      <Text style={text-[10px] font-black uppercase tracking-wider ${
-                        isActive ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                      }}>
+                      <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                        isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                      }`}>
                         {tab.label}
                       </Text>
                     </Pressable>
@@ -4224,8 +3635,8 @@ export default function OperationsScreen() {
             )}
 
             {/* Workspace Area Box */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.rounded2Xl, styles.p6, styles.shadowSm}>
-              <WorkspaceContainer style={styles.flex1} showsVerticalScrollIndicator={false}>
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-800 rounded-2xl p-6 shadow-sm">
+              <WorkspaceContainer className="flex-1" showsVerticalScrollIndicator={false}>
                 {renderWorkspaceContent()}
               </WorkspaceContainer>
             </View>
@@ -4235,15 +3646,15 @@ export default function OperationsScreen() {
         /* ------------------- MOBILE VIEW ------------------- */
         (!user || user.role === 'ADMIN') ? (
           <ScrollView 
-            style={styles.flex1} 
+            className="flex-1" 
             contentContainerStyle={{ paddingBottom: 80 }} 
             showsVerticalScrollIndicator={false}
           >
             {/* Mobile Header Bar */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.borderb, styles.borderslate200, styles.dark:borderzinc800, styles.shadowxs}>
+            <View className="bg-white dark:bg-zinc-900 border-b border-slate-200 dark:border-zinc-800 shadow-xs">
               {/* Row 1: Logo + Location + Actions */}
-              <View style={styles.px4, styles.pt3, styles.pb2, styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap3}>
+              <View className="px-4 pt-3 pb-2 flex-row items-center justify-between">
+                <View className="flex-row items-center gap-3">
                   <Pressable 
                     onPress={() => {
                       triggerHaptic('light');
@@ -4258,15 +3669,15 @@ export default function OperationsScreen() {
                       triggerHaptic('light');
                       router.push('/location-picker');
                     }} 
-                    style={styles.flexRow, styles.itemsCenter, styles.gap1.5}
+                    className="flex-row items-center gap-1.5"
                   >
                     <MapPin size={14} color="#e20a22" />
                     <View>
-                      <Text style={styles.textslate800, styles.dark:textzinc100, styles.fontextrabold, styles.textxs}>
+                      <Text className="text-slate-800 dark:text-zinc-100 font-extrabold text-xs">
                         Fast Delivery
                       </Text>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
-                        <Text style={styles.textslate400, styles.dark:textzinc400, styles.textCustom10, styles.fontbold, styles.maxw[120px]} numberOfLines={1}>
+                      <View className="flex-row items-center gap-1">
+                        <Text className="text-slate-400 dark:text-zinc-400 text-[10px] font-bold max-w-[120px]" numberOfLines={1}>
                           {formatHeaderAddress(selectedLocation)}
                         </Text>
                         <ChevronDown size={8} color="#94a3b8" />
@@ -4275,13 +3686,13 @@ export default function OperationsScreen() {
                   </Pressable>
                 </View>
 
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2.5}>
+                <View className="flex-row items-center gap-2.5">
                   <Pressable 
                     onPress={() => {
                       toggleTheme();
                       triggerHaptic('light');
                     }}
-                    style={styles.w9, styles.h9, styles.roundedFull, styles.bgslate100, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate200, styles.dark:borderzinc700, styles.active:scale95}
+                    className="w-9 h-9 rounded-full bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700 active:scale-95"
                   >
                     {isDarkMode ? (
                       <Sun size={15} color="#fbbf24" />
@@ -4291,8 +3702,8 @@ export default function OperationsScreen() {
                   </Pressable>
 
                   {/* User Avatar */}
-                  <View style={styles.w9, styles.h9, styles.roundedFull, styles.bgslate200, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate300, styles.dark:borderzinc700}>
-                    <Text style={styles.textslate700, styles.dark:textzinc300, styles.fontblack, styles.textCustom10}>
+                  <View className="w-9 h-9 rounded-full bg-slate-200 dark:bg-zinc-800 items-center justify-center border border-slate-300 dark:border-zinc-700">
+                    <Text className="text-slate-700 dark:text-zinc-300 font-black text-[10px]">
                       {user?.name ? user.name.slice(0, 2).toUpperCase() : 'AD'}
                     </Text>
                   </View>
@@ -4300,44 +3711,44 @@ export default function OperationsScreen() {
               </View>
 
               {/* Row 2: Full-width search bar */}
-              <View style={styles.px4, styles.pb3}>
+              <View className="px-4 pb-3">
                 <Pressable 
                   onPress={() => {
                     setLauncherSearchQuery('');
                     setIsLauncherVisible(true);
                     triggerHaptic('light');
                   }}
-                  style={styles.wfull, styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px4, styles.py2.5, styles.flexRow, styles.itemsCenter, styles.gap2.5, styles.active:opacity80}
+                  className="w-full bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-4 py-2.5 flex-row items-center gap-2.5 active:opacity-80"
                 >
                   <Search size={15} color="#94a3b8" />
-                  <Text style={styles.textslate400, styles.dark:textzinc500, styles.textxs, styles.fontsemibold, styles.flex1} numberOfLines={1}>
+                  <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold flex-1" numberOfLines={1}>
                     Search tabs, settings, inventory...
                   </Text>
-                  <View style={styles.bgslate200, styles.dark:bgzinc700, styles.px2, styles.py0.5, styles.rounded}>
-                    <Text style={styles.textslate500, styles.dark:textzinc400, styles.textCustom8, styles.fontblack}>⌘K</Text>
+                  <View className="bg-slate-200 dark:bg-zinc-700 px-2 py-0.5 rounded">
+                    <Text className="text-slate-500 dark:text-zinc-400 text-[8px] font-black">⌘K</Text>
                   </View>
                 </Pressable>
               </View>
             </View>
 
             {/* Title Section */}
-            <View style={styles.px4, styles.pt5, styles.mb4}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.text2xl}>Admin Console</Text>
+            <View className="px-4 pt-5 mb-4">
+              <View className="flex-row items-center justify-between">
+                <Text className="text-slate-900 dark:text-white font-black text-2xl">Admin Console</Text>
                 <Pressable
                   onPress={handleLogoutPress}
-                  style={styles.px3.5, styles.py1.5, styles.roundedFull, styles.border, styles.borderred50030, styles.active:bgred50010}
+                  className="px-3.5 py-1.5 rounded-full border border-red-500/30 active:bg-red-500/10"
                 >
-                  <Text style={styles.textred500, styles.fontblack, styles.textCustom10, styles.uppercase, styles.trackingwider}>Log Out</Text>
+                  <Text className="text-red-500 font-black text-[10px] uppercase tracking-wider">Log Out</Text>
                 </Pressable>
               </View>
-              <Text style={styles.textslate500, styles.dark:textzinc400, styles.textxs, styles.fontsemibold, styles.mt1}>Welcome, {user?.name || 'Admin'}. Manage store, inventory & customers.</Text>
+              <Text className="text-slate-500 dark:text-zinc-400 text-xs font-semibold mt-1">Welcome, {user?.name || 'Admin'}. Manage store, inventory & customers.</Text>
             </View>
 
             {/* Store Switches Bar (Mobile) */}
-            <View style={styles.mx4, styles.mb4, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.bgslate50, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p2.5, styles.px4, styles.rounded2Xl, styles.shadowxs}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flex1, styles.justifyCenter}>
-                <Text style={styles.textxs, styles.fontextrabold, styles.textslate700, styles.dark:textzinc300}>🛒 Grocery Mart</Text>
+            <View className="mx-4 mb-4 flex-row items-center justify-between bg-slate-50 dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 p-2.5 px-4 rounded-2xl shadow-xs">
+              <View className="flex-row items-center gap-2 flex-1 justify-center">
+                <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">🛒 Grocery Mart</Text>
                 <Switch
                   value={groceryOpenState}
                   onValueChange={(val) => handleToggleStoreStatus('grocery', val)}
@@ -4346,9 +3757,9 @@ export default function OperationsScreen() {
                 />
               </View>
               {/* Vertical Divider */}
-              <View style={styles.w[1.2px], styles.h6, styles.bgslate200, styles.dark:bgzinc805, styles.mx2} />
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flex1, styles.justifyCenter}>
-                <Text style={styles.textxs, styles.fontextrabold, styles.textslate700, styles.dark:textzinc300}>☕ Cafe Open</Text>
+              <View className="w-[1.2px] h-6 bg-slate-200 dark:bg-zinc-805 mx-2" />
+              <View className="flex-row items-center gap-2 flex-1 justify-center">
+                <Text className="text-xs font-extrabold text-slate-700 dark:text-zinc-300">☕ Cafe Open</Text>
                 <Switch
                   value={cafeOpenState}
                   onValueChange={(val) => handleToggleStoreStatus('cafe', val)}
@@ -4370,7 +3781,7 @@ export default function OperationsScreen() {
                     style={{ width: (windowWidth < 768 && idx === 2) ? '100%' : cardWidth }}
                   >
                     <View 
-                      style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p4, styles.flexRow, styles.itemsCenter, styles.gap3}
+                      className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-4 flex-row items-center gap-3"
                       style={{
                         shadowColor: '#000',
                         shadowOffset: { width: 0, height: 2 },
@@ -4380,16 +3791,16 @@ export default function OperationsScreen() {
                       }}
                     >
                       <View 
-                        style={styles.w10, styles.h10, styles.roundedXl, styles.itemsCenter, styles.justifyCenter}
+                        className="w-10 h-10 rounded-xl items-center justify-center"
                         style={{ backgroundColor: stat.bg }}
                       >
                         <Icon size={16} color={stat.color} />
                       </View>
-                      <View style={styles.flex1}>
-                        <Text style={styles.textslate400, styles.dark:textzinc500, styles.fontblack, styles.textCustom8, styles.uppercase, styles.trackingwider} numberOfLines={1}>{stat.label}</Text>
-                        <Text style={styles.textslate800, styles.dark:textwhite, styles.fontblack, styles.textbase, styles.mt0.5} numberOfLines={1}>{stat.value}</Text>
+                      <View className="flex-1">
+                        <Text className="text-slate-400 dark:text-zinc-500 font-black text-[8px] uppercase tracking-wider" numberOfLines={1}>{stat.label}</Text>
+                        <Text className="text-slate-800 dark:text-white font-black text-base mt-0.5" numberOfLines={1}>{stat.value}</Text>
                         {stat.subtext && (
-                          <Text style={styles.textslate450, styles.dark:textzinc650, styles.fontbold, styles.text[7.5px], styles.mt0.5} numberOfLines={1}>{stat.subtext}</Text>
+                          <Text className="text-slate-450 dark:text-zinc-650 font-bold text-[7.5px] mt-0.5" numberOfLines={1}>{stat.subtext}</Text>
                         )}
                       </View>
                     </View>
@@ -4399,7 +3810,7 @@ export default function OperationsScreen() {
             </View>
 
             {/* 4 Category Hub Stack (full-width on mobile) */}
-            <View style={styles.px4, styles.mb6} style={{ gap: 10 }}>
+            <View className="px-4 mb-6" style={{ gap: 10 }}>
               {hubCategories.map((hub, hIdx) => {
                 const isSelected = activeHub === hub.id;
                 const Icon = hub.icon;
@@ -4418,7 +3829,7 @@ export default function OperationsScreen() {
                         borderRadius: 16,
                         overflow: 'hidden',
                         borderWidth: isSelected ? 1.5 : 1,
-                        borderColor: isSelected ? hub.nativeBorder : (isDarkMode ? ''#FFFFFF0F'' : ''#0000000F''),
+                        borderColor: isSelected ? hub.nativeBorder : (isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.06)'),
                         transform: [{ scale: pressed ? 0.98 : 1 }],
                       }]}
                     >
@@ -4431,19 +3842,19 @@ export default function OperationsScreen() {
                         />
                       )}
                       <View
-                        style={p-4 flex-row items-center gap-4 ${!isSelected ? [styles.bgwhite, styles.dark:bgzinc900] : ''}}
+                        className={`p-4 flex-row items-center gap-4 ${!isSelected ? 'bg-white dark:bg-zinc-900' : ''}`}
                       >
                         <View 
-                          style={w-11 h-11 rounded-xl items-center justify-center ${
-                            isSelected ? [styles.bgwhite90, styles.dark:bgzinc80080] : [styles.bgslate100, styles.dark:bgzinc800]
-                          }}
+                          className={`w-11 h-11 rounded-xl items-center justify-center ${
+                            isSelected ? 'bg-white/90 dark:bg-zinc-800/80' : 'bg-slate-100 dark:bg-zinc-800'
+                          }`}
                           style={isSelected ? { shadowColor: hub.iconColor, shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.15, shadowRadius: 4, elevation: 2 } : undefined}
                         >
                           <Icon size={16} color={isSelected ? hub.iconColor : '#64748b'} />
                         </View>
-                        <View style={styles.flex1}>
-                          <Text style={font-black text-sm leading-tight ${isSelected ? [styles.textslate900, styles.dark:textwhite] : [styles.textslate700, styles.dark:textzinc200]}}>{hub.title}</Text>
-                          <Text style={text-[10px] font-semibold mt-1 leading-normal ${isSelected ? [styles.textslate600, styles.dark:textzinc300] : [styles.textslate400, styles.dark:textzinc500]}} numberOfLines={2}>
+                        <View className="flex-1">
+                          <Text className={`font-black text-sm leading-tight ${isSelected ? 'text-slate-900 dark:text-white' : 'text-slate-700 dark:text-zinc-200'}`}>{hub.title}</Text>
+                          <Text className={`text-[10px] font-semibold mt-1 leading-normal ${isSelected ? 'text-slate-600 dark:text-zinc-300' : 'text-slate-400 dark:text-zinc-500'}`} numberOfLines={2}>
                             {hub.description}
                           </Text>
                         </View>
@@ -4459,7 +3870,7 @@ export default function OperationsScreen() {
 
             {/* Sub-Tabs Pill Row (Scrollable on mobile) */}
             {activeHub !== null && (
-              <View style={styles.mx4, styles.mb5}>
+              <View className="mx-4 mb-5">
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false} 
@@ -4474,19 +3885,19 @@ export default function OperationsScreen() {
                           setActiveTab(tab.id as any);
                           triggerHaptic('light');
                         }}
-                        style={px-4 py-2 rounded-full flex-row items-center gap-1.5 border active:scale-95 transition-all ${
+                        className={`px-4 py-2 rounded-full flex-row items-center gap-1.5 border active:scale-95 transition-all ${
                           isActive 
-                            ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                            : [styles.bgslate50, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                        }}
+                            ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                            : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                        }`}
                         style={({ pressed }) => ({
                           transform: [{ scale: pressed ? 0.96 : 1 }]
                         })}
                       >
                         {tab.emoji && <Text style={{ fontSize: 11 }}>{tab.emoji}</Text>}
-                        <Text style={text-[10px] font-black uppercase tracking-wider ${
-                          isActive ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                        }}>
+                        <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                          isActive ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                        }`}>
                           {tab.label}
                         </Text>
                       </Pressable>
@@ -4498,7 +3909,7 @@ export default function OperationsScreen() {
 
             {/* Workspace Area Box */}
             <View 
-              style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.mx4, styles.mb8}
+              className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl mx-4 mb-8"
               style={{
                 padding: 16,
                 shadowColor: '#000',
@@ -4508,7 +3919,7 @@ export default function OperationsScreen() {
                 elevation: 2,
               }}
             >
-              <View style={styles.flex1}>
+              <View className="flex-1">
                 {renderWorkspaceContent()}
               </View>
             </View>
@@ -4517,18 +3928,18 @@ export default function OperationsScreen() {
           /* Worker Mode (Non-Admin View) */
           <>
             {/* Simple Mobile Header */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.px4, styles.py4, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.borderb, styles.borderslate100, styles.dark:borderzinc800}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap3}>
-                <View style={styles.px2.5, styles.py1, styles.rounded, styles.bgslate800, styles.border, styles.borderslate700}>
-                  <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom8, styles.trackingwider, styles.uppercase}>
+            <View className="bg-white dark:bg-zinc-900 px-4 py-4 flex-row items-center justify-between border-b border-slate-100 dark:border-zinc-800">
+              <View className="flex-row items-center gap-3">
+                <View className="px-2.5 py-1 rounded bg-slate-800 border border-slate-700">
+                  <Text className="text-white font-extrabold text-[8px] tracking-wider uppercase">
                     {user.role}
                   </Text>
                 </View>
                 <View>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>
+                  <Text className="text-slate-900 dark:text-white font-black text-base">
                     {renderActiveTitle()}
                   </Text>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontbold, styles.trackingwide, styles.mt0.5}>
+                  <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-bold tracking-wide mt-0.5">
                     {renderActiveDescription()}
                   </Text>
                 </View>
@@ -4536,14 +3947,14 @@ export default function OperationsScreen() {
               
               <Pressable 
                 onPress={handleLogoutPress}
-                style={styles.px3, styles.py1.5, styles.roundedlg, styles.bgred60015, styles.border, styles.borderred50025, styles.active:bgred60030}
+                className="px-3 py-1.5 rounded-lg bg-red-600/15 border border-red-500/25 active:bg-red-600/30"
               >
-                <Text style={styles.textred500, styles.fontbold, styles.textxs}>Log Out</Text>
+                <Text className="text-red-500 font-bold text-xs">Log Out</Text>
               </Pressable>
             </View>
 
             {/* Workspace Content for Workers (scrollable) */}
-            <WorkspaceContainer style={styles.flex1, styles.p4} showsVerticalScrollIndicator={false}>
+            <WorkspaceContainer className="flex-1 p-4" showsVerticalScrollIndicator={false}>
               {renderWorkspaceContent()}
             </WorkspaceContainer>
           </>
@@ -4555,9 +3966,9 @@ export default function OperationsScreen() {
   function renderWorkspaceContent() {
     if (isTransitioning) {
       return (
-        <View style={styles.flex1, styles.justifyCenter, styles.itemsCenter, styles.py20, styles.gap3} style={{ minHeight: 350 }}>
+        <View className="flex-1 justify-center items-center py-20 gap-3" style={{ minHeight: 350 }}>
           <ActivityIndicator size="large" color="#6366f1" />
-          <Text style={styles.textslate500, styles.dark:textzinc400, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwidest}>
+          <Text className="text-slate-500 dark:text-zinc-400 font-extrabold text-[10px] uppercase tracking-widest">
             Loading Workspace...
           </Text>
         </View>
@@ -4566,13 +3977,13 @@ export default function OperationsScreen() {
 
     if (!activeHub) {
       return (
-        <View style={styles.flex1, styles.justifyCenter, styles.itemsCenter, styles.py16, styles.px4, styles.gap4} style={{ minHeight: 350 }}>
-          <View style={styles.w16, styles.h16, styles.roundedFull, styles.bgslate50, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate200, styles.dark:borderzinc700}>
+        <View className="flex-1 justify-center items-center py-16 px-4 gap-4" style={{ minHeight: 350 }}>
+          <View className="w-16 h-16 rounded-full bg-slate-50 dark:bg-zinc-800 items-center justify-center border border-slate-200 dark:border-zinc-700">
             <Sliders size={28} color="#6366f1" />
           </View>
-          <View style={styles.itemsCenter}>
-            <Text style={styles.textslate800, styles.dark:textwhite, styles.fontblack, styles.textlg, styles.textCenter}>Welcome to Admin Console</Text>
-            <Text style={styles.textslate450, styles.dark:textzinc500, styles.fontsemibold, styles.textxs, styles.mt1.5, styles.textCenter, styles.leadingnormal, styles.maxwsm}>
+          <View className="items-center">
+            <Text className="text-slate-800 dark:text-white font-black text-lg text-center">Welcome to Admin Console</Text>
+            <Text className="text-slate-450 dark:text-zinc-500 font-semibold text-xs mt-1.5 text-center leading-normal max-w-sm">
               Please select one of the hub categories above to load real-time analytics, manage live orders, and monitor staff consoles.
             </Text>
           </View>
@@ -4584,15 +3995,15 @@ export default function OperationsScreen() {
       <>
         {activeTab === 'ANALYTICS' && (
               <>
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb1}>
+                <View className="flex-row justify-between items-center mb-1">
                 <View>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Sales & Performance</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-base">Sales & Performance</Text>
                   {pushToken ? (
-                  <Text style={styles.textindigo400, styles.fontbold, styles.textCustom8, styles.uppercase, styles.trackingwidest, styles.mt1}>
+                  <Text className="text-indigo-400 font-bold text-[8px] uppercase tracking-widest mt-1">
                     Push Notifications: Active ({pushToken.slice(0, 25)}...)
                   </Text>
                 ) : (
-                  <Text style={styles.textslate500, styles.fontbold, styles.textCustom8, styles.uppercase, styles.trackingwidest, styles.mt1}>
+                  <Text className="text-slate-500 font-bold text-[8px] uppercase tracking-widest mt-1">
                     Push Notifications: Not Registered
                   </Text>
                 )}
@@ -4600,49 +4011,49 @@ export default function OperationsScreen() {
               <Pressable 
                 onPress={() => fetchAnalyticsData()}
                 disabled={isAnalyticsLoading}
-                style={styles.p2.5, styles.roundedXl, styles.bgindigo60010, styles.border, styles.borderindigo50020, styles.active:bgindigo60020, styles.flexRow, styles.itemsCenter, styles.gap1.5}
+                className="p-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 active:bg-indigo-600/20 flex-row items-center gap-1.5"
               >
                 {isAnalyticsLoading ? (
                   <ActivityIndicator size="small" color="#6366f1" />
                 ) : (
                   <RefreshCw size={12} color="#6366f1" />
                 )}
-                <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Refresh</Text>
+                <Text className="text-indigo-400 font-extrabold text-[9px] uppercase tracking-wider">Refresh</Text>
               </Pressable>
             </View>
 
             {/* AI Stock Depletion & Replenishment Warnings */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p5, styles.shadowSm}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.mb3}>
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 p-5 shadow-sm">
+              <View className="flex-row items-center gap-2 mb-3">
                 <Sparkles size={14} color="#6366f1" />
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>AI Stock Replenishment Forecast</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider">AI Stock Replenishment Forecast</Text>
               </View>
               {isAnalyticsLoading ? (
-                <ActivityIndicator size="small" color="#6366f1" style={styles.my6} />
+                <ActivityIndicator size="small" color="#6366f1" className="my-6" />
               ) : stockForecast.filter(f => !f.isCafe && (f.isUrgent || f.stock === 0)).length === 0 ? (
-                <View style={styles.py4, styles.itemsCenter}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.fontsemibold}>🌱 All inventory levels healthy. No predicted stockouts.</Text>
+                <View className="py-4 items-center">
+                  <Text className="text-slate-500 dark:text-slate-400 text-xs font-semibold">🌱 All inventory levels healthy. No predicted stockouts.</Text>
                 </View>
               ) : (
-                <View style={styles.gap3, styles.mt1}>
+                <View className="gap-3 mt-1">
                   {stockForecast.filter(f => !f.isCafe && (f.isUrgent || f.stock === 0)).slice(0, 4).map((product) => {
                     const runoutStr = product.stock === 0 ? 'Out of Stock' : product.daysToDepletion !== null ? `${product.daysToDepletion.toFixed(1)} days to stockout` : 'Stable';
                     const runoutColor = product.stock === 0 ? 'border-red-500/25 bg-red-500/10' : 'border-amber-500/25 bg-amber-500/10';
                     const runoutTextColor = product.stock === 0 ? 'text-red-400' : 'text-amber-400';
 
                     return (
-                      <View key={product.id} style={styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.bgslate50, styles.dark:bgzinc95040, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p3, styles.rounded2Xl}>
-                        <View style={styles.flex1, styles.pr2}>
-                          <Text style={styles.textslate800, styles.dark:textslate700, styles.dark:textslate200, styles.fontbold, styles.textxs}>{product.name}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>
+                      <View key={product.id} className="flex-row items-center justify-between bg-slate-50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-800 p-3 rounded-2xl">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-slate-800 dark:text-slate-700 dark:text-slate-200 font-bold text-xs">{product.name}</Text>
+                          <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">
                             Stock: <Text className={product.stock === 0 ? 'text-red-500 font-black' : 'text-slate-800 dark:text-slate-700 dark:text-slate-200'}>{product.stock}</Text> • Velocity: {product.velocity.toFixed(2)}/day
                           </Text>
-                          <View style={styles.flexRow, styles.gap2, styles.mt2}>
-                            <View style={px-2 py-0.5 rounded-full border ${runoutColor}}>
-                              <Text style={font-extrabold text-[8px] uppercase tracking-wider ${runoutTextColor}}>{runoutStr}</Text>
+                          <View className="flex-row gap-2 mt-2">
+                            <View className={`px-2 py-0.5 rounded-full border ${runoutColor}`}>
+                              <Text className={`font-extrabold text-[8px] uppercase tracking-wider ${runoutTextColor}`}>{runoutStr}</Text>
                             </View>
-                            <View style={styles.px2, styles.py0.5, styles.roundedFull, styles.bgindigo50010, styles.border, styles.borderindigo50020}>
-                              <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom8, styles.uppercase, styles.trackingwider}>Suggests: +{product.suggestedRestock}</Text>
+                            <View className="px-2 py-0.5 rounded-full bg-indigo-500/10 border border-indigo-500/20">
+                              <Text className="text-indigo-400 font-extrabold text-[8px] uppercase tracking-wider">Suggests: +{product.suggestedRestock}</Text>
                             </View>
                           </View>
                         </View>
@@ -4651,12 +4062,12 @@ export default function OperationsScreen() {
                           <Pressable
                             disabled={isInwardingForecast === product.id}
                             onPress={() => handleAppRestock(product)}
-                            style={styles.bgindigo655, styles.bgindigo600, styles.px3, styles.py2, styles.roundedXl, styles.active:bgindigo700, styles.disabled:bgslate800}
+                            className="bg-indigo-655 bg-indigo-600 px-3 py-2 rounded-xl active:bg-indigo-700 disabled:bg-slate-800"
                           >
                             {isInwardingForecast === product.id ? (
                               <ActivityIndicator size="small" color="#fff" />
                             ) : (
-                              <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Restock</Text>
+                              <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">Restock</Text>
                             )}
                           </Pressable>
                         )}
@@ -4668,19 +4079,19 @@ export default function OperationsScreen() {
             </View>
 
             {/* Sales Revenue Weekly Bar Chart */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p5, styles.shadowSm}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Weekly Sales Revenue (Mon - Sun)</Text>
-              <View style={styles.flexRow, styles.itemsEnd, styles.justifyBetween, styles.h36, styles.px2, styles.mt4}>
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 p-5 shadow-sm">
+              <Text className="text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider mb-3">Weekly Sales Revenue (Mon - Sun)</Text>
+              <View className="flex-row items-end justify-between h-36 px-2 mt-4">
                 {weeklySalesData.map((item, idx) => {
                   const maxVal = Math.max(...weeklySalesData.map(d => d.value), 1000) || 1000;
                   const pct = Math.round((item.value / maxVal) * 100);
                   return (
-                    <View key={idx} style={styles.itemsCenter, styles.flex1}>
-                      <View style={styles.w4, styles.bgslate100, styles.dark:bgslate950, styles.roundedTlG, styles.h24, styles.justifyEnd}>
-                        <View style={{ height: `${pct}%` }} style={styles.wfull, styles.bgindigo600, styles.roundedTlG} />
+                    <View key={idx} className="items-center flex-1">
+                      <View className="w-4 bg-slate-100 dark:bg-slate-950 rounded-t-lg h-24 justify-end">
+                        <View style={{ height: `${pct}%` }} className="w-full bg-indigo-600 rounded-t-lg" />
                       </View>
-                      <Text style={styles.textslate500, styles.fontbold, styles.textCustom8, styles.mt2}>{item.day}</Text>
-                      <Text style={styles.textslate700, styles.dark:textslate200, styles.fontblack, styles.textCustom7, styles.mt0.5}>₹{(item.value/1000).toFixed(1)}k</Text>
+                      <Text className="text-slate-500 font-bold text-[8px] mt-2">{item.day}</Text>
+                      <Text className="text-slate-700 dark:text-slate-200 font-black text-[7px] mt-0.5">₹{(item.value/1000).toFixed(1)}k</Text>
                     </View>
                   );
                 })}
@@ -4688,26 +4099,26 @@ export default function OperationsScreen() {
             </View>
 
             {/* Category Distribution stacked bar */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p5, styles.shadowSm, styles.mt1}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb4}>Category Order Share</Text>
-              <View style={styles.h6, styles.wfull, styles.roundedFull, styles.bgslate100, styles.dark:bgslate950, styles.flexRow, styles.overflowHidden}>
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-100 dark:border-zinc-800 p-5 shadow-sm mt-1">
+              <Text className="text-slate-900 dark:text-white font-black text-xs uppercase tracking-wider mb-4">Category Order Share</Text>
+              <View className="h-6 w-full rounded-full bg-slate-100 dark:bg-slate-950 flex-row overflow-hidden">
                 {categoryShareData.map((item, idx) => (
-                  <View key={idx} style={{ width: `${item.pct}%` }} style={${item.color} h-full} />
+                  <View key={idx} style={{ width: `${item.pct}%` }} className={`${item.color} h-full`} />
                 ))}
               </View>
               {/* Legend */}
-              <View style={styles.flexRow, styles.flexWrap, styles.gapx4, styles.gapy2, styles.mt4}>
+              <View className="flex-row flex-wrap gap-x-4 gap-y-2 mt-4">
                 {categoryShareData.map((leg, idx) => (
-                  <View key={idx} style={styles.flexRow, styles.itemsCenter, styles.gap1.5}>
-                    <View style={w-2 h-2 rounded-full ${leg.color}} />
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.fontsemibold, styles.textCustom10}>{leg.label} ({Math.round(leg.pct)}%)</Text>
+                  <View key={idx} className="flex-row items-center gap-1.5">
+                    <View className={`w-2 h-2 rounded-full ${leg.color}`} />
+                    <Text className="text-slate-500 dark:text-slate-400 font-semibold text-[10px]">{leg.label} ({Math.round(leg.pct)}%)</Text>
                   </View>
                 ))}
               </View>
             </View>
 
             {/* Stats Grid */}
-            <View style={styles.flexRow, styles.flexWrap, styles.justifyBetween, styles.gap3}>
+            <View className="flex-row flex-wrap justify-between gap-3">
               {[
                 { label: 'Grocery Revenue', value: formatPrice(analyticsStats.groceryRevenue), subtext: `Rest: ${formatPrice(analyticsStats.restaurantRevenue)} | Cafe: ${formatPrice(analyticsStats.cafeRevenue)}`, color: 'text-emerald-400 bg-emerald-500/10 border-emerald-500/20', icon: IndianRupee },
                 { label: 'Grocery Orders', value: String(analyticsStats.groceryTotalOrders), subtext: `Rest: ${analyticsStats.restaurantTotalOrders} | Cafe: ${analyticsStats.cafeTotalOrders}`, color: 'text-indigo-400 bg-indigo-500/10 border-indigo-500/20', icon: Package },
@@ -4717,14 +4128,14 @@ export default function OperationsScreen() {
               ].map((stat, idx) => {
                 const Icon = stat.icon;
                 return (
-                  <View key={idx} style={{ width: '47%' }} style={p-4 rounded-2xl border ${stat.color} shadow-xs}>
-                    <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb1.5}>
-                      <Text style={styles.textslate500, styles.fontextrabold, styles.textCustom8, styles.uppercase, styles.trackingwider}>{stat.label}</Text>
-                      <Icon size={12} style={styles.opacity80} />
+                  <View key={idx} style={{ width: '47%' }} className={`p-4 rounded-2xl border ${stat.color} shadow-xs`}>
+                    <View className="flex-row justify-between items-center mb-1.5">
+                      <Text className="text-slate-500 font-extrabold text-[8px] uppercase tracking-wider">{stat.label}</Text>
+                      <Icon size={12} className="opacity-80" />
                     </View>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.min[375px]:textbase}>{stat.value}</Text>
+                    <Text className="text-slate-900 dark:text-white font-black text-sm min-[375px]:text-base">{stat.value}</Text>
                     {stat.subtext && (
-                      <Text style={styles.textslate450, styles.dark:textslate400, styles.fontbold, styles.text[7.5px], styles.mt1} numberOfLines={1}>{stat.subtext}</Text>
+                      <Text className="text-slate-450 dark:text-slate-400 font-bold text-[7.5px] mt-1" numberOfLines={1}>{stat.subtext}</Text>
                     )}
                   </View>
                 );
@@ -4732,50 +4143,50 @@ export default function OperationsScreen() {
             </View>
 
             {/* Recent Orders List */}
-            <View style={styles.mt2}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mb3}>Recent Sales Orders</Text>
+            <View className="mt-2">
+              <Text className="text-slate-900 dark:text-white font-black text-sm mb-3">Recent Sales Orders</Text>
               {isAnalyticsLoading ? (
-                <View style={styles.py10, styles.itemsCenter}>
+                <View className="py-10 items-center">
                   <ActivityIndicator size="large" color="#6366f1" />
                 </View>
               ) : recentOrders.length === 0 ? (
-                <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p6, styles.itemsCenter}>
-                  <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textxs, styles.textCenter}>No orders recorded on server yet.</Text>
+                <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-6 items-center">
+                  <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-xs text-center">No orders recorded on server yet.</Text>
                 </View>
               ) : (
-                <View style={styles.gap3}>
+                <View className="gap-3">
                   {recentOrders.map((ord) => (
-                    <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p4, styles.shadowxs}>
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb2, styles.mb2}>
+                    <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-100 dark:border-zinc-800 p-4 shadow-xs">
+                      <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-2 mb-2">
                         <View>
-                          <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.uppercase}>Order #{ord.id.slice(-6).toUpperCase()}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>
+                          <Text className="text-slate-900 dark:text-white font-black text-xs uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">
                             {new Date(ord.createdAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} • {ord.paymentMethod || 'UPI'}
                           </Text>
                         </View>
-                        <View style={px-2 py-0.5 rounded-full border ${
-                          ord.status === [styles.DELIVERED] ? [styles.bgemerald50010, styles.borderemerald50020] :
-                          ord.status === [styles.CANCELLED] ? [styles.bgred50010, styles.borderred50020] :
-                          [styles.bgamber50010, styles.borderamber50020]
-                        }}>
-                          <Text style={font-extrabold text-[8px] uppercase tracking-wider text-center ${
-                            ord.status === [styles.DELIVERED] ? [styles.textemerald400] :
-                            ord.status === [styles.CANCELLED] ? [styles.textred400] :
-                            [styles.textamber400]
-                          }}>
+                        <View className={`px-2 py-0.5 rounded-full border ${
+                          ord.status === 'DELIVERED' ? 'bg-emerald-500/10 border-emerald-500/20' :
+                          ord.status === 'CANCELLED' ? 'bg-red-500/10 border-red-500/20' :
+                          'bg-amber-500/10 border-amber-500/20'
+                        }`}>
+                          <Text className={`font-extrabold text-[8px] uppercase tracking-wider text-center ${
+                            ord.status === 'DELIVERED' ? 'text-emerald-400' :
+                            ord.status === 'CANCELLED' ? 'text-red-400' :
+                            'text-amber-400'
+                          }`}>
                             {ord.status}
                           </Text>
                         </View>
                       </View>
 
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mt1}>
-                        <View style={styles.flex1, styles.pr2}>
-                          <Text style={styles.textslate800, styles.dark:textslate650, styles.dark:textslate300, styles.textxs, styles.fontsemibold}>Customer: {ord.user?.name || ord.userName || 'Anonymous'}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt0.5, styles.truncate} numberOfLines={1}>
+                      <View className="flex-row justify-between items-center mt-1">
+                        <View className="flex-1 pr-2">
+                          <Text className="text-slate-800 dark:text-slate-650 dark:text-slate-300 text-xs font-semibold">Customer: {ord.user?.name || ord.userName || 'Anonymous'}</Text>
+                          <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-0.5 truncate" numberOfLines={1}>
                             Address: {ord.address?.houseNo ? `${ord.address.houseNo}, ${ord.address.street}` : 'Pickup'}
                           </Text>
                         </View>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>{formatPrice(ord.total)}</Text>
+                        <Text className="text-slate-900 dark:text-white font-black text-xs">{formatPrice(ord.total)}</Text>
                       </View>
                     </View>
                   ))}
@@ -4790,17 +4201,17 @@ export default function OperationsScreen() {
 
         {/* ------------------- BANNERS TAB WORKSPACE ------------------- */}
         {activeTab === 'BANNERS' && (
-          <View style={styles.gap5}>
+          <View className="gap-5">
             {/* Header */}
-            <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-              <View style={styles.flex1, styles.mr3}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Banner Campaigns</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt0.5}>Manage carousel hero banners on customer home screens.</Text>
+            <View className="flex-row justify-between items-center">
+              <View className="flex-1 mr-3">
+                <Text className="text-slate-900 dark:text-white font-black text-base">Banner Campaigns</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-0.5">Manage carousel hero banners on customer home screens.</Text>
               </View>
-              <View style={styles.flexRow, styles.gap2}>
+              <View className="flex-row gap-2">
                 <Pressable
                   onPress={() => { triggerHaptic('light'); fetchBannersData(); }}
-                  style={styles.bgslate100, styles.dark:bgzinc800, styles.p2.5, styles.roundedXl, styles.active:bgslate200, styles.dark:active:bgzinc700, styles.border, styles.borderslate200, styles.dark:borderzinc700}
+                  className="bg-slate-100 dark:bg-zinc-800 p-2.5 rounded-xl active:bg-slate-200 dark:active:bg-zinc-700 border border-slate-200 dark:border-zinc-700"
                 >
                   <RefreshCw size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} />
                 </Pressable>
@@ -4810,10 +4221,10 @@ export default function OperationsScreen() {
                     setIsBannerModalVisible(true);
                     triggerHaptic('light');
                   }}
-                  style={styles.bgindigo600, styles.p2.5, styles.roundedXl, styles.active:bgindigo700, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.shadowxs}
+                  className="bg-indigo-600 p-2.5 rounded-xl active:bg-indigo-700 flex-row items-center justify-center gap-1.5 shadow-xs"
                 >
                   <Plus size={14} color="#fff" />
-                  <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Add Banner</Text>
+                  <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">Add Banner</Text>
                 </Pressable>
               </View>
             </View>
@@ -4821,23 +4232,23 @@ export default function OperationsScreen() {
             {/* Festival Templates */}
             <Pressable
               onPress={() => { setBannerTemplateExpanded(!bannerTemplateExpanded); triggerHaptic('light'); }}
-              style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.p4, styles.shadowxs}
+              className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 p-4 shadow-xs"
             >
-              <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
                   <Sparkles size={16} color="#f59e0b" />
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Festival Templates</Text>
-                  <View style={styles.bgamber50010, styles.px2, styles.py0.5, styles.roundedFull}>
-                    <Text style={styles.textamber600, styles.dark:textamber400, styles.textCustom8, styles.fontblack}>{BANNER_FESTIVAL_TEMPLATES.length} PRESETS</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-xs">Festival Templates</Text>
+                  <View className="bg-amber-500/10 px-2 py-0.5 rounded-full">
+                    <Text className="text-amber-600 dark:text-amber-400 text-[8px] font-black">{BANNER_FESTIVAL_TEMPLATES.length} PRESETS</Text>
                   </View>
                 </View>
                 <ChevronDown size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} style={{ transform: [{ rotate: bannerTemplateExpanded ? '180deg' : '0deg' }] }} />
               </View>
               {bannerTemplateExpanded && (
-                <View style={styles.mt3, styles.gap2}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium}>Tap a template to auto-fill the banner form.</Text>
-                  <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.mt1}>
-                    <View style={styles.flexRow, styles.gap2}>
+                <View className="mt-3 gap-2">
+                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium">Tap a template to auto-fill the banner form.</Text>
+                  <ScrollView horizontal showsHorizontalScrollIndicator={false} className="mt-1">
+                    <View className="flex-row gap-2">
                       {BANNER_FESTIVAL_TEMPLATES.map((tpl, idx) => (
                         <Pressable
                           key={idx}
@@ -4845,11 +4256,11 @@ export default function OperationsScreen() {
                             handleBannerApplyTemplate(tpl);
                             setIsBannerModalVisible(true);
                           }}
-                          style={styles.bgslate50, styles.dark:bgzinc800, styles.border, styles.borderslate200, styles.dark:borderzinc700, styles.roundedXl, styles.px3, styles.py2.5, styles.active:bgslate100, styles.dark:active:bgzinc700, styles.minw[140px]}
+                          className="bg-slate-50 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 rounded-xl px-3 py-2.5 active:bg-slate-100 dark:active:bg-zinc-700 min-w-[140px]"
                         >
-                          <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textCustom10}>{tpl.name}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontmedium, styles.mt0.5} numberOfLines={2}>{tpl.description}</Text>
-                          {tpl.code ? <Text style={styles.textindigo600, styles.dark:textindigo400, styles.textCustom8, styles.fontblack, styles.mt1}>CODE: {tpl.code}</Text> : null}
+                          <Text className="text-slate-900 dark:text-white font-black text-[10px]">{tpl.name}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-medium mt-0.5" numberOfLines={2}>{tpl.description}</Text>
+                          {tpl.code ? <Text className="text-indigo-600 dark:text-indigo-400 text-[8px] font-black mt-1">CODE: {tpl.code}</Text> : null}
                         </Pressable>
                       ))}
                     </View>
@@ -4860,59 +4271,59 @@ export default function OperationsScreen() {
 
             {/* Loading State */}
             {isBannersLoading && (
-              <View style={styles.py10, styles.itemsCenter}>
+              <View className="py-10 items-center">
                 <ActivityIndicator size="small" color="#6366f1" />
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mt2}>Loading banners...</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-2">Loading banners...</Text>
               </View>
             )}
 
             {/* Empty State */}
             {!isBannersLoading && banners.length === 0 && (
-              <View style={styles.py12, styles.itemsCenter, styles.gap2}>
-                <Text style={styles.text3xl}>🎨</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.fontbold}>No promo banners yet.</Text>
-                <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom9, styles.fontmedium}>Create one using the button above or a festival template.</Text>
+              <View className="py-12 items-center gap-2">
+                <Text className="text-3xl">🎨</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs font-bold">No promo banners yet.</Text>
+                <Text className="text-slate-400 dark:text-slate-500 text-[9px] font-medium">Create one using the button above or a festival template.</Text>
               </View>
             )}
 
             {/* Banners List */}
             {!isBannersLoading && banners.length > 0 && (
-              <View style={styles.gap3, styles.mb10}>
+              <View className="gap-3 mb-10">
                 {banners.sort((a: any, b: any) => (a.sortOrder || 0) - (b.sortOrder || 0)).map((b: any, idx: number) => (
-                  <View key={b.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.overflowHidden, styles.shadowxs}>
+                  <View key={b.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-800 overflow-hidden shadow-xs">
                     {/* Banner preview header with gradient */}
-                    <View style={h-16 bg-gradient-to-r ${b.gradient || [styles.fromindigo500, styles.topurple500]} justify-center px-4}>
-                      <Text style={styles.textwhite, styles.fontblack, styles.textxs} numberOfLines={1}>{b.title}</Text>
-                      {b.description ? <Text style={styles.textwhite80, styles.textCustom9, styles.fontsemibold} numberOfLines={1}>{b.description}</Text> : null}
+                    <View className={`h-16 bg-gradient-to-r ${b.gradient || 'from-indigo-500 to-purple-500'} justify-center px-4`}>
+                      <Text className="text-white font-black text-xs" numberOfLines={1}>{b.title}</Text>
+                      {b.description ? <Text className="text-white/80 text-[9px] font-semibold" numberOfLines={1}>{b.description}</Text> : null}
                       {b.code ? (
-                        <View style={styles.bgwhite20, styles.selfStart, styles.px2, styles.py0.5, styles.roundedFull, styles.mt1}>
-                          <Text style={styles.textwhite, styles.textCustom8, styles.fontblack}>{b.code}</Text>
+                        <View className="bg-white/20 self-start px-2 py-0.5 rounded-full mt-1">
+                          <Text className="text-white text-[8px] font-black">{b.code}</Text>
                         </View>
                       ) : null}
                     </View>
 
                     {/* Banner info + actions */}
-                    <View style={styles.p3.5}>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flex1, styles.mr2}>
-                          <View style={px-2 py-0.5 rounded-full ${b.isActive ? [styles.bgemerald50010] : [styles.bgslate200, styles.dark:bgzinc800]}}>
-                            <Text style={text-[8px] font-black ${b.isActive ? [styles.textemerald600, styles.dark:textemerald400] : [styles.textslate500, styles.dark:textslate400]}}>{b.isActive ? 'ACTIVE' : 'DISABLED'}</Text>
+                    <View className="p-3.5">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-2 flex-1 mr-2">
+                          <View className={`px-2 py-0.5 rounded-full ${b.isActive ? 'bg-emerald-500/10' : 'bg-slate-200 dark:bg-zinc-800'}`}>
+                            <Text className={`text-[8px] font-black ${b.isActive ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>{b.isActive ? 'ACTIVE' : 'DISABLED'}</Text>
                           </View>
-                          <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom8, styles.fontbold}>Sort: {b.sortOrder || 0}</Text>
-                          {b.type ? <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom8, styles.fontbold, styles.uppercase}>{b.type}</Text> : null}
+                          <Text className="text-slate-400 dark:text-slate-500 text-[8px] font-bold">Sort: {b.sortOrder || 0}</Text>
+                          {b.type ? <Text className="text-slate-400 dark:text-slate-500 text-[8px] font-bold uppercase">{b.type}</Text> : null}
                         </View>
 
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap1.5}>
+                        <View className="flex-row items-center gap-1.5">
                           {/* Reorder */}
                           <Pressable
                             onPress={() => handleBannerReorder(b, 'up')}
-                            style={styles.p1.5, styles.roundedlg, styles.bgslate100, styles.dark:bgzinc800, styles.border, styles.borderslate200, styles.dark:borderzinc700, styles.active:bgslate200}
+                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 active:bg-slate-200"
                           >
                             <ArrowUp size={11} color={isDarkMode ? '#94a3b8' : '#64748b'} />
                           </Pressable>
                           <Pressable
                             onPress={() => handleBannerReorder(b, 'down')}
-                            style={styles.p1.5, styles.roundedlg, styles.bgslate100, styles.dark:bgzinc800, styles.border, styles.borderslate200, styles.dark:borderzinc700, styles.active:bgslate200}
+                            className="p-1.5 rounded-lg bg-slate-100 dark:bg-zinc-800 border border-slate-200 dark:border-zinc-700 active:bg-slate-200"
                           >
                             <ArrowDown size={11} color={isDarkMode ? '#94a3b8' : '#64748b'} />
                           </Pressable>
@@ -4928,7 +4339,7 @@ export default function OperationsScreen() {
                           {/* Edit */}
                           <Pressable
                             onPress={() => handleBannerEdit(b)}
-                            style={styles.p1.5, styles.roundedlg, styles.bgindigo50010, styles.border, styles.borderindigo50020, styles.active:bgindigo50020}
+                            className="p-1.5 rounded-lg bg-indigo-500/10 border border-indigo-500/20 active:bg-indigo-500/20"
                           >
                             <Settings size={11} color="#6366f1" />
                           </Pressable>
@@ -4936,7 +4347,7 @@ export default function OperationsScreen() {
                           {/* Delete */}
                           <Pressable
                             onPress={() => handleBannerDelete(b.id)}
-                            style={styles.p1.5, styles.roundedlg, styles.bgrose50010, styles.border, styles.borderrose50020, styles.active:bgrose50020}
+                            className="p-1.5 rounded-lg bg-rose-500/10 border border-rose-500/20 active:bg-rose-500/20"
                           >
                             <X size={11} color="#f43f5e" />
                           </Pressable>
@@ -4952,15 +4363,15 @@ export default function OperationsScreen() {
 
         {/* ------------------- SETTINGS TAB WORKSPACE ------------------- */}
         {activeTab === 'SETTINGS' && (
-          <View style={styles.gap6}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.shadowSm}>
-              <View style={styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb4, styles.mb4}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Store Settings</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mt1}>Configure live operational parameters, cosmetics, and financials.</Text>
+          <View className="gap-6">
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-5 shadow-sm">
+              <View className="border-b border-slate-100 dark:border-zinc-800 pb-4 mb-4">
+                <Text className="text-slate-900 dark:text-white font-black text-base">Store Settings</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-1">Configure live operational parameters, cosmetics, and financials.</Text>
               </View>
 
               {/* Settings Sub-Tab Switcher (Horizontal Slider) */}
-              <View style={styles.mb5}>
+              <View className="mb-5">
                 <ScrollView 
                   horizontal 
                   showsHorizontalScrollIndicator={false} 
@@ -4971,15 +4382,15 @@ export default function OperationsScreen() {
                       setSettingsSubTab('ops');
                       triggerHaptic('light');
                     }}
-                    style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
-                      settingsSubTab === [styles.ops] 
-                        ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                        : [styles.bgslate55, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'ops' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase tracking-wider ${
-                      settingsSubTab === [styles.ops] ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'ops' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
                       🚚 Operations
                     </Text>
                   </Pressable>
@@ -4989,15 +4400,15 @@ export default function OperationsScreen() {
                       setSettingsSubTab('pricing');
                       triggerHaptic('light');
                     }}
-                    style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
-                      settingsSubTab === [styles.pricing] 
-                        ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                        : [styles.bgslate55, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'pricing' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase tracking-wider ${
-                      settingsSubTab === [styles.pricing] ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'pricing' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
                       💸 Pricing & Charges
                     </Text>
                   </Pressable>
@@ -5007,15 +4418,15 @@ export default function OperationsScreen() {
                       setSettingsSubTab('cosmetics');
                       triggerHaptic('light');
                     }}
-                    style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
-                      settingsSubTab === [styles.cosmetics] 
-                        ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                        : [styles.bgslate55, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'cosmetics' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase tracking-wider ${
-                      settingsSubTab === [styles.cosmetics] ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'cosmetics' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
                       🎨 Branding
                     </Text>
                   </Pressable>
@@ -5025,15 +4436,15 @@ export default function OperationsScreen() {
                       setSettingsSubTab('greetings');
                       triggerHaptic('light');
                     }}
-                    style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
-                      settingsSubTab === [styles.greetings] 
-                        ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                        : [styles.bgslate55, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'greetings' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase tracking-wider ${
-                      settingsSubTab === [styles.greetings] ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'greetings' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
                       👋 Greetings
                     </Text>
                   </Pressable>
@@ -5043,15 +4454,15 @@ export default function OperationsScreen() {
                       setSettingsSubTab('finance');
                       triggerHaptic('light');
                     }}
-                    style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
-                      settingsSubTab === [styles.finance] 
-                        ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                        : [styles.bgslate55, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                    }}
+                    className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                      settingsSubTab === 'finance' 
+                        ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                        : 'bg-slate-55 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase tracking-wider ${
-                      settingsSubTab === [styles.finance] ? [styles.textwhite] : [styles.textslate500, styles.dark:textzinc400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                      settingsSubTab === 'finance' ? 'text-white' : 'text-slate-500 dark:text-zinc-400'
+                    }`}>
                       🔑 Financials
                     </Text>
                   </Pressable>
@@ -5059,22 +4470,22 @@ export default function OperationsScreen() {
               </View>
 
               {isSettingsLoading ? (
-                <View style={styles.py20, styles.itemsCenter, styles.justifyCenter}>
+                <View className="py-20 items-center justify-center">
                   <ActivityIndicator size="large" color="#6366f1" />
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.fontsemibold, styles.mt3}>Loading store parameters...</Text>
+                  <Text className="text-slate-500 dark:text-slate-400 text-xs font-semibold mt-3">Loading store parameters...</Text>
                 </View>
               ) : (
-                <View style={styles.gap5}>
+                <View className="gap-5">
                   {/* SUB-TAB 1: OPERATIONS */}
                   {settingsSubTab === 'ops' && (
-                    <View style={styles.gap4}>
+                    <View className="gap-4">
                       {/* Switches Row */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
                         {/* Grocery Status */}
-                        <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                          <View style={styles.flex1, styles.pr4}>
-                            <Text style={styles.textslate700, styles.dark:textslate200, styles.fontextrabold, styles.textxs}>Grocery Store Status</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium, styles.mt0.5}>Toggle grocery catalog visibility & ordering.</Text>
+                        <View className="flex-row justify-between items-center">
+                          <View className="flex-1 pr-4">
+                            <Text className="text-slate-700 dark:text-slate-200 font-extrabold text-xs">Grocery Store Status</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium mt-0.5">Toggle grocery catalog visibility & ordering.</Text>
                           </View>
                           <Switch
                             value={groceryOpenState}
@@ -5084,13 +4495,13 @@ export default function OperationsScreen() {
                           />
                         </View>
                         
-                        <View style={styles.hpx, styles.bgslate80050} />
+                        <View className="h-px bg-slate-800/50" />
 
                         {/* Cafe Status */}
-                        <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                          <View style={styles.flex1, styles.pr4}>
-                            <Text style={styles.textslate700, styles.dark:textslate200, styles.fontextrabold, styles.textxs}>Cafe Kitchen Status</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium, styles.mt0.5}>Toggle cafe catalog visibility & ordering.</Text>
+                        <View className="flex-row justify-between items-center">
+                          <View className="flex-1 pr-4">
+                            <Text className="text-slate-700 dark:text-slate-200 font-extrabold text-xs">Cafe Kitchen Status</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium mt-0.5">Toggle cafe catalog visibility & ordering.</Text>
                           </View>
                           <Switch
                             value={cafeOpenState}
@@ -5100,13 +4511,13 @@ export default function OperationsScreen() {
                           />
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate80050} />
+                        <View className="h-px bg-slate-800/50" />
 
                         {/* Only COD Status */}
-                        <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                          <View style={styles.flex1, styles.pr4}>
-                            <Text style={styles.textslate700, styles.dark:textslate200, styles.fontextrabold, styles.textxs}>Only Cash on Delivery</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium, styles.mt0.5}>Force all orders to use Cash on Delivery only.</Text>
+                        <View className="flex-row justify-between items-center">
+                          <View className="flex-1 pr-4">
+                            <Text className="text-slate-700 dark:text-slate-200 font-extrabold text-xs">Only Cash on Delivery</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium mt-0.5">Force all orders to use Cash on Delivery only.</Text>
                           </View>
                           <Switch
                             value={onlyCod}
@@ -5118,81 +4529,81 @@ export default function OperationsScreen() {
                       </View>
 
                       {/* Text inputs */}
-                      <View style={styles.gap4}>
+                      <View className="gap-4">
                         {/* Delivery Radius */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Delivery Service Radius (KM) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Delivery Service Radius (KM) *</Text>
                           <TextInput
                             value={radiusState}
                             onChangeText={setRadiusState}
                             keyboardType="numeric"
                             placeholder="5.0"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         {/* Latitude & Longitude */}
-                        <View style={styles.flexRow, styles.gap3}>
-                          <View style={styles.flex1}>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Store Latitude (GPS) *</Text>
+                        <View className="flex-row gap-3">
+                          <View className="flex-1">
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Store Latitude (GPS) *</Text>
                             <TextInput
                               value={storeLat}
                               onChangeText={setStoreLat}
                               placeholder="26.1534185"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
-                          <View style={styles.flex1}>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Store Longitude (GPS) *</Text>
+                          <View className="flex-1">
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Store Longitude (GPS) *</Text>
                             <TextInput
                               value={storeLng}
                               onChangeText={setStoreLng}
                               placeholder="80.1714024"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                         </View>
 
                         {/* Contact details */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Contact Phone *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Contact Phone *</Text>
                           <TextInput
                             value={contactPhone}
                             onChangeText={setContactPhone}
                             placeholder="+91 70544 70303"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Contact Email *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Contact Email *</Text>
                           <TextInput
                             value={contactEmail}
                             onChangeText={setContactEmail}
                             placeholder="help@fastkirana.com"
                             placeholderTextColor="#475569"
                             keyboardType="email-address"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Contact Timings *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Contact Timings *</Text>
                           <TextInput
                             value={contactTimings}
                             onChangeText={setContactTimings}
                             placeholder="6 AM - 12 AM"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Contact Address *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Contact Address *</Text>
                           <TextInput
                             value={contactAddress}
                             onChangeText={setContactAddress}
@@ -5200,96 +4611,96 @@ export default function OperationsScreen() {
                             placeholderTextColor="#475569"
                             multiline
                             numberOfLines={2}
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textwhite, styles.fontsemibold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-white font-semibold text-xs"
                           />
                         </View>
                       </View>
 
                       {/* Operational Limits & Surges */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4, styles.mt2}>
-                        <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontblack, styles.textCustom10, styles.uppercase, styles.trackingwider}>🏪 Operational Limits & Surges</Text>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4 mt-2">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-[10px] uppercase tracking-wider">🏪 Operational Limits & Surges</Text>
                         
                         {/* Minimum Order Value */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Minimum Order Value (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Minimum Order Value (₹) *</Text>
                           <TextInput
                             value={minOrderValueState}
                             onChangeText={setMinOrderValueState}
                             keyboardType="numeric"
                             placeholder="99"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate20010} />
+                        <View className="h-px bg-slate-200/10" />
 
                         {/* Operating Hours */}
-                        <View style={styles.flexRow, styles.gap3}>
-                          <View style={styles.flex1}>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Store Open Hour (24h) *</Text>
+                        <View className="flex-row gap-3">
+                          <View className="flex-1">
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Store Open Hour (24h) *</Text>
                             <TextInput
                               value={storeOpenHourState}
                               onChangeText={setStoreOpenHourState}
                               keyboardType="numeric"
                               placeholder="7"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
-                          <View style={styles.flex1}>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Store Close Hour (24h) *</Text>
+                          <View className="flex-1">
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Store Close Hour (24h) *</Text>
                             <TextInput
                               value={storeCloseHourState}
                               onChangeText={setStoreCloseHourState}
                               keyboardType="numeric"
                               placeholder="23"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate20010} />
+                        <View className="h-px bg-slate-200/10" />
 
                         {/* Holiday Calendar */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Holiday Dates (comma-separated YYYY-MM-DD)</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Holiday Dates (comma-separated YYYY-MM-DD)</Text>
                           <TextInput
                             value={holidaysState}
                             onChangeText={setHolidaysState}
                             placeholder="e.g. 2026-01-26, 2026-08-15"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate20010} />
+                        <View className="h-px bg-slate-200/10" />
 
                         {/* Surge Multiplier */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Surge Price Multiplier (e.g. 1.2 for 20% extra) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Surge Price Multiplier (e.g. 1.2 for 20% extra) *</Text>
                           <TextInput
                             value={surgeMultiplierState}
                             onChangeText={setSurgeMultiplierState}
                             keyboardType="numeric"
                             placeholder="1.0"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
                       </View>
 
                       {/* Category status configuration */}
                       {categories.length > 0 && (
-                        <View style={styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.pt4, styles.mt2}>
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.mb3}>🏪 Category-Wise Status (Open/Closed)</Text>
-                          <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
+                        <View className="border-t border-slate-100 dark:border-zinc-800/80 pt-4 mt-2">
+                          <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs mb-3">🏪 Category-Wise Status (Open/Closed)</Text>
+                          <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
                             {categories.map((cat) => (
-                              <View key={cat.id} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                                <View style={styles.flex1, styles.pr4}>
-                                  <Text style={styles.textslate700, styles.dark:textslate200, styles.fontbold, styles.textxs}>{cat.name}</Text>
-                                  <Text style={styles.textslate500, styles.textCustom8, styles.fontsemibold, styles.mt0.5}>slug: {cat.slug}</Text>
+                              <View key={cat.id} className="flex-row justify-between items-center">
+                                <View className="flex-1 pr-4">
+                                  <Text className="text-slate-700 dark:text-slate-200 font-bold text-xs">{cat.name}</Text>
+                                  <Text className="text-slate-500 text-[8px] font-semibold mt-0.5">slug: {cat.slug}</Text>
                                 </View>
                                 <Switch
                                   value={categoryStatuses[cat.slug] !== false}
@@ -5312,140 +4723,140 @@ export default function OperationsScreen() {
 
                   {/* SUB-TAB: PRICING & CHARGES CONTROL */}
                   {settingsSubTab === 'pricing' && (
-                    <View style={styles.gap5}>
+                    <View className="gap-5">
                       {/* Delivery Fee & Free Delivery Thresholds Card */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
-                        <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>🚚 Delivery Charges & Free Delivery Thresholds</Text>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">🚚 Delivery Charges & Free Delivery Thresholds</Text>
                         
                         {/* Base Delivery Fee */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Standard Delivery Fee (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Standard Delivery Fee (₹) *</Text>
                           <TextInput
                             value={deliveryFeeState}
                             onChangeText={setDeliveryFeeState}
                             keyboardType="numeric"
                             placeholder="25"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
-                          <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom9, styles.mt1, styles.fontmedium}>Standard delivery fee charged to customer when order is below free delivery threshold.</Text>
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Standard delivery fee charged to customer when order is below free delivery threshold.</Text>
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate20010} />
+                        <View className="h-px bg-slate-200/10" />
 
                         {/* Grocery Free Delivery Threshold */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Grocery Free Delivery Minimum (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Grocery Free Delivery Minimum (₹) *</Text>
                           <TextInput
                             value={groceryThresholdState}
                             onChangeText={setGroceryThresholdState}
                             keyboardType="numeric"
                             placeholder="199"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
-                          <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom9, styles.mt1, styles.fontmedium}>Minimum Grocery cart subtotal required for customer to get FREE delivery.</Text>
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Minimum Grocery cart subtotal required for customer to get FREE delivery.</Text>
                         </View>
 
-                        <View style={styles.hpx, styles.bgslate20010} />
+                        <View className="h-px bg-slate-200/10" />
 
                         {/* Cafe Free Delivery Threshold */}
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Cafe / Restaurant Free Delivery Minimum (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Cafe / Restaurant Free Delivery Minimum (₹) *</Text>
                           <TextInput
                             value={cafeThresholdState}
                             onChangeText={setCafeThresholdState}
                             keyboardType="numeric"
                             placeholder="199"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
-                          <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom9, styles.mt1, styles.fontmedium}>Minimum Cafe cart subtotal required for customer to get FREE delivery.</Text>
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Minimum Cafe cart subtotal required for customer to get FREE delivery.</Text>
                         </View>
                       </View>
 
                       {/* Estimated Delivery Time Card */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
-                        <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>⏱️ Delivery Time & Speed Display</Text>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">⏱️ Delivery Time & Speed Display</Text>
                         
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Average Delivery Time String *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Average Delivery Time String *</Text>
                           <TextInput
                             value={avgDeliveryTime}
                             onChangeText={setAvgDeliveryTime}
                             placeholder="e.g. 8 min or 10-15 mins"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
-                          <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom9, styles.mt1, styles.fontmedium}>Prominently displayed in customer app header, live ticker, cart footer, and checkout.</Text>
+                          <Text className="text-slate-400 dark:text-slate-500 text-[9px] mt-1 font-medium">Prominently displayed in customer app header, live ticker, cart footer, and checkout.</Text>
                         </View>
                       </View>
 
                       {/* Handling Charges & Taxes Card */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
-                        <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>💳 Handling Charges & Taxes</Text>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">💳 Handling Charges & Taxes</Text>
                         
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Handling / Packaging Charge (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Handling / Packaging Charge (₹) *</Text>
                           <TextInput
                             value={miscFee}
                             onChangeText={setMiscFee}
                             keyboardType="numeric"
                             placeholder="0"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Handling Fee Display Label *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Handling Fee Display Label *</Text>
                           <TextInput
                             value={miscFeeLabel}
                             onChangeText={setMiscFeeLabel}
                             placeholder="Packaging Charge"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>GST / Tax Rate (%) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">GST / Tax Rate (%) *</Text>
                           <TextInput
                             value={taxRate}
                             onChangeText={setTaxRate}
                             keyboardType="numeric"
                             placeholder="5"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
                       </View>
 
                       {/* Dynamic Order Limits & Surges Card */}
-                      <View style={styles.bgslate50, styles.dark:bgslate95040, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc85060, styles.gap4}>
-                        <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>⚡ Dynamic Order Limits & Surge Pricing</Text>
+                      <View className="bg-slate-50 dark:bg-slate-950/40 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850/60 gap-4">
+                        <Text className="text-indigo-600 dark:text-indigo-400 font-black text-xs uppercase tracking-wider">⚡ Dynamic Order Limits & Surge Pricing</Text>
                         
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Minimum Order Value (₹) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Minimum Order Value (₹) *</Text>
                           <TextInput
                             value={minOrderValueState}
                             onChangeText={setMinOrderValueState}
                             keyboardType="numeric"
                             placeholder="0"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Surge Price Multiplier (e.g. 1.2 for 20% extra) *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Surge Price Multiplier (e.g. 1.2 for 20% extra) *</Text>
                           <TextInput
                             value={surgeMultiplierState}
                             onChangeText={setSurgeMultiplierState}
                             keyboardType="numeric"
                             placeholder="1.0"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
                       </View>
@@ -5454,122 +4865,122 @@ export default function OperationsScreen() {
 
                   {/* SUB-TAB 2: BRANDING */}
                   {settingsSubTab === 'cosmetics' && (
-                    <View style={styles.gap4}>
+                    <View className="gap-4">
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Deliveries Counter *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Deliveries Counter *</Text>
                         <TextInput
                           value={deliveriesCount}
                           onChangeText={setDeliveriesCount}
                           placeholder="e.g. 10,000+"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Store Rating *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Store Rating *</Text>
                         <TextInput
                           value={ratingValue}
                           onChangeText={setRatingValue}
                           placeholder="e.g. 4.8"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Happy Families Counter *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Happy Families Counter *</Text>
                         <TextInput
                           value={happyFamilies}
                           onChangeText={setHappyFamilies}
                           placeholder="e.g. 5,000+"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Social Proof Strip Text *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Social Proof Strip Text *</Text>
                         <TextInput
                           value={trustedText}
                           onChangeText={setTrustedText}
                           placeholder="e.g. ✨ Trusted by 5,000+ families in your town"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textwhite, styles.fontsemibold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-white font-semibold text-xs"
                         />
                       </View>
 
                       {/* Live Ticker Settings */}
-                      <View style={styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.pt4, styles.mt2, styles.gap4}>
-                        <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.mb1}>⚡ Live Speed Ticker Strip Settings</Text>
+                      <View className="border-t border-slate-100 dark:border-zinc-800/80 pt-4 mt-2 gap-4">
+                        <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs mb-1">⚡ Live Speed Ticker Strip Settings</Text>
                         
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Average Delivery Time *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Average Delivery Time *</Text>
                           <TextInput
                             value={avgDeliveryTime}
                             onChangeText={setAvgDeliveryTime}
                             placeholder="e.g. 8 min"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Delivered Today Counter *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Delivered Today Counter *</Text>
                           <TextInput
                             value={deliveredToday}
                             onChangeText={setDeliveredToday}
                             placeholder="e.g. 1,231+"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Fresh Stock Loaded Indicator *</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Fresh Stock Loaded Indicator *</Text>
                           <TextInput
                             value={freshStockLoaded}
                             onChangeText={setFreshStockLoaded}
                             placeholder="e.g. 2 hrs ago"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
                       </View>
 
                       {/* Live Preview section */}
-                      <View style={styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.pt4, styles.mt2, styles.gap3}>
-                        <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs}>👀 Live Preview (Home Banners)</Text>
+                      <View className="border-t border-slate-100 dark:border-zinc-800/80 pt-4 mt-2 gap-3">
+                        <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs">👀 Live Preview (Home Banners)</Text>
                         
                         {/* Stats Bar Preview */}
-                        <View style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.itemsCenter}>
-                          <Text style={styles.textslate500, styles.fontbold, styles.textCustom8, styles.uppercase, styles.trackingwidest, styles.mb2.5}>Home page Stats Bar</Text>
-                          <View style={styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap4, styles.py2.5, styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.roundedXl, styles.px3, styles.wfull}>
-                            <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
+                        <View className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl items-center">
+                          <Text className="text-slate-500 font-bold text-[8px] uppercase tracking-widest mb-2.5">Home page Stats Bar</Text>
+                          <View className="flex-row items-center justify-center gap-4 py-2.5 bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-xl px-3 w-full">
+                            <View className="flex-row items-center gap-1">
                               <Package size={12} color="#6366f1" />
-                              <Text style={styles.textwhite, styles.fontblack, styles.textCustom10}>{deliveriesCount}</Text>
-                              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium}>Deliveries</Text>
+                              <Text className="text-white font-black text-[10px]">{deliveriesCount}</Text>
+                              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium">Deliveries</Text>
                             </View>
-                            <View style={styles.h3, styles.wpx, styles.bgslate800} />
-                            <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
+                            <View className="h-3 w-px bg-slate-800" />
+                            <View className="flex-row items-center gap-1">
                               <Star size={12} color="#fbbf24" fill="#fbbf24" />
-                              <Text style={styles.textwhite, styles.fontblack, styles.textCustom10}>{ratingValue}★</Text>
-                              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium}>Rating</Text>
+                              <Text className="text-white font-black text-[10px]">{ratingValue}★</Text>
+                              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium">Rating</Text>
                             </View>
-                            <View style={styles.h3, styles.wpx, styles.bgslate800} />
-                            <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
+                            <View className="h-3 w-px bg-slate-800" />
+                            <View className="flex-row items-center gap-1">
                               <Heart size={12} color="#ec4899" fill="#ec4899" />
-                              <Text style={styles.textwhite, styles.fontblack, styles.textCustom10}>{happyFamilies}</Text>
-                              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontmedium}>Families</Text>
+                              <Text className="text-white font-black text-[10px]">{happyFamilies}</Text>
+                              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-medium">Families</Text>
                             </View>
                           </View>
                         </View>
 
                         {/* Social Proof Strip Preview */}
-                        <View style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.itemsCenter}>
-                          <Text style={styles.textslate500, styles.fontbold, styles.textCustom8, styles.uppercase, styles.trackingwidest, styles.mb2.5}>Footer Social Proof Bar</Text>
-                          <View style={styles.bgwhite, styles.py2, styles.roundedXl, styles.wfull, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-                            <Text style={styles.textCustom10, styles.fontblack, styles.textrose600, styles.px4, styles.textCenter}>
+                        <View className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl items-center">
+                          <Text className="text-slate-500 font-bold text-[8px] uppercase tracking-widest mb-2.5">Footer Social Proof Bar</Text>
+                          <View className="bg-white py-2 rounded-xl w-full items-center justify-center border border-slate-200 dark:border-zinc-850">
+                            <Text className="text-[10px] font-black text-rose-600 px-4 text-center">
                               {trustedText}
                             </Text>
                           </View>
@@ -5580,9 +4991,9 @@ export default function OperationsScreen() {
 
                   {/* SUB-TAB: GREETINGS */}
                   {settingsSubTab === 'greetings' && (
-                    <View style={styles.gap4}>
+                    <View className="gap-4">
                       {/* Greetings Time Sub-Tab Switcher (Horizontal Slider) */}
-                      <View style={styles.mb2}>
+                      <View className="mb-2">
                         <ScrollView 
                           horizontal 
                           showsHorizontalScrollIndicator={false} 
@@ -5603,15 +5014,15 @@ export default function OperationsScreen() {
                                   setGreetingsSubTab(timeTab.id as any);
                                   triggerHaptic('light');
                                 }}
-                                style={px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
+                                className={`px-4 py-2 rounded-full border active:scale-95 transition-all flex-row items-center gap-1.5 ${
                                   isActive 
-                                    ? [styles.bgindigo600, styles.borderindigo500, styles.dark:bgindigo500, styles.dark:borderindigo400, styles.shadowSm] 
-                                    : [styles.bgslate50, styles.borderslate20050, styles.dark:bgzinc80080, styles.dark:borderzinc70080]
-                                }}
+                                    ? 'bg-indigo-600 border-indigo-500 dark:bg-indigo-500 dark:border-indigo-400 shadow-sm' 
+                                    : 'bg-slate-50 border-slate-200/50 dark:bg-zinc-800/80 dark:border-zinc-700/80'
+                                }`}
                               >
-                                <Text style={text-[10px] font-black uppercase tracking-wider ${
-                                  isActive ? [styles.textwhite] : [styles.textslate600, styles.dark:textzinc400]
-                                }}>
+                                <Text className={`text-[10px] font-black uppercase tracking-wider ${
+                                  isActive ? 'text-white' : 'text-slate-600 dark:text-zinc-400'
+                                }`}>
                                   {timeTab.label}
                                 </Text>
                               </Pressable>
@@ -5622,19 +5033,19 @@ export default function OperationsScreen() {
 
                       {/* Closed Greeting Settings */}
                       {greetingsSubTab === 'closed' && (
-                        <View style={styles.gap4}>
+                        <View className="gap-4">
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Closed Greeting Title *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Closed Greeting Title *</Text>
                             <TextInput
                               value={heroGreetingClosed}
                               onChangeText={setHeroGreetingClosed}
                               placeholder="We're resting right now 💤"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Closed Greeting Subtitle *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Closed Greeting Subtitle *</Text>
                             <TextInput
                               value={heroSubtitleClosed}
                               onChangeText={setHeroSubtitleClosed}
@@ -5642,7 +5053,7 @@ export default function OperationsScreen() {
                               numberOfLines={3}
                               placeholder="FastKirana Cafe & Mart are resting..."
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[80px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[80px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
@@ -5651,50 +5062,50 @@ export default function OperationsScreen() {
 
                       {/* Morning Greeting Settings */}
                       {greetingsSubTab === 'morning' && (
-                        <View style={styles.gap4}>
+                        <View className="gap-4">
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Morning Greeting Title *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Morning Greeting Title *</Text>
                             <TextInput
                               value={heroGreetingMorning}
                               onChangeText={setHeroGreetingMorning}
                               placeholder="Good morning, let's get breakfast! 🌅"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Closed, Cafe Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Closed, Cafe Open) *</Text>
                             <TextInput
                               value={heroSubtitleMorningMartClosed}
                               onChangeText={setHeroSubtitleMorningMartClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Open, Cafe Closed) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Open, Cafe Closed) *</Text>
                             <TextInput
                               value={heroSubtitleMorningCafeClosed}
                               onChangeText={setHeroSubtitleMorningCafeClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Both Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Both Open) *</Text>
                             <TextInput
                               value={heroSubtitleMorningBothOpen}
                               onChangeText={setHeroSubtitleMorningBothOpen}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
@@ -5703,50 +5114,50 @@ export default function OperationsScreen() {
 
                       {/* Afternoon Greeting Settings */}
                       {greetingsSubTab === 'afternoon' && (
-                        <View style={styles.gap4}>
+                        <View className="gap-4">
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Afternoon Greeting Title *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Afternoon Greeting Title *</Text>
                             <TextInput
                               value={heroGreetingAfternoon}
                               onChangeText={setHeroGreetingAfternoon}
                               placeholder="Good afternoon! Ready for lunch? 🍛"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Closed, Cafe Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Closed, Cafe Open) *</Text>
                             <TextInput
                               value={heroSubtitleAfternoonMartClosed}
                               onChangeText={setHeroSubtitleAfternoonMartClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Open, Cafe Closed) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Open, Cafe Closed) *</Text>
                             <TextInput
                               value={heroSubtitleAfternoonCafeClosed}
                               onChangeText={setHeroSubtitleAfternoonCafeClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Both Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Both Open) *</Text>
                             <TextInput
                               value={heroSubtitleAfternoonBothOpen}
                               onChangeText={setHeroSubtitleAfternoonBothOpen}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
@@ -5755,50 +5166,50 @@ export default function OperationsScreen() {
 
                       {/* Evening Greeting Settings */}
                       {greetingsSubTab === 'evening' && (
-                        <View style={styles.gap4}>
+                        <View className="gap-4">
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Evening Greeting Title *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Evening Greeting Title *</Text>
                             <TextInput
                               value={heroGreetingEvening}
                               onChangeText={setHeroGreetingEvening}
                               placeholder="It's snack o'clock! Tea & snacks are ready ☕"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Closed, Cafe Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Closed, Cafe Open) *</Text>
                             <TextInput
                               value={heroSubtitleEveningMartClosed}
                               onChangeText={setHeroSubtitleEveningMartClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Open, Cafe Closed) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Open, Cafe Closed) *</Text>
                             <TextInput
                               value={heroSubtitleEveningCafeClosed}
                               onChangeText={setHeroSubtitleEveningCafeClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Both Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Both Open) *</Text>
                             <TextInput
                               value={heroSubtitleEveningBothOpen}
                               onChangeText={setHeroSubtitleEveningBothOpen}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
@@ -5807,50 +5218,50 @@ export default function OperationsScreen() {
 
                       {/* Night Greeting Settings */}
                       {greetingsSubTab === 'night' && (
-                        <View style={styles.gap4}>
+                        <View className="gap-4">
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Night Greeting Title *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Night Greeting Title *</Text>
                             <TextInput
                               value={heroGreetingNight}
                               onChangeText={setHeroGreetingNight}
                               placeholder="Late night cravings? We got you! 🌙"
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Closed, Cafe Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Closed, Cafe Open) *</Text>
                             <TextInput
                               value={heroSubtitleNightMartClosed}
                               onChangeText={setHeroSubtitleNightMartClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Mart Open, Cafe Closed) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Mart Open, Cafe Closed) *</Text>
                             <TextInput
                               value={heroSubtitleNightCafeClosed}
                               onChangeText={setHeroSubtitleNightCafeClosed}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
                           <View>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Subtitle (Both Open) *</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Subtitle (Both Open) *</Text>
                             <TextInput
                               value={heroSubtitleNightBothOpen}
                               onChangeText={setHeroSubtitleNightBothOpen}
                               multiline
                               numberOfLines={2}
                               placeholderTextColor="#475569"
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs, styles.minh[60px]}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-semibold text-xs min-h-[60px]"
                               style={{ textAlignVertical: 'top' }}
                             />
                           </View>
@@ -5861,65 +5272,65 @@ export default function OperationsScreen() {
 
                   {/* SUB-TAB 3: FINANCIALS */}
                   {settingsSubTab === 'finance' && (
-                    <View style={styles.gap4}>
+                    <View className="gap-4">
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>GST/Tax Rate (%) *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">GST/Tax Rate (%) *</Text>
                         <TextInput
                           value={taxRate}
                           onChangeText={setTaxRate}
                           keyboardType="numeric"
                           placeholder="e.g. 5"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Miscellaneous Fee (₹) *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Miscellaneous Fee (₹) *</Text>
                         <TextInput
                           value={miscFee}
                           onChangeText={setMiscFee}
                           keyboardType="numeric"
                           placeholder="e.g. 0"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       <View>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Miscellaneous Fee Label *</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Miscellaneous Fee Label *</Text>
                         <TextInput
                           value={miscFeeLabel}
                           onChangeText={setMiscFeeLabel}
                           placeholder="e.g. Packaging Charge"
                           placeholderTextColor="#475569"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
 
                       {/* Cloudinary configs */}
-                      <View style={styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.pt4, styles.mt2, styles.gap4}>
-                        <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.mb1}>☁️ Cloudinary Configurations (Image Uploads)</Text>
+                      <View className="border-t border-slate-100 dark:border-zinc-800/80 pt-4 mt-2 gap-4">
+                        <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs mb-1">☁️ Cloudinary Configurations (Image Uploads)</Text>
                         
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Cloudinary Cloud Name</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Cloudinary Cloud Name</Text>
                           <TextInput
                             value={cloudinaryCloudName}
                             onChangeText={setCloudinaryCloudName}
                             placeholder="your_cloud_name"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
 
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Cloudinary Upload Preset (Unsigned)</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Cloudinary Upload Preset (Unsigned)</Text>
                           <TextInput
                             value={cloudinaryUploadPreset}
                             onChangeText={setCloudinaryUploadPreset}
                             placeholder="unsigned_preset"
                             placeholderTextColor="#475569"
-                            style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py3, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                            className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-3 text-slate-800 dark:text-white font-bold text-xs"
                           />
                         </View>
                       </View>
@@ -5930,14 +5341,14 @@ export default function OperationsScreen() {
                   <Pressable
                     onPress={handleSaveSettings}
                     disabled={isSavingSettings}
-                    style={styles.bgindigo600, styles.roundedXl, styles.py3.5, styles.itemsCenter, styles.mt4, styles.active:bgindigo700, styles.flexRow, styles.justifyCenter, styles.gap2}
+                    className="bg-indigo-600 rounded-xl py-3.5 items-center mt-4 active:bg-indigo-700 flex-row justify-center gap-2"
                   >
                     {isSavingSettings ? (
                       <ActivityIndicator size="small" color="#fff" />
                     ) : (
                       <Check size={14} color="#fff" strokeWidth={3} />
                     )}
-                    <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>
+                    <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">
                       {isSavingSettings ? 'Saving Settings...' : 'Save Settings'}
                     </Text>
                   </Pressable>
@@ -5952,15 +5363,15 @@ export default function OperationsScreen() {
 
         {/* ------------------- NOTIFICATIONS TAB WORKSPACE ------------------- */}
         {activeTab === 'NOTIFICATIONS' && (
-          <View style={styles.gap6}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.shadowSm}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase, styles.mb1}>New Push Broadcast</Text>
-              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mb5}>Compose and broadcast instant alert campaigns to customer mobile apps.</Text>
+          <View className="gap-6">
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-5 shadow-sm">
+              <Text className="text-slate-900 dark:text-white font-black text-base mb-1">New Push Broadcast</Text>
+              <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mb-5">Compose and broadcast instant alert campaigns to customer mobile apps.</Text>
 
               {/* Segment Targeting Selector */}
-              <View style={styles.mb4}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Target Customer Segment</Text>
-                <View style={styles.flexRow, styles.gap2}>
+              <View className="mb-4">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-2">Target Customer Segment</Text>
+                <View className="flex-row gap-2">
                   {[
                     { id: 'ALL', label: '👥 All Users' },
                     { id: 'NEW', label: '🆕 New' },
@@ -5974,13 +5385,13 @@ export default function OperationsScreen() {
                           setPushSegment(seg.id as any);
                           triggerHaptic('light');
                         }}
-                        style={flex-1 py-2 rounded-xl border items-center justify-center ${
+                        className={`flex-1 py-2 rounded-xl border items-center justify-center ${
                           isSelected 
-                            ? [styles.bgrose50010, styles.borderrose500] 
-                            : [styles.bgslate100, styles.dark:bgslate950, styles.borderslate200, styles.dark:borderzinc850]
-                        }}
+                            ? 'bg-rose-500/10 border-rose-500' 
+                            : 'bg-slate-100 dark:bg-slate-950 border-slate-200 dark:border-zinc-850'
+                        }`}
                       >
-                        <Text style={text-[10px] font-extrabold ${isSelected ? [styles.textrose600, styles.dark:textrose450] : [styles.textslate500, styles.dark:textslate400]}}>
+                        <Text className={`text-[10px] font-extrabold ${isSelected ? 'text-rose-600 dark:text-rose-450' : 'text-slate-500 dark:text-slate-400'}`}>
                           {seg.label}
                         </Text>
                       </Pressable>
@@ -5990,20 +5401,20 @@ export default function OperationsScreen() {
               </View>
 
               {/* Title input */}
-              <View style={styles.mb4}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Broadcast Title</Text>
+              <View className="mb-4">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Broadcast Title</Text>
                 <TextInput
                   value={pushTitle}
                   onChangeText={setPushTitle}
                   placeholder="e.g. ⚡ Flash Deal Alert!"
                   placeholderTextColor="#475569"
-                  style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py2.5, styles.textwhite, styles.fontsemibold, styles.textxs}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 text-white font-semibold text-xs"
                 />
               </View>
 
               {/* Body message input */}
-              <View style={styles.mb4}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Message Description</Text>
+              <View className="mb-4">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Message Description</Text>
                 <TextInput
                   value={pushBody}
                   onChangeText={setPushBody}
@@ -6011,20 +5422,20 @@ export default function OperationsScreen() {
                   numberOfLines={3}
                   placeholder="e.g. Get 20% discount on fresh mangoes for the next 1 hour. Apply code FRUIT20 at checkout."
                   placeholderTextColor="#475569"
-                  style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py2.5, styles.textwhite, styles.fontsemibold, styles.textxs, styles.minh[80px], styles.textLeft}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 text-white font-semibold text-xs min-h-[80px] text-left"
                   style={{ textAlignVertical: 'top' }}
                 />
               </View>
 
               {/* Scheduled Broadcast Time */}
-              <View style={styles.mb5}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Scheduled Time (Optional YYYY-MM-DD HH:MM)</Text>
+              <View className="mb-5">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Scheduled Time (Optional YYYY-MM-DD HH:MM)</Text>
                 <TextInput
                   value={pushScheduledTime}
                   onChangeText={setPushScheduledTime}
                   placeholder="e.g. 2026-07-06 18:30 (leave blank for instant)"
                   placeholderTextColor="#475569"
-                  style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px4, styles.py2.5, styles.textwhite, styles.fontsemibold, styles.textxs}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-4 py-2.5 text-white font-semibold text-xs"
                 />
               </View>
 
@@ -6032,14 +5443,14 @@ export default function OperationsScreen() {
               <Pressable
                 onPress={handleSendBroadcast}
                 disabled={isBroadcasting}
-                style={styles.bgrose600, styles.roundedXl, styles.py3.5, styles.itemsCenter, styles.active:bgrose700, styles.flexRow, styles.justifyCenter, styles.gap2}
+                className="bg-rose-600 rounded-xl py-3.5 items-center active:bg-rose-700 flex-row justify-center gap-2"
               >
                 {isBroadcasting ? (
                   <ActivityIndicator size="small" color="#fff" />
                 ) : (
                   <Sparkles size={13} color="#fff" />
                 )}
-                <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>
+                <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">
                   {isBroadcasting ? 'Broadcasting Alert...' : 'Broadcast Push Notification'}
                 </Text>
               </Pressable>
@@ -6047,22 +5458,22 @@ export default function OperationsScreen() {
 
             {/* Broadcast Log */}
             <View>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mb3}>Broadcast History Logs</Text>
+              <Text className="text-slate-900 dark:text-white font-black text-sm mb-3">Broadcast History Logs</Text>
               {pastNotifications.length === 0 ? (
-                <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p6, styles.itemsCenter}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.textCenter}>No notifications sent through this portal yet.</Text>
+                <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-850 p-6 items-center">
+                  <Text className="text-slate-500 dark:text-slate-400 text-xs text-center">No notifications sent through this portal yet.</Text>
                 </View>
               ) : (
-                <View style={styles.gap3, styles.mb10}>
+                <View className="gap-3 mb-10">
                   {pastNotifications.map((noti, idx) => (
-                    <View key={idx} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.shadowxs}>
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb1.5}>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>{noti.title}</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold}>
+                    <View key={idx} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-850 p-4 shadow-xs">
+                      <View className="flex-row justify-between items-center mb-1.5">
+                        <Text className="text-slate-900 dark:text-white font-black text-xs">{noti.title}</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold">
                           {noti.sentAt ? new Date(noti.sentAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' }) : 'Just now'}
                         </Text>
                       </View>
-                      <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.leading4}>{noti.body}</Text>
+                      <Text className="text-slate-650 dark:text-slate-300 text-xs leading-4">{noti.body}</Text>
                     </View>
                   ))}
                 </View>
@@ -6073,9 +5484,9 @@ export default function OperationsScreen() {
 
         {/* ------------------- COUPONS TAB WORKSPACE ------------------- */}
         {activeTab === 'COUPONS' && (
-          <View style={styles.gap4}>
-            <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb1}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Discount Codes</Text>
+          <View className="gap-4">
+            <View className="flex-row justify-between items-center mb-1">
+              <Text className="text-slate-900 dark:text-white font-black text-base">Discount Codes</Text>
               <Pressable
                 onPress={() => {
                   setNewCouponCode('');
@@ -6085,36 +5496,36 @@ export default function OperationsScreen() {
                   setIsCouponModalVisible(true);
                   triggerHaptic('light');
                 }}
-                style={styles.bgindigo650, styles.px4, styles.py2.5, styles.roundedXl, styles.flexRow, styles.itemsCenter, styles.gap1.5, styles.active:bgindigo750}
+                className="bg-indigo-650 px-4 py-2.5 rounded-xl flex-row items-center gap-1.5 active:bg-indigo-750"
               >
                 <Ticket size={13} color="#fff" />
-                <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>New Coupon</Text>
+                <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">New Coupon</Text>
               </Pressable>
             </View>
 
             {isCouponsLoading ? (
-              <View style={styles.py20, styles.itemsCenter}>
+              <View className="py-20 items-center">
                 <ActivityIndicator size="large" color="#6366f1" />
               </View>
             ) : coupons.length === 0 ? (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p6, styles.itemsCenter}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.textCenter}>No coupon codes registered in database.</Text>
+              <View className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-850 p-6 items-center">
+                <Text className="text-slate-500 dark:text-slate-400 text-xs text-center">No coupon codes registered in database.</Text>
               </View>
             ) : (
-              <View style={styles.gap3, styles.mb10}>
+              <View className="gap-3 mb-10">
                 {coupons.map((c) => (
-                  <View key={c.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.shadowxs, styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.gap3}>
-                    <View style={styles.flex1, styles.pr2}>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
-                        <View style={styles.bgpurple95030, styles.border, styles.borderpurple90040, styles.px2, styles.py0.5, styles.roundedlg}>
-                          <Text style={styles.textpurple400, styles.fontblack, styles.textxs, styles.trackingwider}>{c.code}</Text>
+                  <View key={c.id} className="bg-white dark:bg-zinc-900 rounded-2xl border border-slate-200 dark:border-zinc-850 p-4 shadow-xs flex-row justify-between items-center gap-3">
+                    <View className="flex-1 pr-2">
+                      <View className="flex-row items-center gap-2">
+                        <View className="bg-purple-950/30 border border-purple-900/40 px-2 py-0.5 rounded-lg">
+                          <Text className="text-purple-400 font-black text-xs tracking-wider">{c.code}</Text>
                         </View>
-                        <Text style={styles.textslate700, styles.dark:textslate200, styles.fontextrabold, styles.textxs}>
+                        <Text className="text-slate-700 dark:text-slate-200 font-extrabold text-xs">
                           {c.discountType === 'PERCENT' ? `${c.value}% OFF` : `Flat ${formatPrice(c.value)} OFF`}
                         </Text>
                       </View>
                       
-                      <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt2, styles.uppercase, styles.trackingwide}>
+                      <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-2 uppercase tracking-wide">
                         Min Order: {formatPrice(c.minOrder)} • Limit: {c.usedCount}/{c.maxUses} uses
                       </Text>
                     </View>
@@ -6136,38 +5547,38 @@ export default function OperationsScreen() {
         {activeTab === 'PICKER' && (
           <View>
             {/* Today Picker Stats */}
-            <View style={styles.flexRow, styles.justifyBetween, styles.gap3, styles.mb6, styles.bgslate50, styles.dark:bgzinc950, styles.p4, styles.rounded2Xl, styles.shadowSm, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{pickerPendingOrders.length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Pending Jobs</Text>
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pickerPendingOrders.length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Pending Jobs</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{activePickingOrder ? 1 : 0}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Active Picking</Text>
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{activePickingOrder ? 1 : 0}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Active Picking</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter}>
-                <Text style={styles.textindigo400, styles.fontblack, styles.textlg}>{todayPacked}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Packed Today</Text>
+              <View className="flex-1 items-center">
+                <Text className="text-indigo-400 font-black text-lg">{todayPacked}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Packed Today</Text>
               </View>
             </View>
             {activePickingOrder ? (
               // Active picking checklist overlay layout (Slate-Dark Redesign)
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.shadowLg, styles.mb10}>
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc80080, styles.pb4, styles.mb4}>
+              <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-5 shadow-lg mb-10">
+                <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800/80 pb-4 mb-4">
                   <View>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Picking Order #{activePickingOrder.id.slice(-6).toUpperCase()}</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>Customer: {activePickingOrder.user.name}</Text>
+                    <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Picking Order #{activePickingOrder.id.slice(-6).toUpperCase()}</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Customer: {activePickingOrder.user.name}</Text>
                   </View>
                   <Pressable 
                     onPress={cancelActivePicking}
-                    style={styles.px3.5, styles.py2, styles.roundedXl, styles.bgslate800, styles.border, styles.borderslate70060, styles.active:bgslate70060}
+                    className="px-3.5 py-2 rounded-xl bg-slate-800 border border-slate-700/60 active:bg-slate-700/60"
                   >
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Cancel</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 font-extrabold text-[9px] uppercase tracking-wider">Cancel</Text>
                   </Pressable>
                 </View>
 
                 {/* Scan Barcode Simulation Box (Dark-Slate) */}
-                <View style={styles.flexRow, styles.gap2.5, styles.bgslate50, styles.dark:bgslate95040, styles.p3, styles.roundedXl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.itemsCenter, styles.mb5}>
+                <View className="flex-row gap-2.5 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-xl border border-slate-200 dark:border-zinc-850 items-center mb-5">
                   <Barcode size={16} color="#6366f1" />
                   <TextInput
                     placeholder="Scan product barcode (simulate by typing)..."
@@ -6175,19 +5586,19 @@ export default function OperationsScreen() {
                     value={barcodeQuery}
                     onChangeText={setBarcodeQuery}
                     onSubmitEditing={scanBarcodeProduct}
-                    style={styles.flex1, styles.textslate800, styles.dark:textwhite, styles.textxs, styles.fontsemibold, styles.p0}
+                    className="flex-1 text-slate-800 dark:text-white text-xs font-semibold p-0"
                   />
                   <Pressable 
                     onPress={scanBarcodeProduct}
-                    style={styles.bgindigo600, styles.px3.5, styles.py1.5, styles.roundedlg, styles.active:bgindigo700}
+                    className="bg-indigo-600 px-3.5 py-1.5 rounded-lg active:bg-indigo-700"
                   >
-                    <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom9, styles.uppercase}>Scan</Text>
+                    <Text className="text-white font-extrabold text-[9px] uppercase">Scan</Text>
                   </Pressable>
                 </View>
 
                 {/* Products Checklist (Aisle-Optimized Sorting & Slate-Dark Style) */}
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textCustom10, styles.uppercase, styles.trackingwider, styles.mb3}>Checklist by Location</Text>
-                <View style={styles.gap2.5}>
+                <Text className="text-slate-500 dark:text-slate-400 font-black text-[10px] uppercase tracking-wider mb-3">Checklist by Location</Text>
+                <View className="gap-2.5">
                   {[...activePickingOrder.items]
                     .sort((a, b) => getItemAisle(a).localeCompare(getItemAisle(b)))
                     .map((item) => {
@@ -6197,44 +5608,44 @@ export default function OperationsScreen() {
                       const isDone = picked === max;
 
                       return (
-                        <View key={item.id} style={p-3.5 rounded-xl border flex-row justify-between items-center gap-3 ${
+                        <View key={item.id} className={`p-3.5 rounded-xl border flex-row justify-between items-center gap-3 ${
                           isDone 
-                            ? [styles.bgslate50, styles.dark:bgslate95030, styles.borderslate100, styles.dark:borderzinc80080, styles.opacity70] 
-                            : [styles.bgslate50, styles.dark:bgslate95060, styles.borderslate100, styles.dark:borderzinc800]
-                        }}>
-                          <View style={styles.flex1, styles.pr2}>
-                            <Text style={text-xs font-bold leading-tight ${isDone ? [styles.textslate500, styles.lineThrough] : [styles.textwhite]}}>
+                            ? 'bg-slate-50 dark:bg-slate-950/30 border-slate-100 dark:border-zinc-800/80 opacity-70' 
+                            : 'bg-slate-50 dark:bg-slate-950/60 border-slate-100 dark:border-zinc-800'
+                        }`}>
+                          <View className="flex-1 pr-2">
+                            <Text className={`text-xs font-bold leading-tight ${isDone ? 'text-slate-500 line-through' : 'text-white'}`}>
                               {item.name}
                             </Text>
-                            <Text style={styles.textindigo400, styles.textCustom9, styles.fontblack, styles.mt1, styles.uppercase, styles.trackingwider}>{aisle}</Text>
+                            <Text className="text-indigo-400 text-[9px] font-black mt-1 uppercase tracking-wider">{aisle}</Text>
                           </View>
                           
-                          <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+                          <View className="flex-row items-center gap-2">
                             {isDone ? (
-                              <View style={styles.bgemerald50010, styles.border, styles.borderemerald50020, styles.px2.5, styles.py1.5, styles.roundedlg, styles.flexRow, styles.itemsCenter, styles.gap1}>
+                              <View className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-1.5 rounded-lg flex-row items-center gap-1">
                                 <CheckCircle size={10} color="#10b981" />
-                                <Text style={styles.textemerald400, styles.fontblack, styles.textCustom9, styles.uppercase}>{max}/{max}</Text>
+                                <Text className="text-emerald-400 font-black text-[9px] uppercase">{max}/{max}</Text>
                               </View>
                             ) : (
-                              <View style={styles.flexRow, styles.itemsCenter, styles.bgslate900, styles.roundedlg, styles.p1, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
+                              <View className="flex-row items-center bg-slate-900 rounded-lg p-1 border border-slate-200 dark:border-zinc-850">
                                 <Pressable 
                                   onPress={() => resetItemPicker(item.id)}
-                                  style={styles.px2}
+                                  className="px-2"
                                 >
-                                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textxs}>↺</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 font-black text-xs">↺</Text>
                                 </Pressable>
-                                <Text style={styles.px1.5, styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>{picked}/{max}</Text>
+                                <Text className="px-1.5 text-slate-900 dark:text-white font-black text-xs">{picked}/{max}</Text>
                                 <Pressable 
                                   onPress={() => manualPickOne(item.id, max)}
-                                  style={styles.bgslate800, styles.px3, styles.py1.5, styles.roundedmd, styles.border, styles.borderslate70080, styles.active:bgslate700, styles.ml1.5}
+                                  className="bg-slate-800 px-3 py-1.5 rounded-md border border-slate-700/80 active:bg-slate-700 ml-1.5"
                                 >
-                                  <Text style={styles.textwhite, styles.fontblack, styles.textCustom10, styles.uppercase}>+1</Text>
+                                  <Text className="text-white font-black text-[10px] uppercase">+1</Text>
                                 </Pressable>
                                 <Pressable 
                                   onPress={() => manualPickAll(item.id, max)}
-                                  style={styles.bgindigo600, styles.px3, styles.py1.5, styles.roundedmd, styles.active:bgindigo750, styles.ml1.5}
+                                  className="bg-indigo-600 px-3 py-1.5 rounded-md active:bg-indigo-750 ml-1.5"
                                 >
-                                  <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase}>All</Text>
+                                  <Text className="text-white font-extrabold text-[10px] uppercase">All</Text>
                                 </Pressable>
                               </View>
                             )}
@@ -6247,48 +5658,48 @@ export default function OperationsScreen() {
                 {/* Finalize Pack */}
                 <Pressable
                   onPress={() => packActiveOrder(activePickingOrder.id)}
-                  style={styles.bgindigo600, styles.py3.5, styles.rounded2Xl, styles.itemsCenter, styles.mt6, styles.active:bgindigo700, styles.shadowMd}
+                  className="bg-indigo-600 py-3.5 rounded-2xl items-center mt-6 active:bg-indigo-700 shadow-md"
                 >
-                  <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Pack & Complete Order</Text>
+                  <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Pack & Complete Order</Text>
                 </Pressable>
               </View>
             ) : (
               // Order queue list (Slate-Dark Redesign)
               <View>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Picker Pending Jobs</Text>
+                <Text className="text-slate-500 dark:text-slate-400 font-black text-xs uppercase tracking-wider mb-3">Picker Pending Jobs</Text>
                 {pickerPendingOrders.length === 0 ? (
-                  <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p8, styles.itemsCenter}>
-                    <Text style={styles.text4xl}>📭</Text>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mt3}>No orders waiting for pickers</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.mt1, styles.textCenter, styles.maxw[240px]}>New orders placed by customers will chime here automatically.</Text>
+                  <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-8 items-center">
+                    <Text className="text-4xl">📭</Text>
+                    <Text className="text-slate-900 dark:text-white font-black text-sm mt-3">No orders waiting for pickers</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1 text-center max-w-[240px]">New orders placed by customers will chime here automatically.</Text>
                   </View>
                 ) : (
-                  <View style={styles.gap3}>
+                  <View className="gap-3">
                     {pickerPendingOrders.map((ord) => (
-                      <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.shadowSm}>
-                        <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc80080, styles.pb3, styles.mb3}>
+                      <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-4 shadow-sm">
+                        <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800/80 pb-3 mb-3">
                           <View>
-                            <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Order #{ord.id.slice(-6).toUpperCase()}</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1}>Order Items: {ord.items.length} Items • {ord.deliveryMethod}</Text>
+                            <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">Order Items: {ord.items.length} Items • {ord.deliveryMethod}</Text>
                           </View>
-                          <View style={styles.bgamber50010, styles.border, styles.borderamber50020, styles.px2.5, styles.py0.5, styles.roundedFull}>
-                            <Text style={styles.textamber400, styles.fontextrabold, styles.textCustom8, styles.uppercase, styles.trackingwider}>{ord.status}</Text>
+                          <View className="bg-amber-500/10 border border-amber-500/20 px-2.5 py-0.5 rounded-full">
+                            <Text className="text-amber-400 font-extrabold text-[8px] uppercase tracking-wider">{ord.status}</Text>
                           </View>
                         </View>
 
                         {/* Customer & Items preview */}
-                        <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.fontsemibold}>User: {ord.user.name}</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mt1.5, styles.truncate} numberOfLines={1}>
+                        <Text className="text-slate-650 dark:text-slate-300 text-xs font-semibold">User: {ord.user.name}</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-1.5 truncate" numberOfLines={1}>
                           Items: {ord.items.map(it => `${it.name} x${it.quantity}`).join(', ')}
                         </Text>
 
                         {/* Pick order action */}
                         <Pressable
                           onPress={() => startPicking(ord)}
-                          style={styles.bgindigo600, styles.mt4, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap2, styles.active:bgindigo700, styles.shadowSm}
+                          className="bg-indigo-600 mt-4 py-3 rounded-2xl flex-row items-center justify-center gap-2 active:bg-indigo-700 shadow-sm"
                         >
                           <Play size={10} color="#fff" fill="#fff" />
-                          <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Start Picking Checklist</Text>
+                          <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Start Picking Checklist</Text>
                         </Pressable>
                       </View>
                     ))}
@@ -6301,43 +5712,43 @@ export default function OperationsScreen() {
           {activeTab === 'RIDER' && (
           <View>
             {/* Today Rider Stats */}
-            <View style={styles.flexRow, styles.justifyBetween, styles.gap3, styles.mb6, styles.bgslate900, styles.p4, styles.rounded2Xl, styles.shadowSm, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{todayDeliveries}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Delivered</Text>
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-900 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{todayDeliveries}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Delivered</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{riderActiveDeliveries.length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Active Run</Text>
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{riderActiveDeliveries.length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Active Run</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter}>
-                <Text style={styles.textemerald400, styles.fontblack, styles.textlg}>{formatPrice(codCollected)}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>COD Cash</Text>
+              <View className="flex-1 items-center">
+                <Text className="text-emerald-400 font-black text-lg">{formatPrice(codCollected)}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">COD Cash</Text>
               </View>
             </View>
 
             {/* Active Shipments Route (Slate-Dark Redesign) */}
             {riderActiveDeliveries.length > 0 && (
-              <View style={styles.mb6}>
-                <Text style={styles.textslate450, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Rider Active Run ({riderActiveDeliveries.length})</Text>
-                <View style={styles.gap3}>
+              <View className="mb-6">
+                <Text className="text-slate-450 font-black text-xs uppercase tracking-wider mb-3">Rider Active Run ({riderActiveDeliveries.length})</Text>
+                <View className="gap-3">
                   {riderActiveDeliveries.map((ord) => (
-                    <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.shadowSm}>
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc80080, styles.pb3, styles.mb3}>
+                    <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-4 shadow-sm">
+                      <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800/80 pb-3 mb-3">
                         <View>
-                          <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Shipment #{ord.id.slice(-6).toUpperCase()}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1}>Payment: {ord.paymentMethod} • {formatPrice(ord.total)}</Text>
+                          <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Shipment #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">Payment: {ord.paymentMethod} • {formatPrice(ord.total)}</Text>
                         </View>
-                        <View style={styles.bgindigo50010, styles.border, styles.borderindigo50020, styles.px2.5, styles.py0.5, styles.roundedFull}>
-                          <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom8, styles.uppercase, styles.trackingwider}>Active</Text>
+                        <View className="bg-indigo-500/10 border border-indigo-500/20 px-2.5 py-0.5 rounded-full">
+                          <Text className="text-indigo-400 font-extrabold text-[8px] uppercase tracking-wider">Active</Text>
                         </View>
                       </View>
 
                       {/* Customer Address Details (Map coordinate Navigation deep-linking) */}
-                      <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.gap3, styles.mb3, styles.bgslate50, styles.dark:bgslate95040, styles.p3, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flex1}>
+                      <View className="flex-row items-center justify-between gap-3 mb-3 bg-slate-50 dark:bg-slate-950/40 p-3 rounded-2xl border border-slate-200 dark:border-zinc-850">
+                        <View className="flex-row items-center gap-2 flex-1">
                           <MapPin size={12} color="#ef4444" />
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.fontsemibold, styles.flex1, styles.leading4}>
+                          <Text className="text-slate-650 dark:text-slate-300 text-xs font-semibold flex-1 leading-4">
                             {ord.address.houseNo}, {ord.address.street}, {ord.address.area}, {ord.address.city}
                           </Text>
                         </View>
@@ -6354,25 +5765,25 @@ export default function OperationsScreen() {
                               Linking.openURL(`https://www.google.com/maps/search/?api=1&query=${query}`);
                             });
                           }}
-                          style={styles.bgindigo60020, styles.border, styles.borderindigo50040, styles.px2.5, styles.py1.5, styles.roundedlg, styles.active:bgindigo60040}
+                          className="bg-indigo-600/20 border border-indigo-500/40 px-2.5 py-1.5 rounded-lg active:bg-indigo-600/40"
                         >
-                          <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom9, styles.uppercase}>Navigate</Text>
+                          <Text className="text-indigo-400 font-extrabold text-[9px] uppercase">Navigate</Text>
                         </Pressable>
                       </View>
 
-                      <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.mb4}>
+                      <View className="flex-row items-center gap-2 mb-4">
                         <Phone size={12} color="#94a3b8" />
-                        <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.fontbold}>{ord.user.name} ({ord.user.phone})</Text>
+                        <Text className="text-slate-650 dark:text-slate-300 text-xs font-bold">{ord.user.name} ({ord.user.phone})</Text>
                       </View>
 
                       {activeGpsSimulations[ord.id] && (
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.mb4, styles.bgemerald50010, styles.border, styles.borderemerald50030, styles.p2.5, styles.roundedXl}>
+                        <View className="flex-row items-center gap-2 mb-4 bg-emerald-500/10 border border-emerald-500/30 p-2.5 rounded-xl">
                           <ActivityIndicator size="small" color="#10b981" />
-                          <View style={styles.flex1}>
-                            <Text style={styles.textemerald400, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>
+                          <View className="flex-1">
+                            <Text className="text-emerald-400 font-extrabold text-[9px] uppercase tracking-wider">
                               GPS Simulating route
                             </Text>
-                            <Text style={styles.textslate650, styles.dark:textslate300, styles.textCustom8, styles.fontsemibold, styles.mt0.5}>
+                            <Text className="text-slate-650 dark:text-slate-300 text-[8px] font-semibold mt-0.5">
                               Step {activeGpsSimulations[ord.id].step}/{activeGpsSimulations[ord.id].totalSteps} • ({activeGpsSimulations[ord.id].lat.toFixed(4)}, {activeGpsSimulations[ord.id].lng.toFixed(4)})
                             </Text>
                           </View>
@@ -6380,19 +5791,19 @@ export default function OperationsScreen() {
                       )}
 
                       {/* Deliver proof confirmation swipe action look-alike slider */}
-                      <View style={styles.relative, styles.bgemerald50010, styles.border, styles.borderemerald50030, styles.p1.5, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.pl3}>
+                      <View className="relative bg-emerald-500/10 border border-emerald-500/30 p-1.5 rounded-2xl flex-row items-center justify-between">
+                        <View className="flex-row items-center gap-2 pl-3">
                           <Check size={14} color="#10b981" />
-                          <Text style={styles.textemerald400, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Ready to complete drop?</Text>
+                          <Text className="text-emerald-400 font-extrabold text-[9px] uppercase tracking-wider">Ready to complete drop?</Text>
                         </View>
                         <Pressable
                           onPress={() => {
                             triggerHaptic('success');
                             initiateConfirmDelivery(ord);
                           }}
-                          style={styles.bgemerald600, styles.px4, styles.py2.5, styles.roundedXl, styles.active:bgemerald700}
+                          className="bg-emerald-600 px-4 py-2.5 rounded-xl active:bg-emerald-700"
                         >
-                          <Text style={styles.textwhite, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider}>Confirm Drop</Text>
+                          <Text className="text-white font-black text-[9px] uppercase tracking-wider">Confirm Drop</Text>
                         </Pressable>
                       </View>
                     </View>
@@ -6402,38 +5813,38 @@ export default function OperationsScreen() {
             )}
 
             {/* Pickup queue from Picker Packing (Slate-Dark Redesign) */}
-            <Text style={styles.textslate455, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Rider Pickup Queue ({riderQueueOrders.length})</Text>
+            <Text className="text-slate-455 font-black text-xs uppercase tracking-wider mb-3">Rider Pickup Queue ({riderQueueOrders.length})</Text>
             {riderQueueOrders.length === 0 ? (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p8, styles.itemsCenter}>
-                <Text style={styles.text4xl}>📦</Text>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mt3}>No shipments ready for pickup</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.mt1, styles.textCenter, styles.maxw[240px]}>Riders wait here. Pickers auto-pack orders to dispatch them here.</Text>
+              <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-8 items-center">
+                <Text className="text-4xl">📦</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm mt-3">No shipments ready for pickup</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1 text-center max-w-[240px]">Riders wait here. Pickers auto-pack orders to dispatch them here.</Text>
               </View>
             ) : (
-              <View style={styles.gap3}>
+              <View className="gap-3">
                 {riderQueueOrders.map((ord) => (
-                  <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.shadowSm}>
-                    <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc80080, styles.pb3, styles.mb3}>
+                  <View key={ord.id} className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-4 shadow-sm">
+                    <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800/80 pb-3 mb-3">
                       <View>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Order #{ord.id.slice(-6).toUpperCase()}</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1}>{ord.address.area} • {formatPrice(ord.total)}</Text>
+                        <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Order #{ord.id.slice(-6).toUpperCase()}</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">{ord.address.area} • {formatPrice(ord.total)}</Text>
                       </View>
-                      <View style={styles.bgemerald50010, styles.border, styles.borderemerald50020, styles.px2.5, styles.py0.5, styles.roundedFull}>
-                        <Text style={styles.textemerald400, styles.fontextrabold, styles.textCustom8, styles.uppercase, styles.trackingwider}>Ready</Text>
+                      <View className="bg-emerald-500/10 border border-emerald-500/20 px-2.5 py-0.5 rounded-full">
+                        <Text className="text-emerald-400 font-extrabold text-[8px] uppercase tracking-wider">Ready</Text>
                       </View>
                     </View>
 
                     {/* Customer & Address Details */}
-                    <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.fontsemibold}>User: {ord.user.name}</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.mt1.5}>To: {ord.address.houseNo}, {ord.address.street}, {ord.address.area}</Text>
+                    <Text className="text-slate-650 dark:text-slate-300 text-xs font-semibold">User: {ord.user.name}</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[10px] mt-1.5">To: {ord.address.houseNo}, {ord.address.street}, {ord.address.area}</Text>
 
                     {/* Accept pickup dispatch action */}
                     <Pressable
                       onPress={() => acceptShipment(ord)}
-                      style={styles.bgindigo600, styles.mt4, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.active:bgindigo700, styles.shadowSm}
+                      className="bg-indigo-600 mt-4 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:bg-indigo-700 shadow-sm"
                     >
                       <Truck size={12} color="#fff" />
-                      <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Accept Rider Pickup</Text>
+                      <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Accept Rider Pickup</Text>
                     </Pressable>
                   </View>
                 ))}
@@ -6444,32 +5855,32 @@ export default function OperationsScreen() {
                  {activeTab === 'CHEF' && (
           <View>
             {/* Today Chef Stats */}
-            <View style={styles.flexRow, styles.justifyBetween, styles.gap3, styles.mb6, styles.bgslate50, styles.dark:bgzinc950, styles.p4, styles.rounded2Xl, styles.shadowSm, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{pendingCafeOrders.filter(o => o.status === 'PENDING').length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Queue Jobs</Text>
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingCafeOrders.filter(o => o.status === 'PENDING').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Queue Jobs</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{pendingCafeOrders.filter(o => o.status === 'CONFIRMED').length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Cooking</Text>
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingCafeOrders.filter(o => o.status === 'CONFIRMED').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Cooking</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter}>
-                <Text style={styles.textrose400, styles.fontblack, styles.textlg}>{todayPrepared}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Prepared Today</Text>
+              <View className="flex-1 items-center">
+                <Text className="text-rose-400 font-black text-lg">{todayPrepared}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Prepared Today</Text>
               </View>
             </View>
-            <Text style={styles.textslate450, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Cafe Kitchen Cooking Queue</Text>
+            <Text className="text-slate-450 font-black text-xs uppercase tracking-wider mb-3">Cafe Kitchen Cooking Queue</Text>
             
             {/* Bulk Prepare Aggregated List (Dark-Slate) */}
             {aggregatedPrepItems.length > 0 && (
-              <View style={styles.mb4, styles.bgorange50010, styles.border, styles.borderorange50020, styles.rounded2Xl, styles.p3.5, styles.shadowSm}>
-                <Text style={styles.textorange400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2.5}>🧑‍🍳 Kitchen Prep Summary (Bulk Prepare)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flexRow, styles.gap2, styles.py0.5}>
+              <View className="mb-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3.5 shadow-sm">
+                <Text className="text-orange-400 font-black text-[9px] uppercase tracking-wider mb-2.5">🧑‍🍳 Kitchen Prep Summary (Bulk Prepare)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2 py-0.5">
                   {aggregatedPrepItems.map((item, idx) => (
-                    <View key={idx} style={styles.bgslate50, styles.dark:bgslate95040, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.flexRow, styles.itemsCenter, styles.gap2, styles.shadowxs}>
-                      <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textCustom10}>{item.name}</Text>
-                      <View style={styles.bgorange50020, styles.px2, styles.py0.5, styles.roundedlg}>
-                        <Text style={styles.textorange400, styles.fontblack, styles.textCustom9}>x{item.quantity}</Text>
+                    <View key={idx} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 flex-row items-center gap-2 shadow-xs">
+                      <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-[10px]">{item.name}</Text>
+                      <View className="bg-orange-500/20 px-2 py-0.5 rounded-lg">
+                        <Text className="text-orange-400 font-black text-[9px]">x{item.quantity}</Text>
                       </View>
                     </View>
                   ))}
@@ -6478,13 +5889,13 @@ export default function OperationsScreen() {
             )}
 
             {pendingCafeOrders.length === 0 ? (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p8, styles.itemsCenter}>
-                <Text style={styles.text4xl}>🍳</Text>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mt3}>No cafe items pending cooking</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.mt1, styles.textCenter, styles.maxw[240px]}>Cafe orders placed on the customer app sync instantly to the chef console.</Text>
+              <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-8 items-center">
+                <Text className="text-4xl">🍳</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm mt-3">No cafe items pending cooking</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1 text-center max-w-[240px]">Cafe orders placed on the customer app sync instantly to the chef console.</Text>
               </View>
             ) : (
-              <View style={styles.gap3.5, styles.mb10}>
+              <View className="gap-3.5 mb-10">
                 {pendingCafeOrders.map((ord) => {
                   const cafeItems = ord.items.filter(it => it.categorySlug === 'cafe');
                   const isPending = ord.status === 'PENDING';
@@ -6508,16 +5919,16 @@ export default function OperationsScreen() {
 
                   return (
                     // Kitchen Job card with paper ticket simulation design details
-                    <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded3Xl, styles.gap3}>
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderdashed, styles.borderslate100, styles.dark:borderzinc800, styles.pb3, styles.mb1}>
+                    <View key={ord.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-3xl gap-3">
+                      <View className="flex-row justify-between items-center border-b border-dashed border-slate-100 dark:border-zinc-800 pb-3 mb-1">
                         <View>
-                          <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1}>Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+                          <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
                         </View>
                         
                         {/* SLA Cooking Timer indicator */}
-                        <View style={${slaBgStyle} px-2.5 py-1 rounded-lg flex-row items-center gap-1}>
-                          <Text style={${slaTextStyle} font-black text-[9px] uppercase tracking-wider}>
+                        <View className={`${slaBgStyle} px-2.5 py-1 rounded-lg flex-row items-center gap-1`}>
+                          <Text className={`${slaTextStyle} font-black text-[9px] uppercase tracking-wider`}>
                             {isPending ? 'Queue' : 'Cooking'} • {orderAgeMins}m
                           </Text>
                         </View>
@@ -6525,63 +5936,63 @@ export default function OperationsScreen() {
 
                       {isPending ? (
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Items Preview</Text>
-                          <View style={styles.gap2, styles.opacity75, styles.mb4}>
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items Preview</Text>
+                          <View className="gap-2 opacity-75 mb-4">
                             {cafeItems.map((item) => (
-                              <View key={item.id} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.p3, styles.roundedXl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.bgslate50, styles.dark:bgslate95040}>
-                                <View style={styles.flex1, styles.pr2}>
-                                  <Text style={styles.textxs, styles.fontbold, styles.textslate700, styles.dark:textslate200}>{item.name}</Text>
-                                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>Quantity: x{item.quantity}</Text>
+                              <View key={item.id} className="flex-row justify-between items-center p-3 rounded-xl border border-slate-200 dark:border-zinc-850 bg-slate-50 dark:bg-slate-950/40">
+                                <View className="flex-1 pr-2">
+                                  <Text className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
                                 </View>
                               </View>
                             ))}
                           </View>
-                          <View style={styles.flexRow, styles.gap3}>
+                          <View className="flex-row gap-3">
                             <Pressable
                               onPress={() => handleEditOrder(ord)}
-                              style={styles.flex1, styles.bgslate850, styles.dark:bgzinc800, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.active:opacity85, styles.shadowSm, styles.border, styles.borderslate700, styles.dark:borderzinc700}
+                              className="flex-1 bg-slate-850 dark:bg-zinc-800 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:opacity-85 shadow-sm border border-slate-700 dark:border-zinc-700"
                             >
                               <Edit2 size={12} color="#fff" />
-                              <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Edit Order</Text>
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Edit Order</Text>
                             </Pressable>
                             <Pressable
                               onPress={() => startPreparingChef(ord)}
-                              style={styles.flex[1.5], styles.bgrose600, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.active:bgrose700, styles.shadowSm}
+                              className="flex-[1.5] bg-rose-600 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:bg-rose-700 shadow-sm"
                             >
                               <ChefHat size={13} color="#fff" />
-                              <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Start Cooking</Text>
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Start Cooking</Text>
                             </Pressable>
                           </View>
                         </View>
                       ) : (
                         <View>
                           {/* Cooking Items checklist */}
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Items to Cook</Text>
-                          <View style={styles.gap2}>
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items to Cook</Text>
+                          <View className="gap-2">
                             {cafeItems.map((item) => (
                               <Pressable
                                 key={item.id}
                                 onPress={() => markChefItemReady(ord.id, item.id)}
-                                style={flex-row justify-between items-center p-3 rounded-xl border ${
+                                className={`flex-row justify-between items-center p-3 rounded-xl border ${
                                   item.cooked 
-                                    ? [styles.bgemerald50010, styles.borderemerald50025] 
-                                    : [styles.bgslate50, styles.dark:bgslate95040, styles.borderslate100, styles.dark:borderzinc800]
-                                }}
+                                    ? 'bg-emerald-500/10 border-emerald-500/25' 
+                                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-zinc-800'
+                                }`}
                               >
-                                <View style={styles.flex1, styles.pr2}>
-                                  <Text style={text-xs font-bold ${item.cooked ? [styles.textslate500, styles.lineThrough] : [styles.textslate700, styles.dark:textslate200]}}>
+                                <View className="flex-1 pr-2">
+                                  <Text className={`text-xs font-bold ${item.cooked ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
                                     {item.name}
                                   </Text>
-                                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>Quantity: x{item.quantity}</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
                                 </View>
 
-                                <View style={w-6 h-6 rounded-full items-center justify-center ${
-                                  item.cooked ? [styles.bgemerald600] : [styles.bgslate800]
-                                }}>
+                                <View className={`w-6 h-6 rounded-full items-center justify-center ${
+                                  item.cooked ? 'bg-emerald-600' : 'bg-slate-800'
+                                }`}>
                                   {item.cooked ? (
                                     <Check size={12} color="#fff" strokeWidth={3} />
                                   ) : (
-                                    <Text style={styles.textCustom10, styles.fontblack, styles.textslate500, styles.dark:textslate400}>+</Text>
+                                    <Text className="text-[10px] font-black text-slate-500 dark:text-slate-400">+</Text>
                                   )}
                                 </View>
                               </Pressable>
@@ -6600,32 +6011,32 @@ export default function OperationsScreen() {
         {activeTab === 'CHEF_RESTAURANT' && (
           <View>
             {/* Today Restaurant Chef Stats */}
-            <View style={styles.flexRow, styles.justifyBetween, styles.gap3, styles.mb6, styles.bgslate50, styles.dark:bgzinc950, styles.p4, styles.rounded2Xl, styles.shadowSm, styles.border, styles.borderslate200, styles.dark:borderzinc850}>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{pendingRestaurantOrders.filter(o => o.status === 'PENDING').length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Queue Jobs</Text>
+            <View className="flex-row justify-between gap-3 mb-6 bg-slate-50 dark:bg-zinc-950 p-4 rounded-2xl shadow-sm border border-slate-200 dark:border-zinc-850">
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingRestaurantOrders.filter(o => o.status === 'PENDING').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Queue Jobs</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter, styles.borderr, styles.borderslate100, styles.dark:borderzinc800}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textlg}>{pendingRestaurantOrders.filter(o => o.status === 'CONFIRMED').length}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Cooking</Text>
+              <View className="flex-1 items-center border-r border-slate-100 dark:border-zinc-800">
+                <Text className="text-slate-900 dark:text-white font-black text-lg">{pendingRestaurantOrders.filter(o => o.status === 'CONFIRMED').length}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Cooking</Text>
               </View>
-              <View style={styles.flex1, styles.itemsCenter}>
-                <Text style={styles.textrose400, styles.fontblack, styles.textlg}>{todayPrepared}</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt0.5}>Prepared Today</Text>
+              <View className="flex-1 items-center">
+                <Text className="text-rose-400 font-black text-lg">{todayPrepared}</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-black uppercase tracking-wider mt-0.5">Prepared Today</Text>
               </View>
             </View>
-            <Text style={styles.textslate450, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider, styles.mb3}>Restaurant Kitchen Cooking Queue</Text>
+            <Text className="text-slate-450 font-black text-xs uppercase tracking-wider mb-3">Restaurant Kitchen Cooking Queue</Text>
             
             {/* Bulk Prepare Aggregated List (Dark-Slate) */}
             {aggregatedRestaurantPrepItems.length > 0 && (
-              <View style={styles.mb4, styles.bgorange50010, styles.border, styles.borderorange50020, styles.rounded2Xl, styles.p3.5, styles.shadowSm}>
-                <Text style={styles.textorange400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2.5}>🧑‍🍳 Restaurant Prep Summary (Bulk Prepare)</Text>
-                <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.flexRow, styles.gap2, styles.py0.5}>
+              <View className="mb-4 bg-orange-500/10 border border-orange-500/20 rounded-2xl p-3.5 shadow-sm">
+                <Text className="text-orange-400 font-black text-[9px] uppercase tracking-wider mb-2.5">🧑‍🍳 Restaurant Prep Summary (Bulk Prepare)</Text>
+                <ScrollView horizontal showsHorizontalScrollIndicator={false} className="flex-row gap-2 py-0.5">
                   {aggregatedRestaurantPrepItems.map((item, idx) => (
-                    <View key={idx} style={styles.bgslate50, styles.dark:bgslate95040, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.flexRow, styles.itemsCenter, styles.gap2, styles.shadowxs}>
-                      <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textCustom10}>{item.name}</Text>
-                      <View style={styles.bgorange50020, styles.px2, styles.py0.5, styles.roundedlg}>
-                        <Text style={styles.textorange400, styles.fontblack, styles.textCustom9}>x{item.quantity}</Text>
+                    <View key={idx} className="bg-slate-50 dark:bg-slate-950/40 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 flex-row items-center gap-2 shadow-xs">
+                      <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-[10px]">{item.name}</Text>
+                      <View className="bg-orange-500/20 px-2 py-0.5 rounded-lg">
+                        <Text className="text-orange-400 font-black text-[9px]">x{item.quantity}</Text>
                       </View>
                     </View>
                   ))}
@@ -6634,13 +6045,13 @@ export default function OperationsScreen() {
             )}
 
             {pendingRestaurantOrders.length === 0 ? (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p8, styles.itemsCenter}>
-                <Text style={styles.text4xl}>🍳</Text>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.mt3}>No restaurant items pending cooking</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textxs, styles.mt1, styles.textCenter, styles.maxw[240px]}>Restaurant orders placed on the customer app sync instantly to the chef console.</Text>
+              <View className="bg-white dark:bg-zinc-900 rounded-3xl border border-slate-200 dark:border-zinc-850 p-8 items-center">
+                <Text className="text-4xl">🍳</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm mt-3">No restaurant items pending cooking</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-xs mt-1 text-center max-w-[240px]">Restaurant orders placed on the customer app sync instantly to the chef console.</Text>
               </View>
             ) : (
-              <View style={styles.gap3.5, styles.mb10}>
+              <View className="gap-3.5 mb-10">
                 {pendingRestaurantOrders.map((ord) => {
                   const restaurantItems = ord.items.filter(it => it.categorySlug === 'restaurant' || it.categorySlug === 'north-indian' || it.categorySlug === 'biryani-rice');
                   const isPending = ord.status === 'PENDING';
@@ -6664,16 +6075,16 @@ export default function OperationsScreen() {
 
                   return (
                     // Kitchen Job card with paper ticket simulation design details
-                    <View key={ord.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded3Xl, styles.gap3}>
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderdashed, styles.borderslate100, styles.dark:borderzinc800, styles.pb3, styles.mb1}>
+                    <View key={ord.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-3xl gap-3">
+                      <View className="flex-row justify-between items-center border-b border-dashed border-slate-100 dark:border-zinc-800 pb-3 mb-1">
                         <View>
-                          <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm, styles.uppercase}>Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1}>Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
+                          <Text className="text-slate-900 dark:text-white font-black text-sm uppercase">Kitchen Job #{ord.id.slice(-6).toUpperCase()}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1">Order Time: {new Date(ord.createdAt).toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' })}</Text>
                         </View>
                         
                         {/* SLA Cooking Timer indicator */}
-                        <View style={${slaBgStyle} px-2.5 py-1 rounded-lg flex-row items-center gap-1}>
-                          <Text style={${slaTextStyle} font-black text-[9px] uppercase tracking-wider}>
+                        <View className={`${slaBgStyle} px-2.5 py-1 rounded-lg flex-row items-center gap-1`}>
+                          <Text className={`${slaTextStyle} font-black text-[9px] uppercase tracking-wider`}>
                             {isPending ? 'Queue' : 'Cooking'} • {orderAgeMins}m
                           </Text>
                         </View>
@@ -6681,63 +6092,63 @@ export default function OperationsScreen() {
 
                       {isPending ? (
                         <View>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Items Preview</Text>
-                          <View style={styles.gap2, styles.opacity75, styles.mb4}>
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items Preview</Text>
+                          <View className="gap-2 opacity-75 mb-4">
                             {restaurantItems.map((item) => (
-                              <View key={item.id} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.p3, styles.roundedXl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.bgslate50, styles.dark:bgslate95040}>
-                                <View style={styles.flex1, styles.pr2}>
-                                  <Text style={styles.textxs, styles.fontbold, styles.textslate700, styles.dark:textslate200}>{item.name}</Text>
-                                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>Quantity: x{item.quantity}</Text>
+                              <View key={item.id} className="flex-row justify-between items-center p-3 rounded-xl border border-slate-200 dark:border-zinc-850 bg-slate-50 dark:bg-slate-950/40">
+                                <View className="flex-1 pr-2">
+                                  <Text className="text-xs font-bold text-slate-700 dark:text-slate-200">{item.name}</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
                                 </View>
                               </View>
                             ))}
                           </View>
-                          <View style={styles.flexRow, styles.gap3}>
+                          <View className="flex-row gap-3">
                             <Pressable
                               onPress={() => handleEditOrder(ord)}
-                              style={styles.flex1, styles.bgslate850, styles.dark:bgzinc800, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.active:opacity85, styles.shadowSm, styles.border, styles.borderslate700, styles.dark:borderzinc700}
+                              className="flex-1 bg-slate-850 dark:bg-zinc-800 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:opacity-85 shadow-sm border border-slate-700 dark:border-zinc-700"
                             >
                               <Edit2 size={12} color="#fff" />
-                              <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Edit Order</Text>
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Edit Order</Text>
                             </Pressable>
                             <Pressable
                               onPress={() => startPreparingChef(ord)}
-                              style={styles.flex[1.5], styles.bgrose600, styles.py3, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap1.5, styles.active:bgrose700, styles.shadowSm}
+                              className="flex-[1.5] bg-rose-600 py-3 rounded-2xl flex-row items-center justify-center gap-1.5 active:bg-rose-700 shadow-sm"
                             >
                               <ChefHat size={13} color="#fff" />
-                              <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Start Cooking</Text>
+                              <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Start Cooking</Text>
                             </Pressable>
                           </View>
                         </View>
                       ) : (
                         <View>
                           {/* Cooking Items checklist */}
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Items to Cook</Text>
-                          <View style={styles.gap2}>
+                          <Text className="text-slate-500 dark:text-slate-400 font-black text-[9px] uppercase tracking-wider mb-2">Items to Cook</Text>
+                          <View className="gap-2">
                             {restaurantItems.map((item) => (
                               <Pressable
                                 key={item.id}
                                 onPress={() => markChefItemReady(ord.id, item.id)}
-                                style={flex-row justify-between items-center p-3 rounded-xl border ${
+                                className={`flex-row justify-between items-center p-3 rounded-xl border ${
                                   item.cooked 
-                                    ? [styles.bgemerald50010, styles.borderemerald50025] 
-                                    : [styles.bgslate50, styles.dark:bgslate95040, styles.borderslate100, styles.dark:borderzinc800]
-                                }}
+                                    ? 'bg-emerald-500/10 border-emerald-500/25' 
+                                    : 'bg-slate-50 dark:bg-slate-950/40 border-slate-100 dark:border-zinc-800'
+                                }`}
                               >
-                                <View style={styles.flex1, styles.pr2}>
-                                  <Text style={text-xs font-bold ${item.cooked ? [styles.textslate500, styles.lineThrough] : [styles.textslate700, styles.dark:textslate200]}}>
+                                <View className="flex-1 pr-2">
+                                  <Text className={`text-xs font-bold ${item.cooked ? 'text-slate-500 line-through' : 'text-slate-700 dark:text-slate-200'}`}>
                                     {item.name}
                                   </Text>
-                                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt1}>Quantity: x{item.quantity}</Text>
+                                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-1">Quantity: x{item.quantity}</Text>
                                 </View>
 
-                                <View style={w-6 h-6 rounded-full items-center justify-center ${
-                                  item.cooked ? [styles.bgemerald600] : [styles.bgslate800]
-                                }}>
+                                <View className={`w-6 h-6 rounded-full items-center justify-center ${
+                                  item.cooked ? 'bg-emerald-600' : 'bg-slate-800'
+                                }`}>
                                   {item.cooked ? (
                                     <Check size={12} color="#fff" strokeWidth={3} />
                                   ) : (
-                                    <Text style={styles.textCustom10, styles.fontblack, styles.textslate500, styles.dark:textslate400}>+</Text>
+                                    <Text className="text-[10px] font-black text-slate-500 dark:text-slate-400">+</Text>
                                   )}
                                 </View>
                               </Pressable>
@@ -6758,35 +6169,35 @@ export default function OperationsScreen() {
 
         {/* ------------------- REVIEWS TAB WORKSPACE ------------------- */}
         {activeTab === 'REVIEWS' && (
-          <View style={styles.px4, styles.py4}>
+          <View className="px-4 py-4">
             {/* Reviews list */}
             {isReviewsLoading ? (
-              <View style={styles.py20, styles.itemsCenter, styles.justifyCenter}>
+              <View className="py-20 items-center justify-center">
                 <ActivityIndicator size="large" color="#4f46e5" />
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textxs, styles.mt3}>Loading product reviews...</Text>
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-xs mt-3">Loading product reviews...</Text>
               </View>
             ) : reviewsList.length === 0 ? (
-              <View style={styles.py20, styles.itemsCenter, styles.justifyCenter, styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p6}>
-                <Text style={styles.text4xl, styles.mb3}>⭐</Text>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>No Reviews Yet</Text>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.textCenter, styles.mt1}>
+              <View className="py-20 items-center justify-center bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-6">
+                <Text className="text-4xl mb-3">⭐</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm">No Reviews Yet</Text>
+                <Text className="text-slate-500 dark:text-slate-400 text-[10px] text-center mt-1">
                   Customers have not left any feedback ratings on products yet.
                 </Text>
               </View>
             ) : (
-              <View style={styles.gap3, styles.mb10}>
+              <View className="gap-3 mb-10">
                 {reviewsList.map((item) => {
                   const ratingStars = '⭐'.repeat(item.rating);
                   return (
                     <View
                       key={item.id}
-                      style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}
+                      className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3"
                     >
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsStart}>
-                        <View style={styles.flex1, styles.pr2}>
+                      <View className="flex-row justify-between items-start">
+                        <View className="flex-1 pr-2">
                           {/* Rating and product */}
-                          <Text style={styles.textamber400, styles.fontblack, styles.textxs, styles.trackingwider}>{ratingStars}</Text>
-                          <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.mt1}>
+                          <Text className="text-amber-400 font-black text-xs tracking-wider">{ratingStars}</Text>
+                          <Text className="text-slate-800 dark:text-white font-extrabold text-xs mt-1">
                             Product: {item.product?.name || 'Unknown Item'}
                           </Text>
                         </View>
@@ -6794,27 +6205,27 @@ export default function OperationsScreen() {
                         {/* Delete Review button */}
                         <Pressable
                           onPress={() => handleDeleteReview(item.id)}
-                          style={styles.bgred65015, styles.border, styles.borderred50030, styles.px2, styles.py1, styles.roundedlg, styles.active:bgred60030}
+                          className="bg-red-650/15 border border-red-500/30 px-2 py-1 rounded-lg active:bg-red-600/30"
                         >
-                          <Text style={styles.textred500, styles.fontblack, styles.textCustom9, styles.uppercase}>Delete</Text>
+                          <Text className="text-red-500 font-black text-[9px] uppercase">Delete</Text>
                         </Pressable>
                       </View>
 
                       {/* Comment text */}
                       {item.comment ? (
-                        <View style={styles.bgslate80080, styles.p2.5, styles.roundedlg, styles.border, styles.borderslate70060}>
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.textxs, styles.italic, styles.leading4}>"{item.comment}"</Text>
+                        <View className="bg-slate-800/80 p-2.5 rounded-lg border border-slate-700/60">
+                          <Text className="text-slate-650 dark:text-slate-300 text-xs italic leading-4">"{item.comment}"</Text>
                         </View>
                       ) : (
-                        <Text style={styles.textslate500, styles.textCustom11, styles.italic}>No comment left</Text>
+                        <Text className="text-slate-500 text-[11px] italic">No comment left</Text>
                       )}
 
                       {/* Customer details */}
-                      <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.pt2}>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontbold}>
+                      <View className="flex-row justify-between items-center border-t border-slate-100 dark:border-zinc-800/80 pt-2">
+                        <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-bold">
                           By: {item.user?.name || 'Anonymous'}
                         </Text>
-                        <Text style={styles.textslate500, styles.textCustom9}>
+                        <Text className="text-slate-500 text-[9px]">
                           {new Date(item.createdAt).toLocaleDateString('en-IN', {
                             day: 'numeric',
                             month: 'short',
@@ -6832,22 +6243,22 @@ export default function OperationsScreen() {
 
         {/* ------------------- HIGHLIGHTS TAB WORKSPACE ------------------- */}
         {activeTab === 'HIGHLIGHTS' && (
-          <View style={styles.px4, styles.py4}>
+          <View className="px-4 py-4">
             {/* Mode Toggle Header */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.p4, styles.rounded3Xl, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.mb4, styles.gap3.5, styles.shadowSm}>
-              <View style={styles.flexRow, styles.bgslate50, styles.dark:bgzinc955, styles.p1, styles.roundedFull, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.gap1}>
+            <View className="bg-white dark:bg-zinc-900 p-4 rounded-3xl border border-slate-200/60 dark:border-zinc-850 mb-4 gap-3.5 shadow-sm">
+              <View className="flex-row bg-slate-50 dark:bg-zinc-955 p-1 rounded-full border border-slate-200/60 dark:border-zinc-850 gap-1">
                 <Pressable
                   onPress={() => {
                     setHighlightMode('PINNED');
                     triggerHaptic('light');
                   }}
-                  style={flex-1 items-center py-2.5 rounded-full ${
-                    highlightMode === [styles.PINNED]
-                      ? [styles.bgindigo650, styles.shadowxs]
-                      : [styles.bgtransparent]
-                  }}
+                  className={`flex-1 items-center py-2.5 rounded-full ${
+                    highlightMode === 'PINNED'
+                      ? 'bg-indigo-650 shadow-xs'
+                      : 'bg-transparent'
+                  }`}
                 >
-                  <Text style={text-[10px] font-black uppercase tracking-wider ${highlightMode === [styles.PINNED] ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]}}>
+                  <Text className={`text-[10px] font-black uppercase tracking-wider ${highlightMode === 'PINNED' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                     Pinned Highlights
                   </Text>
                 </Pressable>
@@ -6856,13 +6267,13 @@ export default function OperationsScreen() {
                     setHighlightMode('SEARCH');
                     triggerHaptic('light');
                   }}
-                  style={flex-1 items-center py-2.5 rounded-full ${
-                    highlightMode === [styles.SEARCH]
-                      ? [styles.bgindigo650, styles.shadowxs]
-                      : [styles.bgtransparent]
-                  }}
+                  className={`flex-1 items-center py-2.5 rounded-full ${
+                    highlightMode === 'SEARCH'
+                      ? 'bg-indigo-650 shadow-xs'
+                      : 'bg-transparent'
+                  }`}
                 >
-                  <Text style={text-[10px] font-black uppercase tracking-wider ${highlightMode === [styles.SEARCH] ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]}}>
+                  <Text className={`text-[10px] font-black uppercase tracking-wider ${highlightMode === 'SEARCH' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                     Search & Pin Items
                   </Text>
                 </Pressable>
@@ -6870,7 +6281,7 @@ export default function OperationsScreen() {
 
               {/* Sub-tabs for Pinned Highlights */}
               {highlightMode === 'PINNED' && (
-                <View style={styles.flexRow, styles.py1, styles.flexWrap, styles.gap2}>
+                <View className="flex-row py-1 flex-wrap gap-2">
                   {[
                     { key: 'flash', label: 'Flash Deals', count: flashDealsList.length },
                     { key: 'toppicks', label: 'Top Picks', count: topPicksList.length },
@@ -6882,13 +6293,13 @@ export default function OperationsScreen() {
                         setHighlightType(typeObj.key as any);
                         triggerHaptic('light');
                       }}
-                      style={px-4 py-2 rounded-full border flex-row items-center gap-1.5 ${
+                      className={`px-4 py-2 rounded-full border flex-row items-center gap-1.5 ${
                         highlightType === typeObj.key
-                          ? [styles.bgindigo600, styles.borderindigo500, styles.shadowxs]
-                          : [styles.bgwhite, styles.dark:bgzinc800, styles.borderslate200, styles.dark:borderzinc700]
-                      }}
+                          ? 'bg-indigo-600 border-indigo-500 shadow-xs'
+                          : 'bg-white dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'
+                      }`}
                     >
-                      <Text style={text-[9.5px] font-black uppercase tracking-wider ${highlightType === typeObj.key ? [styles.textwhite] : [styles.textslate550, styles.dark:textzinc450]}}>
+                      <Text className={`text-[9.5px] font-black uppercase tracking-wider ${highlightType === typeObj.key ? 'text-white' : 'text-slate-550 dark:text-zinc-450'}`}>
                         {typeObj.label} ({typeObj.count})
                       </Text>
                     </Pressable>
@@ -6898,7 +6309,7 @@ export default function OperationsScreen() {
 
               {/* Search Box when SEARCH mode is active */}
               {highlightMode === 'SEARCH' && (
-                <View style={styles.flexRow, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.roundedFull, styles.px4, styles.h11}>
+                <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200/60 dark:border-zinc-850 rounded-full px-4 h-11">
                   <Search size={15} color="#94a3b8" strokeWidth={2.5} />
                   <TextInput
                     placeholder="Search products to pin..."
@@ -6907,18 +6318,18 @@ export default function OperationsScreen() {
                     onChangeText={setHighlightSearchQuery}
                     onSubmitEditing={handleHighlightsSearch}
                     returnKeyType="search"
-                    style={styles.flex1, styles.textslate800, styles.dark:textwhite, styles.textxs, styles.ml2.5, styles.hfull, styles.p0, styles.fontbold}
+                    className="flex-1 text-slate-800 dark:text-white text-xs ml-2.5 h-full p-0 font-bold"
                   />
                   {highlightSearchQuery.length > 0 && (
-                    <Pressable onPress={() => setHighlightSearchQuery('')} style={styles.bgslate20060, styles.dark:bgzinc800, styles.p1, styles.roundedFull}>
+                    <Pressable onPress={() => setHighlightSearchQuery('')} className="bg-slate-200/60 dark:bg-zinc-800 p-1 rounded-full">
                       <X size={12} color="#94a3b8" />
                     </Pressable>
                   )}
                   <Pressable 
                     onPress={handleHighlightsSearch}
-                    style={styles.bgindigo600, styles.px4, styles.py1.5, styles.roundedFull, styles.ml3, styles.active:bgindigo750}
+                    className="bg-indigo-600 px-4 py-1.5 rounded-full ml-3 active:bg-indigo-750"
                   >
-                    <Text style={styles.textwhite, styles.fontextrabold, styles.text[9.5px], styles.uppercase, styles.trackingwider}>Search</Text>
+                    <Text className="text-white font-extrabold text-[9.5px] uppercase tracking-wider">Search</Text>
                   </Pressable>
                 </View>
               )}
@@ -6926,12 +6337,12 @@ export default function OperationsScreen() {
 
             {/* Content Loader */}
             {isHighlightsLoading ? (
-              <View style={styles.py20, styles.itemsCenter, styles.justifyCenter}>
+              <View className="py-20 items-center justify-center">
                 <ActivityIndicator size="large" color="#4f46e5" />
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textxs, styles.mt3}>Loading highlights database...</Text>
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-xs mt-3">Loading highlights database...</Text>
               </View>
             ) : (
-              <View style={styles.gap3.5, styles.mb10}>
+              <View className="gap-3.5 mb-10">
                 {/* Mode Pinned List */}
                 {highlightMode === 'PINNED' && (() => {
                   const activeList = highlightType === 'flash' 
@@ -6942,10 +6353,10 @@ export default function OperationsScreen() {
                       
                   if (activeList.length === 0) {
                     return (
-                      <View style={styles.py20, styles.itemsCenter, styles.justifyCenter, styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate20060, styles.dark:borderzinc800, styles.rounded3Xl, styles.p8, styles.shadowSm}>
-                        <Text style={styles.text4xl, styles.mb3}>⚡</Text>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>No Pinned Items</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.textCenter, styles.mt1}>
+                      <View className="py-20 items-center justify-center bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
+                        <Text className="text-4xl mb-3">⚡</Text>
+                        <Text className="text-slate-900 dark:text-white font-black text-sm">No Pinned Items</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[10px] text-center mt-1">
                           No items pinned to this highlight category yet.
                         </Text>
                       </View>
@@ -6955,23 +6366,23 @@ export default function OperationsScreen() {
                   return activeList.map((item) => (
                     <View
                       key={item.id}
-                      style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate150, styles.dark:borderzinc850, styles.p4, styles.rounded3Xl, styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.shadowSm}
+                      className="bg-white dark:bg-zinc-900 border border-slate-150 dark:border-zinc-850 p-4 rounded-3xl flex-row justify-between items-center shadow-sm"
                     >
-                      <View style={styles.flexRow, styles.itemsCenter, styles.flex1, styles.pr3}>
-                        <View style={styles.w12, styles.h12, styles.roundedXl, styles.bgslate50, styles.dark:bgzinc950, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.mr3, styles.overflowHidden, styles.shadowxs}>
+                      <View className="flex-row items-center flex-1 pr-3">
+                        <View className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-100 dark:border-zinc-800 mr-3 overflow-hidden shadow-xs">
                           {getAppImageSource(item.imageUrl) ? (
                             <Image 
                               source={getAppImageSource(item.imageUrl)!} 
-                              style={styles.wfull, styles.hfull}
+                              className="w-full h-full"
                               contentFit="cover"
                             />
                           ) : (
-                            <Text style={styles.textxl}>{item.imageUrl || '📦'}</Text>
+                            <Text className="text-xl">{item.imageUrl || '📦'}</Text>
                           )}
                         </View>
-                        <View style={styles.flex1}>
-                          <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs} numberOfLines={2}>{item.name}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1, styles.uppercase, styles.trackingwide}>
+                        <View className="flex-1">
+                          <Text className="text-slate-800 dark:text-white font-extrabold text-xs" numberOfLines={2}>{item.name}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1 uppercase tracking-wide">
                             ₹{item.price}  •  Stock: {item.stock}
                           </Text>
                         </View>
@@ -6980,12 +6391,12 @@ export default function OperationsScreen() {
                       <Pressable
                         onPress={() => toggleProductHighlight(item, highlightType)}
                         disabled={togglingHighlightId === `${item.id}-${highlightType}`}
-                        style={styles.bgrose50, styles.dark:bgrose95515, styles.border, styles.borderrose100, styles.dark:borderrose90030, styles.px3, styles.py1.5, styles.roundedFull, styles.active:bgrose10050}
+                        className="bg-rose-50 dark:bg-rose-955/15 border border-rose-100 dark:border-rose-900/30 px-3 py-1.5 rounded-full active:bg-rose-100/50"
                       >
                         {togglingHighlightId === `${item.id}-${highlightType}` ? (
                           <ActivityIndicator size="small" color="#ef4444" />
                         ) : (
-                          <Text style={styles.textrose600, styles.dark:textrose400, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>Remove</Text>
+                          <Text className="text-rose-600 dark:text-rose-400 font-extrabold text-[9px] uppercase tracking-wider">Remove</Text>
                         )}
                       </Pressable>
                     </View>
@@ -6996,10 +6407,10 @@ export default function OperationsScreen() {
                 {highlightMode === 'SEARCH' && (() => {
                   if (highlightSearchProducts.length === 0) {
                     return (
-                      <View style={styles.py20, styles.itemsCenter, styles.justifyCenter, styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate20060, styles.dark:borderzinc800, styles.rounded3Xl, styles.p8, styles.shadowSm}>
-                        <Text style={styles.text4xl, styles.mb3}>🔍</Text>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Find Items to Pin</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.textCenter, styles.mt1}>
+                      <View className="py-20 items-center justify-center bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 rounded-3xl p-8 shadow-sm">
+                        <Text className="text-4xl mb-3">🔍</Text>
+                        <Text className="text-slate-900 dark:text-white font-black text-sm">Find Items to Pin</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[10px] text-center mt-1">
                           Search above to toggle storefront highlight promotions for any item.
                         </Text>
                       </View>
@@ -7009,41 +6420,41 @@ export default function OperationsScreen() {
                   return highlightSearchProducts.map((item) => (
                     <View
                       key={item.id}
-                      style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate150, styles.dark:borderzinc850, styles.p4, styles.rounded3Xl, styles.gap3.5, styles.shadowSm}
+                      className="bg-white dark:bg-zinc-900 border border-slate-150 dark:border-zinc-850 p-4 rounded-3xl gap-3.5 shadow-sm"
                     >
-                      <View style={styles.flexRow, styles.itemsCenter}>
-                        <View style={styles.w12, styles.h12, styles.roundedXl, styles.bgslate50, styles.dark:bgzinc950, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.mr3, styles.overflowHidden, styles.shadowxs}>
+                      <View className="flex-row items-center">
+                        <View className="w-12 h-12 rounded-xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-100 dark:border-zinc-800 mr-3 overflow-hidden shadow-xs">
                           {getAppImageSource(item.imageUrl) ? (
                             <Image 
                               source={getAppImageSource(item.imageUrl)!} 
-                              style={styles.wfull, styles.hfull}
+                              className="w-full h-full"
                               contentFit="cover"
                             />
                           ) : (
-                            <Text style={styles.textxl}>{item.imageUrl || '📦'}</Text>
+                            <Text className="text-xl">{item.imageUrl || '📦'}</Text>
                           )}
                         </View>
-                        <View style={styles.flex1}>
-                          <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs} numberOfLines={2}>{item.name}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt1, styles.uppercase, styles.trackingwide}>
+                        <View className="flex-1">
+                          <Text className="text-slate-800 dark:text-white font-extrabold text-xs" numberOfLines={2}>{item.name}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-1 uppercase tracking-wide">
                             ₹{item.price}  •  Stock: {item.stock}
                           </Text>
                         </View>
                       </View>
                       
                       {/* Grid of Toggle Badges */}
-                      <View style={styles.flexRow, styles.gap2, styles.pt2, styles.bordert, styles.borderslate100, styles.dark:borderzinc80080}>
+                      <View className="flex-row gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800/80">
                         {/* Flash Deals Button */}
                         <Pressable
                           onPress={() => toggleProductHighlight(item, 'flash')}
                           disabled={togglingHighlightId === `${item.id}-flash`}
-                          style={flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
+                          className={`flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
                             item.isFlashDeal 
-                              ? [styles.bgrose50, styles.dark:bgrose95515, styles.borderrose200, styles.dark:borderrose90030] 
-                              : [styles.bgslate50, styles.dark:bgzinc80040, styles.borderslate200, styles.dark:borderzinc800]
-                          }}
+                              ? 'bg-rose-50 dark:bg-rose-955/15 border-rose-200 dark:border-rose-900/30' 
+                              : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-800'
+                          }`}
                         >
-                          <Text style={text-[8.5px] font-black uppercase tracking-wider ${item.isFlashDeal ? [styles.textrose600, styles.dark:textrose400] : [styles.textslate500, styles.dark:textslate400]}}>
+                          <Text className={`text-[8.5px] font-black uppercase tracking-wider ${item.isFlashDeal ? 'text-rose-600 dark:text-rose-400' : 'text-slate-500 dark:text-slate-400'}`}>
                             ⚡ Flash Deal
                           </Text>
                           {togglingHighlightId === `${item.id}-flash` && (
@@ -7055,13 +6466,13 @@ export default function OperationsScreen() {
                         <Pressable
                           onPress={() => toggleProductHighlight(item, 'toppicks')}
                           disabled={togglingHighlightId === `${item.id}-toppicks`}
-                          style={flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
+                          className={`flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
                             item.isTopPick 
-                              ? [styles.bgamber50, styles.dark:bgamber95515, styles.borderamber200, styles.dark:borderamber90030] 
-                              : [styles.bgslate50, styles.dark:bgzinc80040, styles.borderslate200, styles.dark:borderzinc800]
-                          }}
+                              ? 'bg-amber-50 dark:bg-amber-955/15 border-amber-200 dark:border-amber-900/30' 
+                              : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-800'
+                          }`}
                         >
-                          <Text style={text-[8.5px] font-black uppercase tracking-wider ${item.isTopPick ? [styles.textamber600, styles.dark:textamber400] : [styles.textslate500, styles.dark:textslate400]}}>
+                          <Text className={`text-[8.5px] font-black uppercase tracking-wider ${item.isTopPick ? 'text-amber-600 dark:text-amber-400' : 'text-slate-500 dark:text-slate-400'}`}>
                             ⭐ Top Pick
                           </Text>
                           {togglingHighlightId === `${item.id}-toppicks` && (
@@ -7073,13 +6484,13 @@ export default function OperationsScreen() {
                         <Pressable
                           onPress={() => toggleProductHighlight(item, 'bestsellers')}
                           disabled={togglingHighlightId === `${item.id}-bestsellers`}
-                          style={flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
+                          className={`flex-1 py-2 rounded-full border items-center justify-center flex-row gap-1 ${
                             item.isBestSeller 
-                              ? [styles.bgemerald50, styles.dark:bgemerald95515, styles.borderemerald200, styles.dark:borderemerald90030] 
-                              : [styles.bgslate50, styles.dark:bgzinc80040, styles.borderslate200, styles.dark:borderzinc800]
-                          }}
+                              ? 'bg-emerald-50 dark:bg-emerald-955/15 border-emerald-200 dark:border-emerald-900/30' 
+                              : 'bg-slate-50 dark:bg-zinc-800/40 border-slate-200 dark:border-zinc-800'
+                          }`}
                         >
-                          <Text style={text-[8.5px] font-black uppercase tracking-wider ${item.isBestSeller ? [styles.textemerald600, styles.dark:textemerald400] : [styles.textslate500, styles.dark:textslate400]}}>
+                          <Text className={`text-[8.5px] font-black uppercase tracking-wider ${item.isBestSeller ? 'text-emerald-600 dark:text-emerald-400' : 'text-slate-500 dark:text-slate-400'}`}>
                             🏆 Best Seller
                           </Text>
                           {togglingHighlightId === `${item.id}-bestsellers` && (
@@ -7127,13 +6538,13 @@ export default function OperationsScreen() {
           });
 
           return (
-            <View style={styles.px4, styles.py4, styles.gap6}>
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb1}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Real-time Operations</Text>
+            <View className="px-4 py-4 gap-6">
+              <View className="flex-row justify-between items-center mb-1">
+                <Text className="text-slate-900 dark:text-white font-black text-base">Real-time Operations</Text>
                 <Pressable 
                   onPress={() => fetchLiveopsData()} 
                   disabled={isLiveopsLoading}
-                  style={styles.p2.5, styles.roundedXl, styles.bgindigo60010, styles.border, styles.borderindigo50020, styles.active:bgindigo60020}
+                  className="p-2.5 rounded-xl bg-indigo-600/10 border border-indigo-500/20 active:bg-indigo-600/20"
                 >
                   {isLiveopsLoading ? (
                     <ActivityIndicator size="small" color="#6366f1" />
@@ -7152,15 +6563,15 @@ export default function OperationsScreen() {
                   { label: 'Out', count: shippedCount, color: 'border-purple-500/30 text-purple-400 bg-purple-500/5' },
                   { label: 'Delivered', count: deliveredCount, color: 'border-zinc-500/30 text-zinc-400 bg-zinc-500/5' },
                 ].map((stat, i) => (
-                  <View key={i} style={border rounded-2xl p-4 w-28 items-center ${stat.color} bg-white dark:bg-zinc-900}>
-                    <Text style={styles.textCustom8, styles.fontextrabold, styles.uppercase, styles.trackingwider, styles.opacity80}>{stat.label}</Text>
-                    <Text style={styles.textlg, styles.fontblack, styles.mt1, styles.textslate800, styles.dark:textwhite}>{stat.count}</Text>
+                  <View key={i} className={`border rounded-2xl p-4 w-28 items-center ${stat.color} bg-white dark:bg-zinc-900`}>
+                    <Text className="text-[8px] font-extrabold uppercase tracking-wider opacity-80">{stat.label}</Text>
+                    <Text className="text-lg font-black mt-1 text-slate-800 dark:text-white">{stat.count}</Text>
                   </View>
                 ))}
               </ScrollView>
 
               {/* Speed meters */}
-              <View style={styles.gap3}>
+              <View className="gap-3">
                 {[
                   { label: 'Avg Picking Speed', value: avgPickTime, desc: 'Grocery confirm to pack duration', icon: ShoppingBag, color: 'text-blue-400' },
                   { label: 'Avg Cafe Prep Speed', value: avgPrepTime, desc: 'Cafe preparation time duration', icon: Utensils, color: 'text-orange-400' },
@@ -7168,19 +6579,19 @@ export default function OperationsScreen() {
                 ].map((meter, i) => {
                   const Icon = meter.icon;
                   return (
-                    <View key={i} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p4, styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.gap3}>
-                        <View style={styles.w9, styles.h9, styles.roundedXl, styles.bgslate100, styles.dark:bgslate800, styles.itemsCenter, styles.justifyCenter}>
+                    <View key={i} className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-4 flex-row justify-between items-center">
+                      <View className="flex-row items-center gap-3">
+                        <View className="w-9 h-9 rounded-xl bg-slate-100 dark:bg-slate-800 items-center justify-center">
                           <Icon size={16} className={meter.color} />
                         </View>
                         <View>
-                          <Text style={styles.textslate800, styles.dark:textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs}>{meter.label}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>{meter.desc}</Text>
+                          <Text className="text-slate-800 dark:text-slate-800 dark:text-white font-extrabold text-xs">{meter.label}</Text>
+                          <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">{meter.desc}</Text>
                         </View>
                       </View>
-                      <View style={styles.itemsEnd}>
-                        <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>{meter.value || '—'}</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.uppercase, styles.trackingwider}>mins</Text>
+                      <View className="items-end">
+                        <Text className="text-slate-900 dark:text-white font-black text-base">{meter.value || '—'}</Text>
+                        <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-bold uppercase tracking-wider">mins</Text>
                       </View>
                     </View>
                   );
@@ -7188,24 +6599,24 @@ export default function OperationsScreen() {
               </View>
 
               {/* SLA Alerts */}
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p4, styles.gap3}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>SLA Alert Stream</Text>
+              <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-4 gap-3">
+                <Text className="text-slate-900 dark:text-white font-black text-xs">SLA Alert Stream</Text>
                 {delayedOrders.length === 0 ? (
-                  <Text style={styles.textCustom10, styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCenter, styles.py6}>All orders are running well within their SLA (10m Grocery / 30m Cafe).</Text>
+                  <Text className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 text-center py-6">All orders are running well within their SLA (10m Grocery / 30m Cafe).</Text>
                 ) : (
-                  <View style={styles.gap2}>
+                  <View className="gap-2">
                     {delayedOrders.map((order, i) => {
                       const elapsed = Math.floor((Date.now() - new Date(order.createdAt).getTime()) / 60000);
                       return (
-                        <View key={i} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.p3, styles.roundedXl, styles.border, styles.borderrose50010, styles.bgrose5005}>
+                        <View key={i} className="flex-row justify-between items-center p-3 rounded-xl border border-rose-500/10 bg-rose-500/5">
                           <View>
-                            <Text style={styles.textxs, styles.fontbold, styles.textrose400}>Order #{order.id.slice(-6).toUpperCase()}</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt0.5, styles.uppercase}>
+                            <Text className="text-xs font-bold text-rose-400">Order #{order.id.slice(-6).toUpperCase()}</Text>
+                            <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-0.5 uppercase">
                               {order.status} • {order.userName || order.userEmail || 'Customer'}
                             </Text>
                           </View>
-                          <View style={styles.roundedFull, styles.bgrose50015, styles.border, styles.borderrose50035, styles.px2.5, styles.py1}>
-                            <Text style={styles.textCustom9, styles.fontblack, styles.textrose500, styles.uppercase}>{elapsed}m delay</Text>
+                          <View className="rounded-full bg-rose-500/15 border border-rose-500/35 px-2.5 py-1">
+                            <Text className="text-[9px] font-black text-rose-500 uppercase">{elapsed}m delay</Text>
                           </View>
                         </View>
                       );
@@ -7215,28 +6626,28 @@ export default function OperationsScreen() {
               </View>
 
               {/* Active Shopping Carts Tracker */}
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p4, styles.gap3}>
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.pb2, styles.borderb, styles.borderslate100, styles.dark:borderzinc80050}>
+              <View className="bg-white dark:bg-zinc-900 border border-slate-100 dark:border-zinc-800 rounded-2xl p-4 gap-3">
+                <View className="flex-row justify-between items-center pb-2 border-b border-slate-100 dark:border-zinc-800/50">
                   <View>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.flexRow, styles.itemsCenter}>
+                    <Text className="text-slate-900 dark:text-white font-black text-xs flex-row items-center">
                       Active Shopping Carts{" "}
-                      <View style={styles.w1.5, styles.h1.5, styles.roundedFull, styles.bgemerald500, styles.ml1.5} />
+                      <View className="w-1.5 h-1.5 rounded-full bg-emerald-500 ml-1.5" />
                     </Text>
-                    <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>
+                    <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">
                       Real-time view of customer shopping carts
                     </Text>
                   </View>
-                  <Text style={styles.textCustom10, styles.fontblack, styles.textindigo400, styles.bgindigo50010, styles.px2.5, styles.py0.5, styles.roundedFull}>
+                  <Text className="text-[10px] font-black text-indigo-400 bg-indigo-500/10 px-2.5 py-0.5 rounded-full">
                     {activeCartsCount} Active
                   </Text>
                 </View>
 
                 {activeCarts.length === 0 ? (
-                  <Text style={styles.textCustom10, styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCenter, styles.py6}>
+                  <Text className="text-[10px] text-slate-500 dark:text-slate-500 dark:text-slate-400 text-center py-6">
                     No active customer shopping carts in the last 12 hours.
                   </Text>
                 ) : (
-                  <View style={styles.gap3}>
+                  <View className="gap-3">
                     {activeCarts.map((cart, idx) => {
                       const timeAgoMin = Math.floor((new Date().getTime() - new Date(cart.updatedAt).getTime()) / 60000);
                       let timeString = `${timeAgoMin}m ago`;
@@ -7247,35 +6658,35 @@ export default function OperationsScreen() {
                       }
 
                       return (
-                        <View key={cart.id || idx} style={styles.bgslate50, styles.dark:bgzinc95040, styles.border, styles.borderslate100, styles.dark:borderzinc80080, styles.roundedXl, styles.p3, styles.gap2}>
+                        <View key={cart.id || idx} className="bg-slate-50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-800/80 rounded-xl p-3 gap-2">
                           {/* Customer Info & Time */}
-                          <View style={styles.flexRow, styles.justifyBetween, styles.itemsStart}>
-                            <View style={styles.flex1, styles.pr2}>
-                              <Text style={styles.textslate800, styles.dark:textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs}>{cart.userName}</Text>
-                              <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontsemibold, styles.mt0.5}>
+                          <View className="flex-row justify-between items-start">
+                            <View className="flex-1 pr-2">
+                              <Text className="text-slate-800 dark:text-slate-800 dark:text-white font-extrabold text-xs">{cart.userName}</Text>
+                              <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-semibold mt-0.5">
                                 {cart.userPhone} • {cart.userEmail}
                               </Text>
                               {cart.address && (
-                                <View style={styles.flexRow, styles.itemsCenter, styles.gap1, styles.mt1}>
+                                <View className="flex-row items-center gap-1 mt-1">
                                   <MapPin size={10} color="#f43f5e" />
-                                  <Text style={styles.textrose500, styles.dark:textrose400, styles.textCustom8, styles.fontbold, styles.flex1} numberOfLines={1}>
+                                  <Text className="text-rose-500 dark:text-rose-400 text-[8px] font-bold flex-1" numberOfLines={1}>
                                     {cart.address}
                                   </Text>
                                 </View>
                               )}
                             </View>
-                            <Text style={styles.textslate500, styles.dark:textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold}>{timeString}</Text>
+                            <Text className="text-slate-500 dark:text-slate-500 dark:text-slate-400 text-[8px] font-bold">{timeString}</Text>
                           </View>
 
                           {/* Items List */}
-                          <View style={styles.flexRow, styles.flexWrap, styles.gap1.5, styles.py1}>
+                          <View className="flex-row flex-wrap gap-1.5 py-1">
                             {cart.items.map((item: any, i: number) => (
-                              <View key={i} style={styles.flexRow, styles.itemsCenter, styles.bgwhite, styles.dark:bgslate900, styles.border, styles.borderslate200, styles.dark:borderzinc80050, styles.roundedlg, styles.px2, styles.py0.5}>
-                                <Text style={styles.textslate800, styles.dark:textwhite, styles.textCustom9, styles.fontbold}>
+                              <View key={i} className="flex-row items-center bg-white dark:bg-slate-900 border border-slate-200 dark:border-zinc-800/50 rounded-lg px-2 py-0.5">
+                                <Text className="text-slate-800 dark:text-white text-[9px] font-bold">
                                   {item.productName}
                                   {item.selectedVariant ? ` (${item.selectedVariant})` : ''}
                                 </Text>
-                                <Text style={styles.textrose500, styles.textCustom9, styles.fontblack, styles.ml1.5}>
+                                <Text className="text-rose-500 text-[9px] font-black ml-1.5">
                                   x{item.quantity}
                                 </Text>
                               </View>
@@ -7283,18 +6694,18 @@ export default function OperationsScreen() {
                           </View>
 
                           {/* Price & Action */}
-                          <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.pt2, styles.bordert, styles.borderslate100, styles.dark:borderzinc8005060}>
-                            <View style={styles.flexRow, styles.itemsCenter, styles.gap1}>
-                              <Text style={styles.textslate450, styles.textCustom8, styles.fontbold, styles.uppercase}>Total:</Text>
-                              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>{formatPrice(cart.subtotal)}</Text>
+                          <View className="flex-row justify-between items-center pt-2 border-t border-slate-100 dark:border-zinc-800/50/60">
+                            <View className="flex-row items-center gap-1">
+                              <Text className="text-slate-450 text-[8px] font-bold uppercase">Total:</Text>
+                              <Text className="text-slate-900 dark:text-white font-black text-xs">{formatPrice(cart.subtotal)}</Text>
                             </View>
 
                             <Pressable
                               onPress={() => handleOpenAlertModal(cart)}
                               disabled={isLoadingCarts}
-                              style={styles.bgamber500, styles.active:bgamber600, styles.px3, styles.py1.5, styles.roundedlg, styles.flexRow, styles.itemsCenter, styles.gap1}
+                              className="bg-amber-500 active:bg-amber-600 px-3 py-1.5 rounded-lg flex-row items-center gap-1"
                             >
-                              <Text style={styles.textwhite, styles.textCustom9, styles.fontblack}>🔔 Send Alert</Text>
+                              <Text className="text-white text-[9px] font-black">🔔 Send Alert</Text>
                             </Pressable>
                           </View>
                         </View>
@@ -7309,19 +6720,19 @@ export default function OperationsScreen() {
 
         {/* ------------------- CATEGORIES TAB WORKSPACE ------------------- */}
         {activeTab === 'CATEGORIES' && (
-          <View style={styles.px4, styles.py4, styles.gap4}>
+          <View className="px-4 py-4 gap-4">
             {/* Sub-view Toggle Header */}
-            <View style={styles.flexRow, styles.bgslate100, styles.dark:bgzinc900, styles.p1, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc805, styles.gap1, styles.mb2}>
+            <View className="flex-row bg-slate-100 dark:bg-zinc-900 p-1 rounded-2xl border border-slate-200 dark:border-zinc-805 gap-1 mb-2">
               <Pressable
                 onPress={() => {
                   setCategorySubView('grocery');
                   triggerHaptic('light');
                 }}
-                style={flex-1 items-center py-2.5 rounded-xl ${
-                  categorySubView === [styles.grocery] ? [styles.bgindigo600, styles.shadow] : [styles.bgtransparent]
-                }}
+                className={`flex-1 items-center py-2.5 rounded-xl ${
+                  categorySubView === 'grocery' ? 'bg-indigo-600 shadow' : 'bg-transparent'
+                }`}
               >
-                <Text style={text-[10px] font-extrabold uppercase tracking-wider ${categorySubView === [styles.grocery] ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]}}>
+                <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${categorySubView === 'grocery' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                   📦 Grocery Categories
                 </Text>
               </Pressable>
@@ -7330,11 +6741,11 @@ export default function OperationsScreen() {
                   setCategorySubView('cafe');
                   triggerHaptic('light');
                 }}
-                style={flex-1 items-center py-2.5 rounded-xl ${
-                  categorySubView === [styles.cafe] ? [styles.bgindigo600, styles.shadow] : [styles.bgtransparent]
-                }}
+                className={`flex-1 items-center py-2.5 rounded-xl ${
+                  categorySubView === 'cafe' ? 'bg-indigo-600 shadow' : 'bg-transparent'
+                }`}
               >
-                <Text style={text-[10px] font-extrabold uppercase tracking-wider ${categorySubView === [styles.cafe] ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]}}>
+                <Text className={`text-[10px] font-extrabold uppercase tracking-wider ${categorySubView === 'cafe' ? 'text-white' : 'text-slate-500 dark:text-slate-400'}`}>
                   ☕ Café Menu Sections
                 </Text>
               </Pressable>
@@ -7342,74 +6753,74 @@ export default function OperationsScreen() {
 
             {categorySubView === 'grocery' ? (
               // Existing Categories View
-              <View style={styles.gap4}>
+              <View className="gap-4">
                 {/* Clean, Simple Header Banner */}
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc90050, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate20080, styles.dark:borderzinc800}>
-                  <View style={styles.flex1, styles.pr2}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontextrabold, styles.textsm}>Store Categories</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mt0.5}>Control category grouping and weights.</Text>
+                <View className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-slate-200/80 dark:border-zinc-800">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-slate-900 dark:text-white font-extrabold text-sm">Store Categories</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-0.5">Control category grouping and weights.</Text>
                   </View>
                   <Pressable
                     onPress={() => {
                       setShowAddCategory(!showAddCategory);
                       triggerHaptic('light');
                     }}
-                    style={styles.flexRow, styles.itemsCenter, styles.gap1.5, styles.px3, styles.py2, styles.bgindigo600, styles.roundedXl, styles.shadowSm}
+                    className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl shadow-sm"
                   >
                     <PlusCircle size={14} color="#fff" />
-                    <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Add New</Text>
+                    <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Add New</Text>
                   </Pressable>
                 </View>
 
                 {/* Add Category Form */}
                 {showAddCategory && (
-                  <View style={styles.bgwhite, styles.dark:bgzinc900, styles.p4, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.rounded2Xl, styles.gap3, styles.animateslideup}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Add Category Details</Text>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Category Name *</Text>
+                  <View className="bg-white dark:bg-zinc-900 p-4 border border-slate-200 dark:border-zinc-850 rounded-2xl gap-3 animate-slide-up">
+                    <Text className="text-slate-900 dark:text-white font-black text-xs">Add Category Details</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Category Name *</Text>
                       <TextInput
                         value={newCategoryName}
                         onChangeText={setNewCategoryName}
                         placeholder="e.g. Gourmet Sweets"
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Image / Emoji Icon</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Image / Emoji Icon</Text>
                       <TextInput
                         value={newCategoryImageUrl}
                         onChangeText={setNewCategoryImageUrl}
                         placeholder="e.g. 🍫 or https://cloudinary.com/..."
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Sort Order Weight</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Sort Order Weight</Text>
                       <TextInput
                         value={newCategorySortOrder}
                         onChangeText={setNewCategorySortOrder}
                         keyboardType="numeric"
                         placeholder="e.g. 9"
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.flexRow, styles.gap2, styles.mt2}>
+                    <View className="flex-row gap-2 mt-2">
                       <Pressable
                         onPress={() => setShowAddCategory(false)}
-                        style={styles.flex1, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.py2.5, styles.roundedXl, styles.itemsCenter}
+                        className="flex-1 border border-slate-200 dark:border-zinc-850 py-2.5 rounded-xl items-center"
                       >
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Cancel</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-extrabold text-[10px] uppercase">Cancel</Text>
                       </Pressable>
                       <Pressable
                         onPress={handleCreateCategory}
                         disabled={isCreatingCategory}
-                        style={styles.flex1, styles.bgindigo600, styles.py2.5, styles.roundedXl, styles.itemsCenter, styles.justifyCenter, styles.flexRow}
+                        className="flex-1 bg-indigo-600 py-2.5 rounded-xl items-center justify-center flex-row"
                       >
                         {isCreatingCategory && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                        <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Create</Text>
+                        <Text className="text-white font-extrabold text-[10px] uppercase">Create</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -7417,44 +6828,44 @@ export default function OperationsScreen() {
 
                 {/* Categories List */}
                 {isCategoriesLoading ? (
-                  <ActivityIndicator size="large" color="#6366f1" style={styles.py10} />
+                  <ActivityIndicator size="large" color="#6366f1" className="py-10" />
                 ) : (
-                  <View style={styles.gap2.5}>
+                  <View className="gap-2.5">
                     {categories.map((c) => (
-                      <View key={c.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.p3.5, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.shadowSm}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap3.5, styles.flex1, styles.minw0}>
+                      <View key={c.id} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
+                        <View className="flex-row items-center gap-3.5 flex-1 min-w-0">
                           {/* Soft circular icon container */}
-                          <View style={styles.w11, styles.h11, styles.rounded2Xl, styles.bgslate100, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate20060, styles.dark:borderzinc700, styles.overflowHidden}>
+                          <View className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200/60 dark:border-zinc-700 overflow-hidden">
                             {getAppImageSource(c.imageUrl) ? (
-                              <Image source={getAppImageSource(c.imageUrl)!} style={styles.wfull, styles.hfull} contentFit="cover" />
+                              <Image source={getAppImageSource(c.imageUrl)!} className="w-full h-full" contentFit="cover" />
                             ) : (
-                              <Text style={styles.textlg}>{c.imageUrl || '📦'}</Text>
+                              <Text className="text-lg">{c.imageUrl || '📦'}</Text>
                             )}
                           </View>
-                          <View style={styles.flex1, styles.minw0, styles.pr2}>
+                          <View className="flex-1 min-w-0 pr-2">
                             {/* Corrected Text Visibility & Styling */}
-                            <Text style={styles.textslate900, styles.dark:textwhite, styles.fontbold, styles.textsm, styles.truncate}>{c.name}</Text>
-                            <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom10, styles.fontsemibold, styles.mt0.5, styles.uppercase, styles.trackingwide, styles.truncate}>
+                            <Text className="text-slate-900 dark:text-white font-bold text-sm truncate">{c.name}</Text>
+                            <Text className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-0.5 uppercase tracking-wide truncate">
                               {c.slug} · weight: {c.sortOrder}
                             </Text>
                           </View>
                         </View>
 
                         {/* Modern Action Buttons */}
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+                        <View className="flex-row items-center gap-2">
                           <Pressable
                             onPress={() => {
                               setEditingCategory(c);
                               triggerHaptic('light');
                             }}
-                            style={styles.p2.5, styles.roundedFull, styles.bgslate50, styles.dark:bgzinc800, styles.border, styles.borderslate20060, styles.dark:borderzinc750, styles.active:bgslate100, styles.dark:active:bgzinc700}
+                            className="p-2.5 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-200/60 dark:border-zinc-750 active:bg-slate-100 dark:active:bg-zinc-700"
                           >
                             <Edit2 size={13} color={isDarkMode ? '#cbd5e1' : '#475569'} />
                           </Pressable>
                           <Pressable
                             onPress={() => handleDeleteCategory(c.id)}
                             disabled={deletingCategoryId === c.id}
-                            style={styles.p2.5, styles.roundedFull, styles.bgred50, styles.dark:bgred95020, styles.border, styles.borderred100, styles.dark:borderred90030, styles.active:bgred100, styles.dark:active:bgred95040}
+                            className="p-2.5 rounded-full bg-red-50 dark:bg-red-950/20 border border-red-100 dark:border-red-900/30 active:bg-red-100 dark:active:bg-red-950/40"
                           >
                             {deletingCategoryId === c.id ? (
                               <ActivityIndicator size="small" color="#f43f5e" />
@@ -7470,12 +6881,12 @@ export default function OperationsScreen() {
               </View>
             ) : (
               // Café Menu Sections View
-              <View style={styles.gap4}>
+              <View className="gap-4">
                 {/* Clean, Simple Header Banner */}
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc90050, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc800}>
-                  <View style={styles.flex1, styles.pr2}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontextrabold, styles.textsm}>Café Menu Sections</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontsemibold, styles.mt0.5}>Configure and reorder sections on Cafe storefront.</Text>
+                <View className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-900/50 p-4 rounded-2xl border border-slate-200 dark:border-zinc-800">
+                  <View className="flex-1 pr-2">
+                    <Text className="text-slate-900 dark:text-white font-extrabold text-sm">Café Menu Sections</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-semibold mt-0.5">Configure and reorder sections on Cafe storefront.</Text>
                   </View>
                   {!(isAddingNewCafeSec || editingCafeSecIndex !== null) && (
                     <Pressable
@@ -7489,86 +6900,86 @@ export default function OperationsScreen() {
                         setSecMatchTags('');
                         triggerHaptic('light');
                       }}
-                      style={styles.flexRow, styles.itemsCenter, styles.gap1.5, styles.px3, styles.py2, styles.bgindigo600, styles.roundedXl, styles.shadowSm}
+                      className="flex-row items-center gap-1.5 px-3 py-2 bg-indigo-600 rounded-xl shadow-sm"
                     >
                       <PlusCircle size={14} color="#fff" />
-                      <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase, styles.trackingwider}>Add Section</Text>
+                      <Text className="text-white font-extrabold text-[10px] uppercase tracking-wider">Add Section</Text>
                     </Pressable>
                   )}
                 </View>
 
                 {/* Add / Edit Café Section Form */}
                 {(isAddingNewCafeSec || editingCafeSecIndex !== null) && (
-                  <View style={styles.bgwhite, styles.dark:bgzinc900, styles.p4, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.rounded2Xl, styles.gap3}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>
+                  <View className="bg-white dark:bg-zinc-900 p-4 border border-slate-200 dark:border-zinc-850 rounded-2xl gap-3">
+                    <Text className="text-slate-900 dark:text-white font-black text-xs">
                       {isAddingNewCafeSec ? '✨ Add New Café Section' : '📝 Edit Café Section'}
                     </Text>
                     
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Section Title *</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Section Title *</Text>
                       <TextInput
                         value={secTitle}
                         onChangeText={setSecTitle}
                         placeholder="e.g. Gourmet Sandwiches"
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate805, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-805 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
-                    <View style={styles.flexRow, styles.gap3}>
-                      <View style={styles.flex1, styles.gap2}>
-                        <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Tag Slug (Unique) *</Text>
+                    <View className="flex-row gap-3">
+                      <View className="flex-1 gap-2">
+                        <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Tag Slug (Unique) *</Text>
                         <TextInput
                           value={secTag}
                           onChangeText={setSecTag}
                           placeholder="e.g. sandwiches"
                           placeholderTextColor="#64748b"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-bold text-xs"
                         />
                       </View>
-                      <View style={styles.flex1, styles.gap2}>
-                        <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Emoji Icon *</Text>
+                      <View className="flex-1 gap-2">
+                        <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Emoji Icon *</Text>
                         <TextInput
                           value={secEmoji}
                           onChangeText={setSecEmoji}
                           placeholder="e.g. 🥪"
                           placeholderTextColor="#64748b"
-                          style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate805, styles.dark:textwhite, styles.fontbold, styles.textxs, styles.textCenter}
+                          className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-805 dark:text-white font-bold text-xs text-center"
                         />
                       </View>
                     </View>
 
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Description / Subtitle</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Description / Subtitle</Text>
                       <TextInput
                         value={secDescription}
                         onChangeText={setSecDescription}
                         placeholder="e.g. Freshly grilled loaded sandwiches"
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Match Product Tags (Comma-separated)</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Match Product Tags (Comma-separated)</Text>
                       <TextInput
                         value={secMatchTags}
                         onChangeText={setSecMatchTags}
                         placeholder="e.g. sandwich, sandwiches"
                         placeholderTextColor="#64748b"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
 
-                    <View style={styles.flexRow, styles.gap2, styles.mt2}>
+                    <View className="flex-row gap-2 mt-2">
                       <Pressable
                         onPress={() => {
                           setIsAddingNewCafeSec(false);
                           setEditingCafeSecIndex(null);
                         }}
-                        style={styles.flex1, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.py2.5, styles.roundedXl, styles.itemsCenter}
+                        className="flex-1 border border-slate-200 dark:border-zinc-850 py-2.5 rounded-xl items-center"
                       >
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Cancel</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-extrabold text-[10px] uppercase">Cancel</Text>
                       </Pressable>
                       <Pressable
                         onPress={() => {
@@ -7607,9 +7018,9 @@ export default function OperationsScreen() {
                           setIsAddingNewCafeSec(false);
                           setEditingCafeSecIndex(null);
                         }}
-                        style={styles.flex1, styles.bgindigo600, styles.py2.5, styles.roundedXl, styles.itemsCenter}
+                        className="flex-1 bg-indigo-600 py-2.5 rounded-xl items-center"
                       >
-                        <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Apply</Text>
+                        <Text className="text-white font-extrabold text-[10px] uppercase">Apply</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -7617,37 +7028,37 @@ export default function OperationsScreen() {
 
                 {/* Café Sections List */}
                 {isCafeSectionsLoading ? (
-                  <ActivityIndicator size="large" color="#6366f1" style={styles.py10} />
+                  <ActivityIndicator size="large" color="#6366f1" className="py-10" />
                 ) : (
-                  <View style={styles.gap2.5}>
+                  <View className="gap-2.5">
                     {cafeMenuSections.map((sec, idx) => (
-                      <View key={sec.tag} style={{ opacity: sec.disabled ? 0.6 : 1 }} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.p3.5, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.shadowSm}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap3.5, styles.flex1, styles.minw0}>
+                      <View key={sec.tag} style={{ opacity: sec.disabled ? 0.6 : 1 }} className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-3.5 rounded-2xl flex-row items-center justify-between shadow-sm">
+                        <View className="flex-row items-center gap-3.5 flex-1 min-w-0">
                           {/* Soft rounded icon container */}
-                          <View style={styles.w11, styles.h11, styles.rounded2Xl, styles.bgslate100, styles.dark:bgzinc800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate20060, styles.dark:borderzinc700, styles.overflowHidden}>
-                            <Text style={styles.textlg}>{sec.emoji || '☕'}</Text>
+                          <View className="w-11 h-11 rounded-2xl bg-slate-100 dark:bg-zinc-800 items-center justify-center border border-slate-200/60 dark:border-zinc-700 overflow-hidden">
+                            <Text className="text-lg">{sec.emoji || '☕'}</Text>
                           </View>
-                          <View style={styles.flex1, styles.minw0, styles.pr2}>
-                            <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flexWrap}>
-                              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontbold, styles.textsm, styles.truncate}>{sec.title}</Text>
-                              <View style={styles.bgindigo50, styles.dark:bgindigo95040, styles.border, styles.borderindigo100, styles.dark:borderindigo90050, styles.px1.5, styles.py0.5, styles.roundedmd}>
-                                <Text style={styles.textindigo600, styles.dark:textindigo400, styles.textCustom8, styles.fontextrabold, styles.uppercase, styles.trackingwider}>#{sec.tag}</Text>
+                          <View className="flex-1 min-w-0 pr-2">
+                            <View className="flex-row items-center gap-2 flex-wrap">
+                              <Text className="text-slate-900 dark:text-white font-bold text-sm truncate">{sec.title}</Text>
+                              <View className="bg-indigo-50 dark:bg-indigo-950/40 border border-indigo-100 dark:border-indigo-900/50 px-1.5 py-0.5 rounded-md">
+                                <Text className="text-indigo-600 dark:text-indigo-400 text-[8px] font-extrabold uppercase tracking-wider">#{sec.tag}</Text>
                               </View>
                               {sec.disabled && (
-                                <View style={styles.bgrose50, styles.dark:bgrose95040, styles.border, styles.borderrose100, styles.dark:borderrose90050, styles.px1.5, styles.py0.5, styles.roundedmd}>
-                                  <Text style={styles.textrose600, styles.dark:textrose450, styles.textCustom8, styles.fontextrabold, styles.uppercase, styles.trackingwider}>OFF</Text>
+                                <View className="bg-rose-50 dark:bg-rose-950/40 border border-rose-100 dark:border-rose-900/50 px-1.5 py-0.5 rounded-md">
+                                  <Text className="text-rose-600 dark:text-rose-450 text-[8px] font-extrabold uppercase tracking-wider">OFF</Text>
                                 </View>
                               )}
                             </View>
                             {sec.description ? (
-                              <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom10, styles.fontsemibold, styles.mt1, styles.truncate}>{sec.description}</Text>
+                              <Text className="text-slate-400 dark:text-slate-500 text-[10px] font-semibold mt-1 truncate">{sec.description}</Text>
                             ) : null}
                           </View>
                         </View>
 
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+                        <View className="flex-row items-center gap-2">
                           {/* Reordering controls */}
-                          <View style={styles.flexRow, styles.gap1, styles.borderr, styles.borderslate100, styles.dark:borderzinc805, styles.pr2, styles.mr1}>
+                          <View className="flex-row gap-1 border-r border-slate-100 dark:border-zinc-805 pr-2 mr-1">
                             <Pressable
                               disabled={idx === 0}
                               onPress={() => {
@@ -7656,7 +7067,7 @@ export default function OperationsScreen() {
                                 copy.splice(idx - 1, 0, moved);
                                 handleSaveCafeSections(copy);
                               }}
-                              style={p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === 0 ? [styles.opacity30] : [styles.active:bgslate100, styles.dark:active:bgzinc800]}}
+                              className={`p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === 0 ? 'opacity-30' : 'active:bg-slate-100 dark:active:bg-zinc-800'}`}
                             >
                               <ArrowUp size={11} color="#94a3b8" />
                             </Pressable>
@@ -7668,7 +7079,7 @@ export default function OperationsScreen() {
                                 copy.splice(idx + 1, 0, moved);
                                 handleSaveCafeSections(copy);
                               }}
-                              style={p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === cafeMenuSections.length - 1 ? [styles.opacity30] : [styles.active:bgslate100, styles.dark:active:bgzinc800]}}
+                              className={`p-1.5 rounded-lg border border-slate-200 dark:border-zinc-800 bg-slate-50 dark:bg-zinc-850 ${idx === cafeMenuSections.length - 1 ? 'opacity-30' : 'active:bg-slate-100 dark:active:bg-zinc-800'}`}
                             >
                               <ArrowDown size={11} color="#94a3b8" />
                             </Pressable>
@@ -7689,13 +7100,13 @@ export default function OperationsScreen() {
                                 `"${sec.title}" is now turned ${copy[idx].disabled ? 'OFF' : 'ON'}.`
                               );
                             }}
-                            style={px-2.5 py-1.5 border rounded-lg active:scale-95 ${
+                            className={`px-2.5 py-1.5 border rounded-lg active:scale-95 ${
                               sec.disabled 
-                                ? [styles.borderrose50025, styles.bgrose50010] 
-                                : [styles.borderemerald50025, styles.bgemerald50010]
-                            }}
+                                ? 'border-rose-500/25 bg-rose-500/10' 
+                                : 'border-emerald-500/25 bg-emerald-500/10'
+                            }`}
                           >
-                            <Text style={{ fontSize: 8.5, fontWeight: '800', color: sec.disabled ? 'THEME.COLORS.brand.accent' : 'THEME.COLORS.brand.success' }}>
+                            <Text style={{ fontSize: 8.5, fontWeight: '800', color: sec.disabled ? '#ef4444' : '#10b981' }}>
                               {sec.disabled ? 'OFF' : 'ON'}
                             </Text>
                           </Pressable>
@@ -7711,7 +7122,7 @@ export default function OperationsScreen() {
                               setSecMatchTags(sec.matchTags ? sec.matchTags.join(', ') : sec.tag);
                               triggerHaptic('light');
                             }}
-                            style={styles.p2.5, styles.roundedFull, styles.bgslate50, styles.dark:bgzinc800, styles.border, styles.borderslate20060, styles.dark:borderslate750, styles.active:bgslate100, styles.dark:active:bgzinc700}
+                            className="p-2.5 rounded-full bg-slate-50 dark:bg-zinc-800 border border-slate-200/60 dark:border-slate-750 active:bg-slate-100 dark:active:bg-zinc-700"
                           >
                             <Edit2 size={13} color={isDarkMode ? '#cbd5e1' : '#475569'} />
                           </Pressable>
@@ -7736,7 +7147,7 @@ export default function OperationsScreen() {
                               );
                             }}
                             disabled={isSavingCafeSections}
-                            style={styles.p1.5, styles.roundedlg, styles.bgred60010, styles.border, styles.borderred50025, styles.active:bgred60030}
+                            className="p-1.5 rounded-lg bg-red-600/10 border border-red-500/25 active:bg-red-600/30"
                           >
                             <XCircle size={14} color="#f43f5e" />
                           </Pressable>
@@ -7751,46 +7162,46 @@ export default function OperationsScreen() {
             {/* Edit Category Modal */}
             {editingCategory && (
               <Modal visible={true} transparent={true} animationType="fade">
-                <View style={styles.flex1, styles.bgblack60, styles.justifyCenter, styles.p6}>
-                  <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.rounded3Xl, styles.p6, styles.gap3}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Edit Category: {editingCategory.name}</Text>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Category Name</Text>
+                <View className="flex-1 bg-black/60 justify-center p-6">
+                  <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 rounded-3xl p-6 gap-3">
+                    <Text className="text-slate-900 dark:text-white font-black text-sm">Edit Category: {editingCategory.name}</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Category Name</Text>
                       <TextInput
                         value={editingCategory.name}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, name: t })}
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Image / Icon</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Image / Icon</Text>
                       <TextInput
                         value={editingCategory.imageUrl}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, imageUrl: t })}
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.gap2}>
-                      <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Sort Order Weight</Text>
+                    <View className="gap-2">
+                      <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Sort Order Weight</Text>
                       <TextInput
                         value={String(editingCategory.sortOrder)}
                         onChangeText={(t) => setEditingCategory({ ...editingCategory, sortOrder: t })}
                         keyboardType="numeric"
-                        style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                        className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-slate-800 dark:text-white font-semibold text-xs"
                       />
                     </View>
-                    <View style={styles.flexRow, styles.gap2, styles.mt2}>
+                    <View className="flex-row gap-2 mt-2">
                       <Pressable
                         onPress={() => setEditingCategory(null)}
-                        style={styles.flex1, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.py2.5, styles.roundedXl, styles.itemsCenter}
+                        className="flex-1 border border-slate-200 dark:border-zinc-850 py-2.5 rounded-xl items-center"
                       >
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Cancel</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 font-extrabold text-[10px] uppercase">Cancel</Text>
                       </Pressable>
                       <Pressable
                         onPress={handleUpdateCategory}
-                        style={styles.flex1, styles.bgindigo600, styles.py2.5, styles.roundedXl, styles.itemsCenter}
+                        className="flex-1 bg-indigo-600 py-2.5 rounded-xl items-center"
                       >
-                        <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Save</Text>
+                        <Text className="text-white font-extrabold text-[10px] uppercase">Save</Text>
                       </Pressable>
                     </View>
                   </View>
@@ -7802,17 +7213,17 @@ export default function OperationsScreen() {
 
         {/* ------------------- ALERTS TAB WORKSPACE ------------------- */}
         {activeTab === 'ALERTS' && (
-          <View style={styles.px4, styles.py4, styles.gap4}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.p4, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.gap3}>
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
+          <View className="px-4 py-4 gap-4">
+            <View className="bg-white dark:bg-zinc-900 p-4 rounded-2xl border border-slate-200 dark:border-zinc-850 gap-3">
+              <View className="flex-row justify-between items-center">
                 <View>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>System Alerts</Text>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold, styles.mt0.5}>Critical inventory shortages and processing delays.</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-sm">System Alerts</Text>
+                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold mt-0.5">Critical inventory shortages and processing delays.</Text>
                 </View>
                 <Pressable
                   onPress={handleRecalculateAlerts}
                   disabled={isAlertsRefreshing}
-                  style={styles.p2, styles.bgindigo60010, styles.border, styles.borderindigo50020, styles.roundedXl, styles.active:bgindigo60020}
+                  className="p-2 bg-indigo-600/10 border border-indigo-500/20 rounded-xl active:bg-indigo-600/20"
                 >
                   {isAlertsRefreshing ? (
                     <ActivityIndicator size="small" color="#6366f1" />
@@ -7838,13 +7249,13 @@ export default function OperationsScreen() {
                       setActiveAlertSubTab(tabObj.key as any);
                       triggerHaptic('light');
                     }}
-                    style={px-3 py-1.5 rounded-lg border mr-1 flex-row items-center gap-1 ${
+                    className={`px-3 py-1.5 rounded-lg border mr-1 flex-row items-center gap-1 ${
                       activeAlertSubTab === tabObj.key
-                        ? [styles.bgindigo600, styles.borderindigo500]
-                        : [styles.bgslate80060, styles.borderslate70040]
-                    }}
+                        ? 'bg-indigo-600 border-indigo-500'
+                        : 'bg-slate-800/60 border-slate-700/40'
+                    }`}
                   >
-                    <Text style={styles.textCustom9, styles.fontblack, styles.textwhite, styles.uppercase}>
+                    <Text className="text-[9px] font-black text-white uppercase">
                       {tabObj.label} ({tabObj.count || 0})
                     </Text>
                   </Pressable>
@@ -7853,41 +7264,41 @@ export default function OperationsScreen() {
             </View>
 
             {isAlertsLoading ? (
-              <ActivityIndicator size="large" color="#6366f1" style={styles.py10} />
+              <ActivityIndicator size="large" color="#6366f1" className="py-10" />
             ) : (
-              <View style={styles.gap3}>
+              <View className="gap-3">
                 {alerts.filter(a => activeAlertSubTab === 'ALL' || a.alertType === activeAlertSubTab).map((item) => {
                   const isSnoozedKey = `${item.id}:${item.alertType}`;
                   return (
-                    <View key={isSnoozedKey} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.flex1, styles.mr2}>
-                          <View style={styles.w10, styles.h10, styles.roundedXl, styles.bgslate800, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate700, styles.mr2.5, styles.overflowHidden}>
+                    <View key={isSnoozedKey} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
+                      <View className="flex-row items-center justify-between">
+                        <View className="flex-row items-center flex-1 mr-2">
+                          <View className="w-10 h-10 rounded-xl bg-slate-800 items-center justify-center border border-slate-700 mr-2.5 overflow-hidden">
                             {getAppImageSource(item.imageUrl) ? (
-                              <Image source={getAppImageSource(item.imageUrl)!} style={styles.wfull, styles.hfull} contentFit="cover" />
+                              <Image source={getAppImageSource(item.imageUrl)!} className="w-full h-full" contentFit="cover" />
                             ) : (
-                              <Text style={styles.textlg}>{item.imageUrl || '📦'}</Text>
+                              <Text className="text-lg">{item.imageUrl || '📦'}</Text>
                             )}
                           </View>
-                          <View style={styles.flex1}>
-                            <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs} numberOfLines={2}>{item.name}</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5, styles.uppercase}>
+                          <View className="flex-1">
+                            <Text className="text-slate-800 dark:text-white font-extrabold text-xs" numberOfLines={2}>{item.name}</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5 uppercase">
                               Stock: {item.stock} / Min: {item.minStock}
                             </Text>
                           </View>
                         </View>
-                        <View style={styles.itemsEnd}>
-                          <View style={rounded-full px-2 py-0.5 ${
-                            item.alertType === [styles.OUT_OF_STOCK] || item.alertType === [styles.EXPIRED] ? [styles.bgred50010, styles.border, styles.borderred50020] : [styles.bgamber50010, styles.border, styles.borderamber50020]
-                          }}>
-                            <Text style={text-[8px] font-black uppercase ${
-                              item.alertType === [styles.OUT_OF_STOCK] || item.alertType === [styles.EXPIRED] ? [styles.textred500] : [styles.textamber500]
-                            }}>
+                        <View className="items-end">
+                          <View className={`rounded-full px-2 py-0.5 ${
+                            item.alertType === 'OUT_OF_STOCK' || item.alertType === 'EXPIRED' ? 'bg-red-500/10 border border-red-500/20' : 'bg-amber-500/10 border border-amber-500/20'
+                          }`}>
+                            <Text className={`text-[8px] font-black uppercase ${
+                              item.alertType === 'OUT_OF_STOCK' || item.alertType === 'EXPIRED' ? 'text-red-500' : 'text-amber-500'
+                            }`}>
                               {item.alertType.replace(/_/g, ' ')}
                             </Text>
                           </View>
                           {item.expiryDate && (
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom7, styles.fontbold, styles.mt1, styles.uppercase}>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[7px] font-bold mt-1 uppercase">
                               {item.alertType === 'PACKING_DELAY' 
                                 ? `Placed ${Math.floor((Date.now() - new Date(item.expiryDate).getTime()) / 60000)}m ago` 
                                 : `Expiry: ${new Date(item.expiryDate).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })}`
@@ -7898,42 +7309,42 @@ export default function OperationsScreen() {
                       </View>
 
                       {/* Alert Action Panel */}
-                      <View style={styles.flexRow, styles.gap2, styles.pt2, styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.itemsCenter, styles.justifyBetween}>
+                      <View className="flex-row gap-2 pt-2 border-t border-slate-100 dark:border-zinc-800/80 items-center justify-between">
                         {/* Quick Restock Input & Button */}
                         {(item.alertType === 'OUT_OF_STOCK' || item.alertType === 'LOW_STOCK') ? (
-                          <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.flex1, styles.mr3}>
+                          <View className="flex-row items-center gap-2 flex-1 mr-3">
                             <TextInput
                               keyboardType="numeric"
                               placeholder="Qty"
                               placeholderTextColor="#64748b"
                               value={alertRestockAmount[item.id] || ''}
                               onChangeText={(t) => setAlertRestockAmount(prev => ({ ...prev, [item.id]: t }))}
-                              style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedlg, styles.px2, styles.py1, styles.textwhite, styles.fontblack, styles.textCustom10, styles.w12, styles.textCenter}
+                              className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-lg px-2 py-1 text-white font-black text-[10px] w-12 text-center"
                             />
                             <Pressable
                               onPress={() => handleRestockAlert(item.id, item.stock)}
                               disabled={submittingRestockId === item.id}
-                              style={styles.bgindigo60010, styles.border, styles.borderindigo50025, styles.px3, styles.py1.5, styles.roundedlg, styles.flexRow, styles.itemsCenter, styles.justifyCenter}
+                              className="bg-indigo-600/10 border border-indigo-500/25 px-3 py-1.5 rounded-lg flex-row items-center justify-center"
                             >
                               {submittingRestockId === item.id ? (
                                 <ActivityIndicator size="small" color="#6366f1" style={{ scaleX: 0.8, scaleY: 0.8 }} />
                               ) : (
-                                <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom9, styles.uppercase}>Restock</Text>
+                                <Text className="text-indigo-400 font-extrabold text-[9px] uppercase">Restock</Text>
                               )}
                             </Pressable>
                           </View>
-                        ) : <View style={styles.flex1} />}
+                        ) : <View className="flex-1" />}
 
                         {/* Snooze Button */}
                         <Pressable
                           onPress={() => handleSnoozeAlert(item.id, item.alertType)}
                           disabled={submittingAlertAction === isSnoozedKey}
-                          style={styles.px3, styles.py1.5, styles.roundedlg, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.bgslate950, styles.active:bgslate900}
+                          className="px-3 py-1.5 rounded-lg border border-slate-200 dark:border-zinc-850 bg-slate-950 active:bg-slate-900"
                         >
                           {submittingAlertAction === isSnoozedKey ? (
                             <ActivityIndicator size="small" color="#94a3b8" />
                           ) : (
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase}>Snooze 30m</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase">Snooze 30m</Text>
                           )}
                         </Pressable>
                       </View>
@@ -7947,37 +7358,37 @@ export default function OperationsScreen() {
 
         {/* ------------------- INWARD TAB WORKSPACE ------------------- */}
         {activeTab === 'INWARD' && (
-          <View style={styles.px4, styles.py4, styles.gap4}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded2Xl, styles.gap3}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+          <View className="px-4 py-4 gap-4">
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-3">
+              <View className="flex-row items-center gap-2">
                 <Building2 size={18} color="#6366f1" />
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Goods Receipt Note (GRN)</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm">Goods Receipt Note (GRN)</Text>
               </View>
-              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold}>Register trackable expiry-date batches to restock inventory.</Text>
+              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold">Register trackable expiry-date batches to restock inventory.</Text>
 
               {/* Product Lookup Search */}
-              <View style={styles.flexRow, styles.itemsCenter, styles.bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.h11, styles.mt1}>
+              <View className="flex-row items-center bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 h-11 mt-1">
                 <Search size={16} color="#94a3b8" />
                 <TextInput
                   placeholder="Lookup products by name..."
                   placeholderTextColor="#64748b"
                   value={inwardSearchQuery}
                   onChangeText={handleInwardProductSearch}
-                  style={styles.flex1, styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.ml2}
+                  className="flex-1 text-slate-800 dark:text-white font-extrabold text-xs ml-2"
                 />
               </View>
 
               {/* Search Dropdown options */}
               {inwardProductsList.length > 0 && (
-                <View style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.overflowHidden, styles.mt1, styles.dividey, styles.divideslate900}>
+                <View className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl overflow-hidden mt-1 divide-y divide-slate-900">
                   {inwardProductsList.map((prod) => (
                     <Pressable
                       key={prod.id}
                       onPress={() => handleSelectInwardProduct(prod)}
-                      style={styles.p3, styles.active:bgslate900, styles.flexRow, styles.itemsCenter}
+                      className="p-3 active:bg-slate-900 flex-row items-center"
                     >
-                      <Text style={styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs, styles.flex1}>{prod.name}</Text>
-                      <Text style={styles.textindigo400, styles.fontblack, styles.textCustom9, styles.uppercase, styles.ml2}>₹{prod.price} • Stock: {prod.stock}</Text>
+                      <Text className="text-slate-800 dark:text-white font-bold text-xs flex-1">{prod.name}</Text>
+                      <Text className="text-indigo-400 font-black text-[9px] uppercase ml-2">₹{prod.price} • Stock: {prod.stock}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -7986,59 +7397,59 @@ export default function OperationsScreen() {
 
             {/* Selected Product Form */}
             {selectedInwardProduct && (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded2Xl, styles.gap4}>
-                <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb2.5}>
-                  <View style={styles.flex1, styles.mr2}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>{selectedInwardProduct.name}</Text>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5, styles.uppercase}>Current Stock: {selectedInwardProduct.stock}</Text>
+              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-4">
+                <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-2.5">
+                  <View className="flex-1 mr-2">
+                    <Text className="text-slate-900 dark:text-white font-black text-xs">{selectedInwardProduct.name}</Text>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5 uppercase">Current Stock: {selectedInwardProduct.stock}</Text>
                   </View>
-                  <Pressable onPress={() => setSelectedInwardProduct(null)} style={styles.p1}>
+                  <Pressable onPress={() => setSelectedInwardProduct(null)} className="p-1">
                     <X size={16} color="#94a3b8" />
                   </Pressable>
                 </View>
 
                 {/* Form fields */}
-                <View style={styles.gap3}>
-                  <View style={styles.gap1.5}>
-                    <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Inward Quantity</Text>
+                <View className="gap-3">
+                  <View className="gap-1.5">
+                    <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Inward Quantity</Text>
                     <TextInput
                       value={inwardQuantity}
                       onChangeText={setInwardQuantity}
                       keyboardType="numeric"
-                      style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textwhite, styles.fontsemibold, styles.textxs}
+                      className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
                     />
                   </View>
 
-                  <View style={styles.gap1.5}>
-                    <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Batch Cost Price (₹)</Text>
+                  <View className="gap-1.5">
+                    <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Batch Cost Price (₹)</Text>
                     <TextInput
                       value={inwardCostPrice}
                       onChangeText={setInwardCostPrice}
                       keyboardType="numeric"
-                      style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textwhite, styles.fontsemibold, styles.textxs}
+                      className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
                     />
                   </View>
 
-                  <View style={styles.gap1.5}>
-                    <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Batch Code Identifier</Text>
+                  <View className="gap-1.5">
+                    <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Batch Code Identifier</Text>
                     <TextInput
                       value={inwardBatchCode}
                       onChangeText={setInwardBatchCode}
-                      style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textwhite, styles.fontsemibold, styles.textxs}
+                      className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
                     />
                   </View>
 
-                  <View style={styles.gap1.5}>
-                    <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Expiry Date (YYYY-MM-DD)</Text>
+                  <View className="gap-1.5">
+                    <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase">Expiry Date (YYYY-MM-DD)</Text>
                     <TextInput
                       value={inwardExpiryDate}
                       onChangeText={setInwardExpiryDate}
                       placeholder="e.g. 2026-12-31"
                       placeholderTextColor="#475569"
-                      style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2, styles.textwhite, styles.fontsemibold, styles.textxs}
+                      className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2 text-white font-semibold text-xs"
                     />
                     {/* Expiry Presets */}
-                    <View style={styles.flexRow, styles.gap1.5, styles.mt1.5}>
+                    <View className="flex-row gap-1.5 mt-1.5">
                       {[
                         { label: '+3M', m: 3 },
                         { label: '+6M', m: 6 },
@@ -8051,9 +7462,9 @@ export default function OperationsScreen() {
                             d.setMonth(d.getMonth() + preset.m);
                             setInwardExpiryDate(d.toISOString().split('T')[0]);
                           }}
-                          style={styles.bgslate80080, styles.border, styles.borderslate70060, styles.px2.5, styles.py1, styles.roundedlg, styles.active:bgslate700}
+                          className="bg-slate-800/80 border border-slate-700/60 px-2.5 py-1 rounded-lg active:bg-slate-700"
                         >
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.fontbold, styles.textCustom8}>{preset.label}</Text>
+                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px]">{preset.label}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -8064,32 +7475,32 @@ export default function OperationsScreen() {
                 <Pressable
                   onPress={handleSubmitInward}
                   disabled={isInwardSubmitting}
-                  style={styles.bgindigo600, styles.py3, styles.roundedXl, styles.itemsCenter, styles.justifyCenter, styles.flexRow, styles.mt2}
+                  className="bg-indigo-600 py-3 rounded-xl items-center justify-center flex-row mt-2"
                 >
                   {isInwardSubmitting && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                  <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Confirm Inward Receipt</Text>
+                  <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Confirm Inward Receipt</Text>
                 </Pressable>
               </View>
             )}
 
             {/* Recent Session Logs */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded2Xl, styles.gap3}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Recent GRN Entries</Text>
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-3">
+              <Text className="text-slate-900 dark:text-white font-black text-xs">Recent GRN Entries</Text>
               {recentInwardLogs.length === 0 ? (
-                <Text style={styles.textCustom10, styles.textslate500, styles.dark:textslate400, styles.textCenter, styles.py6}>No inventory shipments inwarded in this session.</Text>
+                <Text className="text-[10px] text-slate-500 dark:text-slate-400 text-center py-6">No inventory shipments inwarded in this session.</Text>
               ) : (
-                <View style={styles.gap2.5}>
+                <View className="gap-2.5">
                   {recentInwardLogs.map((log) => (
-                    <View key={log.id} style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p3, styles.roundedXl, styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
+                    <View key={log.id} className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 p-3 rounded-xl flex-row justify-between items-center">
                       <View>
-<Text style={styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}>{log.productName}</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontmono, styles.mt0.5, styles.uppercase}>
+<Text className="text-slate-800 dark:text-white font-bold text-xs">{log.productName}</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-mono mt-0.5 uppercase">
                           Batch: {log.batchCode} • Exp: {log.expiryDate}
                         </Text>
                       </View>
-                      <View style={styles.itemsEnd}>
-                        <Text style={styles.textemerald400, styles.fontblack, styles.textxs}>+{log.quantity} units</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>{log.timestamp}</Text>
+                      <View className="items-end">
+                        <Text className="text-emerald-400 font-black text-xs">+{log.quantity} units</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">{log.timestamp}</Text>
                       </View>
                     </View>
                   ))}
@@ -8101,43 +7512,43 @@ export default function OperationsScreen() {
 
         {/* ------------------- BULK UPDATE TAB WORKSPACE ------------------- */}
         {activeTab === 'BULK_UPDATE' && (
-          <View style={styles.px4, styles.py4, styles.gap4}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate20060, styles.dark:borderzinc850, styles.p5, styles.rounded3Xl, styles.gap5, styles.shadowSm}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.mb1}>
+          <View className="px-4 py-4 gap-4">
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-850 p-5 rounded-3xl gap-5 shadow-sm">
+              <View className="flex-row items-center gap-2 mb-1">
                 <Zap size={18} color="#e11d48" />
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Bulk Inventory Update</Text>
+                <Text className="text-slate-900 dark:text-white font-black text-sm">Bulk Inventory Update</Text>
               </View>
 
               {/* Category Dropdown Selection */}
-              <View style={styles.gap2}>
-                <Text style={styles.textslate700, styles.dark:textslate300, styles.fontbold, styles.textxs}>Filter Category Scope</Text>
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Filter Category Scope</Text>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                   <Pressable
                     onPress={() => setBulkCategoryId('ALL')}
-                    style={px-4 py-2 rounded-full border ${
-                      bulkCategoryId === [styles.ALL] ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate100, styles.dark:bgzinc800, styles.borderslate20060, styles.dark:borderzinc700]
-                    }}
+                    className={`px-4 py-2 rounded-full border ${
+                      bulkCategoryId === 'ALL' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
+                    }`}
                   >
-                    <Text style={font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === [styles.ALL] ? [styles.textwhite] : [styles.textslate600, styles.dark:textslate400]}}>All Products</Text>
+                    <Text className={`font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === 'ALL' ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>All Products</Text>
                   </Pressable>
                   {categories.map((cat) => (
                     <Pressable
                       key={cat.id}
                       onPress={() => setBulkCategoryId(cat.id)}
-                      style={px-4 py-2 rounded-full border ${
-                        bulkCategoryId === cat.id ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate100, styles.dark:bgzinc800, styles.borderslate20060, styles.dark:borderzinc700]
-                      }}
+                      className={`px-4 py-2 rounded-full border ${
+                        bulkCategoryId === cat.id ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
+                      }`}
                     >
-                      <Text style={font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === cat.id ? [styles.textwhite] : [styles.textslate600, styles.dark:textslate400]}}>{cat.name}</Text>
+                      <Text className={`font-extrabold text-[10px] uppercase tracking-wide ${bulkCategoryId === cat.id ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>{cat.name}</Text>
                     </Pressable>
                   ))}
                 </ScrollView>
               </View>
 
               {/* Update Type - Fixed layout to prevent text clipping */}
-              <View style={styles.gap2}>
-                <Text style={styles.textslate700, styles.dark:textslate300, styles.fontbold, styles.textxs}>Update Target Field</Text>
-                <View style={styles.flexRow, styles.flexWrap, styles.gap2}>
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Update Target Field</Text>
+                <View className="flex-row flex-wrap gap-2">
                   {[
                     { key: 'PRICE', label: 'Price' },
                     { key: 'STOCK', label: 'Stock' },
@@ -8155,11 +7566,11 @@ export default function OperationsScreen() {
                         triggerHaptic('light');
                       }}
                       style={{ width: '48.5%' }}
-                      style={py-2.5 rounded-xl border items-center justify-center ${
-                        bulkUpdateType === field.key ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate50, styles.dark:bgzinc955, styles.borderslate200, styles.dark:borderzinc800]
-                      }}
+                      className={`py-2.5 rounded-xl border items-center justify-center ${
+                        bulkUpdateType === field.key ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
+                      }`}
                     >
-                      <Text style={font-bold text-xs ${bulkUpdateType === field.key ? [styles.textwhite] : [styles.textslate600, styles.dark:textzinc400]}}>{field.label}</Text>
+                      <Text className={`font-bold text-xs ${bulkUpdateType === field.key ? 'text-white' : 'text-slate-600 dark:text-zinc-400'}`}>{field.label}</Text>
                     </Pressable>
                   ))}
                 </View>
@@ -8167,9 +7578,9 @@ export default function OperationsScreen() {
 
               {/* Mode Selection */}
               {bulkUpdateType !== 'AVAILABILITY' && (
-                <View style={styles.gap2}>
-                  <Text style={styles.textslate700, styles.dark:textslate300, styles.fontbold, styles.textxs}>Update Mode</Text>
-                  <View style={styles.flexRow, styles.gap2, styles.flexWrap}>
+                <View className="gap-2">
+                  <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">Update Mode</Text>
+                  <View className="flex-row gap-2 flex-wrap">
                     {[
                       { key: 'FLAT_INCREASE', label: 'Flat +' },
                       { key: 'FLAT_DECREASE', label: 'Flat -' },
@@ -8183,11 +7594,11 @@ export default function OperationsScreen() {
                           setBulkMode(m.key as any);
                           triggerHaptic('light');
                         }}
-                        style={px-4 py-2 rounded-full border ${
-                          bulkMode === m.key ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate100, styles.dark:bgzinc800, styles.borderslate20060, styles.dark:borderzinc700]
-                        }}
+                        className={`px-4 py-2 rounded-full border ${
+                          bulkMode === m.key ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200/60 dark:border-zinc-700'
+                        }`}
                       >
-                        <Text style={font-bold text-[9px] uppercase ${bulkMode === m.key ? [styles.textwhite] : [styles.textslate600, styles.dark:textslate400]}}>{m.label}</Text>
+                        <Text className={`font-bold text-[9px] uppercase ${bulkMode === m.key ? 'text-white' : 'text-slate-600 dark:text-slate-400'}`}>{m.label}</Text>
                       </Pressable>
                     ))}
                   </View>
@@ -8195,27 +7606,27 @@ export default function OperationsScreen() {
               )}
 
               {/* Value Input */}
-              <View style={styles.gap2}>
-                <Text style={styles.textslate700, styles.dark:textslate300, styles.fontbold, styles.textxs}>
+              <View className="gap-2">
+                <Text className="text-slate-700 dark:text-slate-300 font-bold text-xs">
                   {bulkUpdateType === 'AVAILABILITY' ? 'Enable / Disable Toggle' : 'Modification Value'}
                 </Text>
                 {bulkUpdateType === 'AVAILABILITY' ? (
-                  <View style={styles.flexRow, styles.gap2}>
+                  <View className="flex-row gap-2">
                     <Pressable
                       onPress={() => setBulkValue('1')}
-                      style={flex-1 py-2.5 rounded-xl border items-center ${
-                        bulkValue === [styles.1] ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate50, styles.dark:bgzinc955, styles.borderslate200, styles.dark:borderzinc800]
-                      }}
+                      className={`flex-1 py-2.5 rounded-xl border items-center ${
+                        bulkValue === '1' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
+                      }`}
                     >
-                      <Text style={font-bold text-xs ${bulkValue === [styles.1] ? [styles.textwhite] : [styles.textslate655, styles.dark:textzinc400]}}>Available</Text>
+                      <Text className={`font-bold text-xs ${bulkValue === '1' ? 'text-white' : 'text-slate-655 dark:text-zinc-400'}`}>Available</Text>
                     </Pressable>
                     <Pressable
                       onPress={() => setBulkValue('0')}
-                      style={flex-1 py-2.5 rounded-xl border items-center ${
-                        bulkValue === [styles.0] ? [styles.bgindigo600, styles.borderindigo500, styles.shadowSm] : [styles.bgslate50, styles.dark:bgzinc955, styles.borderslate200, styles.dark:borderzinc800]
-                      }}
+                      className={`flex-1 py-2.5 rounded-xl border items-center ${
+                        bulkValue === '0' ? 'bg-indigo-600 border-indigo-500 shadow-sm' : 'bg-slate-50 dark:bg-zinc-955 border-slate-200 dark:border-zinc-800'
+                      }`}
                     >
-                      <Text style={font-bold text-xs ${bulkValue === [styles.0] ? [styles.textwhite] : [styles.textslate655, styles.dark:textzinc400]}}>Unavailable</Text>
+                      <Text className={`font-bold text-xs ${bulkValue === '0' ? 'text-white' : 'text-slate-655 dark:text-zinc-400'}`}>Unavailable</Text>
                     </Pressable>
                   </View>
                 ) : (
@@ -8225,30 +7636,30 @@ export default function OperationsScreen() {
                     onChangeText={setBulkValue}
                     placeholder="e.g. 10"
                     placeholderTextColor="#94a3b8"
-                    style={styles.bgslate50, styles.dark:bgzinc955, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontsemibold, styles.textxs}
+                    className="bg-slate-50 dark:bg-zinc-955 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-semibold text-xs"
                   />
                 )}
               </View>
 
               {/* Action Buttons */}
-              <View style={styles.flexRow, styles.gap3, styles.mt2}>
+              <View className="flex-row gap-3 mt-2">
                 <Pressable
                   onPress={handleBulkPreview}
                   disabled={isBulkPreviewing}
-                  style={styles.flex1, styles.border, styles.borderindigo200, styles.dark:borderindigo900, styles.bgindigo5050, styles.dark:bgindigo95010, styles.py3, styles.rounded2Xl, styles.itemsCenter, styles.justifyCenter, styles.flexRow, styles.active:bgindigo100}
+                  className="flex-1 border border-indigo-200 dark:border-indigo-900 bg-indigo-50/50 dark:bg-indigo-950/10 py-3 rounded-2xl items-center justify-center flex-row active:bg-indigo-100"
                 >
                   {isBulkPreviewing && <ActivityIndicator size="small" color="#4f46e5" style={{ marginRight: 6 }} />}
-                  <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontextrabold, styles.textCustom10, styles.uppercase}>Calculate Preview</Text>
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[10px] uppercase">Calculate Preview</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleBulkApply}
                   disabled={isBulkApplying || bulkPreviews.length === 0}
-                  style={flex-1 py-3 rounded-2xl items-center justify-center flex-row ${
-                    bulkPreviews.length > 0 ? [styles.bgindigo600, styles.active:bgindigo700, styles.shadowMd] : [styles.bgslate100, styles.dark:bgzinc800]
-                  }}
+                  className={`flex-1 py-3 rounded-2xl items-center justify-center flex-row ${
+                    bulkPreviews.length > 0 ? 'bg-indigo-600 active:bg-indigo-700 shadow-md' : 'bg-slate-100 dark:bg-zinc-800'
+                  }`}
                 >
                   {isBulkApplying && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                  <Text style={font-extrabold text-[10px] uppercase ${bulkPreviews.length > 0 ? [styles.textwhite] : [styles.textslate400, styles.dark:textslate600]}}>
+                  <Text className={`font-extrabold text-[10px] uppercase ${bulkPreviews.length > 0 ? 'text-white' : 'text-slate-400 dark:text-slate-600'}`}>
                     Apply Batch
                   </Text>
                 </Pressable>
@@ -8257,21 +7668,21 @@ export default function OperationsScreen() {
 
             {/* Previews List */}
             {bulkPreviews.length > 0 && (
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded3Xl, styles.gap3, styles.shadowSm}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Previewing Changes ({bulkPreviews.length} products)</Text>
-                <View style={styles.gap2, styles.maxh60, styles.overflowyauto}>
+              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-3xl gap-3 shadow-sm">
+                <Text className="text-slate-900 dark:text-white font-black text-xs">Previewing Changes ({bulkPreviews.length} products)</Text>
+                <View className="gap-2 max-h-60 overflow-y-auto">
                   {bulkPreviews.slice(0, 10).map((p, i) => (
-                    <View key={i} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc950, styles.p2.5, styles.roundedXl, styles.border, styles.borderslate100, styles.dark:borderzinc800}>
-                      <Text style={styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textCustom10, styles.flex1, styles.mr2} numberOfLines={1}>{p.name}</Text>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.gap1.5}>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.lineThrough}>{String(p.oldValue)}</Text>
+                    <View key={i} className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-950 p-2.5 rounded-xl border border-slate-100 dark:border-zinc-800">
+                      <Text className="text-slate-800 dark:text-white font-bold text-[10px] flex-1 mr-2" numberOfLines={1}>{p.name}</Text>
+                      <View className="flex-row items-center gap-1.5">
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] line-through">{String(p.oldValue)}</Text>
                         <ArrowRight size={10} color="#94a3b8" />
-                        <Text style={styles.textemerald500, styles.dark:textemerald400, styles.fontblack, styles.textCustom10}>{String(p.newValue)}</Text>
+                        <Text className="text-emerald-500 dark:text-emerald-400 font-black text-[10px]">{String(p.newValue)}</Text>
                       </View>
                     </View>
                   ))}
                   {bulkPreviews.length > 10 && (
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.textCenter, styles.mt1}>
+                    <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold text-center mt-1">
                       + {bulkPreviews.length - 10} more products matching category scope
                     </Text>
                   )}
@@ -8280,31 +7691,31 @@ export default function OperationsScreen() {
             )}
 
             {/* Batch Update History */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded3Xl, styles.gap3, styles.shadowSm}>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Modification Batch History</Text>
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-3xl gap-3 shadow-sm">
+              <Text className="text-slate-900 dark:text-white font-black text-xs">Modification Batch History</Text>
               {isBulkHistoryLoading ? (
                 <ActivityIndicator size="small" color="#6366f1" />
               ) : bulkHistory.length === 0 ? (
-                <Text style={styles.textCustom10, styles.textslate500, styles.dark:textslate400, styles.textCenter, styles.py6}>No historical bulk actions registered.</Text>
+                <Text className="text-[10px] text-slate-500 dark:text-slate-400 text-center py-6">No historical bulk actions registered.</Text>
               ) : (
-                <View style={styles.gap2.5}>
+                <View className="gap-2.5">
                   {bulkHistory.map((batch) => (
-                    <View key={batch.batchId} style={styles.bgslate50, styles.dark:bgzinc955, styles.p3, styles.rounded2Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
-                      <View style={styles.flex1, styles.mr2}>
-                        <Text style={styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}>{batch.changeType} Batch</Text>
-                        <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>
+                    <View key={batch.batchId} className="bg-slate-50 dark:bg-zinc-955 p-3 rounded-2xl border border-slate-100 dark:border-zinc-800 flex-row justify-between items-center">
+                      <View className="flex-1 mr-2">
+                        <Text className="text-slate-800 dark:text-white font-bold text-xs">{batch.changeType} Batch</Text>
+                        <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">
                           {batch.count} products • {new Date(batch.createdAt).toLocaleString('en-IN', { hour: '2-digit', minute: '2-digit', day: 'numeric', month: 'short' })}
                         </Text>
                       </View>
                       <Pressable
                         onPress={() => handleBulkUndo(batch.batchId)}
                         disabled={undoingBatchId === batch.batchId}
-                        style={styles.px3, styles.py2, styles.bgrose50, styles.border, styles.borderrose200, styles.dark:bgrose95520, styles.dark:borderrose90050, styles.roundedXl}
+                        className="px-3 py-2 bg-rose-50 border border-rose-200 dark:bg-rose-955/20 dark:border-rose-900/50 rounded-xl"
                       >
                         {undoingBatchId === batch.batchId ? (
                           <ActivityIndicator size="small" color="#f43f5e" />
                         ) : (
-                          <Text style={styles.textrose500, styles.fontextrabold, styles.textCustom9, styles.uppercase}>Revert</Text>
+                          <Text className="text-rose-500 font-extrabold text-[9px] uppercase">Revert</Text>
                         )}
                       </Pressable>
                     </View>
@@ -8405,23 +7816,23 @@ export default function OperationsScreen() {
           const profitPathStr = chartPoints.map((p, i) => `${i === 0 ? 'M' : 'L'} ${p.x} ${p.yProfit}`).join(' ');
 
           return (
-            <View style={styles.px4, styles.py4, styles.gap4}>
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.flexRow, styles.justifyBetween, styles.itemsCenter}>
+            <View className="px-4 py-4 gap-4">
+              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-row justify-between items-center">
                 <View>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Financial Analytics</Text>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>Configure ranges and check revenue yield sheets.</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-sm">Financial Analytics</Text>
+                  <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">Configure ranges and check revenue yield sheets.</Text>
                 </View>
                 <Pressable
                   onPress={handleReportsCSVShare}
-                  style={styles.px3, styles.py2, styles.bgindigo600, styles.roundedXl, styles.flexRow, styles.itemsCenter, styles.gap1}
+                  className="px-3 py-2 bg-indigo-600 rounded-xl flex-row items-center gap-1"
                 >
                   <Download size={12} color="#fff" />
-                  <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom9, styles.uppercase, styles.trackingwider}>CSV</Text>
+                  <Text className="text-white font-extrabold text-[9px] uppercase tracking-wider">CSV</Text>
                 </Pressable>
               </View>
 
               {/* Segment filter pills (separated Cafe vs Restaurant vs Grocery) */}
-              <View style={styles.flexRow, styles.gap2, styles.bgslate50, styles.dark:bgzinc950, styles.p1, styles.rounded2Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800}>
+              <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-1 rounded-2xl border border-slate-100 dark:border-zinc-800">
                 {[
                   { key: 'all', label: 'All Sales' },
                   { key: 'grocery', label: 'Grocery 📦' },
@@ -8434,13 +7845,13 @@ export default function OperationsScreen() {
                       setReportSegment(seg.key as any);
                       triggerHaptic('light');
                     }}
-                    style={flex-1 items-center py-2 rounded-xl ${
-                      reportSegment === seg.key ? [styles.bgindigo600] : [styles.bgtransparent]
-                    }}
+                    className={`flex-1 items-center py-2 rounded-xl ${
+                      reportSegment === seg.key ? 'bg-indigo-600' : 'bg-transparent'
+                    }`}
                   >
-                    <Text style={text-[9px] font-black uppercase ${
-                      reportSegment === seg.key ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]
-                    }}>
+                    <Text className={`text-[9px] font-black uppercase ${
+                      reportSegment === seg.key ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}>
                       {seg.label}
                     </Text>
                   </Pressable>
@@ -8448,7 +7859,7 @@ export default function OperationsScreen() {
               </View>
 
               {/* Date Presets Selector */}
-              <View style={styles.flexRow, styles.gap2, styles.bgslate50, styles.dark:bgzinc950, styles.p1, styles.rounded2Xl, styles.border, styles.borderslate100, styles.dark:borderzinc800}>
+              <View className="flex-row gap-2 bg-slate-50 dark:bg-zinc-950 p-1 rounded-2xl border border-slate-100 dark:border-zinc-800">
                 {[
                   { key: 'today', label: 'Today' },
                   { key: '7days', label: '7 Days' },
@@ -8460,13 +7871,13 @@ export default function OperationsScreen() {
                       setReportDateRange(range.key as any);
                       triggerHaptic('light');
                     }}
-                    style={flex-1 items-center py-2 rounded-xl ${
-                      reportDateRange === range.key ? [styles.bgindigo600] : [styles.bgtransparent]
-                    }}
+                    className={`flex-1 items-center py-2 rounded-xl ${
+                      reportDateRange === range.key ? 'bg-indigo-600' : 'bg-transparent'
+                    }`}
                   >
-                    <Text style={text-[10px] font-black uppercase ${
-                      reportDateRange === range.key ? [styles.textwhite] : [styles.textslate500, styles.dark:textslate400]
-                    }}>
+                    <Text className={`text-[10px] font-black uppercase ${
+                      reportDateRange === range.key ? 'text-white' : 'text-slate-500 dark:text-slate-400'
+                    }`}>
                       {range.label}
                     </Text>
                   </Pressable>
@@ -8474,25 +7885,25 @@ export default function OperationsScreen() {
               </View>
 
               {/* Custom Date Picker inputs */}
-              <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.flexRow, styles.gap3}>
-                <View style={styles.flex1, styles.gap1}>
-                  <Text style={styles.textCustom8, styles.fontextrabold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Start Date</Text>
+              <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-row gap-3">
+                <View className="flex-1 gap-1">
+                  <Text className="text-[8px] font-extrabold text-slate-500 dark:text-slate-400 uppercase">Start Date</Text>
                   <TextInput
                     value={reportStartDate}
                     onChangeText={setReportStartDate}
                     placeholder="YYYY-MM-DD"
                     placeholderTextColor="#94a3b8"
-                    style={styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedlg, styles.px2.5, styles.py1.5, styles.textslate800, styles.dark:textzinc100, styles.fontsemibold, styles.textCustom10}
+                    className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-100 font-semibold text-[10px]"
                   />
                 </View>
-                <View style={styles.flex1, styles.gap1}>
-                  <Text style={styles.textCustom8, styles.fontextrabold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>End Date</Text>
+                <View className="flex-1 gap-1">
+                  <Text className="text-[8px] font-extrabold text-slate-500 dark:text-slate-400 uppercase">End Date</Text>
                   <TextInput
                     value={reportEndDate}
                     onChangeText={setReportEndDate}
                     placeholder="YYYY-MM-DD"
                     placeholderTextColor="#94a3b8"
-                    style={styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedlg, styles.px2.5, styles.py1.5, styles.textslate800, styles.dark:textzinc100, styles.fontsemibold, styles.textCustom10}
+                    className="bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-lg px-2.5 py-1.5 text-slate-800 dark:text-zinc-100 font-semibold text-[10px]"
                   />
                 </View>
                 <Pressable
@@ -8500,36 +7911,36 @@ export default function OperationsScreen() {
                     setReportDateRange('custom');
                     fetchReportsData();
                   }}
-                  style={styles.bgindigo50, styles.border, styles.borderindigo200, styles.dark:bgindigo95020, styles.dark:borderindigo90050, styles.justifyCenter, styles.px4, styles.roundedlg, styles.mt3.5}
+                  className="bg-indigo-50 border border-indigo-200 dark:bg-indigo-950/20 dark:border-indigo-900/50 justify-center px-4 rounded-lg mt-3.5"
                 >
-                  <Text style={styles.textindigo600, styles.dark:textindigo400, styles.fontextrabold, styles.textCustom9, styles.uppercase}>Get</Text>
+                  <Text className="text-indigo-600 dark:text-indigo-400 font-extrabold text-[9px] uppercase">Get</Text>
                 </Pressable>
               </View>
 
               {isReportLoading ? (
-                <ActivityIndicator size="large" color="#6366f1" style={styles.py10} />
+                <ActivityIndicator size="large" color="#6366f1" className="py-10" />
               ) : (
-                <View style={styles.gap4}>
+                <View className="gap-4">
                   {/* KPI Metrics summaries */}
-                  <View style={styles.flexRow, styles.gap2, styles.flexWrap}>
+                  <View className="flex-row gap-2 flex-wrap">
                     {[
                       { label: 'Total Sales', val: `₹${filteredSummary.totalSales}`, color: 'text-indigo-500 dark:text-indigo-400' },
                       { label: 'Total profit', val: `₹${filteredSummary.totalProfit}`, color: 'text-emerald-500 dark:text-emerald-400' },
                       { label: 'Margin %', val: `${filteredSummary.profitMargin}%`, color: 'text-amber-500 dark:text-amber-400' },
                       { label: 'AOV Revenue', val: `₹${Math.round(filteredSummary.averageOrderValue || 0)}`, color: 'text-blue-500 dark:text-blue-400' }
                     ].map((kpi, i) => (
-                      <View key={i} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.flex1, styles.minw[45%]}>
-                        <Text style={styles.textCustom8, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase, styles.trackingwider}>{kpi.label}</Text>
-                        <Text style={text-base font-black mt-1 ${kpi.color}}>{kpi.val}</Text>
+                      <View key={i} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl flex-1 min-w-[45%]">
+                        <Text className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wider">{kpi.label}</Text>
+                        <Text className={`text-base font-black mt-1 ${kpi.color}`}>{kpi.val}</Text>
                       </View>
                     ))}
                   </View>
 
                   {/* SVG Sales Trend Chart */}
                   {filteredDailySales.length > 1 && (
-                    <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}>
-                      <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Revenue & profit Trend</Text>
-                      <View style={styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc950, styles.roundedXl, styles.p1, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.overflowHidden}>
+                    <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
+                      <Text className="text-slate-900 dark:text-white font-black text-xs">Revenue & profit Trend</Text>
+                      <View className="items-center bg-slate-50 dark:bg-zinc-950 rounded-xl p-1 border border-slate-100 dark:border-zinc-800 overflow-hidden">
                         <Svg width={chartWidth} height={chartHeight}>
                           {/* Sales line */}
                           {salesPathStr ? (
@@ -8551,32 +7962,32 @@ export default function OperationsScreen() {
                           ) : null}
                         </Svg>
                       </View>
-                      <View style={styles.flexRow, styles.justifyCenter, styles.gap4, styles.mt1}>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap1.5}>
-                          <View style={styles.w2.5, styles.h2.5, styles.roundedFull, styles.bgindigo500} />
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.fontbold, styles.textCustom8, styles.uppercase}>Revenue</Text>
+                      <View className="flex-row justify-center gap-4 mt-1">
+                        <View className="flex-row items-center gap-1.5">
+                          <View className="w-2.5 h-2.5 rounded-full bg-indigo-500" />
+                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Revenue</Text>
                         </View>
-                        <View style={styles.flexRow, styles.itemsCenter, styles.gap1.5}>
-                          <View style={styles.w2.5, styles.h2.5, styles.roundedFull, styles.bgemerald500} />
-                          <Text style={styles.textslate650, styles.dark:textslate300, styles.fontbold, styles.textCustom8, styles.uppercase}>Net Profit</Text>
+                        <View className="flex-row items-center gap-1.5">
+                          <View className="w-2.5 h-2.5 rounded-full bg-emerald-500" />
+                          <Text className="text-slate-650 dark:text-slate-300 font-bold text-[8px] uppercase">Net Profit</Text>
                         </View>
                       </View>
                     </View>
                   )}
 
                   {/* Top selling products list */}
-                  <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs}>Top Selling Products</Text>
-                    <View style={styles.gap2.5}>
+                  <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
+                    <Text className="text-slate-900 dark:text-white font-black text-xs">Top Selling Products</Text>
+                    <View className="gap-2.5">
                       {filteredTopProducts.map((p, i) => (
-                        <View key={p.productId || i} style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p2.5, styles.roundedXl}>
-                          <View style={styles.flex1, styles.mr2}>
-                            <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textCustom11} numberOfLines={1}>{p.name}</Text>
-                            <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5}>{p.quantity} units sold</Text>
+                        <View key={p.productId || i} className="flex-row justify-between items-center bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-2.5 rounded-xl">
+                          <View className="flex-1 mr-2">
+                            <Text className="text-slate-800 dark:text-white font-extrabold text-[11px]" numberOfLines={1}>{p.name}</Text>
+                            <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5">{p.quantity} units sold</Text>
                           </View>
-                          <View style={styles.itemsEnd}>
-                            <Text style={styles.textindigo500, styles.dark:textindigo400, styles.fontblack, styles.textCustom11}>₹{p.sales}</Text>
-                            <Text style={styles.textemerald500, styles.dark:textemerald400, styles.fontbold, styles.textCustom8, styles.mt0.5}>+₹{p.profit} profit</Text>
+                          <View className="items-end">
+                            <Text className="text-indigo-500 dark:text-indigo-400 font-black text-[11px]">₹{p.sales}</Text>
+                            <Text className="text-emerald-500 dark:text-emerald-400 font-bold text-[8px] mt-0.5">+₹{p.profit} profit</Text>
                           </View>
                         </View>
                       ))}
@@ -8590,18 +8001,18 @@ export default function OperationsScreen() {
 
         {/* ------------------- FORECAST TAB WORKSPACE ------------------- */}
         {activeTab === 'FORECAST' && (
-          <View style={styles.px4, styles.py4, styles.gap4}>
+          <View className="px-4 py-4 gap-4">
             {/* Summary KPI header */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p5, styles.rounded2Xl, styles.gap3}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween}>
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2}>
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-5 rounded-2xl gap-3">
+              <View className="flex-row items-center justify-between">
+                <View className="flex-row items-center gap-2">
                   <BrainCircuit size={18} color="#6366f1" />
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Demand Forecasting</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-sm">Demand Forecasting</Text>
                 </View>
                 <Pressable
                   onPress={() => fetchForecastData(true)}
                   disabled={isForecastLoading}
-                  style={styles.p2, styles.bgindigo50, styles.border, styles.borderindigo200, styles.dark:bgzinc950, styles.dark:borderzinc800, styles.roundedXl}
+                  className="p-2 bg-indigo-50 border border-indigo-200 dark:bg-zinc-950 dark:border-zinc-800 rounded-xl"
                 >
                   {isForecastLoading ? (
                     <ActivityIndicator size="small" color="#6366f1" />
@@ -8610,20 +8021,20 @@ export default function OperationsScreen() {
                   )}
                 </Pressable>
               </View>
-              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontbold}>AI estimated velocity and stock depletion warning boards.</Text>
+              <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-bold">AI estimated velocity and stock depletion warning boards.</Text>
               
-              <View style={styles.flexRow, styles.gap2.5, styles.mt2}>
-                <View style={styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p3, styles.roundedXl, styles.flex1}>
-                  <Text style={styles.textCustom7, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Items At Risk</Text>
-                  <Text style={styles.textsm, styles.fontblack, styles.textrose500, styles.mt0.5}>{forecastMetrics.itemsAtRisk || 0}</Text>
+              <View className="flex-row gap-2.5 mt-2">
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
+                  <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Items At Risk</Text>
+                  <Text className="text-sm font-black text-rose-500 mt-0.5">{forecastMetrics.itemsAtRisk || 0}</Text>
                 </View>
-                <View style={styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p3, styles.roundedXl, styles.flex1}>
-                  <Text style={styles.textCustom7, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Revenue At Risk</Text>
-                  <Text style={styles.textsm, styles.fontblack, styles.textamber500, styles.mt0.5}>₹{forecastMetrics.totalRevenueAtRisk || 0}</Text>
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
+                  <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Revenue At Risk</Text>
+                  <Text className="text-sm font-black text-amber-500 mt-0.5">₹{forecastMetrics.totalRevenueAtRisk || 0}</Text>
                 </View>
-                <View style={styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.p3, styles.roundedXl, styles.flex1}>
-                  <Text style={styles.textCustom7, styles.fontbold, styles.textslate500, styles.dark:textslate400, styles.uppercase}>Avg Velocity</Text>
-                  <Text style={styles.textsm, styles.fontblack, styles.textindigo500, styles.mt0.5}>{forecastMetrics.averageVelocity?.toFixed(1) || '0.0'}/day</Text>
+                <View className="bg-slate-50 dark:bg-zinc-950 border border-slate-100 dark:border-zinc-800 p-3 rounded-xl flex-1">
+                  <Text className="text-[7px] font-bold text-slate-500 dark:text-slate-400 uppercase">Avg Velocity</Text>
+                  <Text className="text-sm font-black text-indigo-500 mt-0.5">{forecastMetrics.averageVelocity?.toFixed(1) || '0.0'}/day</Text>
                 </View>
               </View>
 
@@ -8631,23 +8042,23 @@ export default function OperationsScreen() {
               <Pressable
                 onPress={handleAutoReplenish}
                 disabled={isForecastRestocking}
-                style={styles.bgindigo600, styles.py3, styles.roundedXl, styles.itemsCenter, styles.justifyCenter, styles.flexRow, styles.mt2}
+                className="bg-indigo-600 py-3 rounded-xl items-center justify-center flex-row mt-2"
               >
                 {isForecastRestocking && <ActivityIndicator size="small" color="#fff" style={{ marginRight: 6 }} />}
-                <Text style={styles.textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Auto-Replenish All Stockouts</Text>
+                <Text className="text-white font-extrabold text-xs uppercase tracking-wider">Auto-Replenish All Stockouts</Text>
               </Pressable>
             </View>
 
             {/* Filter Search */}
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}>
-              <View style={styles.flexRow, styles.itemsCenter, styles.bgslate50, styles.dark:bgzinc950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3, styles.h10}>
+            <View className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
+              <View className="flex-row items-center bg-slate-50 dark:bg-zinc-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3 h-10">
                 <Search size={14} color="#94a3b8" />
                 <TextInput
                   placeholder="Filter forecast catalog..."
                   placeholderTextColor="#94a3b8"
                   value={forecastSearchQuery}
                   onChangeText={setForecastSearchQuery}
-                  style={styles.flex1, styles.textwhite, styles.fontextrabold, styles.textCustom11, styles.ml2}
+                  className="flex-1 text-white font-extrabold text-[11px] ml-2"
                 />
               </View>
 
@@ -8655,21 +8066,21 @@ export default function OperationsScreen() {
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={{ gap: 6 }}>
                 <Pressable
                   onPress={() => setForecastCategoryFilter('ALL')}
-                  style={px-3 py-1.5 rounded-lg border ${
-                    forecastCategoryFilter === [styles.ALL] ? [styles.bgindigo600, styles.borderindigo500] : [styles.bgslate950, styles.borderslate100, styles.dark:borderzinc80050]
-                  }}
+                  className={`px-3 py-1.5 rounded-lg border ${
+                    forecastCategoryFilter === 'ALL' ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-950 border-slate-100 dark:border-zinc-800/50'
+                  }`}
                 >
-                  <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom8, styles.uppercase}>All</Text>
+                  <Text className="text-white font-extrabold text-[8px] uppercase">All</Text>
                 </Pressable>
                 {categories.map((c) => (
                   <Pressable
                     key={c.id}
                     onPress={() => setForecastCategoryFilter(c.id)}
-                    style={px-3 py-1.5 rounded-lg border ${
-                      forecastCategoryFilter === c.id ? [styles.bgindigo600, styles.borderindigo500] : [styles.bgslate950, styles.borderslate100, styles.dark:borderzinc80050]
-                    }}
+                    className={`px-3 py-1.5 rounded-lg border ${
+                      forecastCategoryFilter === c.id ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-950 border-slate-100 dark:border-zinc-800/50'
+                    }`}
                   >
-                    <Text style={styles.textwhite, styles.fontextrabold, styles.textCustom8, styles.uppercase}>{c.name}</Text>
+                    <Text className="text-white font-extrabold text-[8px] uppercase">{c.name}</Text>
                   </Pressable>
                 ))}
               </ScrollView>
@@ -8677,41 +8088,41 @@ export default function OperationsScreen() {
 
             {/* Forecast Listings */}
             {isForecastLoading ? (
-              <ActivityIndicator size="large" color="#6366f1" style={styles.py10} />
+              <ActivityIndicator size="large" color="#6366f1" className="py-10" />
             ) : (
-              <View style={styles.gap3}>
+              <View className="gap-3">
                 {forecastList.filter(f => {
                   const s = f.name.toLowerCase().includes(forecastSearchQuery.toLowerCase());
                   const c = forecastCategoryFilter === 'ALL' || f.category?.id === forecastCategoryFilter;
                   return s && c;
                 }).map((item) => (
-                  <View key={item.id} style={styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.p4, styles.rounded2Xl, styles.gap3}>
-                    <View style={styles.flexRow, styles.justifyBetween, styles.itemsStart}>
-                      <View style={styles.flexRow, styles.itemsCenter, styles.flex1, styles.mr2}>
-                        <View style={styles.w10, styles.h10, styles.roundedXl, styles.bgslate50, styles.dark:bgzinc950, styles.itemsCenter, styles.justifyCenter, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.mr2.5, styles.overflowHidden}>
+                  <View key={item.id} className="bg-white dark:bg-zinc-900 border border-slate-200 dark:border-zinc-850 p-4 rounded-2xl gap-3">
+                    <View className="flex-row justify-between items-start">
+                      <View className="flex-row items-center flex-1 mr-2">
+                        <View className="w-10 h-10 rounded-xl bg-slate-50 dark:bg-zinc-950 items-center justify-center border border-slate-200 dark:border-zinc-800 mr-2.5 overflow-hidden">
                           {getAppImageSource(item.imageUrl) ? (
-                            <Image source={getAppImageSource(item.imageUrl)!} style={styles.wfull, styles.hfull} contentFit="cover" />
+                            <Image source={getAppImageSource(item.imageUrl)!} className="w-full h-full" contentFit="cover" />
                           ) : (
-                            <Text style={styles.textlg, styles.textslate800, styles.dark:textzinc200}>{item.imageUrl || '📦'}</Text>
+                            <Text className="text-lg text-slate-800 dark:text-zinc-200">{item.imageUrl || '📦'}</Text>
                           )}
                         </View>
-                        <View style={styles.flex1}>
-                          <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs} numberOfLines={2}>{item.name}</Text>
-                          <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.mt0.5, styles.uppercase}>
+                        <View className="flex-1">
+                          <Text className="text-slate-800 dark:text-white font-extrabold text-xs" numberOfLines={2}>{item.name}</Text>
+                          <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold mt-0.5 uppercase">
                             Stock: {item.stock} • Velocity: {item.salesVelocity?.toFixed(1) || '0.0'}/day
                           </Text>
                         </View>
                       </View>
-                      <View style={styles.itemsEnd}>
-                        <View style={rounded-full px-2 py-0.5 border ${
-                          item.isAtRisk ? [styles.bgrose50010, styles.borderrose50020] : [styles.bgindigo50010, styles.borderindigo50020]
-                        }}>
-                          <Text style={text-[8px] font-black uppercase ${item.isAtRisk ? [styles.textrose500] : [styles.textindigo400]}}>
+                      <View className="items-end">
+                        <View className={`rounded-full px-2 py-0.5 border ${
+                          item.isAtRisk ? 'bg-rose-500/10 border-rose-500/20' : 'bg-indigo-500/10 border-indigo-500/20'
+                        }`}>
+                          <Text className={`text-[8px] font-black uppercase ${item.isAtRisk ? 'text-rose-500' : 'text-indigo-400'}`}>
                             {item.daysRemaining <= 0 ? 'Out of Stock' : `${item.daysRemaining.toFixed(1)} days left`}
                           </Text>
                         </View>
                         {item.isAtRisk && (
-                          <Text style={styles.textrose40090, styles.textCustom7, styles.fontblack, styles.mt1, styles.uppercase, styles.trackingwider}>
+                          <Text className="text-rose-400/90 text-[7px] font-black mt-1 uppercase tracking-wider">
                             ₹{item.revenueAtRisk} Revenue At Risk
                           </Text>
                         )}
@@ -8719,20 +8130,20 @@ export default function OperationsScreen() {
                     </View>
 
                     {/* Action Bar */}
-                    <View style={styles.flexRow, styles.gap2, styles.pt2.5, styles.bordert, styles.borderslate100, styles.dark:borderzinc80080, styles.itemsCenter, styles.justifyBetween}>
-                      <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom8, styles.fontbold, styles.flex1, styles.mr2, styles.uppercase} numberOfLines={1}>
+                    <View className="flex-row gap-2 pt-2.5 border-t border-slate-100 dark:border-zinc-800/80 items-center justify-between">
+                      <Text className="text-slate-500 dark:text-slate-400 text-[8px] font-bold flex-1 mr-2 uppercase" numberOfLines={1}>
                         AI Rec: Inward {item.recommendedReorder} units
                       </Text>
                       {item.recommendedReorder > 0 ? (
                         <Pressable
                           onPress={() => handleIndividualRestock(item.id, item.recommendedReorder, item.costPrice)}
-                          style={styles.bgindigo60015, styles.border, styles.borderindigo50030, styles.px3, styles.py1.5, styles.roundedlg, styles.active:bgindigo60030}
+                          className="bg-indigo-600/15 border border-indigo-500/30 px-3 py-1.5 rounded-lg active:bg-indigo-600/30"
                         >
-                          <Text style={styles.textindigo400, styles.fontextrabold, styles.textCustom8, styles.uppercase}>AI Restock</Text>
+                          <Text className="text-indigo-400 font-extrabold text-[8px] uppercase">AI Restock</Text>
                         </Pressable>
                       ) : (
-                        <View style={styles.px3, styles.py1.5, styles.bgslate950, styles.border, styles.borderslate100, styles.dark:borderzinc80050, styles.roundedlg}>
-                          <Text style={styles.textslate500, styles.fontbold, styles.textCustom8, styles.uppercase}>Stock Adequate</Text>
+                        <View className="px-3 py-1.5 bg-slate-950 border border-slate-100 dark:border-zinc-800/50 rounded-lg">
+                          <Text className="text-slate-500 font-bold text-[8px] uppercase">Stock Adequate</Text>
                         </View>
                       )}
                     </View>
@@ -8743,7 +8154,7 @@ export default function OperationsScreen() {
           </View>
         )}
 
-        <View style={styles.h24} />
+        <View className="h-24" />
 
 
       {/* ------------------- Rider Simulation Modals ------------------- */}
@@ -8756,31 +8167,31 @@ export default function OperationsScreen() {
           animationType="fade"
           onRequestClose={() => setIsUpiQrVisible(false)}
         >
-          <View style={styles.flex1, styles.bgblack60, styles.justifyCenter, styles.itemsCenter, styles.p6}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.p6, styles.wfull, styles.maxwsm, styles.itemsCenter, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.shadow2xl}>
+          <View className="flex-1 bg-black/60 justify-center items-center p-6">
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full max-w-sm items-center border border-slate-200 dark:border-zinc-850 shadow-2xl">
               <QrCode size={40} color="#6366f1" />
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase, styles.mt3}>Scan UPI QR Code</Text>
-              <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom10, styles.fontbold, styles.textCenter, styles.mt1, styles.uppercase, styles.trackingwider}>Amount: {formatPrice(upiTargetOrder.total)}</Text>
+              <Text className="text-slate-900 dark:text-white font-black text-base mt-3">Scan UPI QR Code</Text>
+              <Text className="text-slate-500 dark:text-slate-400 text-[10px] font-bold text-center mt-1 uppercase tracking-wider">Amount: {formatPrice(upiTargetOrder.total)}</Text>
               
               {/* Dummy QR Box */}
-              <View style={styles.w48, styles.h48, styles.bgslate950, styles.rounded2Xl, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.mt5, styles.itemsCenter, styles.justifyCenter, styles.p4}>
-                <Text style={styles.text6xl, styles.textslate700, styles.dark:textslate200}>🏁</Text>
-                <Text style={styles.textCustom9, styles.fontblack, styles.textslate500, styles.dark:textslate400, styles.mt4, styles.trackingwidest, styles.uppercase}>UPI ID: fastkirana@upi</Text>
+              <View className="w-48 h-48 bg-slate-950 rounded-2xl border border-slate-200 dark:border-zinc-850 mt-5 items-center justify-center p-4">
+                <Text className="text-6xl text-slate-700 dark:text-slate-200">🏁</Text>
+                <Text className="text-[9px] font-black text-slate-500 dark:text-slate-400 mt-4 tracking-widest uppercase">UPI ID: fastkirana@upi</Text>
               </View>
 
               {/* Action Buttons */}
-              <View style={styles.flexRow, styles.wfull, styles.gap2.5, styles.mt6, styles.bordert, styles.borderslate100, styles.dark:borderzinc800, styles.pt5}>
+              <View className="flex-row w-full gap-2.5 mt-6 border-t border-slate-100 dark:border-zinc-800 pt-5">
                 <Pressable
                   onPress={() => handleCashCollected(upiTargetOrder)}
-                  style={styles.flex1, styles.border, styles.borderslate700, styles.py3, styles.roundedXl, styles.itemsCenter, styles.active:bgslate800}
+                  className="flex-1 border border-slate-700 py-3 rounded-xl items-center active:bg-slate-800"
                 >
-                  <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Paid Cash</Text>
+                  <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs uppercase tracking-wider">Paid Cash</Text>
                 </Pressable>
                 <Pressable
                   onPress={() => handleUpiQrPaid(upiTargetOrder)}
-                  style={styles.flex1, styles.bgindigo600, styles.py3, styles.roundedXl, styles.itemsCenter, styles.active:bgindigo700}
+                  className="flex-1 bg-indigo-600 py-3 rounded-xl items-center active:bg-indigo-700"
                 >
-                  <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Confirm Paid</Text>
+                  <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">Confirm Paid</Text>
                 </Pressable>
               </View>
             </View>
@@ -8796,33 +8207,33 @@ export default function OperationsScreen() {
           animationType="slide"
           onRequestClose={() => setIsPhotoCapturing(false)}
         >
-          <View style={styles.flex1, styles.bgblack, styles.justifyBetween, styles.p6}>
-            <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mt8}>
+          <View className="flex-1 bg-black justify-between p-6">
+            <View className="flex-row justify-between items-center mt-8">
               <Pressable 
                 onPress={() => setIsPhotoCapturing(false)}
-                style={styles.w10, styles.h10, styles.roundedFull, styles.bgslate800, styles.itemsCenter, styles.justifyCenter}
+                className="w-10 h-10 rounded-full bg-slate-800 items-center justify-center"
               >
                 <X size={20} color="#fff" />
               </Pressable>
-              <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwidest}>Capture Delivery Proof</Text>
-              <View style={styles.w10} />
+              <Text className="text-slate-900 dark:text-white font-black text-xs uppercase tracking-widest">Capture Delivery Proof</Text>
+              <View className="w-10" />
             </View>
 
             {/* Simulating Viewfinder */}
-            <View style={styles.wfull, styles.aspect[43], styles.bgslate900, styles.border2, styles.borderwhite20, styles.rounded3Xl, styles.itemsCenter, styles.justifyCenter, styles.relative, styles.overflowHidden, styles.selfCenter, styles.my6}>
-              <Text style={styles.text5xl}>📷</Text>
-              <Text style={styles.textwhite60, styles.textCustom10, styles.fontblack, styles.uppercase, styles.trackingwider, styles.mt4}>Place package at door & snap</Text>
-              <View style={styles.absolute, styles.bottom4, styles.left4, styles.right4, styles.bgblack60, styles.p2, styles.roundedXl, styles.border, styles.borderwhite5}>
-                <Text style={styles.textwhite, styles.textCustom9, styles.fontblack, styles.uppercase, styles.textCenter}>Proof for: {photoTargetOrder.user.name}</Text>
+            <View className="w-full aspect-[4/3] bg-slate-900 border-2 border-white/20 rounded-3xl items-center justify-center relative overflow-hidden self-center my-6">
+              <Text className="text-5xl">📷</Text>
+              <Text className="text-white/60 text-[10px] font-black uppercase tracking-wider mt-4">Place package at door & snap</Text>
+              <View className="absolute bottom-4 left-4 right-4 bg-black/60 p-2 rounded-xl border border-white/5">
+                <Text className="text-white text-[9px] font-black uppercase text-center">Proof for: {photoTargetOrder.user.name}</Text>
               </View>
             </View>
 
             {/* Trigger Button */}
             <Pressable 
               onPress={finalizeDelivery}
-              style={styles.w20, styles.h20, styles.roundedFull, styles.border4, styles.borderwhite, styles.itemsCenter, styles.justifyCenter, styles.selfCenter, styles.mb8, styles.active:scale95, styles.transitionall}
+              className="w-20 h-20 rounded-full border-4 border-white items-center justify-center self-center mb-8 active:scale-95 transition-all"
             >
-              <View style={styles.w14, styles.h14, styles.roundedFull, styles.bgwhite} />
+              <View className="w-14 h-14 rounded-full bg-white" />
             </Pressable>
           </View>
         </Modal>
@@ -8836,45 +8247,45 @@ export default function OperationsScreen() {
           animationType="fade"
           onRequestClose={() => setIsCouponModalVisible(false)}
         >
-          <View style={styles.flex1, styles.bgblack60, styles.justifyCenter, styles.itemsCenter, styles.p6}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.p6, styles.wfull, styles.maxwsm, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.shadow2xl}>
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb3, styles.mb4}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Create Coupon Code</Text>
-                <Pressable onPress={() => setIsCouponModalVisible(false)} style={styles.p1}>
+          <View className="flex-1 bg-black/60 justify-center items-center p-6">
+            <View className="bg-white dark:bg-zinc-900 rounded-3xl p-6 w-full max-w-sm border border-slate-200 dark:border-zinc-850 shadow-2xl">
+              <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-4">
+                <Text className="text-slate-900 dark:text-white font-black text-base">Create Coupon Code</Text>
+                <Pressable onPress={() => setIsCouponModalVisible(false)} className="p-1">
                   <X size={18} color="#64748b" />
                 </Pressable>
               </View>
 
               {/* Code */}
-              <View style={styles.mb3}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Coupon Code</Text>
+              <View className="mb-3">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Coupon Code</Text>
                 <TextInput
                   value={newCouponCode}
                   onChangeText={setNewCouponCode}
                   placeholder="e.g. WELCOME50"
                   placeholderTextColor="#475569"
                   autoCapitalize="characters"
-                  style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                 />
               </View>
 
               {/* Type selector Flat vs Percent */}
-              <View style={styles.mb3}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1.5}>Discount Type</Text>
-                <View style={styles.flexRow, styles.gap2}>
+              <View className="mb-3">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1.5">Discount Type</Text>
+                <View className="flex-row gap-2">
                   {['FLAT', 'PERCENT'].map((t) => {
                     const isActive = newCouponType === t;
                     return (
                       <Pressable
                         key={t}
                         onPress={() => setNewCouponType(t as any)}
-                        style={flex-1 py-2 rounded-lg items-center border ${
-                          isActive ? [styles.bgindigo95030, styles.borderindigo90040] : [styles.bgslate950, styles.border, styles.borderslate100, styles.dark:borderzinc80050]
-                        }}
+                        className={`flex-1 py-2 rounded-lg items-center border ${
+                          isActive ? 'bg-indigo-950/30 border-indigo-900/40' : 'bg-slate-950 border border-slate-100 dark:border-zinc-800/50'
+                        }`}
                       >
-                        <Text style={text-[10px] font-black uppercase ${
-                          isActive ? [styles.textindigo400] : [styles.textslate500, styles.dark:textslate400]
-                        }}>
+                        <Text className={`text-[10px] font-black uppercase ${
+                          isActive ? 'text-indigo-400' : 'text-slate-500 dark:text-slate-400'
+                        }`}>
                           {t} Discount
                         </Text>
                       </Pressable>
@@ -8884,59 +8295,59 @@ export default function OperationsScreen() {
               </View>
 
               {/* Value / Min Order */}
-              <View style={styles.flexRow, styles.gap3, styles.mb3}>
-                <View style={styles.flex1}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Discount Value</Text>
+              <View className="flex-row gap-3 mb-3">
+                <View className="flex-1">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Discount Value</Text>
                   <TextInput
                     value={newCouponValue}
                     onChangeText={setNewCouponValue}
                     keyboardType="numeric"
                     placeholder="50"
                     placeholderTextColor="#475569"
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
-                <View style={styles.flex1}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Min Order Total</Text>
+                <View className="flex-1">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Min Order Total</Text>
                   <TextInput
                     value={newCouponMinOrder}
                     onChangeText={setNewCouponMinOrder}
                     keyboardType="numeric"
                     placeholder="199"
                     placeholderTextColor="#475569"
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
               </View>
 
               {/* Max Uses */}
-              <View style={styles.mb5}>
-                <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Max Usage Limit</Text>
+              <View className="mb-5">
+                <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Max Usage Limit</Text>
                 <TextInput
                   value={newCouponMaxUses}
                   onChangeText={setNewCouponMaxUses}
                   keyboardType="numeric"
                   placeholder="500"
                   placeholderTextColor="#475569"
-                  style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc850, styles.roundedXl, styles.px3, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                  className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-850 rounded-xl px-3 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                 />
               </View>
 
               {/* Actions */}
-              <View style={styles.flexRow, styles.gap2.5}>
+              <View className="flex-row gap-2.5">
                 <Pressable
                   onPress={() => setIsCouponModalVisible(false)}
-                  style={styles.flex1, styles.border, styles.borderslate700, styles.py3, styles.roundedXl, styles.itemsCenter, styles.active:bgslate800}
+                  className="flex-1 border border-slate-700 py-3 rounded-xl items-center active:bg-slate-800"
                 >
-                  <Text style={styles.textslate650, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Cancel</Text>
+                  <Text className="text-slate-650 dark:text-slate-300 font-extrabold text-xs uppercase tracking-wider">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleCreateCoupon}
                   disabled={isCreatingCoupon}
-                  style={styles.flex1, styles.bgindigo600, styles.py3, styles.roundedXl, styles.itemsCenter, styles.active:bgindigo750, styles.flexRow, styles.justifyCenter, styles.gap1.5}
+                  className="flex-1 bg-indigo-600 py-3 rounded-xl items-center active:bg-indigo-750 flex-row justify-center gap-1.5"
                 >
                   {isCreatingCoupon && <ActivityIndicator size="small" color="#fff" />}
-                  <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>
+                  <Text className="text-slate-800 dark:text-white font-extrabold text-xs uppercase tracking-wider">
                     {isCreatingCoupon ? 'Creating...' : 'Create'}
                   </Text>
                 </Pressable>
@@ -8955,31 +8366,31 @@ export default function OperationsScreen() {
           animationType="slide"
           onRequestClose={() => { setIsBannerModalVisible(false); resetBannerForm(); }}
         >
-          <View style={styles.flex1, styles.bgblack60, styles.justifyEnd}>
-            <View style={styles.bgwhite, styles.dark:bgzinc900, styles.roundedt3xl, styles.p6, styles.wfull, styles.maxh[90%], styles.bordert, styles.borderx, styles.borderslate100, styles.dark:borderzinc800, styles.shadow2xl}>
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb3, styles.mb4}>
-                <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>{editingBannerId ? 'Edit Banner' : 'Create Promo Banner'}</Text>
-                <Pressable onPress={() => { setIsBannerModalVisible(false); resetBannerForm(); }} style={styles.p1}>
+          <View className="flex-1 bg-black/60 justify-end">
+            <View className="bg-white dark:bg-zinc-900 rounded-t-3xl p-6 w-full max-h-[90%] border-t border-x border-slate-100 dark:border-zinc-800 shadow-2xl">
+              <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-4">
+                <Text className="text-slate-900 dark:text-white font-black text-base">{editingBannerId ? 'Edit Banner' : 'Create Promo Banner'}</Text>
+                <Pressable onPress={() => { setIsBannerModalVisible(false); resetBannerForm(); }} className="p-1">
                   <X size={18} color="#64748b" />
                 </Pressable>
               </View>
 
-              <ScrollView showsVerticalScrollIndicator={false} style={styles.mb4}>
+              <ScrollView showsVerticalScrollIndicator={false} className="mb-4">
                 {/* Title */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Banner Title *</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Banner Title *</Text>
                   <TextInput
                     placeholder="e.g. Farm Fresh Vegetables & Fruits"
                     placeholderTextColor="#475569"
                     value={bannerTitle}
                     onChangeText={setBannerTitle}
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
 
                 {/* Description */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Description *</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Description *</Text>
                   <TextInput
                     placeholder="e.g. Directly sourced from local farms"
                     placeholderTextColor="#475569"
@@ -8987,36 +8398,36 @@ export default function OperationsScreen() {
                     onChangeText={setBannerDescription}
                     multiline
                     numberOfLines={2}
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
 
                 {/* Coupon Code */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Coupon Code (Optional)</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Coupon Code (Optional)</Text>
                   <TextInput
                     placeholder="e.g. SAVE20"
                     placeholderTextColor="#475569"
                     value={bannerCode}
                     onChangeText={setBannerCode}
                     autoCapitalize="characters"
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
 
                 {/* Gradient Preset Picker */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Gradient Color</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-2">Gradient Color</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.flexRow, styles.gap2}>
+                    <View className="flex-row gap-2">
                       {BANNER_GRADIENT_PRESETS.map((g, i) => (
                         <Pressable
                           key={i}
                           onPress={() => { setBannerGradient(g.value); triggerHaptic('light'); }}
-                          style={rounded-xl overflow-hidden border-2 ${bannerGradient === g.value ? [styles.borderindigo500] : [styles.bordertransparent]}}
+                          className={`rounded-xl overflow-hidden border-2 ${bannerGradient === g.value ? 'border-indigo-500' : 'border-transparent'}`}
                         >
-                          <View style={bg-gradient-to-r ${g.value} h-10 w-20 rounded-xl items-center justify-center}>
-                            <Text style={styles.textwhite, styles.textCustom7, styles.fontblack}>{g.name}</Text>
+                          <View className={`bg-gradient-to-r ${g.value} h-10 w-20 rounded-xl items-center justify-center`}>
+                            <Text className="text-white text-[7px] font-black">{g.name}</Text>
                           </View>
                         </Pressable>
                       ))}
@@ -9025,17 +8436,17 @@ export default function OperationsScreen() {
                 </View>
 
                 {/* Banner Type */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Banner Type</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-2">Banner Type</Text>
                   <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                    <View style={styles.flexRow, styles.gap2}>
+                    <View className="flex-row gap-2">
                       {['grocery', 'cafe', 'festival', 'fresh', 'express-delivery', 'first-order', 'seasonal', 'custom'].map(t => (
                         <Pressable
                           key={t}
                           onPress={() => { setBannerType(t); triggerHaptic('light'); }}
-                          style={px-3 py-1.5 rounded-lg border ${bannerType === t ? [styles.bgindigo600, styles.borderindigo500] : [styles.bgslate100, styles.dark:bgzinc800, styles.borderslate200, styles.dark:borderzinc700]}}
+                          className={`px-3 py-1.5 rounded-lg border ${bannerType === t ? 'bg-indigo-600 border-indigo-500' : 'bg-slate-100 dark:bg-zinc-800 border-slate-200 dark:border-zinc-700'}`}
                         >
-                          <Text style={text-[9px] font-black uppercase ${bannerType === t ? [styles.textwhite] : [styles.textslate600, styles.dark:textslate300]}}>{t}</Text>
+                          <Text className={`text-[9px] font-black uppercase ${bannerType === t ? 'text-white' : 'text-slate-600 dark:text-slate-300'}`}>{t}</Text>
                         </Pressable>
                       ))}
                     </View>
@@ -9043,85 +8454,85 @@ export default function OperationsScreen() {
                 </View>
 
                 {/* Image URL */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Image URL (Optional)</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Image URL (Optional)</Text>
                   <TextInput
                     placeholder="https://res.cloudinary.com/..."
                     placeholderTextColor="#475569"
                     value={bannerImageUrl}
                     onChangeText={setBannerImageUrl}
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
 
                 {/* Link URL */}
-                <View style={styles.mb4}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Link URL (Optional)</Text>
+                <View className="mb-4">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Link URL (Optional)</Text>
                   <TextInput
                     placeholder="e.g. /category/fruits-vegetables"
                     placeholderTextColor="#475569"
                     value={bannerLinkUrl}
                     onChangeText={setBannerLinkUrl}
-                    style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                    className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                   />
                 </View>
 
                 {/* Sort Order + Active Toggle */}
-                <View style={styles.flexRow, styles.gap4, styles.mb4}>
-                  <View style={styles.flex1}>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Sort Order</Text>
+                <View className="flex-row gap-4 mb-4">
+                  <View className="flex-1">
+                    <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Sort Order</Text>
                     <TextInput
                       placeholder="0"
                       placeholderTextColor="#475569"
                       value={bannerSortOrder}
                       onChangeText={setBannerSortOrder}
                       keyboardType="number-pad"
-                      style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.roundedXl, styles.px3.5, styles.py2.5, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs}
+                      className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-xl px-3.5 py-2.5 text-slate-800 dark:text-white font-bold text-xs"
                     />
                   </View>
-                  <View style={styles.flex1}>
-                    <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb1}>Active</Text>
-                    <View style={styles.flexRow, styles.itemsCenter, styles.gap2, styles.mt1}>
+                  <View className="flex-1">
+                    <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-1">Active</Text>
+                    <View className="flex-row items-center gap-2 mt-1">
                       <Switch
                         value={bannerIsActive}
                         onValueChange={setBannerIsActive}
                         trackColor={{ false: '#475569', true: '#818cf8' }}
                         thumbColor={bannerIsActive ? '#4f46e5' : '#cbd5e1'}
                       />
-                      <Text style={text-[10px] font-black ${bannerIsActive ? [styles.textemerald600] : [styles.textslate500]}}>{bannerIsActive ? 'ACTIVE' : 'DISABLED'}</Text>
+                      <Text className={`text-[10px] font-black ${bannerIsActive ? 'text-emerald-600' : 'text-slate-500'}`}>{bannerIsActive ? 'ACTIVE' : 'DISABLED'}</Text>
                     </View>
                   </View>
                 </View>
 
                 {/* Live Preview */}
-                <View style={styles.mb2}>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.fontbold, styles.textCustom9, styles.uppercase, styles.trackingwider, styles.mb2}>Live Preview</Text>
-                  <View style={bg-gradient-to-r ${bannerGradient} rounded-2xl p-4 h-20 justify-center}>
-                    <Text style={styles.textwhite, styles.fontblack, styles.textsm} numberOfLines={1}>{bannerTitle || 'Banner Title'}</Text>
-                    <Text style={styles.textwhite80, styles.textCustom10, styles.fontsemibold} numberOfLines={1}>{bannerDescription || 'Banner description goes here'}</Text>
+                <View className="mb-2">
+                  <Text className="text-slate-500 dark:text-slate-400 font-bold text-[9px] uppercase tracking-wider mb-2">Live Preview</Text>
+                  <View className={`bg-gradient-to-r ${bannerGradient} rounded-2xl p-4 h-20 justify-center`}>
+                    <Text className="text-white font-black text-sm" numberOfLines={1}>{bannerTitle || 'Banner Title'}</Text>
+                    <Text className="text-white/80 text-[10px] font-semibold" numberOfLines={1}>{bannerDescription || 'Banner description goes here'}</Text>
                     {bannerCode ? (
-                      <View style={styles.bgwhite20, styles.selfStart, styles.px2, styles.py0.5, styles.roundedFull, styles.mt1}>
-                        <Text style={styles.textwhite, styles.textCustom8, styles.fontblack}>{bannerCode}</Text>
+                      <View className="bg-white/20 self-start px-2 py-0.5 rounded-full mt-1">
+                        <Text className="text-white text-[8px] font-black">{bannerCode}</Text>
                       </View>
                     ) : null}
                   </View>
                 </View>
               </ScrollView>
 
-              <View style={styles.flexRow, styles.gap3}>
+              <View className="flex-row gap-3">
                 <Pressable
                   onPress={() => { setIsBannerModalVisible(false); resetBannerForm(); }}
-                  style={styles.flex1, styles.border, styles.borderslate300, styles.dark:borderzinc700, styles.py3.5, styles.roundedXl, styles.itemsCenter, styles.active:bgslate100, styles.dark:active:bgzinc800}
+                  className="flex-1 border border-slate-300 dark:border-zinc-700 py-3.5 rounded-xl items-center active:bg-slate-100 dark:active:bg-zinc-800"
                 >
-                  <Text style={styles.textslate600, styles.dark:textslate300, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>Cancel</Text>
+                  <Text className="text-slate-600 dark:text-slate-300 font-extrabold text-xs uppercase tracking-wider">Cancel</Text>
                 </Pressable>
                 <Pressable
                   onPress={handleBannerSubmit}
                   disabled={bannerSubmitting}
-                  style={flex-1 py-3.5 rounded-xl items-center flex-row justify-center gap-2 ${bannerSubmitting ? [styles.bgindigo400] : [styles.bgindigo600, styles.active:bgindigo700]}}
+                  className={`flex-1 py-3.5 rounded-xl items-center flex-row justify-center gap-2 ${bannerSubmitting ? 'bg-indigo-400' : 'bg-indigo-600 active:bg-indigo-700'}`}
                 >
                   {bannerSubmitting && <ActivityIndicator size="small" color="#fff" />}
-                  <Text style={styles.textwhite, styles.fontextrabold, styles.textxs, styles.uppercase, styles.trackingwider}>{editingBannerId ? 'Update Banner' : 'Create Banner'}</Text>
+                  <Text className="text-white font-extrabold text-xs uppercase tracking-wider">{editingBannerId ? 'Update Banner' : 'Create Banner'}</Text>
                 </Pressable>
               </View>
             </View>
@@ -9169,25 +8580,25 @@ export default function OperationsScreen() {
         >
           <Pressable 
             onPress={() => setIsLauncherVisible(false)} 
-            style={styles.flex1, styles.bgblack60, styles.justifyCenter, styles.p5}
+            className="flex-1 bg-black/60 justify-center p-5"
           >
             <Pressable 
               onPress={(e) => e.stopPropagation()} // prevent close on inner click
-              style={styles.bgwhite, styles.dark:bgzinc900, styles.rounded3Xl, styles.p5, styles.wfull, styles.maxh[80%], styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.shadow2xl}
+              className="bg-white dark:bg-zinc-900 rounded-3xl p-5 w-full max-h-[80%] border border-slate-100 dark:border-zinc-800 shadow-2xl"
             >
               {/* Header */}
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.borderb, styles.borderslate100, styles.dark:borderzinc800, styles.pb3, styles.mb4}>
+              <View className="flex-row justify-between items-center border-b border-slate-100 dark:border-zinc-800 pb-3 mb-4">
                 <View>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textbase}>Quick Tab Launcher</Text>
-                  <Text style={styles.textslate500, styles.dark:textslate400, styles.textCustom9, styles.fontsemibold, styles.mt0.5}>Jump directly to any of the 20 admin consoles</Text>
+                  <Text className="text-slate-900 dark:text-white font-black text-base">Quick Tab Launcher</Text>
+                  <Text className="text-slate-500 dark:text-slate-400 text-[9px] font-semibold mt-0.5">Jump directly to any of the 20 admin consoles</Text>
                 </View>
-                <Pressable onPress={() => setIsLauncherVisible(false)} style={styles.p1}>
+                <Pressable onPress={() => setIsLauncherVisible(false)} className="p-1">
                   <X size={18} color="#64748b" />
                 </Pressable>
               </View>
 
               {/* Search Input */}
-              <View style={styles.bgslate100, styles.dark:bgslate950, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.rounded2Xl, styles.px4, styles.py3, styles.flexRow, styles.itemsCenter, styles.gap2, styles.mb4}>
+              <View className="bg-slate-100 dark:bg-slate-950 border border-slate-200 dark:border-zinc-800 rounded-2xl px-4 py-3 flex-row items-center gap-2 mb-4">
                 <Search size={16} color="#94a3b8" />
                 <TextInput
                   placeholder="Type to search console tabs (e.g. orders, coupon)..."
@@ -9195,17 +8606,17 @@ export default function OperationsScreen() {
                   value={launcherSearchQuery}
                   onChangeText={setLauncherSearchQuery}
                   autoFocus
-                  style={styles.flex1, styles.textslate800, styles.dark:textwhite, styles.fontbold, styles.textxs, styles.p0}
+                  className="flex-1 text-slate-800 dark:text-white font-bold text-xs p-0"
                 />
                 {launcherSearchQuery.length > 0 && (
-                  <Pressable onPress={() => setLauncherSearchQuery('')} style={styles.p1}>
+                  <Pressable onPress={() => setLauncherSearchQuery('')} className="p-1">
                     <X size={14} color="#94a3b8" />
                   </Pressable>
                 )}
               </View>
 
               {/* Scrollable list of matched tabs */}
-              <ScrollView showsVerticalScrollIndicator={false} style={styles.flex1}>
+              <ScrollView showsVerticalScrollIndicator={false} className="flex-1">
                 {(() => {
                   const ALL_TABS_FOR_LAUNCHER = [
                     { id: 'ANALYTICS', label: 'Analytics', hub: 'BI', hubTitle: 'Business Insights', emoji: '📊', keywords: 'sales, performance, revenue, stats' },
@@ -9229,14 +8640,14 @@ export default function OperationsScreen() {
 
                   if (matched.length === 0) {
                     return (
-                      <View style={styles.py8, styles.itemsCenter}>
-                        <Text style={styles.textslate400, styles.textxs, styles.fontbold, styles.textCenter}>No consoles match "{launcherSearchQuery}"</Text>
+                      <View className="py-8 items-center">
+                        <Text className="text-slate-400 text-xs font-bold text-center">No consoles match "{launcherSearchQuery}"</Text>
                       </View>
                     );
                   }
 
                   return (
-                    <View style={styles.gap2}>
+                    <View className="gap-2">
                       {matched.map((tab) => (
                         <Pressable
                           key={tab.id}
@@ -9246,13 +8657,13 @@ export default function OperationsScreen() {
                             setIsLauncherVisible(false);
                             triggerHaptic('success');
                           }}
-                          style={styles.bgslate50, styles.dark:bgzinc80060, styles.border, styles.borderslate100, styles.dark:borderzinc800, styles.rounded2Xl, styles.p3.5, styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.active:bgslate150}
+                          className="bg-slate-50 dark:bg-zinc-800/60 border border-slate-100 dark:border-zinc-800 rounded-2xl p-3.5 flex-row items-center justify-between active:bg-slate-150"
                         >
-                          <View style={styles.flexRow, styles.itemsCenter, styles.gap3}>
-                            <Text style={styles.textxl}>{tab.emoji}</Text>
+                          <View className="flex-row items-center gap-3">
+                            <Text className="text-xl">{tab.emoji}</Text>
                             <View>
-                              <Text style={styles.textslate800, styles.dark:textwhite, styles.fontextrabold, styles.textxs}>{tab.label}</Text>
-                              <Text style={styles.textslate400, styles.dark:textslate500, styles.textCustom8, styles.fontblack, styles.uppercase, styles.mt0.5}>{tab.hubTitle}</Text>
+                              <Text className="text-slate-800 dark:text-white font-extrabold text-xs">{tab.label}</Text>
+                              <Text className="text-slate-400 dark:text-slate-500 text-[8px] font-black uppercase mt-0.5">{tab.hubTitle}</Text>
                             </View>
                           </View>
                           <ChevronRight size={14} color="#94a3b8" />
@@ -9283,63 +8694,63 @@ export default function OperationsScreen() {
           animationType="fade"
           onRequestClose={() => setAlertModalVisible(false)}
         >
-          <View style={{ flex: 1, backgroundColor: ''#00000099'', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
-            <View style={styles.wfull, styles.maxwsm, styles.bgwhite, styles.dark:bgzinc900, styles.border, styles.borderslate205, styles.dark:borderzinc805, styles.rounded3Xl, styles.overflowHidden, styles.shadow2xl, styles.p5}>
+          <View style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 20 }}>
+            <View className="w-full max-w-sm bg-white dark:bg-zinc-900 border border-slate-205 dark:border-zinc-805 rounded-3xl overflow-hidden shadow-2xl p-5">
               
               {/* Header */}
-              <View style={styles.flexRow, styles.justifyBetween, styles.itemsCenter, styles.mb4}>
-                <View style={styles.flexRow, styles.itemsCenter, styles.gap2.5}>
-                  <View style={styles.bgamber100, styles.dark:bgamber95040, styles.p2.5, styles.rounded2Xl}>
+              <View className="flex-row justify-between items-center mb-4">
+                <View className="flex-row items-center gap-2.5">
+                  <View className="bg-amber-100 dark:bg-amber-950/40 p-2.5 rounded-2xl">
                     <ShoppingBag size={18} color="#d97706" />
                   </View>
                   <View>
-                    <Text style={styles.textslate900, styles.dark:textwhite, styles.fontblack, styles.textsm}>Cart Recovery Alert</Text>
-                    <Text style={styles.textslate400, styles.dark:textzinc500, styles.textCustom9, styles.fontblack, styles.uppercase, styles.mt0.5}>{selectedCartForAlert.userName}</Text>
+                    <Text className="text-slate-900 dark:text-white font-black text-sm">Cart Recovery Alert</Text>
+                    <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mt-0.5">{selectedCartForAlert.userName}</Text>
                   </View>
                 </View>
-                <Pressable onPress={() => setAlertModalVisible(false)} style={styles.bgslate50, styles.dark:bgzinc800, styles.p2, styles.roundedFull}>
+                <Pressable onPress={() => setAlertModalVisible(false)} className="bg-slate-50 dark:bg-zinc-800 p-2 rounded-full">
                   <X size={12} color={isDarkMode ? '#94a3b8' : '#64748b'} />
                 </Pressable>
               </View>
 
               {/* Cart Summary */}
-              <View style={styles.bgslate50, styles.dark:bgzinc95040, styles.border, styles.borderslate100, styles.dark:borderzinc80080, styles.rounded2Xl, styles.p3.5, styles.mb4}>
-                <Text style={styles.textslate400, styles.dark:textzinc500, styles.textCustom9, styles.fontblack, styles.uppercase, styles.mb1.5}>Cart Content</Text>
-                <Text style={styles.textslate700, styles.dark:textzinc300, styles.textxs, styles.fontbold, styles.leading5}>
+              <View className="bg-slate-50 dark:bg-zinc-950/40 border border-slate-100 dark:border-zinc-800/80 rounded-2xl p-3.5 mb-4">
+                <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mb-1.5">Cart Content</Text>
+                <Text className="text-slate-700 dark:text-zinc-300 text-xs font-bold leading-5">
                   {selectedCartForAlert.items.map((item: any) => `${item.productName} (x${item.quantity})`).join(', ')}
                 </Text>
-                <View style={styles.flexRow, styles.itemsCenter, styles.justifyBetween, styles.mt2, styles.pt2, styles.bordert, styles.borderslate20050, styles.dark:borderzinc855}>
-                  <Text style={styles.textslate450, styles.dark:textzinc500, styles.textCustom9, styles.fontblack, styles.uppercase}>Subtotal</Text>
-                  <Text style={styles.textslate900, styles.dark:textwhite, styles.textxs, styles.fontblack}>{formatPrice(selectedCartForAlert.subtotal)}</Text>
+                <View className="flex-row items-center justify-between mt-2 pt-2 border-t border-slate-200/50 dark:border-zinc-855">
+                  <Text className="text-slate-450 dark:text-zinc-500 text-[9px] font-black uppercase">Subtotal</Text>
+                  <Text className="text-slate-900 dark:text-white text-xs font-black">{formatPrice(selectedCartForAlert.subtotal)}</Text>
                 </View>
               </View>
 
               {/* Message Editor */}
-              <Text style={styles.textslate400, styles.dark:textzinc500, styles.textCustom9, styles.fontblack, styles.uppercase, styles.mb1.5, styles.ml1}>Customize Message</Text>
-              <View style={styles.bgslate50, styles.dark:bgzinc95040, styles.border, styles.borderslate200, styles.dark:borderzinc800, styles.rounded2Xl, styles.p3, styles.mb4}>
+              <Text className="text-slate-400 dark:text-zinc-500 text-[9px] font-black uppercase mb-1.5 ml-1">Customize Message</Text>
+              <View className="bg-slate-50 dark:bg-zinc-950/40 border border-slate-200 dark:border-zinc-800 rounded-2xl p-3 mb-4">
                 <TextInput
                   value={alertMessageText}
                   onChangeText={setAlertMessageText}
                   multiline={true}
                   numberOfLines={3}
                   style={{ textAlignVertical: 'top', height: 60 }}
-                  style={styles.textslate800, styles.dark:textzinc100, styles.textxs, styles.fontbold, styles.leading5, styles.p0}
+                  className="text-slate-800 dark:text-zinc-100 text-xs font-bold leading-5 p-0"
                 />
               </View>
 
               {/* Location Info (if coordinates exist) */}
               {selectedCartForAlert.address && (
-                <View style={styles.bgrose5050, styles.dark:bgrose95010, styles.border, styles.borderrose10050, styles.dark:borderrose90030, styles.rounded2Xl, styles.p3.5, styles.mb4, styles.flexRow, styles.gap2.5, styles.itemsCenter}>
+                <View className="bg-rose-50/50 dark:bg-rose-950/10 border border-rose-100/50 dark:border-rose-900/30 rounded-2xl p-3.5 mb-4 flex-row gap-2.5 items-center">
                   <MapPin size={18} color="#f43f5e" />
-                  <View style={styles.flex1}>
-                    <Text style={styles.textrose600, styles.dark:textrose455, styles.textCustom9, styles.fontblack, styles.uppercase}>WhatsApp Location Included</Text>
-                    <Text style={styles.textslate500, styles.dark:textzinc400, styles.textCustom10, styles.fontbold, styles.mt0.5} numberOfLines={1}>{selectedCartForAlert.address}</Text>
+                  <View className="flex-1">
+                    <Text className="text-rose-600 dark:text-rose-455 text-[9px] font-black uppercase">WhatsApp Location Included</Text>
+                    <Text className="text-slate-500 dark:text-zinc-400 text-[10px] font-bold mt-0.5" numberOfLines={1}>{selectedCartForAlert.address}</Text>
                   </View>
                 </View>
               )}
 
               {/* Action Buttons */}
-              <View style={styles.gap2.5}>
+              <View className="gap-2.5">
                 {/* Send via Push Notification */}
                 <Pressable
                   onPress={handleSendPushNotification}
@@ -9348,10 +8759,10 @@ export default function OperationsScreen() {
                     transform: [{ scale: pressed ? 0.97 : 1 }],
                     opacity: isSendingNotification ? 0.6 : 1
                   })}
-                  style={styles.bgindigo600, styles.dark:bgindigo500, styles.py3.5, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap2, styles.shadowSm}
+                  className="bg-indigo-600 dark:bg-indigo-500 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
                 >
                   <Send size={13} color="#ffffff" strokeWidth={3} />
-                  <Text style={styles.textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>
+                  <Text className="text-white font-black text-xs uppercase tracking-wider">
                     {isSendingNotification ? 'Sending Push...' : 'Send Push Notification'}
                   </Text>
                 </Pressable>
@@ -9362,10 +8773,10 @@ export default function OperationsScreen() {
                   style={({ pressed }) => ({
                     transform: [{ scale: pressed ? 0.97 : 1 }]
                   })}
-                  style={styles.bgemerald600, styles.dark:bgemerald500, styles.py3.5, styles.rounded2Xl, styles.flexRow, styles.itemsCenter, styles.justifyCenter, styles.gap2, styles.shadowSm}
+                  className="bg-emerald-600 dark:bg-emerald-500 py-3.5 rounded-2xl flex-row items-center justify-center gap-2 shadow-sm"
                 >
                   <MessageSquare size={13} color="#ffffff" strokeWidth={3} />
-                  <Text style={styles.textwhite, styles.fontblack, styles.textxs, styles.uppercase, styles.trackingwider}>Send via WhatsApp</Text>
+                  <Text className="text-white font-black text-xs uppercase tracking-wider">Send via WhatsApp</Text>
                 </Pressable>
               </View>
             </View>
@@ -9380,19 +8791,19 @@ export default function OperationsScreen() {
         onRequestClose={() => setEditingOrder(null)}
       >
         <Pressable
-          style={{ flex: 1, backgroundColor: ''#00000099'', justifyContent: 'center', alignItems: 'center', padding: 16 }}
+          style={{ flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center', padding: 16 }}
           onPress={() => setEditingOrder(null)}
         >
           <Pressable
-            style={{ width: '100%', maxWidth: 440, backgroundColor: isDarkMode ? '#1c1c1e' : 'colors.surface', borderRadius: 24, padding: 20, maxHeight: '85%' }}
+            style={{ width: '100%', maxWidth: 440, backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderRadius: 24, padding: 20, maxHeight: '85%' }}
             onPress={(e) => e.stopPropagation()}
           >
-            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: isDarkMode ? 'THEME.COLORS.dark.surfaceElevated' : 'colors.border', paddingBottom: 12, marginBottom: 12 }}>
+            <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', borderBottomWidth: 1, borderBottomColor: isDarkMode ? '#27272a' : '#e2e8f0', paddingBottom: 12, marginBottom: 12 }}>
               <View style={{ flex: 1, paddingRight: 12 }}>
-                <Text style={{ fontSize: 14, fontWeight: '900', color: isDarkMode ? 'THEME.COLORS.light.background' : 'THEME.COLORS.light.textPrimary', textTransform: 'uppercase' }}>
+                <Text style={{ fontSize: 14, fontWeight: '900', color: isDarkMode ? '#f8fafc' : '#0f172a', textTransform: 'uppercase' }}>
                   Edit Order #{editingOrder?.id.slice(-6).toUpperCase()}
                 </Text>
-                <Text style={{ fontSize: 10, color: isDarkMode ? 'colors.textMuted' : 'colors.textSecondary', fontWeight: '700', marginTop: 2 }}>
+                <Text style={{ fontSize: 10, color: isDarkMode ? '#94a3b8' : '#64748b', fontWeight: '700', marginTop: 2 }}>
                   Modify quantities, swap variants, or add products
                 </Text>
               </View>
@@ -9403,14 +8814,14 @@ export default function OperationsScreen() {
 
             {/* Catalog Search Input */}
             <View style={{ position: 'relative', marginBottom: 12, zIndex: 50 }}>
-              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? 'THEME.COLORS.dark.surfaceElevated' : 'colors.borderLight', borderRadius: 14, paddingHorizontal: 12, height: 40 }}>
+              <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', borderRadius: 14, paddingHorizontal: 12, height: 40 }}>
                 <Search size={14} color={isDarkMode ? '#94a3b8' : '#64748b'} style={{ marginRight: 8 }} />
                 <TextInput
                   placeholder="Search catalog to add items..."
                   placeholderTextColor={isDarkMode ? '#71717a' : '#94a3b8'}
                   value={searchQuery}
                   onChangeText={setSearchQuery}
-                  style={{ flex: 1, fontSize: 12, fontWeight: '700', color: isDarkMode ? 'colors.surface' : 'THEME.COLORS.light.textPrimary' }}
+                  style={{ flex: 1, fontSize: 12, fontWeight: '700', color: isDarkMode ? '#ffffff' : '#0f172a' }}
                 />
               </View>
 
@@ -9422,10 +8833,10 @@ export default function OperationsScreen() {
                       <TouchableOpacity
                         key={prod.id}
                         onPress={() => addCatalogItem(prod)}
-                        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: isDarkMode ? 'colors.textSecondary' : 'colors.borderLight' }}
+                        style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingHorizontal: 12, paddingVertical: 10, borderBottomWidth: 0.5, borderBottomColor: isDarkMode ? '#3f3f46' : '#f1f5f9' }}
                       >
-                        <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? 'colors.border' : 'colors.textPrimary', flex: 1, marginRight: 8 }}>{prod.name}</Text>
-                        <Text style={{ fontSize: 11, fontWeight: '900', color: 'THEME.COLORS.brand.primary' }}>₹{prod.price}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '700', color: isDarkMode ? '#e2e8f0' : '#1e293b', flex: 1, marginRight: 8 }}>{prod.name}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '900', color: '#e20a22' }}>₹{prod.price}</Text>
                       </TouchableOpacity>
                     ))}
                   </ScrollView>
@@ -9436,7 +8847,7 @@ export default function OperationsScreen() {
             {/* Scrollable list of current items */}
             <ScrollView style={{ flexGrow: 0, flexShrink: 1, marginBottom: 12 }} showsVerticalScrollIndicator={false} nestedScrollEnabled={true}>
               {editItems.length === 0 ? (
-                <Text style={{ textAlign: 'center', marginVertical: 32, fontSize: 12, fontWeight: '700', color: isDarkMode ? 'colors.textMuted' : 'colors.textMuted' }}>
+                <Text style={{ textAlign: 'center', marginVertical: 32, fontSize: 12, fontWeight: '700', color: isDarkMode ? '#71717a' : '#94a3b8' }}>
                   No items in order. Search above to add items.
                 </Text>
               ) : (
@@ -9446,15 +8857,15 @@ export default function OperationsScreen() {
                   const hasItemVariants = variants && Array.isArray(variants) && variants.length > 0;
 
                   return (
-                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: isDarkMode ? 'THEME.COLORS.dark.surfaceElevated' : 'THEME.COLORS.light.background', borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? 'colors.textSecondary' : 'colors.border', marginBottom: 8 }}>
+                    <View key={idx} style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 12, backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 8 }}>
                       <View style={{ flex: 1, paddingRight: 8 }}>
-                        <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? 'colors.textPrimary' : 'colors.textPrimary' }} numberOfLines={1}>{item.name}</Text>
-                        <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary', marginTop: 2 }}>₹{item.price}</Text>
+                        <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#fafafa' : '#1e293b' }} numberOfLines={1}>{item.name}</Text>
+                        <Text style={{ fontSize: 9.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', marginTop: 2 }}>₹{item.price}</Text>
                         
                         {/* Variant Swap Selector */}
                         {hasItemVariants && (
                           <View style={{ flexDirection: 'row', alignItems: 'center', gap: 4, marginTop: 6 }}>
-                            <Text style={{ fontSize: 8.5, fontWeight: '900', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary', textTransform: 'uppercase' }}>Variant:</Text>
+                            <Text style={{ fontSize: 8.5, fontWeight: '900', color: isDarkMode ? '#a1a1aa' : '#64748b', textTransform: 'uppercase' }}>Variant:</Text>
                             <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ flexDirection: 'row', gap: 4 }}>
                               {variants.map((v) => {
                                 const isSelected = item.selectedVariant === v.name;
@@ -9467,12 +8878,12 @@ export default function OperationsScreen() {
                                       paddingVertical: 3,
                                       borderRadius: 8,
                                       borderWidth: 1,
-                                      borderColor: isSelected ? 'THEME.COLORS.brand.primary' : (isDarkMode ? 'colors.textSecondary' : 'colors.border'),
-                                      backgroundColor: isSelected ? ''#E20A2219'' : 'transparent',
+                                      borderColor: isSelected ? '#e20a22' : (isDarkMode ? '#3f3f46' : '#e2e8f0'),
+                                      backgroundColor: isSelected ? 'rgba(226,10,34,0.1)' : 'transparent',
                                       marginRight: 4
                                     }}
                                   >
-                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? 'THEME.COLORS.brand.primary' : (isDarkMode ? 'colors.border' : 'colors.textSecondary') }}>
+                                    <Text style={{ fontSize: 8.5, fontWeight: '800', color: isSelected ? '#e20a22' : (isDarkMode ? '#e2e8f0' : '#475569') }}>
                                       {v.name} (₹{v.price})
                                     </Text>
                                   </TouchableOpacity>
@@ -9484,14 +8895,14 @@ export default function OperationsScreen() {
                       </View>
 
                       <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
-                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1c1c1e' : 'colors.surface', borderWidth: 1, borderColor: isDarkMode ? 'colors.textSecondary' : 'colors.border', borderRadius: 10, overflow: 'hidden' }}>
+                        <View style={{ flexDirection: 'row', alignItems: 'center', backgroundColor: isDarkMode ? '#1c1c1e' : '#ffffff', borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 10, overflow: 'hidden' }}>
                           <TouchableOpacity
                             onPress={() => updateItemQty(item.productId, item.selectedVariant, -1)}
                             style={{ padding: 6 }}
                           >
                             <Minus size={10} color={isDarkMode ? '#e2e8f0' : '#475569'} strokeWidth={3} />
                           </TouchableOpacity>
-                          <Text style={{ paddingHorizontal: 8, fontSize: 11, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'THEME.COLORS.light.textPrimary', minWidth: 18, textAlign: 'center' }}>
+                          <Text style={{ paddingHorizontal: 8, fontSize: 11, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a', minWidth: 18, textAlign: 'center' }}>
                             {item.quantity}
                           </Text>
                           <TouchableOpacity
@@ -9504,7 +8915,7 @@ export default function OperationsScreen() {
 
                         <TouchableOpacity
                           onPress={() => markItemOutOfStock(item.productId)}
-                          style={{ padding: 6, backgroundColor: ''#EF444419'', borderRadius: 10 }}
+                          style={{ padding: 6, backgroundColor: 'rgba(239,68,68,0.1)', borderRadius: 10 }}
                         >
                           <AlertTriangle size={12} color="#ef4444" />
                         </TouchableOpacity>
@@ -9528,32 +8939,32 @@ export default function OperationsScreen() {
               const computedTotal = computedSubtotal + computedDeliveryFee + computedTaxes + computedMiscFee - (editingOrder?.discount || 0);
 
               return (
-                <View style={{ backgroundColor: isDarkMode ? 'THEME.COLORS.dark.surfaceElevated' : 'THEME.COLORS.light.background', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? 'colors.textSecondary' : 'colors.border', marginBottom: 12, gap: 4 }}>
+                <View style={{ backgroundColor: isDarkMode ? '#27272a' : '#f8fafc', padding: 12, borderRadius: 16, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', marginBottom: 12, gap: 4 }}>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Subtotal</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'colors.textPrimary' }}>₹{computedSubtotal}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Subtotal</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedSubtotal}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Taxes ({Math.round(editTaxRate * 100)}%)</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'colors.textPrimary' }}>₹{computedTaxes}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Taxes ({Math.round(editTaxRate * 100)}%)</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedTaxes}</Text>
                   </View>
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Delivery Fee</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'colors.textPrimary' }}>₹{computedDeliveryFee}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Delivery Fee</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedDeliveryFee}</Text>
                   </View>
                   {computedMiscFee > 0 && (
                     <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                      <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Handling / Packaging Fee</Text>
-                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'colors.textPrimary' }}>₹{computedMiscFee}</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Handling / Packaging Fee</Text>
+                      <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>₹{computedMiscFee}</Text>
                     </View>
                   )}
                   <View style={{ flexDirection: 'row', justifyContent: 'space-between' }}>
-                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Discount</Text>
-                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'colors.textPrimary' }}>-₹{editingOrder?.discount || 0}</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '700', color: isDarkMode ? '#a1a1aa' : '#64748b' }}>Discount</Text>
+                    <Text style={{ fontSize: 10, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#1e293b' }}>-₹{editingOrder?.discount || 0}</Text>
                   </View>
-                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: isDarkMode ? 'colors.textSecondary' : 'colors.border', paddingTop: 6, marginTop: 2 }}>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? 'colors.surface' : 'THEME.COLORS.light.textPrimary' }}>Estimated Total</Text>
-                    <Text style={{ fontSize: 12, fontWeight: '900', color: 'THEME.COLORS.brand.primary' }}>₹{computedTotal}</Text>
+                  <View style={{ flexDirection: 'row', justifyContent: 'space-between', borderTopWidth: 0.5, borderTopColor: isDarkMode ? '#3f3f46' : '#e2e8f0', paddingTop: 6, marginTop: 2 }}>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: isDarkMode ? '#ffffff' : '#0f172a' }}>Estimated Total</Text>
+                    <Text style={{ fontSize: 12, fontWeight: '900', color: '#e20a22' }}>₹{computedTotal}</Text>
                   </View>
                 </View>
               );
@@ -9563,16 +8974,16 @@ export default function OperationsScreen() {
             <View style={{ flexDirection: 'row', gap: 10 }}>
               <TouchableOpacity
                 onPress={() => setEditingOrder(null)}
-                style={{ flex: 1, height: 40, borderWidth: 1, borderColor: isDarkMode ? 'colors.textSecondary' : 'colors.border', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
+                style={{ flex: 1, height: 40, borderWidth: 1, borderColor: isDarkMode ? '#3f3f46' : '#e2e8f0', borderRadius: 12, justifyContent: 'center', alignItems: 'center' }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary' }}>Cancel</Text>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: isDarkMode ? '#a1a1aa' : '#475569' }}>Cancel</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 disabled={isSavingEdit}
                 onPress={saveEditedOrder}
-                style={{ flex: 1, height: 40, backgroundColor: 'THEME.COLORS.brand.primary', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
+                style={{ flex: 1, height: 40, backgroundColor: '#e20a22', borderRadius: 12, justifyContent: 'center', alignItems: 'center', opacity: isSavingEdit ? 0.6 : 1 }}
               >
-                <Text style={{ fontSize: 11, fontWeight: '800', color: 'colors.surface' }}>
+                <Text style={{ fontSize: 11, fontWeight: '800', color: '#ffffff' }}>
                   {isSavingEdit ? 'Saving...' : 'Save Changes'}
                 </Text>
               </TouchableOpacity>
@@ -9589,7 +9000,7 @@ export default function OperationsScreen() {
         onRequestClose={() => setLogoutModalVisible(false)}
       >
         <Pressable 
-          style={{ flex: 1, backgroundColor: ''#00000099'', justifyContent: 'center', alignItems: 'center' }}
+          style={{ flex: 1, backgroundColor: 'rgba(0, 0, 0, 0.6)', justifyContent: 'center', alignItems: 'center' }}
           onPress={() => setLogoutModalVisible(false)}
         >
           <Pressable 
@@ -9606,7 +9017,7 @@ export default function OperationsScreen() {
               shadowRadius: 15,
               elevation: 10,
               borderWidth: 1,
-              borderColor: isDarkMode ? ''#FFFFFF0F'' : ''#00000005'',
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(0,0,0,0.02)',
             }}
           >
             {/* Logout icon with glowing circle */}
@@ -9614,7 +9025,7 @@ export default function OperationsScreen() {
               width: 56,
               height: 56,
               borderRadius: 28,
-              backgroundColor: isDarkMode ? ''#F43F5E1E'' : '#ffe4e6',
+              backgroundColor: isDarkMode ? 'rgba(244, 63, 94, 0.12)' : '#ffe4e6',
               justifyContent: 'center',
               alignItems: 'center',
               marginBottom: 16,
@@ -9626,7 +9037,7 @@ export default function OperationsScreen() {
             <Text style={{
               fontSize: 18,
               fontWeight: '900',
-              color: isDarkMode ? 'colors.surface' : 'THEME.COLORS.light.textPrimary',
+              color: isDarkMode ? '#ffffff' : '#0f172a',
               textAlign: 'center',
               marginBottom: 8,
             }}>
@@ -9636,7 +9047,7 @@ export default function OperationsScreen() {
             {/* Modal Description */}
             <Text style={{
               fontSize: 13,
-              color: isDarkMode ? 'colors.textSecondary' : 'colors.textSecondary',
+              color: isDarkMode ? '#a1a1aa' : '#64748b',
               textAlign: 'center',
               lineHeight: 18,
               marginBottom: 24,
@@ -9658,10 +9069,10 @@ export default function OperationsScreen() {
                   borderRadius: 16,
                   alignItems: 'center',
                   justifyContent: 'center',
-                  backgroundColor: isDarkMode ? 'THEME.COLORS.dark.surfaceElevated' : 'colors.background',
+                  backgroundColor: isDarkMode ? '#27272a' : '#f4f4f5',
                 }}
               >
-                <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? 'colors.border' : 'colors.textMuted' }}>
+                <Text style={{ fontSize: 13, fontWeight: '700', color: isDarkMode ? '#d4d4d8' : '#71717a' }}>
                   Cancel
                 </Text>
               </Pressable>
@@ -9691,7 +9102,7 @@ export default function OperationsScreen() {
                     width: '100%',
                   }}
                 >
-                  <Text style={{ fontSize: 13, fontWeight: '800', color: 'colors.surface' }}>
+                  <Text style={{ fontSize: 13, fontWeight: '800', color: '#ffffff' }}>
                     Log Out
                   </Text>
                 </LinearGradient>

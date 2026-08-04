@@ -1116,7 +1116,7 @@ export default function CheckoutScreen() {
                 ) : deliveryDistance !== null ? (
                   isOutsideDeliveryZone ? (
                     <View style={[staticStyles.distanceBannerInner, { backgroundColor: `${THEME.COLORS.brand.error}14`, borderWidth: 1, borderColor: `${THEME.COLORS.brand.error}33` }]}>
-                      <Text style={{ fontSize: 16 }}>\u{1F6D1}</Text>
+                      <Text style={{ fontSize: 16 }}>🛑</Text>
                       <View style={{ flex: 1 }}>
                         <Text style={themedStyles.outsideZoneTitle}>Outside Delivery Zone</Text>
                         <Text style={themedStyles.outsideZoneText}>
@@ -1397,7 +1397,7 @@ export default function CheckoutScreen() {
             </View>
 
             {/* Title */}
-            <Text style={[themedStyles.successTitle, { color: colors.textPrimary }]}>Order Confirmed! \u{1F3AF}</Text>
+            <Text style={[themedStyles.successTitle, { color: colors.textPrimary }]}>Order Confirmed! 🎯</Text>
 
             {/* Subtitle */}
             <Text style={[themedStyles.successSubtitle, { color: colors.textSecondary }]}>

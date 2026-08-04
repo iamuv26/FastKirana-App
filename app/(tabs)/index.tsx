@@ -1366,7 +1366,7 @@ export default function HomeScreen() {
                 </View>
               </LinearGradient>
             </ScalePressable>
-          )
+          )}
 
           {/* Reorder Last Order Banner */}
           {!activeOrder && lastCompletedOrder && (
