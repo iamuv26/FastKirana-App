@@ -420,12 +420,15 @@ function AppQuerySync() {
                   <Stack.Screen name="cafe" options={{ headerShown: false, animation: 'none' }} />
                   <Stack.Screen name="cafe-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
                   <Stack.Screen name="restaurant-chef" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
-                  <Stack.Screen name="product/[slug]" options={{ headerShown: false }} />
-                  <Stack.Screen name="category/[slug]" options={{ headerShown: false }} />
+                  <Stack.Screen name="product/[slug]" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
+                  <Stack.Screen name="category/[slug]" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
                   <Stack.Screen name="cart" options={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 180 }} />
-                  <Stack.Screen name="checkout" options={{ headerShown: false }} />
-                  <Stack.Screen name="order/[id]" options={{ headerShown: false }} />
-                  <Stack.Screen name="restaurants" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 220 }} />
+                  <Stack.Screen name="checkout" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
+                  <Stack.Screen name="order/[id]" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
+                  <Stack.Screen name="orders" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
+                  <Stack.Screen name="addresses" options={{ headerShown: false, animation: 'slide_from_right', animationDuration: 180 }} />
+                  <Stack.Screen name="location-picker" options={{ headerShown: false, animation: 'slide_from_bottom', animationDuration: 200 }} />
+                  <Stack.Screen name="restaurants" options={{ headerShown: false, animation: 'fade', animationDuration: 150 }} />
                 </Stack>
                   <VariantSelectorDrawer />
                   <CartConflictDrawer />

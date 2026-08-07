@@ -37,15 +37,31 @@ export function getOptimizedImageUrl(url: string | null | undefined, width = 300
   return cleanUrl || null;
 }
 
-export function getAppImageSource(imgUrl: string | null | undefined, width = 250): { uri: string } | null {
+export function getAppImageSource(imgUrl: string | null | undefined | any, width = 250): any {
   if (!imgUrl) return null;
+
+  // Handle require() numeric asset module IDs or local asset objects
+  if (typeof imgUrl === 'number' || (typeof imgUrl === 'object' && imgUrl?.uri)) {
+    return imgUrl;
+  }
+
+  if (typeof imgUrl !== 'string') return null;
+
   const rawUrl = imgUrl.trim();
   if (!rawUrl) return null;
 
   const optimizedUrl = getOptimizedImageUrl(rawUrl, width);
   if (!optimizedUrl) return null;
 
-  if (optimizedUrl.startsWith('http') || optimizedUrl.startsWith('data:')) {
+  if (optimizedUrl.startsWith('data:')) {
+    return { uri: optimizedUrl };
+  }
+
+  if (optimizedUrl.startsWith('//')) {
+    return { uri: `https:${optimizedUrl}` };
+  }
+
+  if (optimizedUrl.startsWith('http://') || optimizedUrl.startsWith('https://')) {
     let url = optimizedUrl;
     if (url.includes('localhost:3000')) {
       url = url.replace('localhost:3000', 'www.fastkirana.in');
@@ -55,11 +71,8 @@ export function getAppImageSource(imgUrl: string | null | undefined, width = 250
     return { uri: url };
   }
 
-  if (optimizedUrl.startsWith('/')) {
-    return { uri: `https://www.fastkirana.in${optimizedUrl}` };
-  }
-
-  return null;
+  const cleanPath = optimizedUrl.startsWith('/') ? optimizedUrl : `/${optimizedUrl}`;
+  return { uri: `https://www.fastkirana.in${cleanPath}` };
 }
 
 export function formatHeaderAddress(address: string | null | undefined): string {

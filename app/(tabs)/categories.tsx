@@ -15,7 +15,7 @@ import { useState, useMemo, useRef } from 'react';
 import { StatusBar } from 'expo-status-bar';
 import { useQuery } from '@tanstack/react-query';
 import { API_BASE_URL } from '../../lib/constants';
-import { getAppImageSource, formatHeaderAddress } from '../../lib/utils';
+import { getAppImageSource, formatHeaderAddress, getCategoryEmoji } from '../../lib/utils';
 import { THEME } from '../../lib/theme';
 
 
@@ -245,7 +245,8 @@ export default function CategoriesScreen() {
       if (!res.ok) throw new Error('API failed');
       return res.json();
     },
-    staleTime: 1000 * 60 * 15, // 15 mins cache validity
+    staleTime: 5000, // 5s cache validity
+    refetchInterval: 10000, // Auto-sync new admin categories every 10s
   });
 
   // Fetch cafe products to get counts dynamically
@@ -256,15 +257,14 @@ export default function CategoriesScreen() {
       if (!response.ok) return { pagination: { total: 81 } };
       return response.json();
     },
-    staleTime: 1000 * 60 * 15, // 15 mins cache validity
+    staleTime: 5000, // 5s cache validity
+    refetchInterval: 10000,
   });
   const cafeCount = cafeProductsData?.pagination?.total ?? 79;
 
   // Build the list of display categories based on local configs merged with server updates to ensure they never disappear
   const displayCategories = useMemo(() => {
     if (serverCategories && serverCategories.length > 0) {
-      const serverSlugs = new Set(serverCategories.map(c => c.slug));
-      
       const list = serverCategories.map(serverCat => {
         const local = LOCAL_CATEGORY_CONFIGS[serverCat.slug] || {
           name: serverCat.name,
@@ -273,7 +273,12 @@ export default function CategoriesScreen() {
           image: null
         };
 
-        const resolvedImg = serverCat.imageUrl ? getAppImageSource(serverCat.imageUrl) : null;
+        const isServerPlaceholderPath = serverCat.imageUrl && 
+          (serverCat.imageUrl.startsWith('/') || serverCat.imageUrl.includes('_category'));
+
+        const resolvedImg = (!isServerPlaceholderPath && serverCat.imageUrl && (serverCat.imageUrl.startsWith('http') || serverCat.imageUrl.startsWith('data:')))
+          ? getAppImageSource(serverCat.imageUrl) 
+          : null;
         const serverImage = resolvedImg ? resolvedImg.uri : null;
 
         // Check if imageUrl is actually an emoji (less than 5 chars and doesn't start with http/data//)
@@ -281,7 +286,7 @@ export default function CategoriesScreen() {
                         serverCat.imageUrl.length < 5 && 
                         !serverCat.imageUrl.startsWith('http') && 
                         !serverCat.imageUrl.startsWith('/');
-        const emoji = isEmoji ? serverCat.imageUrl : null;
+        const emoji = isEmoji ? serverCat.imageUrl : (local.image || serverImage ? null : getCategoryEmoji(serverCat.name || serverCat.slug));
 
         let itemCount = 0;
         if (serverCat.slug === 'cafe') {

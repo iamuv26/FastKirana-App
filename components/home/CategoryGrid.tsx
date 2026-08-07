@@ -8,7 +8,7 @@ import { API_BASE_URL } from '../../lib/constants';
 import Animated, { FadeInDown, useSharedValue, useAnimatedStyle, withSpring } from 'react-native-reanimated';
 import { triggerHaptic } from '../../lib/haptic';
 import { useTheme } from '../../app/context/ThemeContext';
-import { getAppImageSource } from '../../lib/utils';
+import { getAppImageSource, getCategoryEmoji } from '../../lib/utils';
 import { LinearGradient } from 'expo-linear-gradient';
 import { THEME } from '../../lib/theme';
 import { LayoutGrid, ArrowRight } from 'lucide-react-native';
@@ -44,14 +44,30 @@ const SERVER_SLUG_MAP: Record<string, string> = {
   'snacks': 'snacks-biscuits',
   'biscuits': 'snacks-biscuits',
   'drinks': 'beverages',
+  'drink': 'beverages',
+  'beverage': 'beverages',
+  'cold-drink': 'beverages',
+  'cold-drinks': 'beverages',
+  'soft-drinks': 'beverages',
+  'juices': 'beverages',
   'icecream': 'ice-cream',
+  'ice-cream': 'ice-cream',
+  'dessert': 'ice-cream',
+  'desserts': 'ice-cream',
 };
 
 function resolveSlug(name: string, slug: string): string {
-  const lower = slug.toLowerCase();
-  if (LOCAL_CONFIGS[lower]) return lower;
-  if (SERVER_SLUG_MAP[lower]) return SERVER_SLUG_MAP[lower];
-  return lower;
+  const lowerSlug = (slug || '').toLowerCase();
+  const lowerName = (name || '').toLowerCase();
+  if (LOCAL_CONFIGS[lowerSlug]) return lowerSlug;
+  if (SERVER_SLUG_MAP[lowerSlug]) return SERVER_SLUG_MAP[lowerSlug];
+  if (lowerSlug.includes('beverage') || lowerSlug.includes('drink') || lowerName.includes('beverage') || lowerName.includes('drink')) {
+    return 'beverages';
+  }
+  if (lowerSlug.includes('ice') || lowerSlug.includes('cream') || lowerName.includes('ice cream') || lowerName.includes('icecream')) {
+    return 'ice-cream';
+  }
+  return lowerSlug;
 }
 
 function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category: any; index: number; isDarkMode: boolean; itemWidth?: any }) {
@@ -115,13 +131,15 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
           {/* Inner Circle Image Container */}
           <View 
             style={{
-              width: 62,
-              height: 62,
-              borderRadius: 31,
+              width: 64,
+              height: 64,
+              borderRadius: 32,
               overflow: 'hidden',
               alignItems: 'center',
               justifyContent: 'center',
               backgroundColor: isDarkMode ? '#27272a' : '#f8fafc',
+              borderWidth: 1,
+              borderColor: isDarkMode ? 'rgba(255,255,255,0.1)' : 'rgba(0,0,0,0.04)',
             }}
           >
             {/* Visual Gradient Background */}
@@ -137,8 +155,8 @@ function CategoryGridItem({ category, index, isDarkMode, itemWidth }: { category
             ) : (
               <ExpoImage 
                 source={category.source}
-                contentFit="cover"
-                style={{ width: '100%', height: '100%' }}
+                contentFit="contain"
+                style={{ width: '85%', height: '85%' }}
                 transition={200}
                 cachePolicy="memory-disk"
                 placeholder={isDarkMode ? "rgba(39,39,42,0.4)" : "rgba(241,245,249,0.6)"}
@@ -195,70 +213,108 @@ export default function CategoryGrid() {
       return data.filter((c: any) => c.isTrending !== false);
     },
     initialData: [],
-    staleTime: 1000 * 60 * 15, // 15 mins cache validity
+    staleTime: 5000, // 5s cache validity
+    refetchInterval: 10000, // Auto-sync new admin categories every 10s
   });
 
   const displayCategories = useMemo(() => {
+    const baseSlugs = Object.keys(LOCAL_CONFIGS);
+
     if (serverCategories && Array.isArray(serverCategories) && serverCategories.length > 0) {
       try {
-        // Filter: trending = true (or undefined, meaning we already got only trending via query param)
-        const trending = serverCategories.filter(
-          (c: any) => c && c.slug && (c.isTrending === true || c.isTrending === undefined)
-        );
+        const serverList = serverCategories
+          .filter((c: any) => c && c.slug)
+          .map((serverCat: any) => {
+            const normalizedSlug = resolveSlug(serverCat.name || '', serverCat.slug);
+            const local = LOCAL_CONFIGS[normalizedSlug] || {
+              name: serverCat.name,
+              image: null,
+              colors: ['#f0fdf4', '#dcfce7'] as [string, string],
+              darkColors: ['#064e3b', '#022c22'] as [string, string]
+            };
 
-        // Sort by displayOrder / sortOrder (lowest first)
-        const sorted = [...trending].sort((a: any, b: any) => {
-          const ao = typeof a.displayOrder === 'number' ? a.displayOrder :
-                     typeof a.sortOrder === 'number' ? a.sortOrder : 999;
-          const bo = typeof b.displayOrder === 'number' ? b.displayOrder :
-                     typeof b.sortOrder === 'number' ? b.sortOrder : 999;
-          return ao - bo;
+            const source = local.image ? local.image : (getAppImageSource(serverCat.imageUrl) || local.image);
+            const isEmoji = serverCat.imageUrl &&
+                            serverCat.imageUrl.length < 5 &&
+                            !serverCat.imageUrl.startsWith('http') &&
+                            !serverCat.imageUrl.startsWith('/') &&
+                            !serverCat.imageUrl.endsWith('.png') &&
+                            !serverCat.imageUrl.endsWith('.webp');
+            const rawName = serverCat.name || local.name || '';
+            const emoji = isEmoji ? serverCat.imageUrl : (source ? null : getCategoryEmoji(rawName || normalizedSlug));
+            const isCafe = normalizedSlug.toLowerCase().includes('cafe') ||
+                           normalizedSlug.toLowerCase().includes('café') ||
+                           rawName.toLowerCase().includes('cafe') ||
+                           rawName.toLowerCase().includes('café');
+
+            return {
+              name: isCafe ? 'Food' : rawName,
+              slug: normalizedSlug,
+              colors: isCafe ? ['#fff7ed', '#ffedd5'] as [string, string] : local.colors,
+              darkColors: isCafe ? ['#7c2d12', '#431407'] as [string, string] : local.darkColors,
+              source: isCafe ? null : (emoji ? null : source),
+              emoji: isCafe ? '🍔' : emoji
+            };
+          });
+
+        // Add any missing standard local categories (e.g. beverages, ice-cream)
+        const serverSlugSet = new Set(serverList.map(item => item.slug));
+        const missingLocal = baseSlugs
+          .filter(slug => !serverSlugSet.has(slug))
+          .map(slug => {
+            const local = LOCAL_CONFIGS[slug];
+            return {
+              name: local.name,
+              slug: slug,
+              colors: local.colors,
+              darkColors: local.darkColors,
+              source: local.image,
+              emoji: null
+            };
+          });
+
+        const combined = [...serverList, ...missingLocal];
+
+        // Deduplicate combined categories by slug
+        const seenSlugs = new Set<string>();
+        const deduplicatedCombined: any[] = [];
+        for (const item of combined) {
+          if (!seenSlugs.has(item.slug)) {
+            seenSlugs.add(item.slug);
+            deduplicatedCombined.push(item);
+          }
+        }
+
+        // Pin preferred slug order so Fruits & Veg, Beverages, Ice Cream, Dairy & Breakfast are ALWAYS visible upfront
+        const PREFERRED_SLUG_ORDER = [
+          'fruits-vegetables',
+          'beverages',
+          'ice-cream',
+          'dairy-breakfast',
+          'snacks-biscuits',
+          'grocery-essential',
+          'bakery',
+          'personal-care',
+          'household'
+        ];
+
+        deduplicatedCombined.sort((a, b) => {
+          const idxA = PREFERRED_SLUG_ORDER.indexOf(a.slug);
+          const idxB = PREFERRED_SLUG_ORDER.indexOf(b.slug);
+          if (idxA !== -1 && idxB !== -1) return idxA - idxB;
+          if (idxA !== -1) return -1;
+          if (idxB !== -1) return 1;
+          return 0;
         });
 
-        const list = sorted.map((serverCat: any) => {
-          const normalizedSlug = resolveSlug(serverCat.name || '', serverCat.slug);
-          const local = LOCAL_CONFIGS[normalizedSlug] || {
-            name: serverCat.name,
-            image: null,
-            colors: ['#f0fdf4', '#dcfce7'] as [string, string],
-            darkColors: ['#064e3b', '#022c22'] as [string, string]
-          };
-
-          const source = serverCat.imageUrl
-            ? getAppImageSource(serverCat.imageUrl)
-            : local.image;
-
-          // Check if imageUrl is actually an emoji
-          const isEmoji = serverCat.imageUrl &&
-                          serverCat.imageUrl.length < 5 &&
-                          !serverCat.imageUrl.startsWith('http') &&
-                          !serverCat.imageUrl.startsWith('/');
-          const emoji = isEmoji ? serverCat.imageUrl : null;
-
-          const rawName = serverCat.name || local.name || '';
-          const isCafe = normalizedSlug.toLowerCase().includes('cafe') ||
-                         normalizedSlug.toLowerCase().includes('café') ||
-                         rawName.toLowerCase().includes('cafe') ||
-                         rawName.toLowerCase().includes('café');
-
-          return {
-            name: isCafe ? 'Food' : rawName,
-            slug: normalizedSlug,
-            colors: isCafe ? ['#fff7ed', '#ffedd5'] as [string, string] : local.colors,
-            darkColors: isCafe ? ['#7c2d12', '#431407'] as [string, string] : local.darkColors,
-            source: isCafe ? null : (emoji ? null : source),
-            emoji: isCafe ? '🍔' : emoji
-          };
-        });
-
-        if (list.length > 0) return list;
+        if (deduplicatedCombined.length > 0) return deduplicatedCombined;
       } catch (err) {
         console.warn('Failed to parse server categories, falling back:', err);
       }
     }
 
-    // Fallback: If empty, show hardcoded
-    return Object.keys(LOCAL_CONFIGS).map(slug => {
+    // Fallback: If server categories empty or failed, show all local configs
+    return baseSlugs.map(slug => {
       const local = LOCAL_CONFIGS[slug];
       return {
         name: local.name,

@@ -187,8 +187,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
-    flex: 1,
-    flexShrink: 1,
+    flexShrink: 0,
     paddingRight: 4,
   },
   backBtn: {
@@ -202,7 +201,7 @@ const styles = StyleSheet.create({
   brandRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    flexShrink: 1,
+    flexShrink: 0,
   },
   logoContainer: {
     width: 30,
@@ -215,7 +214,7 @@ const styles = StyleSheet.create({
   },
   brandTextWrap: {
     marginLeft: 5,
-    flexShrink: 1,
+    flexShrink: 0,
   },
   brandTitle: {
     fontSize: 14.5,
@@ -251,15 +250,17 @@ const styles = StyleSheet.create({
     borderRadius: 99,
     paddingHorizontal: 8,
     paddingVertical: 4.5,
-    maxWidth: '48%',
-    flexShrink: 0,
+    maxWidth: '66%',
+    flex: 1,
+    justifyContent: 'flex-end',
+    flexShrink: 1,
   },
   locationPin: {
     marginRight: 3,
     flexShrink: 0,
   },
   locationText: {
-    fontSize: 10,
+    fontSize: 9.5,
     fontWeight: '800',
     marginRight: 2,
     flexShrink: 1,

@@ -2,7 +2,7 @@ import { memo, useState, useMemo } from 'react';
 import { View, Text, Pressable, StyleSheet, Platform, Alert, Dimensions } from 'react-native';
 import { Image as ExpoImage } from 'expo-image';
 import { router } from 'expo-router';
-import { ShoppingBag, ChevronDown, Plus, Minus, Bell, Check } from 'lucide-react-native';
+import { ShoppingBag, ChevronDown, Plus, Minus, Bell, Check, MapPin } from 'lucide-react-native';
 import Animated, { useSharedValue, useAnimatedStyle, withSpring, FadeIn, FadeInDown, FadeOut, LinearTransition } from 'react-native-reanimated';
 import { useCartStore } from '../../stores/cart-store';
 import { useCartActions } from '../../hooks/use-cart';
@@ -275,7 +275,10 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
   }, [product.isAvailable, product.stock, (product as any).inStock, (product as any).outOfStock, hasVariants, variantsList]);
 
   const isCafe = isCafeStyle || isCafeProduct(product) || product.category?.slug === 'cafe' || product.category?.slug === 'fastkirana-cafe' || product.category?.slug === 'restaurant' || product.tags?.includes('cafe') || product.tags?.includes('restaurant');
-  const isStoreClosed = isCafe ? !cafeOpen : !groceryMartOpen;
+  const prodRestaurant = (product as any).restaurant;
+  const isStoreClosed = prodRestaurant && typeof prodRestaurant.isOpen === 'boolean'
+    ? !prodRestaurant.isOpen
+    : false;
   const resolvedIsFlash = isFlashDeal || product.isFlashDeal || product.tags?.includes('flash');
 
   // resolvedWidth moved to top to prevent TS2448 error
@@ -293,7 +296,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
 
   const imageSource = useMemo(() => {
     if (product.imageUrl) {
-      return getAppImageSource(product.imageUrl);
+      const src = getAppImageSource(product.imageUrl);
+      if (src) return src;
     }
     
     // Fallback to Category slug matching
@@ -427,25 +431,22 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
                   justifyContent: 'center',
                   overflow: 'hidden',
                 }}>
-                  <Animated.View
-                    style={{ width: '100%', height: '100%' }}
-                    sharedTransitionTag={`product-image-${product.id}`}
-                  >
+                  <View style={{ width: '100%', height: '100%', padding: 4 }}>
                     {imageSource ? (
                       <ExpoImage
                         source={imageSource}
-                        contentFit="cover"
+                        contentFit="contain"
                         style={{ width: '100%', height: '100%' }}
                         transition={200}
                         cachePolicy="memory-disk"
                         recyclingKey={product.id}
                       />
                     ) : (
-                    <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-                      <ShoppingBag size={28} color={isDark ? '#52525b' : '#cbd5e1'} strokeWidth={1.5} />
-                    </View>
-                  )}
-                </Animated.View>
+                      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+                        <ShoppingBag size={28} color={isDark ? '#52525b' : '#cbd5e1'} strokeWidth={1.5} />
+                      </View>
+                    )}
+                  </View>
                 </View>
 
                 {/* Discount badge — top-left */}
@@ -650,9 +651,8 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
             padding: THEME.SPACING.sm,
           }}
         >
-          <Animated.View
-            style={{ flex: 1, alignItems: 'center', justifyContent: 'center', padding: THEME.SPACING.sm }}
-            sharedTransitionTag={`product-image-${product.id}`}
+          <View
+            style={{ width: '100%', height: '100%', alignItems: 'center', justifyContent: 'center', padding: THEME.SPACING.xs }}
           >
           {/* Product Image */}
           {imageSource ? (
@@ -671,7 +671,7 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
               <Text style={{ fontSize: 9, fontWeight: '700', color: '#94a3b8', textTransform: 'uppercase', letterSpacing: 0.3 }}>No Image</Text>
             </View>
           )}
-          </Animated.View>
+          </View>
 
           {/* Discount Badge — top-left */}
           {resolvedDiscount > 0 && (
@@ -967,13 +967,23 @@ const ProductCard = memo(function ProductCard({ product, className, index = 0, i
             )}
           </View>
 
+          {/* Restaurant Badge */}
+          {(prodRestaurant?.name || (isCafe ? 'Wedson Restaurant' : null)) ? (
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 3, marginTop: 4 }}>
+              <MapPin size={9} color="#ea580c" />
+              <Text numberOfLines={1} style={{ fontSize: 9.5, fontWeight: '700', color: '#ea580c' }}>
+                {prodRestaurant?.name || (isCafe ? 'Wedson Restaurant' : '')}
+              </Text>
+            </View>
+          ) : null}
+
           {/* Price Row */}
-          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 6 }}>
-            <Text style={{ fontSize: 15, fontWeight: '800', color: isDark ? '#fafafa' : '#0f172a' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'baseline', gap: 4, marginTop: 6, flexWrap: 'nowrap' }}>
+            <Text numberOfLines={1} style={{ fontSize: 15, fontWeight: '900', color: isDark ? '#fafafa' : '#0f172a' }}>
               ₹{resolvedPrice}
             </Text>
             {resolvedMrp > resolvedPrice && (
-              <Text style={{ fontSize: 11, textDecorationLine: 'line-through', color: '#94a3b8', fontWeight: '500' }}>
+              <Text numberOfLines={1} style={{ fontSize: 11, textDecorationLine: 'line-through', color: '#94a3b8', fontWeight: '500' }}>
                 ₹{resolvedMrp}
               </Text>
             )}

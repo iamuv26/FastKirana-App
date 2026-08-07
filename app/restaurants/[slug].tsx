@@ -153,7 +153,8 @@ export default function RestaurantDetailScreen() {
       return res.json();
     },
     enabled: !!slug,
-    staleTime: 60_000,
+    staleTime: 5000,
+    refetchInterval: 10000,
   });
 
   // ── Fetch settings for menu sections ──
@@ -164,7 +165,8 @@ export default function RestaurantDetailScreen() {
       if (!response.ok) throw new Error('Failed to fetch settings');
       return await response.json();
     },
-    staleTime: 60000,
+    staleTime: 5000,
+    refetchInterval: 10000,
   });
 
   // ── Determine if this spot is a Cafe vs Traditional Restaurant ──
@@ -243,7 +245,8 @@ export default function RestaurantDetailScreen() {
       return list.filter((p: any) => p.isAvailable !== false);
     },
     enabled: !!slug,
-    staleTime: 30_000,
+    staleTime: 5000,
+    refetchInterval: 10000,
   });
 
   const isClosed = restaurant?.isOpen === false;
@@ -474,6 +477,136 @@ export default function RestaurantDetailScreen() {
   const isLoading = restaurantLoading || productsLoading || (products.length === 0 && productsFetching);
   const banner = imageUrl(restaurant?.bannerUrl);
   const logo = imageUrl(restaurant?.logoUrl);
+
+  /* ═══ PREMIUM LOADING TRANSITION SCREEN ═══ */
+  if (isLoading) {
+    return (
+      <View style={[styles.container, { backgroundColor: isDarkMode ? '#09090b' : '#fff8f3' }]}>  
+        <LinearGradient
+          colors={isDarkMode ? ['#18181b', '#09090b', '#18181b'] : ['#fff1f2', '#fff8f3', '#fef2f2']}
+          style={{ flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 32 }}
+        >
+          {/* Back Button */}
+          <ScalePressable
+            onPress={() => { triggerHaptic('light'); router.back(); }}
+            style={{
+              position: 'absolute',
+              top: insets.top + 10,
+              left: 16,
+              width: 38,
+              height: 38,
+              borderRadius: 19,
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+              alignItems: 'center',
+              justifyContent: 'center',
+              zIndex: 10,
+            }}
+          >
+            <ArrowLeft size={20} color={isDarkMode ? '#fafafa' : '#0f172a'} strokeWidth={2.5} />
+          </ScalePressable>
+
+          {/* Pulsing Logo Circle */}
+          <Animated.View
+            entering={FadeIn.duration(300)}
+            style={{
+              width: 80,
+              height: 80,
+              borderRadius: 40,
+              backgroundColor: isDarkMode ? '#27272a' : '#ffffff',
+              alignItems: 'center',
+              justifyContent: 'center',
+              marginBottom: 20,
+              ...Platform.select({
+                ios: { shadowColor: '#e20a22', shadowOffset: { width: 0, height: 4 }, shadowOpacity: 0.15, shadowRadius: 16 },
+                android: { elevation: 6 },
+              }),
+            }}
+          >
+            {logo ? (
+              <ExpoImage source={{ uri: logo }} style={{ width: 60, height: 60, borderRadius: 30 }} contentFit="cover" />
+            ) : (
+              <Text style={{ fontSize: 32 }}>🍽️</Text>
+            )}
+          </Animated.View>
+
+          {/* Restaurant Name */}
+          <Animated.View entering={FadeInDown.delay(100).duration(400)}>
+            <Text style={{
+              fontSize: 22,
+              fontWeight: '900',
+              color: isDarkMode ? '#fafafa' : '#0f172a',
+              textAlign: 'center',
+              letterSpacing: -0.3,
+              marginBottom: 8,
+            }}>
+              {restaurant?.name || slug?.toString().replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase()) || 'Restaurant'}
+            </Text>
+          </Animated.View>
+
+          {/* Cuisine Tags */}
+          {restaurant?.cuisineTags && restaurant.cuisineTags.length > 0 && (
+            <Animated.View entering={FadeInDown.delay(200).duration(400)}>
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '600',
+                color: isDarkMode ? '#71717a' : '#94a3b8',
+                textAlign: 'center',
+                letterSpacing: 0.3,
+                textTransform: 'uppercase',
+              }}>
+                {restaurant.cuisineTags.slice(0, 3).join(' • ')}
+              </Text>
+            </Animated.View>
+          )}
+
+          {/* Loading Indicator */}
+          <Animated.View entering={FadeInDown.delay(300).duration(400)} style={{ marginTop: 28 }}>
+            <View style={{
+              flexDirection: 'row',
+              alignItems: 'center',
+              gap: 10,
+              backgroundColor: isDarkMode ? 'rgba(255,255,255,0.06)' : 'rgba(226,10,34,0.06)',
+              paddingHorizontal: 20,
+              paddingVertical: 10,
+              borderRadius: 24,
+            }}>
+              <ActivityIndicator size="small" color="#e20a22" />
+              <Text style={{
+                fontSize: 12,
+                fontWeight: '700',
+                color: isDarkMode ? '#a1a1aa' : '#64748b',
+                letterSpacing: 0.2,
+              }}>
+                Loading menu...
+              </Text>
+            </View>
+          </Animated.View>
+
+          {/* Shimmer Bar */}
+          <View style={{
+            position: 'absolute',
+            bottom: insets.bottom + 40,
+            left: 40,
+            right: 40,
+            height: 3,
+            borderRadius: 2,
+            backgroundColor: isDarkMode ? '#27272a' : '#fecdd3',
+            overflow: 'hidden',
+          }}>
+            <Animated.View
+              entering={FadeIn.duration(200)}
+              style={{
+                height: '100%',
+                width: '40%',
+                borderRadius: 2,
+                backgroundColor: '#e20a22',
+              }}
+            />
+          </View>
+        </LinearGradient>
+      </View>
+    );
+  }
 
   return (
     <View style={[styles.container, { backgroundColor: isDarkMode ? THEME.COLORS.dark.background : '#f8fafc' }]}>
@@ -773,7 +906,7 @@ export default function RestaurantDetailScreen() {
                         styles.sidebarImageWrap,
                         isActive && { borderColor: THEME.COLORS.brand.primary, borderWidth: 2 },
                       ]}>
-                        {catImage ? (
+                        {catImage && !catImage.endsWith('/null') ? (
                           <ExpoImage
                             source={{ uri: catImage }}
                             style={styles.sidebarImage}
@@ -781,7 +914,26 @@ export default function RestaurantDetailScreen() {
                             transition={200}
                           />
                         ) : (
-                          <Text style={{ fontSize: 18 }}>{sec.emoji}</Text>
+                          <Text style={{ fontSize: 20 }}>
+                            {(() => {
+                              if (sec.emoji && sec.emoji !== '📦') return sec.emoji;
+                              const t = (sec.title || sec.tag || '').toLowerCase();
+                              if (t.includes('starter') || t.includes('bite') || t.includes('snack') || t.includes('roll')) return '🥟';
+                              if (t.includes('main') || t.includes('curry') || t.includes('paneer')) return '🥘';
+                              if (t.includes('roti') || t.includes('naan') || t.includes('kulcha') || t.includes('paratha') || t.includes('bread')) return '🫓';
+                              if (t.includes('rice') || t.includes('biryani') || t.includes('pulav')) return '🍚';
+                              if (t.includes('dal')) return '🍲';
+                              if (t.includes('chinese') || t.includes('noodle') || t.includes('momo') || t.includes('wok')) return '🥢';
+                              if (t.includes('burger')) return '🍔';
+                              if (t.includes('pizza')) return '🍕';
+                              if (t.includes('pasta')) return '🍝';
+                              if (t.includes('south') || t.includes('dosa') || t.includes('idli')) return '🥞';
+                              if (t.includes('shake') || t.includes('drink') || t.includes('beverage') || t.includes('coffee') || t.includes('tea')) return '🧋';
+                              if (t.includes('dessert') || t.includes('sweet') || t.includes('ice')) return '🍰';
+                              if (t.includes('soup')) return '🥣';
+                              return '🍽️';
+                            })()}
+                          </Text>
                         )}
                       </View>
                       <Text
@@ -887,7 +1039,7 @@ export default function RestaurantDetailScreen() {
       </View>
 
       {/* ═══ FLOATING CART BAR ═══ */}
-      <FloatingCartBar bottomOffset={insets.bottom > 0 ? 12 : 14} />
+      <FloatingCartBar bottomOffset={insets.bottom > 0 ? 8 : 10} />
     </View>
   );
 }

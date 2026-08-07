@@ -66,7 +66,7 @@ export function RestaurantCard({
 
   const isClosed = restaurant.isOpen === false;
   const img = imageUrl(restaurant.bannerUrl || restaurant.logoUrl);
-  const cuisineDisplay = (restaurant.cuisineTags || []).slice(0, 4).join(', ');
+  const cuisineDisplay = (restaurant.cuisineTags || []).slice(0, 3).join(' • ');
   const locationText = restaurant.address || restaurant.city || 'Nearby';
   const isTopRated = restaurant.rating >= 4.0;
   const offerText =
@@ -181,7 +181,7 @@ export function RestaurantCard({
         {/* Name + more icon */}
         <View style={styles.nameRow}>
           <Text
-            numberOfLines={1}
+            numberOfLines={2}
             style={[
               styles.name,
               { color: isDarkMode ? '#fafafa' : '#0f172a' },
@@ -216,7 +216,7 @@ export function RestaurantCard({
 
         {/* Cuisine text */}
         <Text
-          numberOfLines={1}
+          numberOfLines={2}
           style={[
             styles.cuisineText,
             { color: isDarkMode ? '#a1a1aa' : '#64748b' },
@@ -229,7 +229,7 @@ export function RestaurantCard({
         <View style={styles.locationPin}>
           <Navigation size={11} color="#e20a22" strokeWidth={2.5} />
           <Text
-            numberOfLines={1}
+            numberOfLines={2}
             style={[styles.locationText, { color: '#e20a22' }]}
           >
             {locationText}

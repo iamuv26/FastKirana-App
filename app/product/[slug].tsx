@@ -226,7 +226,7 @@ export default function ProductDetailScreen() {
         zIndex: 20
       }}>
         {/* Standardized Branded Header & Location */}
-        <BrandedTopHeader showBack={true} title={product?.name || "Product Details"} subtitle={product?.category?.name || "FastKirana"} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 8 }} />
+        <BrandedTopHeader showBack={true} title={product?.name || "Product Details"} subtitle={(product as any)?.restaurant?.name || product?.category?.name || "FastKirana Restaurant"} style={{ paddingHorizontal: 0, paddingVertical: 0, borderBottomWidth: 0, marginBottom: 8 }} />
 
         <ScalePressable 
           onPress={() => {
@@ -306,8 +306,24 @@ export default function ProductDetailScreen() {
       </View>
 
       {isLoading ? (
-        <View className="flex-1 justify-center items-center">
-          <ActivityIndicator size="large" color="#e20a22" />
+        <View style={{ flex: 1, padding: 16 }}>
+          <View style={{
+            width: '100%',
+            aspectRatio: 1.1,
+            maxHeight: 280,
+            borderRadius: 16,
+            backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9',
+            marginBottom: 20,
+            alignItems: 'center',
+            justifyContent: 'center'
+          }}>
+            <ActivityIndicator size="small" color="#e20a22" />
+          </View>
+          <View style={{ width: 80, height: 18, borderRadius: 9, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginBottom: 12 }} />
+          <View style={{ width: '85%', height: 24, borderRadius: 6, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginBottom: 8 }} />
+          <View style={{ width: '55%', height: 24, borderRadius: 6, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginBottom: 20 }} />
+          <View style={{ width: 120, height: 32, borderRadius: 8, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9', marginBottom: 24 }} />
+          <View style={{ width: '100%', height: 56, borderRadius: 16, backgroundColor: isDarkMode ? '#27272a' : '#e2e8f0' }} />
         </View>
       ) : (
         <ScrollView 
@@ -685,7 +701,7 @@ export default function ProductDetailScreen() {
               >
                 {relatedProducts.map((p: any, idx: number) => (
                   <View key={p.id} className="w-36">
-                    <ProductCard product={p} index={idx} className="w-full" isCafeStyle={isCafe} />
+                    <ProductCard product={p} index={idx} className="w-full" />
                   </View>
                 ))}
               </ScrollView>

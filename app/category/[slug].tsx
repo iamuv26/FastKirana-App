@@ -84,10 +84,16 @@ const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; ta
   ],
   'beverages': [
     { name: 'All', emoji: '🥤', tags: [] },
-    { name: 'Cold Drinks', emoji: '🥤', tags: ['coke', 'pepsi', 'sprite', 'soda', 'limca', 'thums'] },
-    { name: 'Juices & Shakes', emoji: '🧃', tags: ['juice', 'shake', 'smoothie', 'real'] },
+    { name: 'Cold Drinks', emoji: '🥤', tags: ['coke', 'pepsi', 'sprite', 'soda', 'limca', 'thums', 'beverage', 'drink'] },
+    { name: 'Juices & Shakes', emoji: '🧃', tags: ['juice', 'shake', 'smoothie', 'real', 'frooti', 'maaza'] },
     { name: 'Tea & Coffee', emoji: '☕', tags: ['tea', 'coffee', 'nescafe', 'bru', 'taj'] },
     { name: 'Water & Soda', emoji: '💧', tags: ['water', 'bisleri', 'club-soda', 'kinley'] }
+  ],
+  'ice-cream': [
+    { name: 'All', emoji: '🍦', tags: [] },
+    { name: 'Tubs & Packs', emoji: '🍨', tags: ['tub', 'pack', 'family', 'kwality', 'havmor', 'amul'] },
+    { name: 'Cones & Sticks', emoji: '🍦', tags: ['cone', 'stick', 'kulfi', 'cornetto'] },
+    { name: 'Ice Creams & Sundaes', emoji: '🍧', tags: ['ice-cream', 'icecream', 'dessert', 'cassatta', 'sundae'] }
   ],
   'restaurant': [
     { name: 'All', emoji: '🍱', tags: [] },
@@ -153,11 +159,6 @@ const SUBCATEGORIES_DATA: Record<string, Array<{ name: string; emoji: string; ta
     { name: 'Detergents & Dishwash', emoji: '🧼', tags: ['detergent', 'surf', 'rin', 'wheel', 'bar', 'liquid', 'dishwash', 'vim', 'pril'] },
     { name: 'Surface Cleaners', emoji: '🧽', tags: ['cleaner', 'lizol', 'colin', 'harpic', 'disinfectant', 'floor'] },
     { name: 'Tissues & Bags', emoji: '🧻', tags: ['tissue', 'mop', 'wiper', 'garbage-bag', 'trash'] }
-  ],
-  'ice-cream': [
-    { name: 'All', emoji: '🍦', tags: [] },
-    { name: 'Cones & Sticks', emoji: '🍦', tags: ['cone', 'stick', 'bar', 'kulfi'] },
-    { name: 'Tubs & Family Packs', emoji: '🍨', tags: ['tub', 'family', 'scoop', 'pack'] }
   ]
 };
 
@@ -288,6 +289,21 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
   const validStoreId = (assignedStoreId && !assignedStoreId.startsWith('default-')) ? assignedStoreId : null;
 
   const isCafeSection = useMemo(() => {
+    const standardGroceryCategories = [
+      'beverages',
+      'ice-cream',
+      'fruits-vegetables',
+      'dairy-breakfast',
+      'grocery-essential',
+      'snacks-biscuits',
+      'personal-care',
+      'home-cleaners',
+      'household',
+      'bakery'
+    ];
+    if (standardGroceryCategories.includes(normalizedSlug) || standardGroceryCategories.includes(categorySlug)) {
+      return false;
+    }
     return DEFAULT_CAFE_MENU_SECTIONS.some(c => c.tag === categorySlug || c.tag === normalizedSlug) ||
            categorySlug.startsWith('cafe-') ||
            categorySlug === 'cafe';
@@ -297,7 +313,7 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
     queryKey: ['category-products', categorySlug, normalizedSlug, isCafeSection, validStoreId],
     queryFn: async () => {
       const categoryParam = isCafeSection
-        ? 'cafe,ice-cream,beverages,burgers-bites'
+        ? 'cafe,burgers-bites'
         : (categorySlug === normalizedSlug ? categorySlug : `${categorySlug},${normalizedSlug}`);
       const response = await fetch(`${API_BASE_URL}/products?category=${categoryParam}&limit=500${validStoreId ? `&storeId=${validStoreId}` : ''}`);
       if (!response.ok) throw new Error('API fetch failed');
@@ -367,8 +383,58 @@ const CategoryProductPage = React.memo(function CategoryProductPage({
 
     let list = products.filter(p => p.isAvailable !== false);
 
-    // If it's a cafe section, filter out restaurant products and match tags
-    if (isCafeSection) {
+    // Strict category filtering for standard grocery categories to prevent cross-category product leakage
+    const standardGroceryCategories = [
+      'beverages',
+      'ice-cream',
+      'fruits-vegetables',
+      'dairy-breakfast',
+      'grocery-essential',
+      'snacks-biscuits',
+      'personal-care',
+      'home-cleaners',
+      'household',
+      'bakery'
+    ];
+
+    if (standardGroceryCategories.includes(normalizedSlug) || standardGroceryCategories.includes(categorySlug)) {
+      list = list.filter(p => {
+        // Exclude restaurant products from grocery category pages
+        if (isRestaurantProduct(p) || p.category?.slug === 'restaurant' || p.category?.slug === 'fastkirana-cafe') {
+          return false;
+        }
+
+        const catSlug = p.category?.slug?.toLowerCase() || '';
+        const normCatSlug = normalizeCategorySlug(catSlug);
+
+        // Exact match on category slug
+        if (normCatSlug === normalizedSlug || catSlug === categorySlug || catSlug === normalizedSlug) {
+          return true;
+        }
+
+        const pTags = p.tags?.map((t: string) => t.toLowerCase()) || [];
+        const nameLower = (p.name || '').toLowerCase();
+
+        if (normalizedSlug === 'beverages') {
+          return normCatSlug === 'beverages' ||
+                 pTags.some(t => ['beverages', 'beverage', 'drink', 'drinks', 'juice', 'soda', 'coke', 'pepsi', 'cold-drink', 'tea', 'coffee'].includes(t)) ||
+                 nameLower.includes('red bull') || nameLower.includes('coke') || nameLower.includes('pepsi') || nameLower.includes('sprite') || nameLower.includes('juice') || nameLower.includes('soda');
+        }
+
+        if (normalizedSlug === 'ice-cream') {
+          return normCatSlug === 'ice-cream' ||
+                 pTags.some(t => ['ice-cream', 'icecream', 'ice cream', 'kulfi', 'sundae', 'cornetto', 'amul'].includes(t)) ||
+                 nameLower.includes('ice cream') || nameLower.includes('kulfi') || nameLower.includes('sundae') || nameLower.includes('cup') || nameLower.includes('cone');
+        }
+
+        if (normalizedSlug === 'snacks-biscuits') {
+          return normCatSlug === 'snacks-biscuits' ||
+                 pTags.some(t => ['snacks', 'biscuits', 'chips', 'namkeen', 'cookies', 'chocolates', 'biscuit', 'bhelpuri'].includes(t));
+        }
+
+        return false;
+      });
+    } else if (isCafeSection) {
       list = list.filter(p => !isRestaurantProduct(p));
       const cafeSec = DEFAULT_CAFE_MENU_SECTIONS.find(c => c.tag === categorySlug || c.tag === normalizedSlug);
       if (cafeSec) {

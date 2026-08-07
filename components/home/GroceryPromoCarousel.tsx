@@ -93,7 +93,7 @@ export default function GroceryPromoCarousel() {
   const { width: screenWidth } = useWindowDimensions();
   const carouselWidth = screenWidth > 768 ? 508 : screenWidth - 32; // match container margins
   const isSmallDevice = screenWidth < 360;
-  const carouselHeight = isSmallDevice ? 124 : 140;
+  const carouselHeight = isSmallDevice ? 142 : 160;
 
   const { theme } = useTheme();
   const isDarkMode = theme === 'dark';
@@ -115,7 +115,7 @@ export default function GroceryPromoCarousel() {
   const displaySlides = useMemo(() => {
     if (serverBanners && serverBanners.length > 0) {
       return serverBanners.map((b: any) => {
-        let colors: [string, string] = ['#ea580c', '#f97316'];
+        let colors: [string, string] = ['#e20a22', '#ff5a5a'];
         if (b.gradient) {
           if (b.gradient.includes('from-rose-500')) colors = ['#f43f5e', '#fb7185'];
           else if (b.gradient.includes('from-emerald-600')) colors = ['#059669', '#34d399'];
@@ -130,9 +130,9 @@ export default function GroceryPromoCarousel() {
         let route = '/category/[slug]';
         let slug = 'grocery-essential';
         if (b.linkUrl) {
-          if (b.linkUrl === '/cafe' || b.linkUrl.includes('/cafe')) {
-            route = '/cafe';
-            slug = 'cafe';
+          if (b.linkUrl === '/cafe' || b.linkUrl.includes('/cafe') || b.linkUrl.includes('/restaurant')) {
+            route = '/restaurants';
+            slug = 'restaurants';
           } else if (b.linkUrl.includes('/category/')) {
             const rawSlug = b.linkUrl.split('/category/')[1] || 'grocery-essential';
             slug = normalizeCategorySlug(rawSlug);
@@ -148,18 +148,24 @@ export default function GroceryPromoCarousel() {
         else if (b.type === 'snacks') emoji = '🍿';
         else if (b.type === 'express-delivery') emoji = '🚚';
         else if (b.type === 'grocery') emoji = '🛒';
-        else if (b.type === 'cafe') emoji = '🍕';
+        else if (b.type === 'cafe' || b.type === 'food') emoji = '🍕';
 
         // Check if imageUrl is valid
         const resolvedImg = b.imageUrl ? getAppImageSource(b.imageUrl) : null;
         const serverImage = resolvedImg ? resolvedImg.uri : null;
 
+        // Clean up legacy cafe text in server subtitle if present
+        let cleanSubtitle = b.description || '';
+        if (cleanSubtitle.toLowerCase().includes('cafe items')) {
+          cleanSubtitle = cleanSubtitle.replace(/cafe items/gi, 'Food Specials');
+        }
+
         return {
           id: b.id,
           title: b.title,
-          subtitle: b.description,
+          subtitle: cleanSubtitle,
           badge: b.code ? `CODE: ${b.code}` : 'SPECIAL OFFER',
-          actionText: b.code ? 'Claim Coupon' : 'Shop Now',
+          actionText: b.code ? 'Claim Coupon' : 'SHOP NOW',
           gradient: colors,
           route: route,
           params: { slug: slug },
@@ -207,8 +213,8 @@ export default function GroceryPromoCarousel() {
 
   const handleSlidePress = (slide: any) => {
     triggerHaptic('light');
-    if (slide.route === '/cafe') {
-      router.push('/cafe');
+    if (slide.route === '/cafe' || slide.route === '/restaurants') {
+      router.push('/restaurants');
     } else {
       router.push({
         pathname: '/category/[slug]',
@@ -220,7 +226,7 @@ export default function GroceryPromoCarousel() {
   return (
     <View style={{ marginBottom: THEME.SPACING.lg }} className="items-center">
       {/* Carousel list wrapper */}
-      <View style={{ width: carouselWidth, height: carouselHeight, borderRadius: THEME.RADIUS.lg }} className="overflow-hidden shadow-sm">
+      <View style={{ width: carouselWidth, height: carouselHeight, borderRadius: 24 }} className="overflow-hidden shadow-sm">
         <FlatList
           ref={flatListRef}
           data={displaySlides}
@@ -255,41 +261,57 @@ export default function GroceryPromoCarousel() {
                   />
 
                   {/* Aesthetic decor pattern */}
-                  <View style={{ position: 'absolute', top: -48, right: -32, width: 128, height: 128, borderRadius: 64, backgroundColor: 'rgba(255,255,255,0.08)' }} />
-                  <View style={{ position: 'absolute', bottom: -32, left: -24, width: 96, height: 96, borderRadius: 48, backgroundColor: 'rgba(255,255,255,0.08)' }} />
+                  <View style={{ position: 'absolute', top: -30, right: -20, width: 140, height: 140, borderRadius: 70, backgroundColor: 'rgba(255,255,255,0.1)' }} />
+                  <View style={{ position: 'absolute', bottom: -20, left: -20, width: 100, height: 100, borderRadius: 50, backgroundColor: 'rgba(255,255,255,0.08)' }} />
 
                   {/* Content Row */}
-                  <View style={{ padding: isSmallDevice ? 10 : 16 }} className="flex-row flex-1 items-center justify-between z-10">
+                  <View style={{ paddingHorizontal: isSmallDevice ? 12 : 16, paddingVertical: isSmallDevice ? 10 : 12 }} className="flex-row flex-1 items-center justify-between z-10">
                     {/* Text Layout */}
-                    <View style={{ paddingRight: isSmallDevice ? 6 : 16, paddingVertical: isSmallDevice ? 1 : 4 }} className="flex-1 justify-between h-full">
+                    <View style={{ paddingRight: isSmallDevice ? 8 : 14 }} className="flex-1 justify-between h-full">
                       {/* Badge */}
-                      <View style={{ borderRadius: THEME.RADIUS.xs, paddingHorizontal: isSmallDevice ? 5 : 8, paddingVertical: isSmallDevice ? 1 : 2 }} className="bg-white/20 self-start flex-row items-center gap-1 border border-white/10">
-                        <Sparkles size={8} color="#fff" />
-                        <Text style={{ fontSize: isSmallDevice ? 8.5 : THEME.TYPOGRAPHY.sizes.micro, fontWeight: '750' as any }} className="text-white tracking-wider uppercase">{item.badge}</Text>
+                      <View style={{ borderRadius: 12, paddingHorizontal: 9, paddingVertical: 3 }} className="bg-white/20 self-start flex-row items-center gap-1 border border-white/20">
+                        <Sparkles size={9} color="#fff" />
+                        <Text style={{ fontSize: isSmallDevice ? 8.5 : 9.5, fontWeight: '800' }} className="text-white tracking-widest uppercase">{item.badge}</Text>
                       </View>
 
                       {/* Heading Group */}
-                      <View className="mt-1">
-                        <Text style={{ fontSize: isSmallDevice ? THEME.TYPOGRAPHY.sizes.body : THEME.TYPOGRAPHY.sizes.titleSm, fontWeight: '700' }} className="text-white tracking-tight leading-tight">
+                      <View style={{ marginVertical: 3 }}>
+                        <Text style={{ fontSize: isSmallDevice ? 14 : 16, fontWeight: '800', lineHeight: isSmallDevice ? 18 : 20 }} className="text-white tracking-tight" numberOfLines={2}>
                           {item.title}
                         </Text>
-                        <Text style={{ fontSize: isSmallDevice ? THEME.TYPOGRAPHY.sizes.micro : THEME.TYPOGRAPHY.sizes.caption, fontWeight: '500' }} className="text-white/80 mt-0.5 leading-tight" numberOfLines={isSmallDevice ? 1 : 2}>
+                        <Text style={{ fontSize: isSmallDevice ? 10 : 11, fontWeight: '500', opacity: 0.9, marginTop: 2, lineHeight: 14 }} className="text-white" numberOfLines={2}>
                           {item.subtitle}
                         </Text>
                       </View>
 
                       {/* Call-to-action button */}
-                      <View style={{ borderRadius: THEME.RADIUS.xs, paddingHorizontal: isSmallDevice ? 8 : 12, paddingVertical: isSmallDevice ? 4 : 6 }} className="bg-white self-start flex-row items-center gap-1 mt-2 active:scale-95">
-                        <Text style={{ color: item.gradient[0], fontSize: isSmallDevice ? 8.5 : THEME.TYPOGRAPHY.sizes.micro, fontWeight: '700' }} className="uppercase tracking-wider">
+                      <View 
+                        style={{ 
+                          borderRadius: 20, 
+                          paddingHorizontal: isSmallDevice ? 10 : 14, 
+                          paddingVertical: isSmallDevice ? 4 : 5.5,
+                          backgroundColor: '#ffffff',
+                          alignSelf: 'flex-start',
+                          flexDirection: 'row',
+                          alignItems: 'center',
+                          gap: 3,
+                          shadowColor: '#000',
+                          shadowOffset: { width: 0, height: 2 },
+                          shadowOpacity: 0.15,
+                          shadowRadius: 4,
+                          elevation: 3,
+                        }}
+                      >
+                        <Text style={{ color: item.gradient[0] === '#e20a22' ? '#e20a22' : item.gradient[0], fontSize: isSmallDevice ? 9 : 10, fontWeight: '900', letterSpacing: 0.5 }}>
                           {item.actionText}
                         </Text>
-                        <ChevronRight size={10} color={item.gradient[0]} strokeWidth={3} />
+                        <ChevronRight size={12} color={item.gradient[0] === '#e20a22' ? '#e20a22' : item.gradient[0]} strokeWidth={3} />
                       </View>
                     </View>
 
-                    {/* Big Visual Emoji Backdrop */}
-                    <View style={{ width: isSmallDevice ? 48 : 64, height: isSmallDevice ? 48 : 64, borderRadius: THEME.RADIUS.sm }} className="bg-white/15 items-center justify-center border border-white/10 shadow-sm">
-                      <Text style={{ fontSize: isSmallDevice ? 24 : 32 }}>{item.emoji}</Text>
+                    {/* Visual Emoji Glass Container */}
+                    <View style={{ width: isSmallDevice ? 52 : 62, height: isSmallDevice ? 52 : 62, borderRadius: 20 }} className="bg-white/20 items-center justify-center border border-white/25 shadow-sm">
+                      <Text style={{ fontSize: isSmallDevice ? 26 : 32 }}>{item.emoji}</Text>
                     </View>
                   </View>
                 </>

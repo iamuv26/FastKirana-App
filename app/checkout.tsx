@@ -74,6 +74,12 @@ export default function CheckoutScreen() {
     }
   }, [onlyCod]);
 
+  useFocusEffect(
+    useCallback(() => {
+      loadAddresses();
+    }, [isLoggedIn, user?.id])
+  );
+
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number) => {
     const R = 6371; // Radius of earth in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
@@ -613,7 +619,15 @@ export default function CheckoutScreen() {
             </View>
 
             {isAddressesLoading ? (
-               <ActivityIndicator size="small" color="#e20a22" className="py-4" />
+              <View className="py-2 gap-2">
+                <View className="flex-row items-center p-3 rounded-xl border border-slate-100 dark:border-zinc-800 bg-slate-50/50 dark:bg-zinc-800/40">
+                  <View className="w-8 h-8 rounded-full bg-slate-200 dark:bg-zinc-700 mr-3" />
+                  <View className="flex-1 gap-1.5">
+                    <View className="w-20 h-3 rounded bg-slate-200 dark:bg-zinc-700" />
+                    <View className="w-48 h-3 rounded bg-slate-200 dark:bg-zinc-700" />
+                  </View>
+                </View>
+              </View>
             ) : addresses.length === 0 ? (
                <View className="items-center py-4">
                  <Text className="text-slate-400 dark:text-zinc-500 text-xs font-semibold">No saved addresses found</Text>

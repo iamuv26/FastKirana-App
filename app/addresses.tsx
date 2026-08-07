@@ -945,8 +945,20 @@ export default function AddressesScreen() {
             </View>
           </View>
         ) : isLoading ? (
-          <View className="flex-1 justify-center items-center py-20">
-            <ActivityIndicator size="large" color="#e20a22" />
+          <View className="gap-3 py-4">
+            {[1, 2].map((i) => (
+              <View
+                key={i}
+                className="p-4 rounded-2xl bg-white dark:bg-zinc-900 border border-slate-200/60 dark:border-zinc-800 gap-2.5"
+              >
+                <View className="flex-row items-center justify-between">
+                  <View className="w-24 h-4 rounded bg-slate-200 dark:bg-zinc-800" />
+                  <View className="w-14 h-5 rounded-full bg-slate-200 dark:bg-zinc-800" />
+                </View>
+                <View className="w-full h-3 rounded bg-slate-200 dark:bg-zinc-800" />
+                <View className="w-2/3 h-3 rounded bg-slate-200 dark:bg-zinc-800" />
+              </View>
+            ))}
           </View>
         ) : addresses.length === 0 ? (
           /* Empty view */

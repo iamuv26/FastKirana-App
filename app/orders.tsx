@@ -300,11 +300,30 @@ export default function OrdersScreen() {
         showsVerticalScrollIndicator={false}
       >
         {isLoading ? (
-          <View style={styles.loadingWrap}>
-            <ActivityIndicator size="large" color="#e20a22" />
-            <Text style={[styles.loadingText, isDarkMode ? styles.subtextDark : styles.subtextLight]}>
-              Syncing live orders...
-            </Text>
+          <View style={{ gap: 14 }}>
+            {[1, 2, 3].map((i) => (
+              <View
+                key={i}
+                style={{
+                  borderRadius: 16,
+                  padding: 16,
+                  backgroundColor: isDarkMode ? '#18181b' : '#ffffff',
+                  borderWidth: 1,
+                  borderColor: isDarkMode ? 'rgba(39,39,42,0.8)' : '#f1f5f9',
+                  gap: 12,
+                }}
+              >
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }}>
+                  <View style={{ width: 90, height: 16, borderRadius: 4, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9' }} />
+                  <View style={{ width: 70, height: 20, borderRadius: 10, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9' }} />
+                </View>
+                <View style={{ width: 140, height: 12, borderRadius: 3, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9' }} />
+                <View style={{ flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', paddingTop: 8, borderTopWidth: 1, borderTopColor: isDarkMode ? '#27272a' : '#f8fafc' }}>
+                  <View style={{ width: 80, height: 14, borderRadius: 3, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9' }} />
+                  <View style={{ width: 60, height: 18, borderRadius: 4, backgroundColor: isDarkMode ? '#27272a' : '#f1f5f9' }} />
+                </View>
+              </View>
+            ))}
           </View>
         ) : activeTab === 'live' ? (
           /* LIVE ORDERS TAB CONTENT */

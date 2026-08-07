@@ -121,13 +121,12 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
   }, []);
 
   useEffect(() => {
-    let resolvedOffset = bottomOffset;
-    if (isTabBarVisible && bottomOffset >= 75) {
-      resolvedOffset = (insets.bottom > 0 ? insets.bottom : 0) + 98;
-    }
+    // When tab bar is visible, float cleanly above the bottom navbar (~62px height + insets)
+    const navBarHeight = 62 + (insets.bottom > 0 ? insets.bottom : 0);
     const targetBottom = isTabBarVisible 
-      ? resolvedOffset 
-      : (bottomOffset < 75 ? (insets.bottom > 0 ? insets.bottom + bottomOffset : bottomOffset) : 16);
+      ? (bottomOffset > 70 ? bottomOffset : navBarHeight + 10)
+      : (insets.bottom > 0 ? insets.bottom + 12 : 16);
+
     bottomAnimShared.value = withTiming(targetBottom, {
       duration: 280,
       easing: Easing.bezier(0.25, 0.1, 0.25, 1.0),
@@ -160,7 +159,7 @@ export default function FloatingCartBar({ bottomOffset = 16, onTap }: FloatingCa
   }));
 
   const animatedBottomStyle = useAnimatedStyle(() => ({
-    bottom: bottomAnimShared.value + (insets.bottom > 0 ? insets.bottom - 8 : 0),
+    bottom: bottomAnimShared.value,
   }));
 
   if (cartItemCount === 0) return null;

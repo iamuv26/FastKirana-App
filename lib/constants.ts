@@ -41,6 +41,7 @@ export const CATEGORIES = [
   { name: 'Dairy & Breakfast', slug: 'dairy-breakfast', emoji: '🥛' },
   { name: 'Snacks & Munchies', slug: 'snacks-biscuits', emoji: '🍿' },
   { name: 'Beverages', slug: 'beverages', emoji: '🥤' },
+  { name: 'Ice Cream', slug: 'ice-cream', emoji: '🍦' },
   { name: 'Personal Care', slug: 'personal-care', emoji: '🧴' },
   { name: 'Household', slug: 'household', emoji: '🏠' },
   { name: 'Bakery & Biscuits', slug: 'bakery', emoji: '🍞' },
